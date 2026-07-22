@@ -58,7 +58,7 @@ Use `Text` from `src/components/ui/Text.tsx`, never RN's `Text` directly — RN'
 
 ### Not yet wired up
 
-`RootNavigator` → `MainTabNavigator` (5 tabs) is wired up, with placeholder screens under `src/screens/*`. `@react-navigation/native-stack` is installed but no stack screens exist yet. `zustand` and `@tanstack/react-query` are installed but unused so far.
+`RootNavigator` → `MainTabNavigator` (5 tabs) is wired up, with placeholder screens under `src/screens/*`. `@react-navigation/native-stack` is installed but no additional stack screens exist yet. `zustand` and `@tanstack/react-query` are installed but unused so far.
 
 ### Cross-platform (iOS/Android) consistency
 

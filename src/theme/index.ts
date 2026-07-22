@@ -4,6 +4,9 @@ import tokens from "@/theme/tokens";
 
 export const { colors, tabBar } = tokens;
 
+/** 프리셋 조립용 원시값. 소비처는 아래 `shadows`를 쓰라고 일부러 export하지 않는다. */
+const { shadow } = tokens;
+
 /** `useFonts`에 넘기는 키이자 RN `fontFamily`에 넣는 문자열. */
 export const FONT_FAMILY = tokens.fontFamily.jua[0];
 
@@ -17,24 +20,24 @@ export const FONT_FAMILY = tokens.fontFamily.jua[0];
  */
 export const shadows = {
   none: {
-    shadowColor: "transparent",
+    shadowColor: shadow.colorNone,
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,
   },
   card: {
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowColor: shadow.color,
+    shadowOffset: { width: 0, height: shadow.card.offsetY },
+    shadowOpacity: shadow.card.opacity,
+    shadowRadius: shadow.card.radius,
+    elevation: shadow.card.elevation,
   },
   /** 위로 뜨는 그림자 — 하단 탭바처럼 화면 아래에 붙는 표면용. */
   raisedBottom: {
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowColor: shadow.color,
+    shadowOffset: { width: 0, height: shadow.raisedBottom.offsetY },
+    shadowOpacity: shadow.raisedBottom.opacity,
+    shadowRadius: shadow.raisedBottom.radius,
+    elevation: shadow.raisedBottom.elevation,
   },
 } satisfies Record<string, ViewStyle>;

@@ -62,6 +62,25 @@ const colors = {
 };
 
 /**
+ * 그림자 원시값.
+ *
+ * 타입이 붙은 프리셋 조립은 `src/theme/index.ts`가 하고, 여기서는 색과 치수만 낸다.
+ * `colors`에 두지 않은 이유: 그림자 색은 UI 팔레트가 아니라서
+ * tailwind `theme.extend.colors`로 새어나가면 안 된다.
+ *
+ * iOS의 opacity/radius와 Android의 `elevation`은 서로 무관한 API지만
+ * 같은 단계에서 비슷한 깊이로 보여야 하므로 한 덩어리로 묶어 둔다.
+ */
+const shadow = {
+  color: "#000000",
+  /** 그림자 끄기용. RN은 `shadowColor`를 비울 수 없어 투명색으로 끈다. */
+  colorNone: "transparent",
+  card: { offsetY: 2, opacity: 0.08, radius: 8, elevation: 3 },
+  /** 위로 뜨는 그림자 — 하단 탭바처럼 화면 아래에 붙는 표면용. */
+  raisedBottom: { offsetY: -2, opacity: 0.06, radius: 8, elevation: 8 },
+};
+
+/**
  * Jua 하나만 쓴다. 커스텀 폰트는 iOS/Android에서 동일하게 렌더링되므로
  * San Francisco/Roboto의 메트릭 차이를 아예 만들지 않는다.
  * `sans`도 같은 값으로 덮어써서, 별도 지정 없이 떨어지는 텍스트도 Jua가 되게 한다.
@@ -104,4 +123,4 @@ const tabBar = {
     TAB_BAR_VERTICAL_PADDING * 2,
 };
 
-module.exports = { colors, fontFamily, fontSize, tabBar };
+module.exports = { colors, fontFamily, fontSize, shadow, tabBar };
