@@ -31,6 +31,16 @@ Only vars prefixed `EXPO_PUBLIC_` are inlined into the client bundle (`process.e
 
 NativeWind (Tailwind for RN) — use `className` on RN components. Entry stylesheet is `global.css`, wired through `metro.config.js` (`withNativeWind`) and `babel.config.js` (`nativewind/babel` preset). Tailwind content globs cover `App.tsx` and `src/**/*.{js,jsx,ts,tsx}`.
 
+**Design tokens live in `src/theme/tokens.js`** — colors (`brand`/`ink`/`surface`/`line`), `fontFamily`, `fontSize`, and tab-bar dimensions. It is `.js` (CommonJS) on purpose: `tailwind.config.js` is executed by Node without Babel/Metro, so it can't `require` a `.ts` file. TS code imports the typed re-export from `src/theme/index.ts`, which also holds the `shadows` presets.
+
+This split exists because **not everything can be styled with `className`**. Third-party style props — most notably react-navigation's `tabBarStyle`/`tabBarLabelStyle` — only accept RN style objects, so they'd otherwise drift from the Tailwind utilities. Both sides read `tokens.js`. Don't hardcode a hex or a dimension in a style object; add it to the tokens file.
+
+The `brand` orange ramp was sampled from the mockup in `public/` (primary `#F76910`), not picked from Tailwind's defaults. One rule that isn't obvious: **`brand` (500) is only 3.01:1 against white**, so it's fine for buttons and large text but fails the 4.5:1 body-text bar — use `brand-text` (`#BD4900`, 5.10:1) for orange text on a light background. Note `public/logo.png` uses a visibly different orange (ΔE 8.6); it's a separate asset and is left alone.
+
+Every `fontSize` entry ships an explicit `lineHeight`. Leaving it unset lets per-platform font metrics decide row height, which then breaks any fixed-height container (see the tab bar).
+
+Use `Text` from `src/components/ui/Text.tsx`, never RN's `Text` directly — RN's `Text` doesn't know about the Tailwind config, so a bare one falls back to the system font. Jua is **single-weight**: `font-medium`/`font-bold` produce synthetic weights that differ per platform, so don't use weight utilities.
+
 ### API layer: ported from `web-front-end`, not native-first
 
 `src/lib/api/client.ts`, `src/types/api.ts`, `src/types/exam.ts`, and everything under `src/features/exam/` were copied from the original Next.js web app's proven API layer (see the "무엇을 가져왔고" section of [docs/why-new-repo-and-partial-copy.md](docs/why-new-repo-and-partial-copy.md)). No UI/screens were carried over — those are being built fresh for this app.
@@ -48,11 +58,11 @@ NativeWind (Tailwind for RN) — use `className` on RN components. Entry stylesh
 
 ### Not yet wired up
 
-`@react-navigation/native`, `native-stack`, and `bottom-tabs` are installed but no navigator is set up yet — `App.tsx` is still the default Expo scaffold. `zustand` and `@tanstack/react-query` are installed but unused so far.
+`RootNavigator` → `MainTabNavigator` (5 tabs) is wired up, with placeholder screens under `src/screens/*`. `@react-navigation/native-stack` is installed but no stack screens exist yet. `zustand` and `@tanstack/react-query` are installed but unused so far.
 
 ### Cross-platform (iOS/Android) consistency
 
-- **Font**: use Google Font **Jua** everywhere (`@expo-google-fonts/jua`, loaded via `expo-font`'s `useFonts`) instead of the system default (San Francisco on iOS, Roboto on Android). A custom font renders pixel-for-pixel the same on both platforms, so this sidesteps the iOS/Android font-metric mismatch entirely rather than compensating for it.
+- **Font**: use Google Font **Jua** everywhere (`@expo-google-fonts/jua`, loaded via `expo-font`'s `useFonts`) instead of the system default (San Francisco on iOS, Roboto on Android). A custom font renders pixel-for-pixel the same on both platforms, so this sidesteps the iOS/Android font-metric mismatch entirely rather than compensating for it. Loading lives in `src/theme/use-app-fonts.ts`, which holds the splash screen until the font is ready — otherwise the first frame renders in the system font and the layout shifts when Jua swaps in. Note the Jua TTF is ~2 MB (it carries the full Hangul glyph set), which is most of the app's asset weight.
 - **Shadows**: iOS (`shadowColor`/`shadowOffset`/`shadowOpacity`/`shadowRadius`) and Android (`elevation`) use unrelated APIs. Don't branch on `Platform.OS` per screen — define shadow presets once in a shared theme/style layer and reuse them (NativeWind's `shadow-*` utilities already handle both platforms under the hood).
 - **Touch feedback**: iOS convention is opacity change on press, Android convention is a ripple. Put this in one shared `Pressable`-based button component (e.g. `android_ripple` prop) rather than reimplementing per screen.
 - **Safe area**: notch/Dynamic Island (iOS) vs status bar (Android) differ. Wrap the app once in `SafeAreaProvider` (`react-native-safe-area-context`, already installed) and consume insets via `useSafeAreaInsets`/`SafeAreaView` in screens — don't hardcode top/bottom padding.
