@@ -37,8 +37,9 @@ export function MainTabNavigator() {
       screenOptions={{
         headerShown: false,
         // 이 틴트는 아이콘뿐 아니라 11px 라벨에도 걸린다. brand.DEFAULT(500)는
-        // 흰 배경 대비 3.01:1이라 본문 기준 4.5:1에 미달하므로 brand.text(700)를 쓴다.
-        tabBarActiveTintColor: colors.brand.text,
+        // 흰 배경 대비 3.01:1로 본문 기준 4.5:1에는 못 미치지만, 요청에 따라
+        // brand.text(700) 대신 시각적으로 더 쨍한 500을 쓴다.
+        tabBarActiveTintColor: colors.brand.DEFAULT,
         tabBarInactiveTintColor: colors.ink.disabled,
         tabBarButton: TabBarButton,
         tabBarIconStyle: {

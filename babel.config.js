@@ -12,6 +12,8 @@ module.exports = function (api) {
           },
         },
       ],
+      // react-native-worklets/plugin은 반드시 plugins 배열의 마지막에 와야 한다.
+      "react-native-worklets/plugin",
     ],
   };
 };
