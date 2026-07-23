@@ -123,8 +123,15 @@ export function HomeScreen() {
           {/* 헤더 */}
           <View className="flex-row items-center justify-between py-4">
             <View className="flex-row items-center gap-2">
-              <Image source={logo} className="h-8 w-8" resizeMode="contain" />
-              <Text className="text-xl">토선생</Text>
+              <Image source={logo} className="h-8 w-9" resizeMode="contain" />
+              {/*
+                items-center는 텍스트 "박스"를 정렬할 뿐, 박스 안에서 글자가 중앙에 오지는 않는다.
+                Jua는 ascent 800 / descent 200으로 비대칭인데 한글에는 디센더가 없어서,
+                잉크가 행 박스 위쪽에 쏠린다(20px 기준 baseline 위 16px ~ 아래 1px).
+                그 결과 잉크 중심이 박스 중심보다 0.075em 위에 놓이고, lineHeight를 바꿔도
+                이 값은 그대로다. text-xl(20px)에서 1.5px이라 그만큼 내려 로고와 광학 중심을 맞춘다.
+              */}
+              <Text className="relative top-[1.5px] text-xl">토선생</Text>
             </View>
             <Pressable
               className="h-10 w-10 items-center justify-center rounded-full"
