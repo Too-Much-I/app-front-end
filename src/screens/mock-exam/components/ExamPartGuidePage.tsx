@@ -13,6 +13,7 @@ interface ExamPartGuidePageProps {
   partCount: number;
   onNext: () => void;
   onSelectPart: (index: number) => void;
+  onStart: () => void;
 }
 
 interface TimingItemProps {
@@ -88,11 +89,13 @@ export function ExamPartGuidePage({
   partCount,
   onNext,
   onSelectPart,
+  onStart,
 }: ExamPartGuidePageProps) {
   const mascotSize = {
     height: "100%" as const,
     maxHeight: 200,
     maxWidth: 190,
+    transform: [{ scale: guide.mascotScale }],
     width: "52%" as const,
   };
 
@@ -131,9 +134,9 @@ export function ExamPartGuidePage({
 
       <Pressable
         className="mt-6 items-center justify-center rounded-2xl bg-brand-cta py-4"
-        onPress={onNext}
+        onPress={isLast ? onStart : onNext}
       >
-        <Text className="text-lg text-white">{isLast ? "확인했어요" : "다음 파트"}</Text>
+        <Text className="text-lg text-white">{isLast ? "시작하기" : "다음 파트"}</Text>
       </Pressable>
     </ScrollView>
   );

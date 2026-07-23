@@ -8,6 +8,8 @@ export interface ExamPartGuide {
   prepTime: string;
   answerTime: string;
   mascot: ImageSourcePropType;
+  /** 원본 PNG의 투명 여백 차이를 보정하는 시각적 배율. */
+  mascotScale: number;
 }
 
 export const EXAM_PART_GUIDES: readonly ExamPartGuide[] = [
@@ -19,6 +21,7 @@ export const EXAM_PART_GUIDES: readonly ExamPartGuide[] = [
     prepTime: "각 45초",
     answerTime: "각 45초",
     mascot: require("../../../public/mascots/mic_rabbit.png"),
+    mascotScale: 1,
   },
   {
     part: "Part 2",
@@ -28,6 +31,7 @@ export const EXAM_PART_GUIDES: readonly ExamPartGuide[] = [
     prepTime: "각 45초",
     answerTime: "각 30초",
     mascot: require("../../../public/mascots/study_turtle.png"),
+    mascotScale: 1,
   },
   {
     part: "Part 3",
@@ -37,6 +41,7 @@ export const EXAM_PART_GUIDES: readonly ExamPartGuide[] = [
     prepTime: "문항당 3초",
     answerTime: "Q5, Q6: 각 15초\nQ7: 30초",
     mascot: require("../../../public/mascots/painting_cat.png"),
+    mascotScale: 0.88,
   },
   {
     part: "Part 4",
@@ -46,6 +51,7 @@ export const EXAM_PART_GUIDES: readonly ExamPartGuide[] = [
     prepTime: "지문 읽기 45초\n+ 문항당 3초",
     answerTime: "Q8, Q9: 각 15초\nQ10: 30초",
     mascot: require("../../../public/mascots/music_bird.png"),
+    mascotScale: 1,
   },
   {
     part: "Part 5",
@@ -55,5 +61,6 @@ export const EXAM_PART_GUIDES: readonly ExamPartGuide[] = [
     prepTime: "45초",
     answerTime: "60초",
     mascot: require("../../../public/mascots/detective_rabbit.png"),
+    mascotScale: 1,
   },
 ];

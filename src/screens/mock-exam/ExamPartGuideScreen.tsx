@@ -25,13 +25,12 @@ export function ExamPartGuideScreen({ navigation }: ExamPartGuideScreenProps) {
 
   const handleNext = () => {
     const nextIndex = activeIndex + 1;
-
-    if (nextIndex === EXAM_PART_GUIDES.length) {
-      navigation.goBack();
-      return;
-    }
-
     handleSelectPart(nextIndex);
+  };
+
+  const handleStartExam = () => {
+    // TODO: 시험 진행 화면이 추가되면 createExamSession() 결과와 함께 해당 라우트로 이동한다.
+    console.log("[ExamPartGuide] 시작하기 press");
   };
 
   return (
@@ -68,6 +67,7 @@ export function ExamPartGuideScreen({ navigation }: ExamPartGuideScreenProps) {
               partCount={EXAM_PART_GUIDES.length}
               onNext={handleNext}
               onSelectPart={handleSelectPart}
+              onStart={handleStartExam}
             />
           </View>
         ))}
