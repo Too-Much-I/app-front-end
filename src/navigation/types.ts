@@ -6,6 +6,11 @@ export type MainTabParamList = {
   MyPage: undefined;
 };
 
+export type MockExamStackParamList = {
+  MockExamReady: undefined;
+  ExamPartGuide: undefined;
+};
+
 export type RootStackParamList = {
   MainTabs: undefined;
 };

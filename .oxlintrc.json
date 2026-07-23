@@ -2,7 +2,34 @@
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "typescript", "oxc"],
   "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "react-native",
+            "importNames": [
+              "Button",
+              "Pressable",
+              "TouchableHighlight",
+              "TouchableNativeFeedback",
+              "TouchableOpacity",
+              "TouchableWithoutFeedback"
+            ],
+            "message": "Use Pressable from @/components/ui/Pressable for consistent cross-platform touch feedback."
+          }
+        ]
+      }
+    ],
     "react/rules-of-hooks": "error",
     "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/components/ui/Pressable.tsx"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ]
 }
