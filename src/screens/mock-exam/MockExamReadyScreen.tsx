@@ -36,12 +36,25 @@ export function MockExamReadyScreen({ navigation }: MockExamReadyScreenProps) {
 
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-surface-subtle">
-      <View className="px-5 py-4">
+      <View className="h-16 flex-row items-center justify-between px-5">
         <Text className="text-xl">모의고사</Text>
+        <Pressable
+          accessibilityHint="파트별 문제 유형과 제한 시간을 확인합니다"
+          accessibilityLabel="파트별 진행 방식 보기"
+          accessibilityRole="button"
+          className="h-11 w-11 items-center justify-center rounded-full"
+          onPress={() => navigation.navigate("ExamPartGuide")}
+        >
+          <Feather name="help-circle" size={24} color={colors.ink.muted} />
+        </Pressable>
       </View>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <View className="px-5 pb-4">
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="flex-grow"
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="px-5">
           {/* 헤드라인 — 아래 목록 전체가 무엇을 위한 것인지 한 줄로 묶어준다 */}
           <View className="flex-row items-center gap-2">
             <View className="flex-1">
@@ -50,7 +63,8 @@ export function MockExamReadyScreen({ navigation }: MockExamReadyScreenProps) {
                 한 번 시작하면 중간에 멈출 수 없어요
               </Text>
             </View>
-            {/* 원본이 정사각형(1254×1254)이라 정사각 박스에 넣으면 잘리지 않는다 */}
+            {/* 원본은 여백을 잘라낸 세로형(738×927)이다. contain이라 정사각 박스에서도
+                잘리지 않고, 좌우에 남는 공간만큼 실제 그림이 작아진다 */}
             <Image source={readyMascot} className="h-32 w-32" resizeMode="contain" />
           </View>
 
@@ -58,34 +72,25 @@ export function MockExamReadyScreen({ navigation }: MockExamReadyScreenProps) {
             <ExamReadyNoticeCard />
           </View>
         </View>
+
+        {/* 남는 공간의 중앙에 CTA를 두고, 작은 화면에서는 전체 콘텐츠와 함께 스크롤한다. */}
+        <View className="flex-1 justify-center px-5 py-4">
+          {/* 규칙: 버튼이 주황이면 아이콘·글자는 흰색 */}
+          <Pressable
+            className="flex-row items-center justify-center gap-2 rounded-2xl bg-brand-cta py-4"
+            style={shadows.card}
+            onPress={handleStartExam}
+          >
+            {/*
+              마이크가 아니라 play-circle을 쓴다. 이 버튼을 눌러서 시작되는 건 녹음이 아니라
+              Part 1 디렉션이다 — 마이크 아이콘은 "지금 말하세요"를 약속하는데 다음 화면이
+              그 약속을 지키지 않는다.
+            */}
+            <Feather name="play-circle" size={20} color="#FFFFFF" />
+            <Text className="text-base text-white">모의고사 시작하기</Text>
+          </Pressable>
+        </View>
       </ScrollView>
-
-      <View className="gap-3 px-5 pb-4 pt-2">
-        {/* 규칙: 버튼이 주황이면 아이콘·글자는 흰색 */}
-        <Pressable
-          className="flex-row items-center justify-center gap-2 rounded-2xl bg-brand-cta py-4"
-          style={shadows.card}
-          onPress={handleStartExam}
-        >
-          {/*
-            마이크가 아니라 play-circle을 쓴다. 이 버튼을 눌러서 시작되는 건 녹음이 아니라
-            Part 1 디렉션이다 — 마이크 아이콘은 "지금 말하세요"를 약속하는데 다음 화면이
-            그 약속을 지키지 않는다.
-          */}
-          <Feather name="play-circle" size={20} color="#FFFFFF" />
-          <Text className="text-base text-white">모의고사 시작하기</Text>
-        </Pressable>
-
-        {/* 물음표 아이콘만 두면 도움말/FAQ로 읽히므로 열리는 콘텐츠 이름을 함께 쓴다. */}
-        <Pressable
-          className="flex-row items-center justify-center gap-1.5 py-2"
-          hitSlop={8}
-          onPress={() => navigation.navigate("ExamPartGuide")}
-        >
-          <Feather name="help-circle" size={16} color={colors.ink.muted} />
-          <Text className="text-sm text-ink-muted">파트별 진행 방식 보기</Text>
-        </Pressable>
-      </View>
     </SafeAreaView>
   );
 }
