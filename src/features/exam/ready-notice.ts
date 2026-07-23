@@ -34,7 +34,7 @@ export const EXAM_READY_NOTICES: ExamReadyNotice[] = [
   {
     icon: "columns",
     title: "준비 시간과 답변 시간이 나뉘어요",
-    description: "파트마다 길이가 달라요. 아래에서 미리 볼 수 있어요.",
+    description: "파트마다 길이가 달라요.",
   },
   {
     icon: "skip-forward",

@@ -1,15 +1,22 @@
 import { Feather } from "@expo/vector-icons";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Image, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
+import type { MockExamStackParamList } from "@/navigation/types";
 import { ExamReadyNoticeCard } from "@/screens/mock-exam/components/ExamReadyNoticeCard";
 import { colors, shadows } from "@/theme";
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
 // "조용히" 몸짓의 마스코트 — 안내 목록 첫 항목(조용한 곳에서 응시)과 그림이 그대로 맞는다.
 const readyMascot = require("../../../public/mascots/shh.png");
+
+type MockExamReadyScreenProps = NativeStackScreenProps<
+  MockExamStackParamList,
+  "MockExamReady"
+>;
 
 /**
  * 모의고사 준비(안내) 화면 — 모의고사 탭 자체가 이 화면이다.
@@ -20,7 +27,7 @@ const readyMascot = require("../../../public/mascots/shh.png");
  * 탭바는 그대로 남는다 — 아직 응시에 진입하지 않았으므로 다른 탭으로 빠져나갈 수 있어야 한다.
  * (실제 응시 화면은 반대로 탭바를 숨겨야 한다. 20분 응시 중 탭 오터치로 세션이 날아가면 안 된다.)
  */
-export function MockExamReadyScreen() {
+export function MockExamReadyScreen({ navigation }: MockExamReadyScreenProps) {
   const handleStartExam = () => {
     // TODO: createExamSession()(features/exam/api/exam-session-create.ts) 연결.
     // 연결할 때 버튼 연타 방지가 함께 필요하다 — docs/exam-session-duplicate-request-fix.md 참고.
@@ -69,17 +76,11 @@ export function MockExamReadyScreen() {
           <Text className="text-base text-white">모의고사 시작하기</Text>
         </Pressable>
 
-        {/*
-          물음표 아이콘 단독은 관례상 도움말/FAQ로 읽힌다. 열리는 건 Part 1~5를 넘겨보는
-          콘텐츠 화면이므로 문구를 함께 둬야 무엇이 열릴지 예측된다.
-
-          TODO: 파트별 안내 화면이 만들어지면 그 라우트로 연결한다. 그 전까지는 안내 목록
-          3번 항목의 "아래에서 미리 볼 수 있어요"가 갈 곳 없는 약속이라는 점에 주의.
-        */}
+        {/* 물음표 아이콘만 두면 도움말/FAQ로 읽히므로 열리는 콘텐츠 이름을 함께 쓴다. */}
         <Pressable
           className="flex-row items-center justify-center gap-1.5 py-2"
           hitSlop={8}
-          onPress={() => console.log("[MockExamReady] 파트별 진행 방식 press")}
+          onPress={() => navigation.navigate("ExamPartGuide")}
         >
           <Feather name="help-circle" size={16} color={colors.ink.muted} />
           <Text className="text-sm text-ink-muted">파트별 진행 방식 보기</Text>

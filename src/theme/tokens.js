@@ -78,6 +78,8 @@ const colors = {
     DEFAULT: "#FFFFFF",
     /** 목업의 카드 바탕에서 측정한 따뜻한 크림(#FFF9F2). 회색이 아니다. */
     subtle: "#FFF9F2",
+    /** 입력·시간 정보처럼 흰 화면 위에서 조용히 구분되는 중립 배경. */
+    muted: "#F7F7F7",
   },
   line: {
     DEFAULT: "#E5E7EB",
@@ -125,6 +127,7 @@ const fontSize = {
   lg: ["18px", { lineHeight: "26px" }],
   xl: ["20px", { lineHeight: "28px" }],
   "2xl": ["24px", { lineHeight: "32px" }],
+  "3xl": ["30px", { lineHeight: "38px" }],
 };
 
 /** 하단 탭바 치수. safe-area inset은 런타임에 더해지므로 여기 포함하지 않는다. */
