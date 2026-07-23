@@ -131,7 +131,12 @@ export function HomeScreen() {
                 그 결과 잉크 중심이 박스 중심보다 0.075em 위에 놓이고, lineHeight를 바꿔도
                 이 값은 그대로다. text-xl(20px)에서 1.5px이라 그만큼 내려 로고와 광학 중심을 맞춘다.
               */}
-              <Text className="relative top-[1.5px] text-xl">토선생</Text>
+              <Text
+                className="relative top-[1.5px] text-xl"
+                style={{ color: colors.brand.DEFAULT }}
+              >
+                토선생
+              </Text>
             </View>
             <Pressable
               className="h-10 w-10 items-center justify-center rounded-full"
