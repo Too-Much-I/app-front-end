@@ -126,7 +126,11 @@ export function HomeScreen() {
               <Image source={logo} className="h-8 w-8" resizeMode="contain" />
               <Text className="text-xl">토선생</Text>
             </View>
-            <Pressable className="h-10 w-10 items-center justify-center rounded-full">
+            <Pressable
+              className="h-10 w-10 items-center justify-center rounded-full"
+              // TODO: 알림 화면 라우트가 생기면 연결
+              onPress={() => console.log("[Home] 알림 버튼 press")}
+            >
               <View>
                 <Feather name="bell" size={22} color={colors.ink.DEFAULT} />
                 <View className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-brand" />
@@ -210,7 +214,7 @@ export function HomeScreen() {
             className="relative mt-3 flex-row items-center gap-3 rounded-3xl border border-sky-line bg-sky-surface p-5"
             style={shadows.card}
             // TODO: 챌린지 화면 라우트가 생기면 연결
-            onPress={() => {}}
+            onPress={() => console.log("[Home] 10초 챌린지 press")}
           >
             <View className="flex-1">
               <Text className="text-base">10초 챌린지</Text>
