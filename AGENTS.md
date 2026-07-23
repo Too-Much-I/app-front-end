@@ -66,7 +66,7 @@ No automated test runner is configured yet. For code changes, run `pnpm lint` an
 
 ## Change discipline
 
-- Read nearby code and relevant files under `docs/` before changing established behavior.
+- Before editing code, think through the task carefully, inspect the related code and documentation, produce a concise design, and communicate relevant tradeoffs; only then make changes.
 - Keep changes scoped to the request and preserve unrelated working-tree modifications.
 - Do not edit generated files, dependency lockfiles, or assets unless the requested change requires it.
 - Update documentation when changing an architectural rule, environment setup, or a non-obvious API workaround.
