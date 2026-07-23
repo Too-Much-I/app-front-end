@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollView, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -16,7 +16,15 @@ type ExamPartGuideScreenProps = NativeStackScreenProps<MockExamStackParamList, "
 export function ExamPartGuideScreen({ navigation }: ExamPartGuideScreenProps) {
   const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
+  const previousWidthRef = useRef(width);
   const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    if (previousWidthRef.current === width) return;
+
+    scrollRef.current?.scrollTo({ x: activeIndex * width, animated: false });
+    previousWidthRef.current = width;
+  }, [activeIndex, width]);
 
   const handleSelectPart = (index: number) => {
     scrollRef.current?.scrollTo({ x: index * width, animated: true });

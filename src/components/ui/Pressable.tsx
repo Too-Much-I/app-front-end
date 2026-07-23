@@ -1,3 +1,4 @@
+import { cssInterop } from "nativewind";
 import { forwardRef, useRef } from "react";
 import {
   Animated,
@@ -11,6 +12,10 @@ import {
 const PRESSED_OPACITY = 0.7;
 const RELEASE_DURATION_MS = 200;
 const AnimatedPressable = Animated.createAnimatedComponent(RNPressable);
+
+// createAnimatedComponent()가 만든 새 컴포넌트는 RNPressable의 NativeWind 등록을
+// 상속하지 않으므로 className을 style로 변환하는 경로를 명시적으로 연결한다.
+cssInterop(AnimatedPressable, { className: "style" });
 
 type AppPressableProps = Omit<PressableProps, "android_ripple"> & {
   /** 터치 피드백은 opacity로 통일하므로 Android 리플은 허용하지 않는다. */

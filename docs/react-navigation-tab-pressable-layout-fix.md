@@ -117,9 +117,9 @@ React Navigation이 플랫폼별로 정해준 `role`, 접근성 prop, 이벤트,
 
 - 실기기에서 커스텀 버튼 적용 후 탭 아이콘 위치가 기존 배치로 복구된 것을 확인했다.
 - Android 리플 없이 누르는 동안 opacity가 감소하는 것을 확인했다.
-- 변경 파일에 대해 `oxlint`를 통과했다.
-- `tsc --noEmit --noUnusedLocals false`를 통과했다.
-- 기본 `tsc --noEmit`은 이번 변경과 무관하게 `src/screens/home/HomeScreen.tsx`의 미사용 `DebugGrid` 때문에 실패했다. 해당 작업은 이 수정 범위에서 건드리지 않았다.
+- `pnpm lint`를 통과했다.
+- `pnpm exec tsc --noEmit --noUnusedLocals false`를 통과했다.
+- 기본 `pnpm exec tsc --noEmit`은 이번 변경과 무관하게 `src/screens/home/HomeScreen.tsx`의 미사용 `DebugGrid` 때문에 실패했다. 해당 작업은 이 수정 범위에서 건드리지 않았다.
 
 ## 7. 교훈
 

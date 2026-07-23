@@ -1,3 +1,5 @@
+# Claude Code instructions
+
   Read and follow [AGENTS.md](./AGENTS.md) before making changes.
 
   Critical rules:
