@@ -6,6 +6,7 @@ import { Image, View } from "react-native";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
+import { createExamSession } from "@/features/exam/api/exam-session-create";
 import type { MockExamStackParamList } from "@/navigation/types";
 import { DeviceTestLayout } from "@/screens/mock-exam/components/DeviceTestLayout";
 import { colors } from "@/theme";
@@ -19,11 +20,15 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
   const [hasPlayed, setHasPlayed] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);
+  const [isStartingExam, setIsStartingExam] = useState(false);
+  const [startExamError, setStartExamError] = useState(false);
   const soundCheckPlayer = useAudioPlayer(soundCheckAudio, { updateInterval: 100 });
   const playbackStatus = useAudioPlayerStatus(soundCheckPlayer);
   const hasPlaybackFinished =
     playbackStatus.didJustFinish ||
     (playbackStatus.duration > 0 && playbackStatus.currentTime >= playbackStatus.duration);
+  const hasSoundPlaybackError = hasPlaybackError || playbackStatus.error !== null;
+  const canCompleteSoundTest = hasPlayed && !hasSoundPlaybackError;
 
   const handlePlayback = useCallback(async () => {
     if (playbackStatus.playing) {
@@ -52,10 +57,22 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
     navigation.goBack();
   }, [navigation, soundCheckPlayer]);
 
-  const handleStartExam = () => {
+  const handleStartExam = async () => {
+    if (isStartingExam) return;
+
     soundCheckPlayer.pause();
-    // TODO: 시험 진행 화면이 추가되면 createExamSession() 결과와 함께 해당 라우트로 이동한다.
-    console.log("[SoundTest] 모의고사 시작하기 press");
+    setIsStartingExam(true);
+    setStartExamError(false);
+
+    try {
+      const session = await createExamSession();
+      setIsStartingExam(false);
+      navigation.navigate("ExamSession", { session });
+    } catch (error) {
+      console.error("[SoundTest] 시험 세션 생성 실패", error);
+      setStartExamError(true);
+      setIsStartingExam(false);
+    }
   };
 
   return (
@@ -66,7 +83,7 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
           <Text className="mt-2 text-center text-base leading-6 text-ink-muted">
             {isComplete
               ? "잘 들린다면 시험을 시작해주세요"
-              : hasPlaybackError || playbackStatus.error !== null
+              : hasSoundPlaybackError
                 ? "안내 음성을 재생하지 못했어요. 다시 시도해주세요"
                 : "오디오나 헤드폰 환경을 권장해요"}
           </Text>
@@ -118,29 +135,50 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
         {isComplete ? (
           <Pressable
             accessibilityRole="button"
-            className="items-center justify-center rounded-2xl bg-brand-cta py-4"
-            onPress={handleStartExam}
+            accessibilityState={{ disabled: isStartingExam }}
+            className={`items-center justify-center rounded-2xl py-4 ${
+              isStartingExam ? "bg-line" : "bg-brand-cta"
+            }`}
+            disabled={isStartingExam}
+            onPress={() => {
+              void handleStartExam();
+            }}
           >
-            <Text className="text-lg text-white">모의고사 시작하기</Text>
+            <Text className={`text-lg ${isStartingExam ? "text-ink-disabled" : "text-white"}`}>
+              {isStartingExam ? "시험 준비 중..." : "모의고사 시작하기"}
+            </Text>
           </Pressable>
         ) : (
           <Pressable
             accessibilityRole="button"
-            accessibilityState={{ disabled: !hasPlayed }}
+            accessibilityState={{ disabled: !canCompleteSoundTest }}
             className={`items-center justify-center rounded-2xl py-4 ${
-              hasPlayed ? "bg-brand-cta" : "bg-line"
+              canCompleteSoundTest ? "bg-brand-cta" : "bg-line"
             }`}
-            disabled={!hasPlayed}
+            disabled={!canCompleteSoundTest}
             onPress={() => {
+              if (!canCompleteSoundTest) return;
               soundCheckPlayer.pause();
               setIsComplete(true);
             }}
           >
-            <Text className={`text-lg ${hasPlayed ? "text-white" : "text-ink-disabled"}`}>
+            <Text
+              className={`text-lg ${
+                canCompleteSoundTest ? "text-white" : "text-ink-disabled"
+              }`}
+            >
               잘 들려요
             </Text>
           </Pressable>
         )}
+        {startExamError ? (
+          <Text
+            accessibilityLiveRegion="polite"
+            className="mt-3 text-center text-sm text-exam-danger"
+          >
+            시험을 불러오지 못했어요. 네트워크를 확인하고 다시 시도해주세요.
+          </Text>
+        ) : null}
       </View>
     </DeviceTestLayout>
   );

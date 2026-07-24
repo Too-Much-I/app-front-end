@@ -82,6 +82,18 @@ const colors = {
   line: {
     DEFAULT: "#E5E7EB",
   },
+  /**
+   * 시험 진행 화면 전용 상태색.
+   *
+   * 원본 웹 화면의 blue-950 / red-500 계열을 그대로 옮긴다. 일반 앱 화면의
+   * 브랜드·피드백 색과 역할이 다르므로 개별 화면에 hex를 흩뿌리지 않고 여기서 관리한다.
+   */
+  exam: {
+    navy: "#172554",
+    danger: "#EF4444",
+    dangerLine: "#F87171",
+    dangerSoft: "#FCA5A5",
+  },
 };
 
 /**

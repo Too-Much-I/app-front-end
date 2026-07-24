@@ -135,8 +135,11 @@ export function useMicrophoneTest() {
 
         try {
           if (recorder.isRecording || hasOpenRecordingRef.current) {
-            await recorder.stop();
-            hasOpenRecordingRef.current = false;
+            try {
+              await recorder.stop();
+            } finally {
+              hasOpenRecordingRef.current = false;
+            }
           }
         } catch (error) {
           hasError = true;

@@ -1,3 +1,5 @@
+import type { ExamSession } from "@/types/exam";
+
 export type MainTabParamList = {
   Home: undefined;
   MockExam: undefined;
@@ -11,6 +13,7 @@ export type MockExamStackParamList = {
   ExamPartGuide: undefined;
   MicrophoneTest: undefined;
   SoundTest: undefined;
+  ExamSession: { session: ExamSession };
 };
 
 export type RootStackParamList = {

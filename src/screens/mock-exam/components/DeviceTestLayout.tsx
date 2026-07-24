@@ -19,6 +19,7 @@ export function DeviceTestLayout({ children, currentStep, onBack }: DeviceTestLa
       <View className="h-16 flex-row items-center px-5">
         <Pressable
           accessibilityLabel="뒤로 가기"
+          accessibilityRole="button"
           className="h-10 w-10 items-center justify-center rounded-full"
           hitSlop={8}
           onPress={onBack}
