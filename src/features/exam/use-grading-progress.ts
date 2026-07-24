@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useRef, useState } from "react";
 
 import { getExamGradingStatus } from "@/features/exam/api/exam-grading-status";

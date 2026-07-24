@@ -32,7 +32,7 @@
 - `src/lib/api/client.ts` — `apiFetch` 래퍼
 - `src/features/exam/part-meta.ts` — `map-exam-session.ts`가 참조하는 파트 타이밍 상수 (처음엔 누락됐다가 나중에 추가됨)
 - `src/features/exam/map-exam-session.ts`, `map-exam-grading-result.ts`, `map-exam-question-feedback.ts`
-- `src/features/exam/use-grading-progress.ts`, `use-answer-recorder.ts`
+- `src/features/exam/use-grading-progress.ts`, `use-answer-recorder.ts` — 이 중 `use-answer-recorder.ts`는 Expo 전환 후 삭제했다. 브라우저 전용 API 기반이라 RN에서 동작하지 않고, 답변 녹음은 `expo-audio`로 새로 만든다([answer-audio-recording-format.md](answer-audio-recording-format.md)). `use-grading-progress.ts`는 React 훅과 타이머만 쓰므로 `"use client"` 지시어만 제거하고 유지했다.
 - `src/features/exam/api/*.ts` (세션 생성/응답 업로드/채점 상태·결과 조회 등 7개 엔드포인트 함수)
 
 ### 문서 (코드만 가져오면 "왜 이렇게 짜여있는지"를 잃어버리므로 같이 복사)
