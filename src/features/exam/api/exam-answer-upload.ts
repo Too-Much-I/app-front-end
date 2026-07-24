@@ -1,3 +1,5 @@
+import { File, UploadType } from "expo-file-system";
+
 import { apiFetch } from "@/lib/api/client";
 import type { ExamAnswerSubmitResult, ExamAnswerUploadUrl } from "@/types/exam";
 
@@ -22,22 +24,26 @@ async function getAnswerUploadUrl(
 
 /** 한 번의 PUT 시도가 무한 대기하지 않도록 거는 타임아웃(ms). */
 const PUT_TIMEOUT_MS = 15_000;
+/** m4a는 AAC 코덱을 담는 MPEG-4 컨테이너이므로 표준 MIME은 audio/mp4다. */
+const ANSWER_AUDIO_CONTENT_TYPE = "audio/mp4";
 
 /** 발급받은 presigned URL로 녹음 파일을 S3에 직접 업로드한다. */
-async function putAnswerAudioToS3(uploadUrl: string, audioBlob: Blob): Promise<void> {
+async function putAnswerAudioToS3(uploadUrl: string, audioFileUri: string): Promise<void> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), PUT_TIMEOUT_MS);
 
   try {
-    const res = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": audioBlob.type || "audio/wav" },
-      body: audioBlob,
+    const audioFile = new File(audioFileUri);
+    const result = await audioFile.upload(uploadUrl, {
+      httpMethod: "PUT",
+      uploadType: UploadType.BINARY_CONTENT,
+      headers: { "Content-Type": ANSWER_AUDIO_CONTENT_TYPE },
+      mimeType: ANSWER_AUDIO_CONTENT_TYPE,
       signal: controller.signal,
     });
 
-    if (!res.ok) {
-      throw new Error(`S3 업로드에 실패했습니다. (status: ${res.status})`);
+    if (result.status < 200 || result.status >= 300) {
+      throw new Error(`S3 업로드에 실패했습니다. (status: ${result.status})`);
     }
   } finally {
     clearTimeout(timeoutId);
@@ -75,7 +81,7 @@ function wait(ms: number): Promise<void> {
  */
 async function putAnswerAudioToS3WithRetry(
   uploadUrl: string,
-  audioBlob: Blob,
+  audioFileUri: string,
   deadline: number,
 ): Promise<void> {
   for (let attempt = 0; ; attempt++) {
@@ -84,7 +90,7 @@ async function putAnswerAudioToS3WithRetry(
     }
 
     try {
-      return await putAnswerAudioToS3(uploadUrl, audioBlob);
+      return await putAnswerAudioToS3(uploadUrl, audioFileUri);
     } catch (err) {
       if (attempt >= UPLOAD_RETRY_DELAYS_MS.length) throw err;
 
@@ -126,14 +132,14 @@ export class ExamAnswerUploadError extends Error {
 export async function uploadExamAnswer(
   examId: string,
   questionId: string,
-  audioBlob: Blob,
+  audioFileUri: string,
   retryCount: number,
 ): Promise<ExamAnswerSubmitResult> {
   let fileKey: string;
   try {
     const uploadUrlResult = await getAnswerUploadUrl(examId, questionId, retryCount);
     const deadline = Date.now() + uploadUrlResult.expiresIn * 1000;
-    await putAnswerAudioToS3WithRetry(uploadUrlResult.uploadUrl, audioBlob, deadline);
+    await putAnswerAudioToS3WithRetry(uploadUrlResult.uploadUrl, audioFileUri, deadline);
     fileKey = uploadUrlResult.fileKey;
   } catch (err) {
     throw new ExamAnswerUploadError("upload", "답변 업로드에 실패했어요.", { cause: err });
