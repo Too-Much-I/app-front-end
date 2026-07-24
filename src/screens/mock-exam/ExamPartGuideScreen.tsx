@@ -37,8 +37,7 @@ export function ExamPartGuideScreen({ navigation }: ExamPartGuideScreenProps) {
   };
 
   const handleStartExam = () => {
-    // TODO: 시험 진행 화면이 추가되면 createExamSession() 결과와 함께 해당 라우트로 이동한다.
-    console.log("[ExamPartGuide] 시작하기 press");
+    navigation.navigate("MicrophoneTest");
   };
 
   return (

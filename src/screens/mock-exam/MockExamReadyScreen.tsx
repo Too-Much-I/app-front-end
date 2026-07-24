@@ -21,17 +21,15 @@ type MockExamReadyScreenProps = NativeStackScreenProps<
 /**
  * 모의고사 준비(안내) 화면 — 모의고사 탭 자체가 이 화면이다.
  *
- * 마이크 권한·소리 확인 같은 검증은 하지 않는 안내 전용 화면이다. 그래서 "시작하기"는
- * 항상 눌린다. 검증 게이트가 필요해지면 이 화면에 조건을 얹는 게 아니라 별도 단계를 둔다.
+ * 마이크 권한·소리 확인 같은 검증은 하지 않는 안내 전용 화면이다. "시작하기"를 누르면
+ * 별도 기기 테스트 단계로 이동하고, 두 테스트를 마쳐야 실제 응시를 시작할 수 있다.
  *
  * 탭바는 그대로 남는다 — 아직 응시에 진입하지 않았으므로 다른 탭으로 빠져나갈 수 있어야 한다.
  * (실제 응시 화면은 반대로 탭바를 숨겨야 한다. 20분 응시 중 탭 오터치로 세션이 날아가면 안 된다.)
  */
 export function MockExamReadyScreen({ navigation }: MockExamReadyScreenProps) {
   const handleStartExam = () => {
-    // TODO: createExamSession()(features/exam/api/exam-session-create.ts) 연결.
-    // 연결할 때 버튼 연타 방지가 함께 필요하다 — docs/exam-session-duplicate-request-fix.md 참고.
-    console.log("[MockExamReady] 시작하기 press");
+    navigation.navigate("MicrophoneTest");
   };
 
   return (
@@ -81,11 +79,7 @@ export function MockExamReadyScreen({ navigation }: MockExamReadyScreenProps) {
             style={shadows.card}
             onPress={handleStartExam}
           >
-            {/*
-              마이크가 아니라 play-circle을 쓴다. 이 버튼을 눌러서 시작되는 건 녹음이 아니라
-              Part 1 디렉션이다 — 마이크 아이콘은 "지금 말하세요"를 약속하는데 다음 화면이
-              그 약속을 지키지 않는다.
-            */}
+            {/* 마이크 테스트를 포함한 모의고사 준비 흐름 전체를 시작하는 버튼이다. */}
             <Feather name="play-circle" size={20} color="#FFFFFF" />
             <Text className="text-base text-white">모의고사 시작하기</Text>
           </Pressable>

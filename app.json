@@ -23,7 +23,13 @@
     },
     "plugins": [
       "expo-font",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "답변 녹음과 마이크 테스트를 위해 마이크 권한이 필요합니다."
+        }
+      ]
     ]
   }
 }
