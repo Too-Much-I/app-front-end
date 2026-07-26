@@ -83,7 +83,8 @@ No automated test runner is configured yet. For code changes, run `pnpm lint` an
 
 ## Commits and pull requests
 
-- Do not create commits unless explicitly requested. When asked, stage only changes within the requested scope and use a Conventional Commit title with an optional scope, such as `feat(mock-exam): add part guidance`.
+- Do not create commits unless explicitly requested. When asked, stage only changes within the requested scope and use a Conventional Commit title with an optional scope, such as `feat(mock-exam): 파트별 안내 화면 추가`.
+- Write commit subjects and bodies in Korean. Keep the Conventional Commit type and optional scope in their standard lowercase English form.
 - Add a commit body only when the rationale, constraints, or follow-up work cannot be understood from the title and diff.
 - Use `.github/pull_request_template.md` when preparing a PR description. State the intended user outcome before implementation details, and record non-obvious decisions, tradeoffs, and intentional exclusions so human and automated reviewers can distinguish deliberate behavior from defects.
 - Keep PR sections concise and remove optional sections that add no review value instead of repeating the diff.
