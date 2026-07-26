@@ -6,7 +6,7 @@ import { Image, View } from "react-native";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
-import { createExamSession } from "@/features/exam/api/exam-session-create";
+import { createMockExamSession } from "@/features/exam/mocks/exam-session";
 import type { MockExamStackParamList } from "@/navigation/types";
 import { DeviceTestLayout } from "@/screens/mock-exam/components/DeviceTestLayout";
 import { colors } from "@/theme";
@@ -20,8 +20,6 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
   const [hasPlayed, setHasPlayed] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);
-  const [isStartingExam, setIsStartingExam] = useState(false);
-  const [startExamError, setStartExamError] = useState(false);
   const soundCheckPlayer = useAudioPlayer(soundCheckAudio, { updateInterval: 100 });
   const playbackStatus = useAudioPlayerStatus(soundCheckPlayer);
   const hasPlaybackFinished =
@@ -57,22 +55,9 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
     navigation.goBack();
   }, [navigation, soundCheckPlayer]);
 
-  const handleStartExam = async () => {
-    if (isStartingExam) return;
-
+  const handleStartExam = () => {
     soundCheckPlayer.pause();
-    setIsStartingExam(true);
-    setStartExamError(false);
-
-    try {
-      const session = await createExamSession();
-      setIsStartingExam(false);
-      navigation.navigate("ExamSession", { session });
-    } catch (error) {
-      console.error("[SoundTest] 시험 세션 생성 실패", error);
-      setStartExamError(true);
-      setIsStartingExam(false);
-    }
+    navigation.navigate("ExamSession", { session: createMockExamSession() });
   };
 
   return (
@@ -135,18 +120,10 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
         {isComplete ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityState={{ disabled: isStartingExam }}
-            className={`items-center justify-center rounded-2xl py-4 ${
-              isStartingExam ? "bg-line" : "bg-brand-cta"
-            }`}
-            disabled={isStartingExam}
-            onPress={() => {
-              void handleStartExam();
-            }}
+            className="items-center justify-center rounded-2xl bg-brand-cta py-4"
+            onPress={handleStartExam}
           >
-            <Text className={`text-lg ${isStartingExam ? "text-ink-disabled" : "text-white"}`}>
-              {isStartingExam ? "시험 준비 중..." : "모의고사 시작하기"}
-            </Text>
+            <Text className="text-lg text-white">모의고사 시작하기</Text>
           </Pressable>
         ) : (
           <Pressable
@@ -171,14 +148,6 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
             </Text>
           </Pressable>
         )}
-        {startExamError ? (
-          <Text
-            accessibilityLiveRegion="polite"
-            className="mt-3 text-center text-sm text-exam-danger"
-          >
-            시험을 불러오지 못했어요. 네트워크를 확인하고 다시 시도해주세요.
-          </Text>
-        ) : null}
       </View>
     </DeviceTestLayout>
   );
