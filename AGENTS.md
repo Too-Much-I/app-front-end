@@ -64,6 +64,15 @@ No automated test runner is configured yet. For code changes, run `pnpm lint` an
 - Keep one endpoint per file under `src/features/exam/api/` and document non-obvious backend quirks close to their raw types or mappers.
 - `src/features/exam/use-answer-recorder.ts` and `use-grading-progress.ts` still contain browser-only code. Do not treat them as React Native-compatible until they are explicitly reimplemented using Expo-native APIs.
 
+## Spec-driven development
+
+- Follow `docs/spec-driven-development.md` for the human approval gates, artifact flow, and Spec Kit commands used by this repository.
+- Treat Jira issues and user requests as requirements input, not direct implementation commands. Separate confirmed facts, assumptions, ambiguities, scope, and acceptance criteria before planning.
+- Use the repository's Spec Kit workflow for medium or larger feature work: specify, clarify when needed, plan, checklist, tasks, analyze, implement, and converge.
+- Do not move from specification to planning, or from planning to tasks or implementation, until the user has approved the current artifact.
+- Keep Jira reads separate from Jira writes. Do not change issue status, comments, assignees, or other external state unless the user explicitly requests it.
+- Keep feature artifacts traceable to their Jira issue or equivalent work identifier, and report the current data flow, alternatives, tradeoffs, failure paths, and validation plan before implementation.
+
 ## Change discipline
 
 - Before editing code, think through the task carefully, inspect the related code and documentation, produce a concise design, and communicate relevant tradeoffs; only then make changes.

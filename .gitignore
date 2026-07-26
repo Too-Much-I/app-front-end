@@ -37,3 +37,8 @@ web-build
 *.sw?
 
 .claude/
+
+# Codex/Spec Kit: commit reusable skills, ignore any other local agent artifacts.
+.agents/*
+!.agents/skills/
+!.agents/skills/**
