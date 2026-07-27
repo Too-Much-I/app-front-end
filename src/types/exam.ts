@@ -53,10 +53,46 @@ export interface ExamQuestion {
   isLastInPart: boolean;
 }
 
+export type ExamPartPreludeInvalidReason =
+  | "missing-part3-intro"
+  | "missing-part3-guide-audio"
+  | "misplaced-part3-content"
+  | "unsupported-part3-guide-audio"
+  | "missing-part4-table"
+  | "misplaced-part4-table"
+  | "conflicting-part4-table"
+  | "invalid-part4-table";
+
+export interface ExamPartIntroPrelude {
+  kind: "part3-intro";
+  partNumber: 3;
+  text: string;
+  guideAudioUrl: string;
+}
+
+export interface ExamPartReadingPrelude {
+  kind: "part4-reading";
+  partNumber: 4;
+  tableContext: ExamTableContext;
+  durationSec: 45;
+}
+
+export interface InvalidExamPartPrelude {
+  kind: "invalid";
+  partNumber: 3 | 4;
+  reason: ExamPartPreludeInvalidReason;
+}
+
+export type ExamPartPrelude =
+  | ExamPartIntroPrelude
+  | ExamPartReadingPrelude
+  | InvalidExamPartPrelude;
+
 export interface ExamSession {
   examId: string;
   title: string;
   questions: ExamQuestion[];
+  partPreludes: ExamPartPrelude[];
 }
 
 export interface ExamAttempt {

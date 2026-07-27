@@ -1,4 +1,5 @@
 import { mapExamSession } from "@/features/exam/map-exam-session";
+import { PART3_GUIDE_AUDIO_LOGICAL_URL } from "@/features/exam/part-prelude";
 import type { ApiEnvelope } from "@/types/api";
 import type { ExamSession, ExamTableContext, RawExamSession } from "@/types/exam";
 
@@ -68,6 +69,7 @@ export const MOCK_EXAM_SESSION_RESPONSE = {
         questionNumber: 5,
         partIntroText:
           "Imagine that an English-language magazine is conducting a survey about daily routines. You have agreed to participate in a telephone interview.",
+        guideAudioUrl: PART3_GUIDE_AUDIO_LOGICAL_URL,
         text: "How often do you exercise, and where do you usually exercise?",
       },
       {

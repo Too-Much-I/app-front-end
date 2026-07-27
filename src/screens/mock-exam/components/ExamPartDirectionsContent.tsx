@@ -5,6 +5,7 @@ import { ScrollView, View } from "react-native";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
+import { PLAYBACK_AUDIO_MODE } from "@/features/exam/answer-audio";
 import {
   getExamPartDirectionAudioSource,
   type ExamPartDirections,
@@ -48,7 +49,7 @@ export function ExamPartDirectionsContent({
 
     try {
       setHasPlaybackError(false);
-      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+      await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
 
       if (player.currentTime > 0) {
         await player.seekTo(0);
@@ -70,14 +71,14 @@ export function ExamPartDirectionsContent({
   }, [completeDirections, hasFinished]);
 
   return (
-    <View className="flex-1">
+    <View className="flex-1 bg-surface-subtle">
       <ScrollView
         bounces={false}
         className="flex-1"
         contentContainerClassName="flex-grow justify-center px-6 py-8"
         showsVerticalScrollIndicator={false}
       >
-        <View className="items-center">
+        <View className="mx-auto w-full max-w-3xl items-center">
           <Text className="text-center text-2xl leading-8 text-exam-navy">
             {directions.title}
           </Text>
@@ -89,7 +90,7 @@ export function ExamPartDirectionsContent({
       </ScrollView>
 
       {cannotPlay ? (
-        <View className="items-center gap-3 px-5 pb-5 pt-3">
+        <View className="items-center gap-3 border-t border-line bg-surface-subtle px-5 pb-5 pt-3">
           <View accessibilityLiveRegion="polite" className="flex-row items-center gap-2">
             <MaterialCommunityIcons
               name="alert-circle-outline"
