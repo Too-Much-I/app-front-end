@@ -6,6 +6,7 @@ import { Image, View } from "react-native";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
+import { PLAYBACK_AUDIO_MODE } from "@/features/exam/answer-audio";
 import { createMockExamSession } from "@/features/exam/mocks/exam-session";
 import type { MockExamStackParamList } from "@/navigation/types";
 import { DeviceTestLayout } from "@/screens/mock-exam/components/DeviceTestLayout";
@@ -36,7 +37,7 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
 
     try {
       setHasPlaybackError(false);
-      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+      await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
 
       if (playbackStatus.isLoaded && hasPlaybackFinished) {
         await soundCheckPlayer.seekTo(0);

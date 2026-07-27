@@ -1,6 +1,5 @@
 import { useFocusEffect } from "@react-navigation/native";
 import {
-  RecordingPresets,
   getRecordingPermissionsAsync,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
@@ -11,6 +10,13 @@ import {
 } from "expo-audio";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
+
+import {
+  ANSWER_RECORDING_OPTIONS,
+  AUDIO_METER_UPDATE_INTERVAL_MS,
+  PLAYBACK_AUDIO_MODE,
+  RECORDING_AUDIO_MODE,
+} from "@/features/exam/answer-audio";
 
 export type MicrophoneTestState =
   | "idle"
@@ -40,44 +46,9 @@ interface AudioStopResult {
 
 const TEST_DURATION_SECONDS = 3;
 const TEST_DURATION_MS = TEST_DURATION_SECONDS * 1_000;
-const METER_UPDATE_INTERVAL_MS = 100;
-const MIN_BAR_HEIGHT = 8;
-const MAX_BAR_HEIGHT = 60;
-const VISUAL_FLOOR_DB = -50;
-const VISUAL_CEILING_DB = -6;
-const VISUAL_RESPONSE_EXPONENT = 1.8;
-const VISUAL_SMOOTHING = 0.35;
-const WAVEFORM_BAR_SCALES = [0.35, 0.5, 0.7, 0.85, 1, 0.8, 0.8, 1, 0.85, 0.7, 0.5, 0.35];
-const PLAYBACK_AUDIO_MODE = { allowsRecording: false, playsInSilentMode: true } as const;
-
-const recordingOptions = {
-  ...RecordingPresets.HIGH_QUALITY,
-  numberOfChannels: 1,
-  bitRate: 96_000,
-  isMeteringEnabled: true,
-};
-
-function createEmptyWaveform() {
-  return WAVEFORM_BAR_SCALES.map(() => MIN_BAR_HEIGHT);
-}
-
-function meteringToHeight(metering: number | undefined) {
-  if (metering === undefined) return MIN_BAR_HEIGHT;
-
-  const normalizedLevel = Math.min(
-    1,
-    Math.max(
-      0,
-      (metering - VISUAL_FLOOR_DB) / (VISUAL_CEILING_DB - VISUAL_FLOOR_DB),
-    ),
-  );
-  const adjustedLevel = normalizedLevel ** VISUAL_RESPONSE_EXPONENT;
-  return MIN_BAR_HEIGHT + adjustedLevel * (MAX_BAR_HEIGHT - MIN_BAR_HEIGHT);
-}
-
 export function useMicrophoneTest() {
-  const recorder = useAudioRecorder(recordingOptions);
-  const recorderState = useAudioRecorderState(recorder, METER_UPDATE_INTERVAL_MS);
+  const recorder = useAudioRecorder(ANSWER_RECORDING_OPTIONS);
+  const recorderState = useAudioRecorderState(recorder, AUDIO_METER_UPDATE_INTERVAL_MS);
   const recordingPlayer = useAudioPlayer(null, { updateInterval: 100 });
   const playbackStatus = useAudioPlayerStatus(recordingPlayer);
   const recordingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -92,7 +63,6 @@ export function useMicrophoneTest() {
   const [testState, setTestState] = useState<MicrophoneTestState>("idle");
   const [canAskPermissionAgain, setCanAskPermissionAgain] = useState(true);
   const [recordingUri, setRecordingUri] = useState<string | null>(null);
-  const [waveformHeights, setWaveformHeights] = useState<number[]>(createEmptyWaveform);
 
   const isComplete = testState === "complete";
   const isRecording = testState === "recording";
@@ -266,7 +236,6 @@ export function useMicrophoneTest() {
     try {
       recordingPlayer.pause();
       setRecordingUri(null);
-      setWaveformHeights(createEmptyWaveform());
 
       const permission = await requestRecordingPermissionsAsync();
       if (!isStartAttemptActive(attempt)) return;
@@ -278,11 +247,7 @@ export function useMicrophoneTest() {
       }
 
       ownsRecordingAudioModeRef.current = true;
-      await setAudioModeAsync({
-        allowsRecording: true,
-        allowsBackgroundRecording: false,
-        playsInSilentMode: true,
-      });
+      await setAudioModeAsync(RECORDING_AUDIO_MODE);
       // setAudioModeAsync를 기다리는 사이 cleanup이 먼저 복원했을 수 있으므로 소유권을 재확인한다.
       ownsRecordingAudioModeRef.current = true;
       if (!isStartAttemptActive(attempt)) {
@@ -364,11 +329,7 @@ export function useMicrophoneTest() {
       }
 
       ownsRecordingAudioModeRef.current = true;
-      await setAudioModeAsync({
-        allowsRecording: true,
-        allowsBackgroundRecording: false,
-        playsInSilentMode: true,
-      });
+      await setAudioModeAsync(RECORDING_AUDIO_MODE);
       ownsRecordingAudioModeRef.current = true;
 
       if (!isScreenFocusedRef.current || isAppBackgroundedRef.current) {
@@ -406,19 +367,6 @@ export function useMicrophoneTest() {
       updateTestState("error");
     }
   }, [updateTestState]);
-
-  useEffect(() => {
-    if (!isRecording) return;
-
-    const targetHeight = meteringToHeight(recorderState.metering);
-    setWaveformHeights((currentHeights) =>
-      currentHeights.map((currentHeight, index) => {
-        const scale = WAVEFORM_BAR_SCALES[index] ?? 1;
-        const scaledTargetHeight = MIN_BAR_HEIGHT + (targetHeight - MIN_BAR_HEIGHT) * scale;
-        return currentHeight + (scaledTargetHeight - currentHeight) * VISUAL_SMOOTHING;
-      }),
-    );
-  }, [isRecording, recorderState.metering]);
 
   useFocusEffect(
     useCallback(() => {
@@ -546,7 +494,7 @@ export function useMicrophoneTest() {
     canAskPermissionAgain,
     durationSeconds: TEST_DURATION_SECONDS,
     elapsedSeconds,
-    waveformHeights,
+    meteringDb: recorderState.metering ?? null,
     isComplete,
     isRecording,
     isBusy,
