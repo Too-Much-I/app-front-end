@@ -19,6 +19,14 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const callerSignal = init?.signal;
+  const abortFromCaller = () => controller.abort(callerSignal?.reason);
+
+  if (callerSignal?.aborted) {
+    abortFromCaller();
+  } else {
+    callerSignal?.addEventListener("abort", abortFromCaller, { once: true });
+  }
 
   try {
     const res = await fetch(`${API_BASE_URL}${path}`, {
@@ -42,5 +50,6 @@ export async function apiFetch<T>(
     return (await res.json()) as T;
   } finally {
     clearTimeout(timeoutId);
+    callerSignal?.removeEventListener("abort", abortFromCaller);
   }
 }

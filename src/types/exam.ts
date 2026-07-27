@@ -65,6 +65,58 @@ export interface ExamAttempt {
   startedAt: string;
 }
 
+export interface AnswerKey {
+  examId: string;
+  questionNumber: number;
+  retryCount: number;
+}
+
+export interface FinalizedAnswer {
+  key: AnswerKey;
+  generationId: number;
+  audioFileUri: string;
+  durationMs: number;
+}
+
+export type AnswerSubmissionStage =
+  | "queued-upload"
+  | "uploading"
+  | "queued-submit"
+  | "submitting"
+  | "retry-wait"
+  | "submission-unknown"
+  | "reconciling"
+  | "succeeded"
+  | "failed"
+  | "cancelled";
+
+export type AnswerSubmissionFailureStage = "upload" | "submit" | "reconcile";
+
+export interface AnswerSubmissionFailure {
+  stage: AnswerSubmissionFailureStage;
+  message: string;
+  retryable: boolean;
+}
+
+export interface AnswerSubmissionJob {
+  key: AnswerKey;
+  audioFileUri: string;
+  fileKey: string | null;
+  stage: AnswerSubmissionStage;
+  stageAttempt: number;
+  nextRetryAt: number | null;
+  lastError: AnswerSubmissionFailure | null;
+  acceptedStatus: Exclude<ExamAnswerSubmitResult["status"], "FAILED"> | null;
+}
+
+export interface AnswerSubmissionSummary {
+  registeredCount: number;
+  pendingCount: number;
+  failedCount: number;
+  succeededCount: number;
+  isComplete: boolean;
+}
+
 /** GET /api/v1/exams/{examId}/questions/{questionId}/upload-url 의 result */
 export interface ExamAnswerUploadUrl {
   uploadUrl: string;

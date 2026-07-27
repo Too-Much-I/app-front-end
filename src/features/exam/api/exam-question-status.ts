@@ -7,9 +7,11 @@ export async function getExamQuestionStatus(
   examId: string,
   questionNumber: number,
   retryCount: number,
+  signal?: AbortSignal,
 ): Promise<ExamQuestionPollResult> {
   const { result } = await apiFetch<ApiEnvelope<ExamQuestionPollResult>>(
     `/api/v1/exams/${examId}/questions/status?questionNumber=${questionNumber}&retryCount=${retryCount}`,
+    { signal },
   );
   return result;
 }
