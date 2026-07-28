@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { ActivityIndicator, Linking, View } from "react-native";
+import { ActivityIndicator, Image, Linking, View } from "react-native";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
@@ -12,6 +12,8 @@ import type {
   AnswerSubmissionSummary,
 } from "@/types/exam";
 
+const errorMascot = require("../../../../public/mascots/error.png");
+
 interface ExamAnswerStatusProps {
   phase: ExamSessionPhase;
   recordingStatus: AnswerRecordingStatus;
@@ -22,6 +24,7 @@ interface ExamAnswerStatusProps {
   onRetryRecording: () => void;
   onRetryRegistration: () => void;
   onRetrySubmission: (key: AnswerKey) => void;
+  onGoHome: () => void;
 }
 
 function RecoveryButton({ label, onPress }: { label: string; onPress: () => void }) {
@@ -46,6 +49,7 @@ export function ExamAnswerStatus({
   onRetryRecording,
   onRetryRegistration,
   onRetrySubmission,
+  onGoHome,
 }: ExamAnswerStatusProps) {
   const permissionDenied = recordingStatus === "permission-denied";
 
@@ -62,9 +66,54 @@ export function ExamAnswerStatus({
   }
 
   if (phase === "submission-barrier") {
-    const failedJobs = jobs.filter(
-      (job) => job.stage === "failed" || job.stage === "submission-unknown",
-    );
+    const failedJobs = jobs.filter((job) => job.stage === "failed");
+    const retryableFailedJobs = failedJobs.filter((job) => job.lastError?.retryable);
+
+    if (failedJobs.length > 0 && summary.pendingCount === 0) {
+      return (
+        <View
+          accessibilityLiveRegion="assertive"
+          className="w-full max-w-xl self-center items-center rounded-2xl border border-exam-dangerLine bg-surface p-6"
+        >
+          <Image
+            accessible
+            accessibilityLabel="답변 제출 실패를 알리는 토끼 캐릭터"
+            className="h-52 w-52"
+            resizeMode="contain"
+            source={errorMascot}
+          />
+          <Text className="mt-4 text-center text-xl text-exam-danger">
+            답변을 제출하지 못했어요
+          </Text>
+          <Text className="mt-2 text-center text-sm leading-6 text-ink-muted">
+            {retryableFailedJobs.length > 0
+              ? "네트워크나 서버 연결이 안정된 뒤 다시 시도하거나 홈으로 돌아가주세요."
+              : "현재 요청은 다시 보내도 해결되지 않아요. 홈으로 돌아간 뒤 다시 시작해주세요."}
+          </Text>
+
+          {retryableFailedJobs.length > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              className="mt-6 w-full items-center rounded-2xl bg-brand-cta py-3.5"
+              onPress={() => {
+                for (const job of retryableFailedJobs) onRetrySubmission(job.key);
+              }}
+            >
+              <Text className="text-base text-white">다시 시도</Text>
+            </Pressable>
+          ) : null}
+
+          <Pressable
+            accessibilityRole="button"
+            className={`${retryableFailedJobs.length > 0 ? "mt-3" : "mt-6"} w-full items-center rounded-2xl border border-brand-300 py-3.5`}
+            onPress={onGoHome}
+          >
+            <Text className="text-base text-brand-text">홈으로 돌아가기</Text>
+          </Pressable>
+        </View>
+      );
+    }
+
     return (
       <View accessibilityLiveRegion="polite" className="w-full rounded-2xl border border-line bg-surface p-5">
         <View className="flex-row items-center gap-3">
@@ -90,15 +139,15 @@ export function ExamAnswerStatus({
             <Text className="mt-1 text-sm text-exam-danger">
               {job.lastError?.message ?? "제출 상태를 확인하지 못했어요."}
             </Text>
-            <Pressable
-              accessibilityRole="button"
-              className="mt-3 self-start rounded-full border border-brand-300 px-4 py-2"
-              onPress={() => onRetrySubmission(job.key)}
-            >
-              <Text className="text-sm text-brand-text">
-                {job.stage === "submission-unknown" ? "접수 상태 다시 확인" : "이 단계 다시 시도"}
-              </Text>
-            </Pressable>
+            {job.lastError?.retryable ? (
+              <Pressable
+                accessibilityRole="button"
+                className="mt-3 self-start rounded-full border border-brand-300 px-4 py-2"
+                onPress={() => onRetrySubmission(job.key)}
+              >
+                <Text className="text-sm text-brand-text">이 단계 다시 시도</Text>
+              </Pressable>
+            ) : null}
           </View>
         ))}
       </View>

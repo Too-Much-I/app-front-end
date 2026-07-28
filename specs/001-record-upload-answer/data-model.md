@@ -119,35 +119,33 @@ FinalizedAnswer 하나의 upload/submit/retry 상태다.
 | Field | Type | Description |
 |---|---|---|
 | `key` | Answer Key | registry의 불변 key |
-| `audioFileUri` | string | submit 접수 전까지 유지할 cache 파일 |
-| `fileKey` | string or null | S3 PUT 성공 뒤 서버가 발급한 객체 key |
+| `audioFileUri` | string | S3 PUT 성공 전까지 유지할 cache 파일 |
+| `uploadUrl` | string or null | 최초 발급 뒤 PUT 재시도 전체에서 고정할 presigned URL |
+| `uploadExpiresAt` | timestamp or null | upload URL 응답 시점에 계산한 만료 시각 |
+| `fileKey` | string or null | upload URL과 함께 발급되어 서버 고지에 사용하는 객체 key |
+| `uploadCompleted` | boolean | S3 PUT 2xx가 확인되어 이후 실행이 고지 단계에서만 재개되는지 여부 |
 | `stage` | Submission Stage | 현재 작업 단계 |
 | `stageAttempt` | non-negative number | 현재 network stage 재시도 횟수 |
 | `nextRetryAt` | timestamp or null | abort 가능한 retry wait 종료 시점 |
 | `lastError` | Submission Failure or null | 사용자 안내용 정규화 오류 |
-| `acceptedStatus` | PENDING/PROCESSING/COMPLETED or null | submit 접수 증거 |
+| `acceptedStatus` | PENDING/PROCESSING/COMPLETED or null | 서버 고지 성공 증거 |
 
 ### Submission Stage
 
 ```text
 queued-upload
   → uploading
-  → queued-submit
-  → submitting
+  → queued-notify
+  → notifying
   → succeeded
 
-uploading | submitting
+uploading | notifying
   → retry-wait
-  → uploading | submitting
+  → uploading | notifying
 
-submitting
-  → submission-unknown
-  → reconciling
-  → submitting | succeeded | failed
-
-uploading | submitting | retry-wait
+uploading | notifying | retry-wait
   → failed
-  → queued-upload | queued-submit  (manual retry)
+  → uploading | queued-notify  (retryable manual retry only)
 
 any non-terminal state
   → cancelled  (session dispose)
@@ -155,16 +153,20 @@ any non-terminal state
 
 Stage rules:
 
-- `fileKey === null`이면 upload stage부터, 값이 있으면 submit stage부터 재개한다.
-- upload URL/PUT의 일시 오류와 submit/status 조회의 일시 오류는 유한 backoff 대상이다.
+- `uploadUrl === null`이면 최초 upload target 요청부터 시작한다. target을 받으면
+  `uploadUrl`, `uploadExpiresAt`, `fileKey`를 한 번에 저장하고 이후 PUT 재시도에서 바꾸지 않는다.
+- `uploadCompleted === true`이면 로컬 파일이나 upload URL의 존재 여부와 관계없이 S3 PUT을
+  다시 실행하지 않고 같은 `fileKey`의 서버 고지만 실행한다.
+- S3 PUT의 network/timeout/408/429/5xx는 같은 target으로 최대 5회 추가 재시도한다.
+- PUT 2xx 뒤에는 로컬 파일을 삭제하고 `queued-notify`로 전환한다.
+- 서버 고지의 network/timeout/408/429/5xx는 같은 fileKey로 최대 3회 추가 재시도한다.
+- 모든 자동 retry wait는 equal jitter를 사용하며 S3는 다음 시도가 만료 예산을 넘으면 중단한다.
 - 같은 key가 이미 registry에 있으면 두 번째 registration은 새 runner를 만들지 않는다.
 - 같은 key에 다른 URI가 들어오면 invariant violation으로 처리한다.
-- submit 응답 유실은 `submission-unknown`으로 분류하고 status reconciliation 전에는 재-POST하지 않는다.
-- status API의 일반 실패는 미접수 증거가 아니며, 서버 멱등성 및 명확한 미접수 contract를
-  통합 검증하기 전에는 자동 재-POST하지 않는다.
-- `PENDING`, `PROCESSING`, `COMPLETED`는 submit 접수 성공이다.
-- 즉시 `FAILED`는 채점/처리 실패이며 자동으로 파일을 재업로드하지 않는다.
-- 파일은 `succeeded` 뒤 삭제한다. `failed`에서는 재시도를 위해 유지한다.
+- 서버 고지 응답 유실은 `submission-unknown`이나 status 조회로 분기하지 않고 동일 고지를
+  재시도한다. 이 동작은 서버가 tuple/fileKey를 멱등 처리한다는 계약에 의존한다.
+- `PENDING`, `PROCESSING`, `COMPLETED`는 고지 성공이다. `FAILED`와 일반 4xx는 terminal failure다.
+- PUT 전 `failed`에서는 파일을 유지한다. PUT 뒤 notify failure에는 로컬 파일이 필요하지 않다.
 
 ## 5. Aggregate Submission State
 
@@ -173,7 +175,7 @@ Stage rules:
 | Field | Derivation |
 |---|---|
 | `registeredCount` | registry entry 수 |
-| `pendingCount` | queued/uploading/submitting/retry-wait/submission-unknown/reconciling 수 |
+| `pendingCount` | queued-upload/uploading/queued-notify/notifying/retry-wait 수 |
 | `failedCount` | failed 수 |
 | `succeededCount` | succeeded 수 |
 | `isComplete` | registeredCount = expectedAnswerCount AND succeededCount = expectedAnswerCount |
@@ -186,7 +188,7 @@ Stage rules:
 1. 실제 server ExamSession을 생성한다.
 2. response 시작 시 Answer Key를 Recording Generation에 고정한다.
 3. 정상 종료는 cache URI를 검증하고 Submission Job으로 소유권을 넘긴다.
-4. key별 runner는 upload URL → S3 PUT → submit을 수행하며 registry에 key와 fileKey를 보존한다.
-5. submit 접수 성공 뒤 로컬 파일을 삭제하고 job을 succeeded로 만든다.
+4. key별 runner는 최초 upload URL → 같은 target의 S3 PUT → 서버 고지를 수행한다.
+5. S3 PUT 성공 뒤 로컬 파일을 삭제하고, 고지 성공 뒤 job을 succeeded로 만든다.
 6. finalize보다 먼저 발생한 interruption은 registry entry를 만들지 않고 부분 파일을 삭제한다.
 7. session dispose는 runner/request/retry timer를 cancel하고 파일 read가 끝난 뒤 남은 owned 파일을 정리한다.

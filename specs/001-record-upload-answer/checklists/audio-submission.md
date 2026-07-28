@@ -32,18 +32,18 @@
 
 - [x] CHK014 submission registry가 FIFO가 아니며 한 문항의 retry wait가 다른 문항 처리를 막지 않는다는 요구사항이 정의되어 있는가? [Clarity, Submission Contract §Registry rules]
 - [x] CHK015 Answer Key와 network attempt가 구분되고 transport retry가 retryCount를 바꾸지 않는다는 규칙이 정의되어 있는가? [Consistency, Submission Contract §Identity]
-- [x] CHK016 fileKey 유무에 따라 upload 또는 submit 단계부터 복구한다는 요구사항이 정의되어 있는가? [Recovery, Submission Contract §Client Registry Contract]
+- [x] CHK016 upload target과 PUT 완료 여부에 따라 같은 PUT 또는 같은 서버 고지 단계부터 복구한다는 요구사항이 정의되어 있는가? [Recovery, Submission Contract §Client Registry Contract]
 - [x] CHK017 자동 재시도 중과 재시도 소진 후 실패 상태에 서로 다른 사용자 안내와 행동이 정의되어 있는가? [Coverage, Spec §US3 Acceptance 3/5, Plan §Failure and Recovery Paths]
 
 ## Dependencies and Acceptance Quality
 
-- [x] CHK018 submit 응답 유실 시 positive status, FAILED, 불명확한 조회 실패를 구분하는 요구사항이 정의되어 있는가? [Completeness, Submission Contract §Ambiguous Submit Reconciliation]
-- [x] CHK019 자동 재-POST에 필요한 서버 멱등성과 명확한 미접수 신호가 외부 통합 의존성으로 명시되어 있는가? [Dependency, Spec §Integration Dependencies]
-- [x] CHK020 서버 계약이 검증되지 않았을 때 자동 재-POST를 금지하고 feature completion을 통과시키지 않는 기준이 명시되어 있는가? [Acceptance Criteria, Plan §Integration Gate]
+- [x] CHK018 서버 고지 요청 또는 응답 유실 시 상태 조회나 S3 재업로드 없이 동일 고지만 bounded retry한다는 요구사항이 정의되어 있는가? [Completeness, Submission Contract §Notify Upload Completion]
+- [x] CHK019 동일 Answer Key와 fileKey의 반복 고지에 필요한 서버 멱등성이 외부 통합 의존성으로 명시되어 있는가? [Dependency, Spec §Integration Dependencies]
+- [x] CHK020 서버 멱등성 계약을 test backend에서 검증해야 feature completion evidence를 통과시킬 수 있다는 기준이 명시되어 있는가? [Acceptance Criteria, Plan §Integration Gate]
 - [x] CHK021 process kill 이후 복원이 범위 밖이고 인앱 background의 의미가 다음 문항 중 비차단 실행과 foreground 재개로 한정되어 있는가? [Scope, Submission Contract §Cancellation Contract]
 - [x] CHK022 성공률, 중복 0건, 1초 상태 반영 및 양 플랫폼 검증 기준이 객관적으로 측정 가능하게 정의되어 있는가? [Measurability, Spec §SC-001–SC-006]
 
 ## Notes
 
 - 모든 항목은 2026-07-27 갱신된 spec, plan, data model 및 internal contracts에서 근거를 확인했다.
-- server idempotency와 명확한 미접수 응답은 문서화되었지만 실제 통합 환경 검증은 구현 완료 조건으로 남는다.
+- server notification idempotency는 문서화되었지만 실제 통합 환경 검증은 구현 완료 조건으로 남는다.

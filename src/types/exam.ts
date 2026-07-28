@@ -117,16 +117,14 @@ export interface FinalizedAnswer {
 export type AnswerSubmissionStage =
   | "queued-upload"
   | "uploading"
-  | "queued-submit"
-  | "submitting"
+  | "queued-notify"
+  | "notifying"
   | "retry-wait"
-  | "submission-unknown"
-  | "reconciling"
   | "succeeded"
   | "failed"
   | "cancelled";
 
-export type AnswerSubmissionFailureStage = "upload" | "submit" | "reconcile";
+export type AnswerSubmissionFailureStage = "upload" | "notify";
 
 export interface AnswerSubmissionFailure {
   stage: AnswerSubmissionFailureStage;
@@ -137,7 +135,10 @@ export interface AnswerSubmissionFailure {
 export interface AnswerSubmissionJob {
   key: AnswerKey;
   audioFileUri: string;
+  uploadUrl: string | null;
+  uploadExpiresAt: number | null;
   fileKey: string | null;
+  uploadCompleted: boolean;
   stage: AnswerSubmissionStage;
   stageAttempt: number;
   nextRetryAt: number | null;
@@ -162,14 +163,6 @@ export interface ExamAnswerUploadUrl {
 
 /** POST /api/v1/exams/{examId}/questions/{questionId}/submit 의 result */
 export interface ExamAnswerSubmitResult {
-  status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
-}
-
-/** GET /api/v1/exams/{examId}/questions/status (문항별 재시도 채점 진행 상태 폴링)의 result */
-export interface ExamQuestionPollResult {
-  examId: string;
-  questionNumber: number;
-  retryCount: number;
   status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
 }
 

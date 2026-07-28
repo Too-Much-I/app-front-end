@@ -1,6 +1,6 @@
 # Implementation Plan: 모의고사 답변 녹음 및 업로드
 
-**Branch**: `feat/#9` | **Date**: 2026-07-27 | **Spec**: [spec.md](spec.md)
+**Branch**: `feat/#9` | **Date**: 2026-07-28 | **Spec**: [spec.md](spec.md)
 
 **Approval**: Draft plans MUST be approved before tasks or implementation begin.
 
@@ -11,8 +11,9 @@
 실제 서버에서 생성한 모의고사 세션의 각 답변 구간을 Expo 네이티브 오디오로 녹음하고,
 문항별 제출 작업을 다음 문항 진행과 독립적으로 처리한다. 녹음 생명주기와 keyed
 submission registry를 별도 상태 머신으로 분리해 중복 종료·중복 제출을 막고, 중단된 부분
-녹음은 즉시 폐기한 뒤 같은 문항을 다시 녹음한다. 마지막 문항에서는 모든 문항의 업로드와
-채점 요청이 성공할 때까지 완료를 확정하지 않는다.
+녹음은 즉시 폐기한 뒤 같은 문항을 다시 녹음한다. S3 PUT과 서버 고지는 독립된 단계로
+재시도하고 각각 jitter를 적용한다. 서버에 없는 문항 상태 조회와 URL 재발급 가정을 제거하며,
+최종 실패 화면에는 `public/mascots/error.png`와 홈 이동을 제공한다.
 
 ## Technical Context
 
@@ -36,8 +37,9 @@ React Navigation 7, React hooks/reducer. 새 의존성은 추가하지 않는다
 
 **Constraints**: 한 번에 활성 녹음기는 하나, 답변은 m4a/AAC-LC 44.1kHz mono 96kbps,
 S3 PUT 한 번당 15초 제한, presigned URL 만료 준수, 문항별 최대 한 제출 작업, OS가 앱
-프로세스를 종료한 뒤에도 이어지는 영속 백그라운드 업로드는 범위 밖이다. 모호한 submit의
-자동 재-POST는 서버의 명확한 미접수 신호와 Answer Key/fileKey 멱등성 검증을 선행한다.
+프로세스를 종료한 뒤에도 이어지는 영속 백그라운드 업로드는 범위 밖이다. S3 PUT은 기존
+presigned URL로 최초 요청 이후 최대 5회, 서버 고지는 같은 Answer Key/fileKey로 최대 3회
+추가 재시도한다. 서버는 동일한 고지를 중복 채점 없이 처리해야 한다.
 
 **Scale/Scope**: 정규 모의고사 11문항, 문항당 최대 60초·약 720KB, 활성 녹음 1개와
 최대 11개의 실행 중/완료 제출 항목, 화면 3개와 feature/API 계층 중심의 변경
@@ -56,59 +58,50 @@ S3 PUT 한 번당 15초 제한, presigned URL 만료 준수, 문항별 최대 �
 
 ## Current Flow
 
-1. `MockExamReady → MicrophoneTest → SoundTest` 순서로 기기 확인 화면을 지난다.
-2. `SoundTestScreen`은 이미 존재하는 `createExamSession()` API를 사용하지 않고
-   `createMockExamSession()`으로 만든 mock `examId`와 문항을 `ExamSession`에 전달한다.
-3. `ExamSessionScreen`은 `directions → preparation → response`를 버튼으로 전환하지만,
-   남은 시간은 초기값으로 고정되어 있고 실제 녹음이나 자동 종료가 없다.
-4. response 화면의 24개 파형 막대는 고정 높이이며 마이크 입력과 연결되지 않는다.
-   마이크 테스트에는 이미 100ms metering, dB 정규화, smoothing 파형이 있지만 hook과
-   화면에 결합되어 시험 답변에서 재사용할 수 없다.
-5. 마지막 문항에서 `handleNextPhase`는 아무 동작도 하지 않아 완료 상태나 다음 화면이 없다.
-6. `exam-answer-upload.ts`에는 업로드 URL 발급 → S3 PUT → submit 흐름과 PUT 재시도가
-   구현되어 있지만 호출자가 없다. submit 실패 시 `fileKey`를 보존하지 않아 안전한 단계별
-   재시도와 최종 완료 장벽을 만들 수 없다.
-7. 도메인 문항은 `questionNumber`만 제공하지만 기존 업로드 함수는 `questionId: string`을
-   받아 식별자 의미가 불명확하다.
-8. `apiFetch()`는 자체 timeout signal로 호출자의 signal을 덮어써 화면 이탈 시 API 요청을
-   취소할 수 없다.
+1. 답변 녹음과 문항별 submission registry, 다음 문항 비차단 진행 및 마지막 완료 장벽은
+   이미 구현되어 있다.
+2. `uploadAnswerAudio()`는 S3 PUT을 같은 URL로 최대 5회 추가 재시도하지만 대기 시간이
+   `1s, 2s, 4s, 8s, 16s`로 고정되어 있다.
+3. runner의 바깥 upload loop는 URL 발급과 PUT을 함께 반복한다. 따라서 PUT 403/만료 또는
+   일부 오류 뒤 같은 URL을 보존하지 않고 upload URL endpoint를 다시 호출할 수 있다.
+4. 서버 고지 실패는 `submission-unknown → reconciling`으로 전환해 실제 서버에 없는
+   `questions/status` endpoint를 호출한다. 고지 자체의 bounded retry는 없다.
+5. `SubmissionJob`은 PUT 성공 뒤의 `fileKey`만 보존하고 PUT 전의 upload URL과 만료 시각은
+   보존하지 않아 같은 target으로 runner를 재개할 수 없다.
+6. 최종 실패 UI는 문항별 작은 오류 카드와 상태 조회/단계 재시도 버튼만 제공하며,
+   `public/mascots/error.png`와 홈 이동 경로가 없다.
+7. 현재 `navigation.popToTop()`은 MockExam stack의 준비 화면으로만 돌아가므로 홈 tab 이동은
+   상위 tab navigator에 명시적으로 전달해야 한다.
 
 ## Design Options
 
-### Option A - 화면 안에서 녹음과 fire-and-forget 업로드
+### Option A - 현재 status reconciliation과 URL 재호출 유지
 
-`ExamSessionScreen`에서 recorder, timeout, 업로드 Promise를 직접 관리하고 기존
-`uploadExamAnswer()`를 문항마다 호출한다.
+서버 고지 응답이 불명확하면 status endpoint를 조회하고 PUT 오류 뒤 upload URL endpoint를
+다시 호출한다.
 
-- 장점: 파일 수와 초기 diff가 작다.
-- 비용: 화면 phase, 네이티브 recorder, 파일 소유권, 네트워크 재시도가 하나의 컴포넌트에
-  결합된다.
-- 실패 모드: timeout과 버튼의 중복 stop, 이전 Promise가 다음 문항 식별자를 참조하는 race,
-  submit 실패 시 재업로드와 고아 객체, 마지막 문항에서 오래된 Promise snapshot을 기다리는
-  문제가 생긴다.
+- 장점: 현재 상태 머신 변경이 가장 작다.
+- 비용: 존재하지 않는 endpoint와 재발급 계약을 계속 가정한다.
+- 실패 모드: 모든 고지 실패가 status 404로 끝나며, PUT 재시도가 새 URL/fileKey를 만들어
+  같은 답변의 서버 객체가 갈라질 수 있다.
 
-### Option B - 녹음 상태 머신 + keyed submission registry/runner
+### Option B - 기존 registry에서 upload target과 고지를 단계별 재시도
 
-`useAnswerRecorder`가 권한·오디오 모드·단일 녹음·파일 확정/폐기만 소유하고,
-`useAnswerSubmissions`가 불변 답변 키별 업로드·submit·재시도·파일 정리와 집계 상태를
-소유한다. 화면 controller는 시험 phase와 두 상태 머신 사이의 이벤트만 연결한다.
+현재 keyed registry를 유지하되 최초 upload target을 job에 보존한다. S3 PUT은 같은 target으로
+5회, 고지는 같은 fileKey로 3회 추가 재시도하고 두 backoff 모두 jitter를 적용한다.
 
-- 장점: 중단 정책, single-flight, 단계별 재시도, 다음 문항 비차단 진행, 마지막 완료 장벽을
-  각각 독립적으로 검증할 수 있다.
-- 비용: reducer와 내부 contract가 추가되고 상태 전환을 명시적으로 유지해야 한다.
-- 실패 모드: client 메모리 상태는 앱 프로세스 종료 후 복원되지 않는다. 이번 범위에서는
-  OS 백그라운드 실행을 약속하지 않고 foreground 복귀 시 재개한다.
+- 장점: 실제 서버 계약만 사용하며 PUT과 고지 실패가 서로의 단계를 반복하지 않는다.
+- 비용: job 필드와 stage 전환, 수동 복구 조건을 갱신해야 한다.
+- 실패 모드: presigned URL이 만료되면 재발급 없이 terminal failure가 되며, process kill 뒤
+  메모리 job은 복원되지 않는다.
 
-### Option C - 전역 영속 제출 큐와 OS 백그라운드 작업
+### Option C - S3 PUT만 완료 기준으로 두고 고지는 best-effort 처리
 
-Zustand/persistent storage와 플랫폼별 background task로 제출을 화면 밖과 앱 재실행 뒤에도
-이어간다.
+S3 PUT 2xx에서 job을 성공 처리하고 고지 응답은 기다리지 않는다.
 
-- 장점: 프로세스 종료 복구 가능성을 확장할 수 있다.
-- 비용: iOS/Android 업로드 실행 보장이 다르고, 파일·자격 URL·세션 복구 정책 및 새 native
-  구성이 필요하다.
-- 실패 모드: 플랫폼별로 다른 완료 보장과 오래된 시험 작업 누수가 생기며 현재 승인 범위를
-  크게 넘는다.
+- 장점: 클라이언트 상태가 가장 단순하다.
+- 비용: 고지가 유실되면 서버가 채점을 시작하지 못한다.
+- 실패 모드: 사용자에게 성공으로 보였지만 결과가 생성되지 않는 답변이 생긴다.
 
 ## Decision
 
@@ -136,27 +129,31 @@ Option B를 채택한다.
 6. 확정된 URI는 `{ examId, questionNumber, retryCount }` 키와 함께 submission registry로
    소유권을 이전한다. 초기 응시와 중단 후 재녹음은 모두 `retryCount = 0`이며 네트워크
    재시도 때문에 이 값을 증가시키지 않는다.
-7. 기존 모놀리식 업로드 파일은 upload URL endpoint, S3 transfer, submit endpoint,
-   registry/runner orchestration으로 분리한다. PUT 성공 후 `fileKey`를 보존해 submit 재시도는
-   같은 파일 키로만 수행한다.
-8. submit 응답이 유실된 모호한 실패에서는 `getExamQuestionStatus`로 먼저 조정하고,
-   `PENDING/PROCESSING/COMPLETED`이면 접수 성공, `FAILED`이면 처리 실패로 확정한다. 현재
-   status 타입에는 명시적인 미접수 값이 없으므로 불명확한 조회 실패에서 자동 재-POST하지
-   않는다. 같은 `(examId, questionNumber, retryCount, fileKey)`의 반복 submit을 멱등 처리하고
-   명확한 미접수 신호를 반환하는 서버 contract가 통합 검증된 뒤에만 자동 재-submit한다.
+7. 최초 upload URL 응답의 `uploadUrl`, `fileKey`, 만료 시각을 PUT 전에 job에 저장한다.
+   S3 PUT은 같은 target으로만 최초 요청 이후 최대 5회 추가 재시도하고, 만료 뒤에는 새 URL을
+   요청하지 않고 terminal upload failure로 끝낸다.
+8. S3와 서버 고지의 고정 delay는 equal jitter가 적용된 exponential backoff로 바꾼다.
+   S3 base는 `1s, 2s, 4s, 8s, 16s`, 고지 base는 `1s, 2s, 4s`이며 실제 대기는 base의
+   50~100%다. caller abort는 모든 wait와 요청을 즉시 중단한다.
 9. 다음 문항 전환은 유효 파일을 registry에 등록한 시점에 허용한다. 파일이 없거나 0 byte면
    현재 문항에 머물러 전체 답변 시간을 다시 녹음한다. 파일은 유효하지만 등록이 실패하면
    재녹음하지 않고 같은 파일의 등록을 재시도한다. 실제 네트워크 작업은 인앱
    background에서 계속되며 AppState suspension 뒤에는 foreground에서 재개한다.
 10. registry는 FIFO가 아니며 문항 key별 job과 single-flight runner를 보관한다. 한 job의
-    retry wait가 다른 job을 막지 않는다. 마지막 문항은 등록 뒤 `awaitingSubmissions`로
-    전환한다. 예상 답변 수와 성공 항목 수가 같을 때만 `completed`가 되며, 소진된 실패가
-    있으면 해당 단계부터 수동 재시도할 수 있다. 별도 결과/피드백 화면 추가는 하지 않는다.
-11. 로컬 파일은 submit 접수 성공 뒤 삭제한다. 재시도 가능한 실패에서는 유지하고,
+    retry wait가 다른 job을 막지 않는다. PUT 2xx 뒤 서버 고지는 같은 tuple/fileKey로 최대
+    3회 추가 재시도한다. 고지 실패 때 PUT을 다시 실행하거나 status API를 조회하지 않는다.
+11. 로컬 파일은 S3 PUT 성공 뒤 삭제한다. PUT 전 재시도 가능한 실패에서는 유지하고,
     중단·screen leave·session dispose에서는 실행 중 파일 읽기가 끝난 뒤 best-effort로
-    삭제한다.
+    삭제한다. 고지 재시도는 fileKey만 사용한다.
 12. `apiFetch`는 내부 timeout과 호출자 cancellation signal을 합성해 화면 이탈 시 endpoint
     요청과 retry wait를 함께 중단할 수 있게 한다.
+13. 최종 barrier에서 모든 pending job이 끝났는데 failed job이 있으면
+    `ExamAnswerStatus`가 `public/mascots/error.png`, 오류 설명과 홈 버튼을 표시한다.
+    retryable failure가 하나라도 있으면 수동 재시도도 함께 제공하고, 일반 4xx만 있으면 홈
+    버튼만 제공한다.
+14. 홈 버튼은 registry를 dispose하고 MockExam stack을 `MockExamReady`로 정리한 뒤 상위
+    `MainTab`의 `Home` route로 이동한다. 뒤로 돌아왔을 때 실패한 시험 화면이나 timer가
+    남지 않게 하며 navigation param type은 기존 `MainTabParamList`를 재사용한다.
 
 ## Failure and Recovery Paths
 
@@ -168,12 +165,14 @@ Option B를 채택한다.
 | finalize intent 후 app inactive/background | finalize 유지, 유효 파일 검증 | registry 등록 후 foreground에서 진행 상태 복구 |
 | 사용자 완료와 native timeout 경쟁 | 같은 terminal Promise 결과 하나 | 첫 terminal intent만 확정하고 중복 이벤트 무시 |
 | URI 없음·파일 없음·0 byte | recording finalization 실패, 현재 문항 유지 | 업로드하지 않고 전체 시간으로 같은 문항 재시도 |
-| upload URL/PUT 일시 실패 | `retry-wait(upload)`, 로컬 파일 유지 | 만료 전 URL 재사용, 만료 후 새 URL로 유한 backoff |
-| upload 4xx 등 비재시도 오류 | `failed(upload)` | 다음 문항은 진행, 마지막 장벽에서 수동 재시도 |
-| submit timeout/응답 유실 | `submission-unknown`, `fileKey` 유지 | 문항 상태 조정; 서버 멱등성/미접수 계약 확인 전 재-POST 금지 |
-| submit 접수 후 채점 `FAILED` | `failed(submit)` | 자동 중복 submit하지 않고 마지막 장벽에서 오류 표시 |
+| 최초 upload target 요청 실패 | `failed(upload)` 또는 API 오류 | 새 URL 재발급으로 추정하지 않고 최종 장벽에서 오류 표시 |
+| S3 PUT timeout/network/408/429/5xx | `retry-wait(upload)`, URL·로컬 파일 유지 | 같은 URL로 jittered backoff, 최대 5회 추가 |
+| S3 PUT 4xx·URL 만료 | `failed(upload)`, 로컬 파일 유지 | 자동/수동 재발급 없이 홈 이동 제공 |
+| 서버 고지 timeout/network/408/429/5xx | `retry-wait(notifying)`, fileKey 유지 | PUT 없이 같은 고지를 jittered backoff, 최대 3회 추가 |
+| 서버 고지 일반 4xx 또는 처리 `FAILED` | `failed(notify)` | 자동 재시도 없이 error 이미지와 홈 이동 표시 |
+| 고지 재시도 소진 | `failed(notify)` | error 이미지, 수동 고지 재시도와 홈 이동 표시 |
 | 이전 제출 중 다음 녹음 시작 | 두 상태 머신 독립 | recorder는 새 URI, registry는 불변 답변 key 유지 |
-| 마지막 문항에 pending/failed 존재 | `awaitingSubmissions` | 성공까지 대기하거나 실패 항목을 단계별 재시도 |
+| 마지막 문항에 pending/failed 존재 | `submission-barrier` | pending 종료까지 대기한 뒤 완료 또는 최종 실패 UI |
 | 화면/session 이탈 | controller dispose, 요청·timer 취소 | native/network 정리 후 소유 중인 임시 파일 삭제 |
 
 ## Developer Explain-Back
@@ -206,7 +205,8 @@ src/
 ├── features/exam/
 │   ├── api/
 │   │   ├── exam-answer-upload-url.ts    # upload URL endpoint
-│   │   └── exam-answer-submit.ts        # submit endpoint
+│   │   ├── exam-answer-submit.ts        # upload-complete notification endpoint
+│   │   └── exam-question-status.ts      # remove: backend endpoint does not exist
 │   ├── answer-audio.ts                  # shared recording options/audio modes/pure metering
 │   ├── upload-answer-audio.ts           # S3 PUT + bounded retry
 │   ├── use-answer-recorder.ts           # native recording lifecycle
@@ -218,7 +218,7 @@ src/
 │   ├── SoundTestScreen.tsx              # real session creation
 │   ├── components/
 │   │   ├── AudioWaveform.tsx             # shared metering smoothing/presentation
-│   │   ├── ExamAnswerStatus.tsx         # interrupted/pending/failed/completed UI
+│   │   ├── ExamAnswerStatus.tsx         # pending/error mascot/retry/home/completed UI
 │   │   └── ExamTimerCard.tsx
 │   └── hooks/
 │       ├── use-exam-session-controller.ts
@@ -244,9 +244,10 @@ docs/
 - [x] Validation covers lint, typecheck, race cases, network failures, and both native platforms.
 - [x] No new dependency, Jira write, commit, push, secret, or unapproved external mutation is required.
 
-**Integration Gate**: server idempotency와 명확한 미접수 응답은 client 구현으로 만들 수 없는
-외부 계약이다. client는 안전한 `submission-unknown` fallback을 구현하되, test backend에서
-이 계약이 확인되지 않으면 자동 재-submit과 feature completion evidence를 통과시키지 않는다.
+**Integration Gate**: 동일한 `(examId, questionNumber, retryCount, fileKey)` 고지가 중복 채점
+작업을 만들지 않는 서버 멱등성은 client 구현으로 만들 수 없는 외부 계약이다. test backend에서
+이 계약이 확인되지 않으면 응답 유실 재시도를 안전하다고 간주할 수 없고 feature completion
+evidence를 통과시키지 않는다.
 
 ## Complexity Tracking
 

@@ -5,7 +5,7 @@
 - pnpm 11.12.0
 - iOS와 Android 실기기 또는 각 플랫폼에서 microphone/audio interruption을 재현할 수 있는 환경
 - 기기에서 접근 가능한 application API base URL
-- upload URL, S3 PUT, submit, question status를 확인할 수 있는 test backend
+- upload URL, S3 PUT, upload-complete notification을 확인할 수 있는 test backend
 - 마이크 권한과 네트워크 상태를 변경할 수 있는 기기 설정
 
 `localhost`는 실기기에서 개발 머신을 가리키지 않는다. `.env.local`에는 기기가 접근 가능한
@@ -30,8 +30,8 @@ pnpm start
 3. 한 문항을 제한 시간 전에 완료한다.
 4. 답변 중 파형이 실제 마이크 입력에 100ms 간격으로 반응하는지 확인한다.
 5. 다음 문항은 즉시 진행되고 이전 답변은 별도로 처리되는지 확인한다.
-6. backend에서 같은 examId/questionNumber/retryCount=0으로 upload URL, PUT, submit 순서를 확인한다.
-7. 11개 문항을 완료하고 마지막 processing barrier가 모든 submit 성공 뒤 completed가 되는지 확인한다.
+6. backend에서 같은 examId/questionNumber/retryCount=0으로 upload URL, PUT, 서버 고지 순서를 확인한다.
+7. 11개 문항을 완료하고 마지막 processing barrier가 모든 서버 고지 성공 뒤 completed가 되는지 확인한다.
 
 Expected:
 
@@ -90,50 +90,54 @@ Expected:
 - 설정 이동 또는 같은 문항 재시도 행동을 제공한다.
 - 열린 recorder와 recording audio mode가 남지 않는다.
 
-## Scenario 5 — Stage-Aware Network Retry
+## Scenario 5 — S3 PUT Retry With Jitter
 
-각 단계를 독립적으로 실패시킨다.
-
-1. upload URL GET의 timeout/5xx/4xx
-2. S3 PUT의 timeout, 5xx, 403, presigned expiry
-3. submit POST의 timeout/5xx
-4. question status 조회 실패
+1. 하나의 upload URL과 fileKey를 발급받는다.
+2. S3 PUT의 timeout, network error, 408, 429, 5xx를 각각 연속 발생시킨다.
+3. 여러 client instance에서 같은 오류를 동시에 발생시켜 retry timestamp를 기록한다.
+4. 403과 presigned expiry도 각각 발생시킨다.
 
 Expected:
 
-- retryable 오류만 bounded backoff로 재시도한다.
-- PUT retry가 이미 내부에서 수행되면 바깥 runner가 중첩 6회 loop를 만들지 않는다.
+- retryable 오류만 최초 요청 이후 최대 5회 추가 재시도한다.
+- 모든 PUT은 최초 발급받은 같은 URL과 fileKey를 사용하며 URL endpoint를 다시 호출하지 않는다.
+- base `1s, 2s, 4s, 8s, 16s`의 실제 wait가 각각 50~100% 범위에 있고 client별로 분산된다.
+- 403/expiry에서는 재발급이나 자동 retry를 시작하지 않는다.
 - 다음 문항은 진행 가능하다.
-- fileKey가 생긴 뒤에는 upload가 아니라 submit/status 단계에서 재개한다.
-- local file은 최종 submit 접수 전까지 유지된다.
+- local file은 PUT 성공 전까지 유지되고 PUT 2xx 뒤 삭제된다.
 
-## Scenario 6 — Ambiguous Submit
+## Scenario 6 — Server Notification Retry and Response Loss
 
-1. 서버가 submit을 접수한 뒤 client 응답만 끊는다.
-2. client가 같은 Answer Key로 question status를 조회하는지 확인한다.
-3. status가 `PENDING` 또는 `PROCESSING`이면 POST를 중복 호출하지 않는지 확인한다.
-4. 현재 status contract가 어떤 응답을 명확한 미접수로 표현하는지 확인한다.
-5. backend가 같은 tuple/fileKey의 반복 submit을 하나로 처리하고 기존 상태를 반환하는지 확인한다.
-6. 같은 Answer Key에 다른 fileKey가 오면 conflict로 거부하는지 확인한다.
+1. S3 PUT을 성공시킨 뒤 서버 고지의 network error, timeout, 408, 429, 5xx를 각각 발생시킨다.
+2. 서버가 첫 고지를 접수한 뒤 client 응답만 끊는 경우도 발생시킨다.
+3. 여러 client instance의 retry timestamp를 기록한다.
+4. 일반 4xx와 `FAILED` 응답을 각각 발생시킨다.
 
 Expected:
 
-- retryCount가 증가하지 않는다.
-- 같은 답변의 중복 채점이 없다.
-- 결과가 불명확한 동안 fileKey와 local file을 유지한다.
-- 미접수 신호와 서버 멱등성이 확인되기 전에는 client가 자동 재-POST하지 않는다.
+- retryable 오류는 같은 Answer Key/fileKey로 최대 3회 추가 재시도한다.
+- base `1s, 2s, 4s`의 실제 wait가 각각 50~100% 범위에 있고 client별로 분산된다.
+- retryCount가 증가하지 않고 S3 PUT과 upload URL 요청이 추가로 발생하지 않는다.
+- question status 요청이 0회다.
+- backend의 채점 작업은 응답 유실 재시도에도 하나만 생성된다.
+- 일반 4xx와 `FAILED`는 자동 재시도하지 않는다.
 
 ## Scenario 7 — Final Barrier and Manual Recovery
 
 1. 마지막 문항까지 하나의 이전 job을 pending으로 유지한다.
 2. 마지막 답변을 종료한다.
 3. pending 상태에서 completed로 이동하지 않는지 확인한다.
-4. 하나의 job을 terminal failed로 만들고 retry action을 실행한다.
+4. retryable job을 terminal failed로 만들어 error 화면의 수동 retry를 실행한다.
+5. 일반 4xx job을 terminal failed로 만들어 error 화면을 확인한다.
+6. `홈으로 돌아가기`를 누른다.
 
 Expected:
 
 - registry의 registered count와 expected question count가 모두 맞아야 완료된다.
-- 실패 job은 fileKey 유무에 따라 submit 또는 upload 단계부터 이어간다.
+- error 화면에 `public/mascots/error.png`가 표시된다.
+- retryable job에는 수동 retry와 홈 이동이 모두 보인다.
+- 일반 4xx만 남으면 retry 없이 홈 이동만 보인다.
+- 홈 버튼 한 번으로 MockExam stack이 정리되고 Home tab으로 이동한다.
 - 모든 job 성공 뒤에만 completed가 된다.
 
 ## Scenario 8 — Disposal
@@ -169,9 +173,9 @@ Expected:
 - iOS/Android 기기와 OS version
 - 각 실패 단계의 screen recording 또는 로그
 - 문항별 `(examId, questionNumber, retryCount, fileKey)` request trace
-- duplicate submit 0건과 final barrier 성공 기록
+- duplicate grading job 0건, status request 0건, upload URL 재발급 0건과 final barrier 기록
 
-## Validation Record — 2026-07-27
+## Validation Record — 2026-07-28
 
 ### Completed in this workspace
 
@@ -183,13 +187,14 @@ Expected:
   strict TypeScript 검증은 통과했다.
 - `git diff --check`: exit 0.
 - `package.json`과 `pnpm-lock.yaml` 변경 없음.
-- iOS booted simulator와 ADB attached device를 조회했으나 연결된 기기가 없었다.
-- `.env.local`에 `EXPO_PUBLIC_API_BASE_URL`이 구성되어 있지 않았다.
+- Scenario 5–8의 상태 전이를 source에서 검토했다. PUT은 저장된 target 안에서만 재시도하고,
+  `uploadCompleted` 뒤에는 고지만 재시도하며, terminal UI와 dispose 경로가 계약에 맞게 연결된다.
+- `.env.local`이 없어 `EXPO_PUBLIC_API_BASE_URL`이 구성되어 있지 않았다.
 
 ### Not executable in this workspace
 
-- Scenario 1–8의 마이크 녹음, AppState/audio interruption, 실제 S3 PUT과 submit/status trace는
+- Scenario 1–8의 마이크 녹음, AppState/audio interruption, 실제 S3 PUT과 서버 고지 trace는
   연결된 iOS/Android 기기와 test backend가 없어 실행하지 못했다.
-- 서버의 동일 Answer Key/fileKey 멱등 처리와 명확한 미접수 응답도 확인하지 못했다. 따라서
-  client는 `submission-unknown` 상태에서 status reconciliation만 수행하고 자동 submit
-  재-POST는 활성화하지 않은 상태다.
+- 현재 실행 환경에서는 CoreSimulatorService와 ADB daemon 접근도 허용되지 않아 연결 기기
+  조회 및 UI 수동 검증을 수행하지 못했다.
+- 서버의 동일 Answer Key/fileKey 고지 멱등 처리는 test backend에서 확인해야 한다.

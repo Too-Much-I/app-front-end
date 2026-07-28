@@ -4,6 +4,11 @@ const ANSWER_AUDIO_CONTENT_TYPE = "audio/mp4";
 const PUT_TIMEOUT_MS = 15_000;
 const PUT_RETRY_DELAYS_MS = [1_000, 2_000, 4_000, 8_000, 16_000] as const;
 
+export function getEqualJitterDelayMs(baseDelayMs: number): number {
+  const minimumDelayMs = Math.ceil(baseDelayMs / 2);
+  return minimumDelayMs + Math.floor(Math.random() * (baseDelayMs - minimumDelayMs + 1));
+}
+
 export class AnswerAudioUploadError extends Error {
   constructor(
     message: string,
@@ -127,7 +132,7 @@ export async function uploadAnswerAudio(
 
   for (let attempt = 0; ; attempt += 1) {
     if (Date.now() >= expiresAt) {
-      throw new AnswerAudioUploadError("답변 업로드 주소가 만료됐어요.", true, 403);
+      throw new AnswerAudioUploadError("답변 업로드 주소가 만료됐어요.", false, 403);
     }
 
     try {
@@ -137,8 +142,18 @@ export async function uploadAnswerAudio(
       if (signal?.aborted) throw error;
       if (!(error instanceof AnswerAudioUploadError) || !error.retryable) throw error;
 
-      const delay = PUT_RETRY_DELAYS_MS[attempt];
-      if (delay === undefined || Date.now() + delay >= expiresAt) throw error;
+      const baseDelay = PUT_RETRY_DELAYS_MS[attempt];
+      if (baseDelay === undefined) throw error;
+
+      const delay = getEqualJitterDelayMs(baseDelay);
+      if (Date.now() + delay + PUT_TIMEOUT_MS >= expiresAt) {
+        throw new AnswerAudioUploadError(
+          "답변 업로드 주소의 남은 시간이 부족해 재시도할 수 없어요.",
+          false,
+          403,
+          { cause: error },
+        );
+      }
       await wait(delay, signal);
     }
   }

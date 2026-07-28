@@ -1,4 +1,5 @@
 import { useIsFocused } from "@react-navigation/native";
+import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
@@ -8,7 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { getExamPartDirections } from "@/features/exam/part-directions";
-import type { MockExamStackParamList } from "@/navigation/types";
+import type { MainTabParamList, MockExamStackParamList } from "@/navigation/types";
 import { AudioWaveform } from "@/screens/mock-exam/components/AudioWaveform";
 import { ExamAnswerStatus } from "@/screens/mock-exam/components/ExamAnswerStatus";
 import { ExamInformationReading } from "@/screens/mock-exam/components/ExamInformationReading";
@@ -59,6 +60,13 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
   const handleExitExam = useCallback(() => {
     navigation.popToTop();
   }, [navigation]);
+
+  const handleGoHome = useCallback(() => {
+    const tabNavigation = navigation.getParent<BottomTabNavigationProp<MainTabParamList>>();
+    submissions.dispose();
+    navigation.popToTop();
+    tabNavigation?.navigate("Home");
+  }, [navigation, submissions]);
 
   useEffect(() => {
     const tabNavigator = navigation.getParent();
@@ -151,6 +159,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
               recordingErrorMessage={recorder.lastError?.message}
               recordingStatus={recorder.status}
               summary={submissions.summary}
+              onGoHome={handleGoHome}
               onRetryRecording={retryRecording}
               onRetryRegistration={retryRegistration}
               onRetrySubmission={submissions.retry}
@@ -191,6 +200,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
                 recordingErrorMessage={recorder.lastError?.message}
                 recordingStatus={recorder.status}
                 summary={submissions.summary}
+                onGoHome={handleGoHome}
                 onRetryRecording={retryRecording}
                 onRetryRegistration={retryRegistration}
                 onRetrySubmission={submissions.retry}

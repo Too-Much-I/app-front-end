@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { AppState } from "react-native";
 
-import { submitAnswerForGrading } from "@/features/exam/api/exam-answer-submit";
+import { notifyAnswerUploadComplete } from "@/features/exam/api/exam-answer-submit";
 import { getAnswerUploadUrl } from "@/features/exam/api/exam-answer-upload-url";
-import { getExamQuestionStatus } from "@/features/exam/api/exam-question-status";
 import {
   AnswerAudioUploadError,
   deleteAnswerAudioFile,
+  getEqualJitterDelayMs,
   getValidAnswerAudioFile,
   uploadAnswerAudio,
 } from "@/features/exam/upload-answer-audio";
@@ -31,8 +31,7 @@ interface RegisterAnswerResult {
   reason?: "disposed" | "invalid-file" | "uri-conflict";
 }
 
-const RETRY_DELAYS_MS = [1_000, 2_000, 4_000] as const;
-const ACCEPTED_STATUSES = new Set(["PENDING", "PROCESSING", "COMPLETED"]);
+const NOTIFICATION_RETRY_DELAYS_MS = [1_000, 2_000, 4_000] as const;
 
 function serializeAnswerKey(key: AnswerKey): string {
   return JSON.stringify([key.examId, key.questionNumber, key.retryCount]);
@@ -144,188 +143,155 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
     [patchJob],
   );
 
-  const waitForRetry = useCallback(
-    async (
-      id: string,
-      targetStage: "uploading" | "reconciling",
-      attempt: number,
-      signal: AbortSignal,
-      lastError: AnswerSubmissionFailure,
-    ) => {
-      const delay = RETRY_DELAYS_MS[attempt];
-      if (delay === undefined) return false;
-      patchJob(id, {
-        stage: "retry-wait",
-        stageAttempt: attempt + 1,
-        nextRetryAt: Date.now() + delay,
-        lastError,
-      });
-      await wait(delay, signal);
-      patchJob(id, { stage: targetStage, nextRetryAt: null });
-      return true;
-    },
-    [patchJob],
-  );
-
-  const reconcileSubmission = useCallback(
-    async (id: string, signal: AbortSignal) => {
-      const job = registryRef.current[id];
-      if (!job?.fileKey) return;
-
-      for (let attempt = 0; ; attempt += 1) {
-        patchJob(id, {
-          stage: "reconciling",
-          stageAttempt: attempt,
-          nextRetryAt: null,
-          lastError: null,
-        });
-        try {
-          const result = await getExamQuestionStatus(
-            job.key.examId,
-            job.key.questionNumber,
-            job.key.retryCount,
-            signal,
-          );
-          if (ACCEPTED_STATUSES.has(result.status)) {
-            markSucceeded(id, result.status as "PENDING" | "PROCESSING" | "COMPLETED");
-          } else {
-            markFailed(
-              id,
-              failure("submit", "서버가 답변 처리 실패를 반환했어요.", false),
-            );
-          }
-          return;
-        } catch (error) {
-          if (signal.aborted) throw error;
-          const lastError = failure(
-            "reconcile",
-            "답변 접수 여부를 확인하지 못했어요.",
-            true,
-          );
-          if (!isRetryableRequestError(error)) {
-            patchJob(id, { stage: "submission-unknown", lastError });
-            return;
-          }
-          const willRetry = await waitForRetry(
-            id,
-            "reconciling",
-            attempt,
-            signal,
-            lastError,
-          );
-          if (!willRetry) {
-            patchJob(id, { stage: "submission-unknown", lastError, nextRetryAt: null });
-            return;
-          }
-        }
-      }
-    },
-    [markFailed, markSucceeded, patchJob, waitForRetry],
-  );
-
   const runSubmission = useCallback(
     async (id: string, signal: AbortSignal) => {
       let job = registryRef.current[id];
       if (!job) return;
 
-      if (job.stage === "submission-unknown" || job.stage === "reconciling") {
-        await reconcileSubmission(id, signal);
-        return;
-      }
-
-      if (!job.fileKey) {
-        let uploadedFileKey: string | null = null;
-        for (let attempt = 0; ; attempt += 1) {
-          patchJob(id, {
-            stage: "uploading",
-            stageAttempt: attempt,
-            nextRetryAt: null,
-            lastError: null,
-          });
-          try {
-            const uploadTarget = await getAnswerUploadUrl(job.key, signal);
-            const expiresAt = Date.now() + uploadTarget.expiresIn * 1_000;
-            await uploadAnswerAudio(
-              uploadTarget.uploadUrl,
-              job.audioFileUri,
-              expiresAt,
-              signal,
-            );
-            uploadedFileKey = uploadTarget.fileKey;
-            break;
-          } catch (error) {
-            if (signal.aborted) throw error;
-            const retryable = isRetryableRequestError(error);
-            const uploadFailure = failure("upload", "답변 파일을 업로드하지 못했어요.", retryable);
-            const shouldRenewExpiredUrl =
-              error instanceof AnswerAudioUploadError && error.status === 403;
-            const failedBeforePut = !(error instanceof AnswerAudioUploadError);
-            if (!retryable || (!shouldRenewExpiredUrl && !failedBeforePut)) {
-              markFailed(id, uploadFailure);
-              return;
-            }
-            const willRetry = await waitForRetry(
-              id,
-              "uploading",
-              attempt,
-              signal,
-              uploadFailure,
-            );
-            if (!willRetry) {
-              markFailed(id, uploadFailure);
-              return;
-            }
-          }
-        }
-
-        if (!uploadedFileKey) return;
+      if (!job.uploadUrl || job.uploadExpiresAt === null || !job.fileKey) {
         patchJob(id, {
-          fileKey: uploadedFileKey,
-          stage: "queued-submit",
+          stage: "uploading",
           stageAttempt: 0,
           nextRetryAt: null,
           lastError: null,
         });
-        job = registryRef.current[id];
+        try {
+          const uploadTarget = await getAnswerUploadUrl(job.key, signal);
+          patchJob(id, {
+            uploadUrl: uploadTarget.uploadUrl,
+            uploadExpiresAt: Date.now() + uploadTarget.expiresIn * 1_000,
+            fileKey: uploadTarget.fileKey,
+          });
+          job = registryRef.current[id];
+        } catch (error) {
+          if (signal.aborted && !appIsActiveRef.current) {
+            patchJob(id, { stage: "queued-upload", nextRetryAt: null });
+            return;
+          }
+          if (signal.aborted) throw error;
+          markFailed(
+            id,
+            failure(
+              "upload",
+              "답변 업로드 정보를 준비하지 못했어요.",
+              isRetryableRequestError(error),
+            ),
+          );
+          return;
+        }
       }
 
-      if (!job?.fileKey) return;
-      patchJob(id, {
-        stage: "submitting",
-        stageAttempt: 0,
-        nextRetryAt: null,
-        lastError: null,
-      });
-      try {
-        const result = await submitAnswerForGrading(job.key, job.fileKey, signal);
-        if (result.status === "FAILED") {
-          markFailed(id, failure("submit", "서버가 답변 처리 실패를 반환했어요.", false));
-          return;
-        }
-        markSucceeded(id, result.status);
-      } catch (error) {
-        if (signal.aborted && !appIsActiveRef.current) {
-          patchJob(id, {
-            stage: "submission-unknown",
-            lastError: failure("reconcile", "답변 접수 여부를 다시 확인하고 있어요.", true),
-          });
-          return;
-        }
-        if (signal.aborted) throw error;
+      if (!job?.uploadUrl || job.uploadExpiresAt === null || !job.fileKey) {
+        markFailed(id, failure("upload", "답변 업로드 정보가 올바르지 않아요.", false));
+        return;
+      }
 
-        if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
-          markFailed(id, failure("submit", "채점 요청이 거부됐어요.", false));
+      if (!job.uploadCompleted) {
+        patchJob(id, {
+          stage: "uploading",
+          stageAttempt: 0,
+          nextRetryAt: null,
+          lastError: null,
+        });
+        try {
+          await uploadAnswerAudio(
+            job.uploadUrl,
+            job.audioFileUri,
+            job.uploadExpiresAt,
+            signal,
+          );
+        } catch (error) {
+          if (signal.aborted && !appIsActiveRef.current) {
+            patchJob(id, { stage: "queued-upload", nextRetryAt: null });
+            return;
+          }
+          if (signal.aborted) throw error;
+          markFailed(
+            id,
+            failure(
+              "upload",
+              error instanceof AnswerAudioUploadError
+                ? error.message
+                : "답변 파일을 업로드하지 못했어요.",
+              isRetryableRequestError(error),
+            ),
+          );
           return;
         }
 
         patchJob(id, {
-          stage: "submission-unknown",
-          lastError: failure("reconcile", "답변 접수 여부를 확인하고 있어요.", true),
+          uploadCompleted: true,
+          stage: "queued-notify",
+          stageAttempt: 0,
+          nextRetryAt: null,
+          lastError: null,
         });
-        await reconcileSubmission(id, signal);
+        try {
+          deleteAnswerAudioFile(job.audioFileUri);
+        } catch (error) {
+          console.error("[AnswerSubmissions] S3 업로드 완료 파일 삭제 실패", error);
+        }
+        job = registryRef.current[id];
+      }
+
+      if (!job?.uploadCompleted || !job.fileKey) return;
+
+      for (let attempt = 0; ; attempt += 1) {
+        patchJob(id, {
+          stage: "notifying",
+          stageAttempt: attempt,
+          nextRetryAt: null,
+          lastError: null,
+        });
+        try {
+          const result = await notifyAnswerUploadComplete(job.key, job.fileKey, signal);
+          if (result.status === "FAILED") {
+            markFailed(id, failure("notify", "서버가 답변 처리 실패를 반환했어요.", false));
+            return;
+          }
+          markSucceeded(id, result.status);
+          return;
+        } catch (error) {
+          if (signal.aborted && !appIsActiveRef.current) {
+            patchJob(id, { stage: "queued-notify", nextRetryAt: null });
+            return;
+          }
+          if (signal.aborted) throw error;
+
+          const retryable = isRetryableRequestError(error);
+          const notificationFailure = failure(
+            "notify",
+            retryable
+              ? "답변 업로드 사실을 서버에 알리지 못했어요."
+              : "서버가 답변 업로드 고지를 거부했어요.",
+            retryable,
+          );
+          const baseDelay = NOTIFICATION_RETRY_DELAYS_MS[attempt];
+          if (!retryable || baseDelay === undefined) {
+            markFailed(id, notificationFailure);
+            return;
+          }
+
+          const delay = getEqualJitterDelayMs(baseDelay);
+          patchJob(id, {
+            stage: "retry-wait",
+            stageAttempt: attempt + 1,
+            nextRetryAt: Date.now() + delay,
+            lastError: notificationFailure,
+          });
+          try {
+            await wait(delay, signal);
+          } catch (waitError) {
+            if (signal.aborted && !appIsActiveRef.current) {
+              patchJob(id, { stage: "queued-notify", nextRetryAt: null });
+              return;
+            }
+            throw waitError;
+          }
+        }
       }
     },
-    [markFailed, markSucceeded, patchJob, reconcileSubmission, waitForRetry],
+    [markFailed, markSucceeded, patchJob],
   );
 
   const startRunner = useCallback(
@@ -344,9 +310,9 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
           markFailed(
             id,
             failure(
-              current.fileKey ? "submit" : "upload",
-              current.fileKey
-                ? "채점 요청을 처리하지 못했어요."
+              current.uploadCompleted ? "notify" : "upload",
+              current.uploadCompleted
+                ? "답변 업로드 사실을 서버에 알리지 못했어요."
                 : "답변 파일을 업로드하지 못했어요.",
               true,
             ),
@@ -360,7 +326,7 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
             !disposedRef.current &&
             appIsActiveRef.current &&
             current &&
-            ["queued-upload", "queued-submit", "reconciling"].includes(current.stage)
+            ["queued-upload", "queued-notify"].includes(current.stage)
           ) {
             queueMicrotask(() => startRunnerRef.current(id));
           }
@@ -392,7 +358,10 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
       const job: AnswerSubmissionJob = {
         key: { ...answer.key },
         audioFileUri: answer.audioFileUri,
+        uploadUrl: null,
+        uploadExpiresAt: null,
         fileKey: null,
+        uploadCompleted: false,
         stage: "queued-upload",
         stageAttempt: 0,
         nextRetryAt: null,
@@ -411,11 +380,8 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
       const id = serializeAnswerKey(key);
       const job = registryRef.current[id];
       if (!job || job.stage === "succeeded" || job.stage === "cancelled") return;
-      const nextStage = job.stage === "submission-unknown"
-        ? "reconciling"
-        : job.fileKey
-          ? "queued-submit"
-          : "queued-upload";
+      if (job.lastError && !job.lastError.retryable) return;
+      const nextStage = job.uploadCompleted ? "queued-notify" : "queued-upload";
       patchJob(id, {
         stage: nextStage,
         stageAttempt: 0,

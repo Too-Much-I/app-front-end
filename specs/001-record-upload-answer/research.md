@@ -74,12 +74,15 @@ ownership이 이전되지 않은 파일을 정리한다.
 ## Decision 5 — 제출은 불변 답변 키별 registry와 stage runner로 관리한다
 
 **Decision**: `{ examId, questionNumber, retryCount }`를 key로 하는 reducer/runner를 두고
-upload URL, S3 PUT, submit을 분리한다. registry 등록은 기존 key에 대해 idempotent하며 각
-key는 한 runner만 가진다. registry는 FIFO가 아니고 한 job의 retry wait가 다른 job을 막지 않는다.
+최초 upload URL 발급, S3 PUT, 서버 고지를 분리한다. 발급받은 `uploadUrl`, `fileKey`, 만료
+시각은 PUT 전에 job에 고정해 S3 재시도가 URL 발급 API를 다시 호출하지 않게 한다. registry
+등록은 기존 key에 대해 idempotent하며 각 key는 한 runner만 가진다. registry는 FIFO가 아니고
+한 job의 retry wait가 다른 job을 막지 않는다.
 
-**Rationale**: 현재 모놀리식 함수는 submit 실패 시 `fileKey`를 잃어 재업로드가 필요하고,
-진행 상태와 최종 barrier를 관찰할 수 없다. stage를 보존하면 submit 실패는 같은
-`fileKey`에서 이어가고 다음 문항은 네트워크 완료를 기다리지 않아도 된다.
+**Rationale**: 현재 outer upload loop는 S3 PUT 실패 뒤 upload URL endpoint를 다시 호출해
+서버에 없는 재발급 동작을 가정한다. upload target을 job에 보존하면 같은 presigned URL로만
+PUT을 재시도하고, PUT 성공 뒤 고지 실패는 같은 `fileKey`에서 이어갈 수 있다. 다음 문항도
+이전 문항의 네트워크 완료를 기다리지 않는다.
 
 **Alternatives considered**:
 
@@ -100,29 +103,26 @@ key는 한 runner만 가진다. registry는 FIFO가 아니고 한 job의 retry w
 
 - 네트워크 실패마다 retryCount 증가: 중복 회차를 만들므로 기각
 
-## Decision 7 — submit 모호성은 status reconciliation과 멱등 contract로 제어한다
+## Decision 7 — 서버 고지는 동일 요청을 최대 3회 재시도한다
 
-**Decision**: timeout/connection loss로 submit 결과가 모호하면
-`getExamQuestionStatus(examId, questionNumber, retryCount)`를 먼저 조회한다.
-`PENDING/PROCESSING/COMPLETED`이면 접수 성공, `FAILED`이면 처리 실패로 확정한다. 현재
-`ExamQuestionPollResult`에는 미접수 상태가 없으므로 일반 조회 실패를 미접수로 해석하지
-않는다. 서버가 명확한 미접수 신호를 제공하고 같은 답변 key/fileKey의 반복 submit을 멱등
-처리한다는 통합 검증을 통과한 경우에만 같은 `fileKey`로 자동 재요청한다.
+**Decision**: S3 PUT 2xx 뒤 서버 고지의 network error, timeout, 408, 429, 5xx는 동일한
+`(examId, questionNumber, retryCount, fileKey)`로 최대 3회 추가 재시도한다. PUT은 다시 하지
+않고 존재하지 않는 question status endpoint도 조회하지 않는다. 일반 4xx와 명시적인 처리
+실패는 terminal failure로 둔다.
 
-**Rationale**: 클라이언트만으로 POST exactly-once는 보장할 수 없다. status 조회가 이미
-존재하므로 대부분의 응답 유실을 조정할 수 있고, 서버 멱등성은 race가 남는 경우의 최종
-안전망이다.
+**Rationale**: 서버 고지는 채점 시작에 필요한 단계이므로 전달 성공은 확인해야 하지만,
+S3에 이미 저장된 파일을 다시 올릴 이유는 없다. 응답 유실은 서버가 요청을 받았을 수도
+있으므로 동일 고지는 서버에서 중복 작업 없이 처리되는 계약이 필요하다. 이 계약 아래에서는
+별도 상태 조회 없이 같은 요청을 재전송하는 것이 가장 단순하다.
 
-**Integration prerequisite**: 같은 `(examId, questionNumber, retryCount, fileKey)`의 반복
-submit은 기존 상태를 반환하고, 같은 Answer Key에 다른 `fileKey`가 오면 conflict로 거부해야
-한다. 이 계약을 확인하지 못하면 client는 `submission-unknown`을 유지하고 자동 재-POST를
-활성화하지 않으며 기능 완료 증거를 충족하지 못한 것으로 보고한다.
+**Integration prerequisite**: 서버는 동일한 tuple/fileKey 고지를 여러 번 받아도 채점 작업을
+하나만 만들고 이미 접수된 요청에는 성공으로 해석 가능한 응답을 반환해야 한다.
 
 **Alternatives considered**:
 
-- 무조건 submit 재요청: 중복 채점 위험으로 기각
-- 전체 파일 재업로드: 새 fileKey/orphan과 불필요한 데이터 전송 때문에 기각
-- 오류 즉시 영구 실패: 일시 네트워크 장애 복구 요구를 충족하지 못해 기각
+- question status 조회: 실제 endpoint가 없어 기각
+- 고지 실패 시 S3 PUT부터 재실행: 불필요한 전송이며 단계 책임을 섞으므로 기각
+- 고지를 한 번만 best-effort로 전송: 고지 유실 시 채점이 시작되지 않아 기각
 
 ## Decision 8 — 인앱 background retry만 보장한다
 
@@ -139,18 +139,19 @@ registry state는 process kill을 견디지 못한다. 영속 보장을 암시�
 - iOS background upload에 의존: Android와 보장이 달라 기각
 - native background scheduler와 persisted registry: 별도 기능으로 계획해야 하므로 기각
 
-## Decision 9 — 파일은 submit 접수 뒤 삭제한다
+## Decision 9 — 파일은 S3 PUT 성공 뒤 삭제할 수 있다
 
-**Decision**: finalized URI는 registry가 소유하고 submit 접수 성공 뒤 `File.exists` 확인과
-best-effort `delete()`로 제거한다. retryable/failed 상태에서는 보존하고 interrupted partial은
-즉시 삭제한다.
+**Decision**: finalized URI는 registry가 소유하고 S3 PUT 2xx 뒤 best-effort `delete()`로
+제거한다. 이후 서버 고지 재시도에는 `fileKey`만 사용한다. PUT이 끝나기 전의 retryable/failed
+상태에서는 파일을 보존하고 interrupted partial은 즉시 삭제한다.
 
-**Rationale**: missing/zero-byte 검증을 upload 전에 수행할 수 있고, submit 전 실패에서 같은
-파일로 복구할 수 있다. screen dispose에서는 active file read가 끝난 뒤 남은 파일을 정리한다.
+**Rationale**: missing/zero-byte 검증은 upload 전에 수행하며 S3가 원본 저장소다. PUT 성공 후
+서버 고지는 로컬 파일을 읽지 않으므로 파일을 유지해도 복구 가능성이 늘지 않는다. screen
+dispose에서는 active file read가 끝난 뒤 남은 파일을 정리한다.
 
 **Alternatives considered**:
 
-- S3 PUT 직후 삭제: submit 실패 후 재업로드 fallback을 잃어 기각
+- 서버 고지 성공까지 유지: 고지 재시도에는 fileKey만 필요해 불필요하므로 기각
 - OS cache 정리에만 의존: 시험 중 임시 파일 누적과 소유권 불명확 때문에 기각
 
 ## Decision 10 — 실제 서버 세션을 시작 경로에 연결한다
@@ -166,16 +167,35 @@ session으로만 이동한다. mock session은 UI 개발 fixture로만 유지한
 - mock session을 유지하고 업로드만 연결: 항상 서버 실패하므로 기각
 - screen 진입 후 세션 생성: 녹음 UI와 시작 오류 상태가 섞이므로 기각
 
-## Decision 11 — no-result-route 완료 상태는 현재 화면 안에 둔다
+## Decision 11 — 완료와 최종 실패 상태는 현재 화면 안에 둔다
 
-**Decision**: 마지막 답변 후 `awaitingSubmissions`와 `completed` 상태를
-`ExamSessionScreen` 안에서 표시한다. 피드백/채점 결과 route는 이번 계획에서 추가하지 않는다.
+**Decision**: 마지막 답변 후 pending과 completed 상태를 `ExamSessionScreen` 안에서 표시한다.
+모든 자동 재시도가 끝난 terminal failure에는 `public/mascots/error.png`와 오류 설명을
+표시한다. retryable failure에는 수동 재시도와 홈 이동을, 일반 4xx에는 홈 이동만 제공한다.
+홈 이동은 MockExam stack을 초기 화면으로 정리한 뒤 상위 tab navigator의 `Home`으로 이동한다.
 
-**Rationale**: 현재 navigation에는 grading/result route가 없고 spec은 결과 화면 변경을
-범위 밖으로 둔다. 제출 성공 barrier를 검증하면서 후속 이슈가 연결할 명확한 완료 event를
-남길 수 있다.
+**Rationale**: 현재 navigation에는 grading/result route가 없고 실패가 서버 상태 조회로
+회복될 수도 없다. 사용자를 무한 대기에 두지 않으면서 일시 장애에는 마지막 수동 복구 기회를
+주고, 복구 불가능한 오류에는 홈으로 빠져나갈 명확한 경로를 제공한다.
 
 **Alternatives considered**:
 
 - 기존 Feedback tab으로 즉시 이동: 해당 examId 기반 결과 flow가 없어 기각
 - 새 grading screen 추가: 승인 범위를 넘으므로 기각
+
+## Decision 12 — S3 PUT과 서버 고지 모두 jittered exponential backoff를 사용한다
+
+**Decision**: S3 PUT의 base delay `1s, 2s, 4s, 8s, 16s`와 서버 고지의 base delay
+`1s, 2s, 4s`에 equal jitter를 적용한다. 실제 delay는 각 base의 50~100% 범위에서 매번 새로
+뽑는다. S3의 다음 delay와 PUT 제한 시간을 합친 시점이 presigned 만료 시각을 넘으면 해당
+시도를 시작하지 않는다.
+
+**Rationale**: 완전 고정 backoff는 네트워크 복구 직후 여러 클라이언트의 재요청을 다시 같은
+시점에 모은다. equal jitter는 최소 대기를 보장하면서 요청을 분산하고, 새 dependency 없이
+구현할 수 있다. S3는 URL 만료 예산도 함께 지켜야 한다.
+
+**Alternatives considered**:
+
+- 고정 exponential backoff: thundering herd를 완화하지 못해 기각
+- full jitter(0~base): 즉시 재시도가 가능해 최소 완충 시간이 없어 기각
+- decorrelated jitter: 긴 retry sequence에는 유리하지만 최대 3회/5회의 짧은 흐름에는 복잡해 기각
