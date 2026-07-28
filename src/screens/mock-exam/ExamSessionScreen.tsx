@@ -29,6 +29,9 @@ import { useExamSessionController } from "@/screens/mock-exam/hooks/use-exam-ses
 
 type ExamSessionScreenProps = NativeStackScreenProps<MockExamStackParamList, "ExamSession">;
 
+/** 제출 완료 안내를 읽을 시간. 이 뒤에 채점 대기 화면으로 넘어간다. */
+const COMPLETED_HANDOFF_MS = 1_600;
+
 export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps) {
   const session = route.params.session;
   const isFocused = useIsFocused();
@@ -91,6 +94,19 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     });
     return () => subscription.remove();
   }, []);
+
+  // 제출이 끝나면 채점 대기 화면으로 넘긴다. "모든 답변을 제출했어요"를 읽을
+  // 시간만 잠깐 두고 넘어간다. `replace`인 이유: 응시 화면은 돌아갈 곳이 아니고,
+  // 언마운트되면서 녹음·업로드 리소스가 정리되어야 한다.
+  useEffect(() => {
+    if (phase !== "completed") return;
+
+    const timeoutId = setTimeout(() => {
+      navigation.replace("GradingWait", { examId: session.examId });
+    }, COMPLETED_HANDOFF_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [navigation, phase, session.examId]);
 
   if (!question) return null;
 

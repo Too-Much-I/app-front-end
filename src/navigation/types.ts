@@ -14,6 +14,7 @@ export type MockExamStackParamList = {
   MicrophoneTest: undefined;
   SoundTest: undefined;
   ExamSession: { session: ExamSession };
+  GradingWait: { examId: string };
 };
 
 export type RootStackParamList = {
