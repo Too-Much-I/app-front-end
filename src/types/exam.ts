@@ -111,7 +111,6 @@ export interface FinalizedAnswer {
   key: AnswerKey;
   generationId: number;
   audioFileUri: string;
-  durationMs: number;
 }
 
 export type AnswerSubmissionStage =

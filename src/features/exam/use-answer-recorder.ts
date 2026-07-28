@@ -55,6 +55,12 @@ interface RecordingGeneration {
   id: number;
   key: AnswerKey;
   maxDurationMs: number;
+  /**
+   * `record()` 직후의 wall-clock 시각. 0이면 아직 녹음이 시작되지 않았다.
+   * 네이티브는 `forDuration` 자동 정지 시 `durationMillis`를 0으로 되감기 때문에
+   * 경과 시간의 기준으로 쓸 수 없다.
+   */
+  startedAtMs: number;
   terminalIntent: "finalize" | "discard" | null;
   ownsAudioMode: boolean;
   hasOpenRecording: boolean;
@@ -70,6 +76,12 @@ const FALLBACK_FINISH_DELAY_MS = 500;
 
 function cloneAnswerKey(key: AnswerKey): AnswerKey {
   return { ...key };
+}
+
+/** 네이티브 카운터 대신 wall-clock으로 잰 녹음 경과 시간. */
+function getElapsedMs(generation: RecordingGeneration): number {
+  if (generation.startedAtMs === 0) return 0;
+  return Math.max(0, Date.now() - generation.startedAtMs);
 }
 
 export function useAnswerRecorder() {
@@ -199,7 +211,6 @@ export function useAnswerRecorder() {
             key: cloneAnswerKey(generation.key),
             generationId: generation.id,
             audioFileUri,
-            durationMs: Math.max(0, recorder.getStatus().durationMillis),
           };
           ownedFinalizedUriRef.current = audioFileUri;
           return answer;
@@ -226,7 +237,7 @@ export function useAnswerRecorder() {
       }).catch(() => undefined);
       return terminalPromise;
     },
-    [cleanupGeneration, recorder, updateStatus],
+    [cleanupGeneration, updateStatus],
   );
 
   const finish = useCallback(
@@ -287,6 +298,7 @@ export function useAnswerRecorder() {
         id: generationSequenceRef.current + 1,
         key: cloneAnswerKey(key),
         maxDurationMs,
+        startedAtMs: 0,
         terminalIntent: null,
         ownsAudioMode: false,
         hasOpenRecording: false,
@@ -327,6 +339,7 @@ export function useAnswerRecorder() {
 
         recorder.record({ forDuration: maxDurationMs / 1_000 });
         generation.hasOpenRecording = true;
+        generation.startedAtMs = Date.now();
         updateStatus("recording");
         fallbackTimerRef.current = setTimeout(() => {
           void finish("fallback-timeout").catch(() => undefined);
@@ -405,22 +418,23 @@ export function useAnswerRecorder() {
     }
     if (statusRef.current !== "recording" || recorderState.isRecording) return;
 
-    if (recorderState.durationMillis >= generation.maxDurationMs - NATIVE_FINISH_TOLERANCE_MS) {
+    if (getElapsedMs(generation) >= generation.maxDurationMs - NATIVE_FINISH_TOLERANCE_MS) {
       void finish("native-timeout").catch(() => undefined);
     } else if (generation.hasOpenRecording) {
       void discard("unexpected-stop").catch(() => undefined);
     }
-  }, [discard, finish, recorderState.durationMillis, recorderState.isRecording, recorderState.mediaServicesDidReset]);
+  }, [discard, finish, recorderState.isRecording, recorderState.mediaServicesDidReset]);
 
   useEffect(() => {
     mountedRef.current = true;
     return dispose;
   }, [dispose]);
 
-  const elapsedMs = status === "recording" || status === "finalizing"
-    ? Math.max(0, recorderState.durationMillis)
-    : 0;
-  const maxDurationMs = activeGenerationRef.current?.maxDurationMs ?? 0;
+  // recorderState 폴링이 렌더를 유발하므로 wall-clock 경과도 매 tick 갱신된다.
+  const activeGeneration = activeGenerationRef.current;
+  const isTimingActive = status === "recording" || status === "finalizing";
+  const elapsedMs = isTimingActive && activeGeneration ? getElapsedMs(activeGeneration) : 0;
+  const maxDurationMs = activeGeneration?.maxDurationMs ?? 0;
 
   return useMemo(
     () => ({

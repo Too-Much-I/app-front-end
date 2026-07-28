@@ -62,7 +62,13 @@ lifecycle과 AppState 정책은 공유하지 않는다.
 | `resetForRetry()` | idle | interrupted/error 정리 완료 뒤 같은 key의 새 generation 허용 |
 | `dispose()` | void | start 무효화, terminal cleanup 시작, state dispatch 중단 |
 
-`FinalizedAnswer`는 `key`, `generationId`, `audioFileUri`, `durationMs`를 포함한다.
+`FinalizedAnswer`는 `key`, `generationId`, `audioFileUri`를 포함한다.
+녹음 길이는 포함하지 않는다. `forDuration` 자동 정지 경로에서는 네이티브가 정지 직후
+`durationMillis`를 0으로 되감아 확정 시점에 정확한 길이를 얻을 수 없고, 답변 길이가 필요한
+화면은 나중에 답변 오디오 URL을 재생하며 player status의 `duration`을 사용한다.
+
+만료 판정과 잔여 시간은 네이티브 `durationMillis`가 아니라 `record()` 직후 기록한
+wall-clock(`startedAtMs`) 기준 경과 시간으로 계산한다.
 
 ## Native Recording Configuration
 

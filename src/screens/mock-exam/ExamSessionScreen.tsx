@@ -8,6 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
+import { getExamResponseCueKind } from "@/features/exam/exam-cue";
 import { getExamPartDirections } from "@/features/exam/part-directions";
 import type { MainTabParamList, MockExamStackParamList } from "@/navigation/types";
 import { AudioWaveform } from "@/screens/mock-exam/components/AudioWaveform";
@@ -15,6 +16,7 @@ import { ExamAnswerStatus } from "@/screens/mock-exam/components/ExamAnswerStatu
 import { ExamInformationReading } from "@/screens/mock-exam/components/ExamInformationReading";
 import { ExamPartIntroContent } from "@/screens/mock-exam/components/ExamPartIntroContent";
 import { ExamPartDirectionsContent } from "@/screens/mock-exam/components/ExamPartDirectionsContent";
+import { ExamPhaseCue } from "@/screens/mock-exam/components/ExamPhaseCue";
 import { ExamPreludeError } from "@/screens/mock-exam/components/ExamPreludeError";
 import { ExamQuestionContent } from "@/screens/mock-exam/components/ExamQuestionContent";
 import { ExamQuestionProgress } from "@/screens/mock-exam/components/ExamQuestionProgress";
@@ -44,6 +46,8 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     completeDirections,
     completePart3Intro,
     completePart4Reading,
+    completePreparationCue,
+    completeResponseCue,
     markPart4TableVisible,
     beginResponse,
     finishResponse,
@@ -51,7 +55,10 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     retryRegistration,
   } = controller;
   const timerMode: ExamTimerMode =
-    phase === "response" || phase === "starting-response" || phase === "finalizing"
+    phase === "response-cue" ||
+    phase === "response" ||
+    phase === "starting-response" ||
+    phase === "finalizing"
       ? "response"
       : phase === "part4-reading"
         ? "reading"
@@ -91,10 +98,21 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
   const part4Prelude = partPrelude?.kind === "part4-reading" ? partPrelude : undefined;
   const invalidPrelude = partPrelude?.kind === "invalid" ? partPrelude : undefined;
   const isSubmissionState = phase === "submission-barrier" || phase === "completed";
-  const showTimer = ["preparation", "starting-response", "response", "finalizing"].includes(
-    phase,
-  );
+  const showTimer = [
+    "preparation-cue",
+    "preparation",
+    "response-cue",
+    "starting-response",
+    "response",
+    "finalizing",
+  ].includes(phase);
   const showResponseWaveform = phase === "response" || phase === "finalizing";
+  const activeCueKind =
+    phase === "preparation-cue"
+      ? "preparing"
+      : phase === "response-cue"
+        ? getExamResponseCueKind(question.partNumber)
+        : null;
 
   return (
     <View className="flex-1 bg-surface">
@@ -191,6 +209,19 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
 
               {showTimer ? (
                 <ExamTimerCard mode={timerMode} remainingSeconds={remainingSeconds} />
+              ) : null}
+
+              {activeCueKind ? (
+                <ExamPhaseCue
+                  cueKind={activeCueKind}
+                  isActive={isExamActive}
+                  onComplete={
+                    phase === "preparation-cue"
+                      ? completePreparationCue
+                      : completeResponseCue
+                  }
+                  onExit={handleExitExam}
+                />
               ) : null}
 
               <ExamAnswerStatus

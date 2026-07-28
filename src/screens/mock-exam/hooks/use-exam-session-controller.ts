@@ -6,14 +6,21 @@ import {
   useAnswerRecorder,
 } from "@/features/exam/use-answer-recorder";
 import { useAnswerSubmissions } from "@/features/exam/use-answer-submissions";
-import type { ExamPartPrelude, ExamSession, FinalizedAnswer } from "@/types/exam";
+import type {
+  ExamPartPrelude,
+  ExamQuestion,
+  ExamSession,
+  FinalizedAnswer,
+} from "@/types/exam";
 
 export type ExamSessionPhase =
   | "directions"
   | "part3-intro"
   | "part4-reading"
   | "part-prelude-error"
+  | "preparation-cue"
   | "preparation"
+  | "response-cue"
   | "starting-response"
   | "response"
   | "finalizing"
@@ -28,7 +35,7 @@ const TIMER_UPDATE_INTERVAL_MS = 100;
 function getQuestionStartPhase(partNumber: number | undefined): ExamSessionPhase {
   return partNumber !== undefined && getExamPartDirections(partNumber)
     ? "directions"
-    : "preparation";
+    : "preparation-cue";
 }
 
 function getPartPrelude(
@@ -68,6 +75,14 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     setPhase(nextPhase);
   }, []);
 
+  const enterPreparationCue = useCallback(
+    (activeQuestion: ExamQuestion) => {
+      setPreparationRemainingMs(activeQuestion.prepTimeSec * 1_000);
+      updatePhase("preparation-cue");
+    },
+    [updatePhase],
+  );
+
   useEffect(() => {
     currentIndexRef.current = currentIndex;
   }, [currentIndex]);
@@ -84,13 +99,13 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     const nextQuestion = session.questions[nextIndex];
     currentIndexRef.current = nextIndex;
     setCurrentIndex(nextIndex);
-    setPreparationRemainingMs(nextQuestion.prepTimeSec * 1_000);
-    updatePhase(
-      nextQuestion.partNumber !== currentQuestion.partNumber
-        ? getQuestionStartPhase(nextQuestion.partNumber)
-        : "preparation",
-    );
-  }, [session.questions, updatePhase]);
+    if (nextQuestion.partNumber !== currentQuestion.partNumber) {
+      setPreparationRemainingMs(nextQuestion.prepTimeSec * 1_000);
+      updatePhase(getQuestionStartPhase(nextQuestion.partNumber));
+    } else {
+      enterPreparationCue(nextQuestion);
+    }
+  }, [enterPreparationCue, session.questions, updatePhase]);
 
   const registerFinalizedAnswer = useCallback(
     (answer: FinalizedAnswer) => {
@@ -155,15 +170,8 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     [recorder, registerFinalizedAnswer, updatePhase],
   );
 
-  const beginResponse = useCallback(() => {
-    const allowedPhases: ExamSessionPhase[] = [
-      "preparation",
-      "interrupted",
-      "recording-recovery",
-    ];
-    if (!allowedPhases.includes(phaseRef.current) || transitionPromiseRef.current) {
-      return transitionPromiseRef.current ?? Promise.resolve();
-    }
+  const startResponseRecording = useCallback(() => {
+    if (phaseRef.current !== "response-cue") return Promise.resolve();
     const activeQuestion = session.questions[currentIndexRef.current];
     if (!activeQuestion) return Promise.resolve();
 
@@ -198,6 +206,19 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     transitionPromiseRef.current = transitionPromise;
     return transitionPromise;
   }, [recorder, session.examId, session.questions, updatePhase]);
+
+  const beginResponse = useCallback(() => {
+    const allowedPhases: ExamSessionPhase[] = [
+      "preparation",
+      "interrupted",
+      "recording-recovery",
+    ];
+    if (!allowedPhases.includes(phaseRef.current) || transitionPromiseRef.current) {
+      return transitionPromiseRef.current ?? Promise.resolve();
+    }
+    updatePhase("response-cue");
+    return Promise.resolve();
+  }, [updatePhase]);
   beginResponseRef.current = () => {
     void beginResponse();
   };
@@ -228,25 +249,32 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
       }
     }
 
-    setPreparationRemainingMs(question.prepTimeSec * 1_000);
-    updatePhase("preparation");
-  }, [partPrelude, question, updatePhase]);
+    enterPreparationCue(question);
+  }, [enterPreparationCue, partPrelude, question, updatePhase]);
 
   const completePart3Intro = useCallback(() => {
     if (phaseRef.current !== "part3-intro" || !question) return;
     completedPartPreludesRef.current.add(question.partNumber);
-    setPreparationRemainingMs(question.prepTimeSec * 1_000);
-    updatePhase("preparation");
-  }, [question, updatePhase]);
+    enterPreparationCue(question);
+  }, [enterPreparationCue, question]);
 
   const completePart4Reading = useCallback(() => {
     if (phaseRef.current !== "part4-reading" || !question) return;
     completedPartPreludesRef.current.add(question.partNumber);
     readingRemainingMsRef.current = 0;
     setReadingRemainingMs(0);
+    enterPreparationCue(question);
+  }, [enterPreparationCue, question]);
+
+  const completePreparationCue = useCallback(() => {
+    if (phaseRef.current !== "preparation-cue" || !question) return;
     setPreparationRemainingMs(question.prepTimeSec * 1_000);
     updatePhase("preparation");
   }, [question, updatePhase]);
+
+  const completeResponseCue = useCallback(() => {
+    void startResponseRecording();
+  }, [startResponseRecording]);
 
   const markPart4TableVisible = useCallback(() => {
     if (phaseRef.current === "part4-reading") setIsReadingTableVisible(true);
@@ -298,10 +326,11 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
   }, [completePart4Reading, isExamActive, isReadingTableVisible, phase]);
 
   useEffect(() => {
-    if (phase === "response" && recorder.remainingMs <= 0) {
+    // generation이 정리되면 remainingMs가 0으로 떨어지므로 녹음 중일 때만 만료로 본다.
+    if (phase === "response" && recorder.status === "recording" && recorder.remainingMs <= 0) {
       void finishResponse("native-timeout");
     }
-  }, [finishResponse, phase, recorder.remainingMs]);
+  }, [finishResponse, phase, recorder.remainingMs, recorder.status]);
 
   useEffect(() => {
     if (
@@ -320,11 +349,14 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
 
   const remainingSeconds = useMemo(() => {
     if (phase === "part4-reading") return readingRemainingMs / 1_000;
+    if (phase === "response-cue" || phase === "starting-response") {
+      return question?.speakTimeSec ?? 0;
+    }
     if (phase === "response" || phase === "finalizing") {
       return recorder.remainingMs / 1_000;
     }
     return preparationRemainingMs / 1_000;
-  }, [phase, preparationRemainingMs, readingRemainingMs, recorder.remainingMs]);
+  }, [phase, preparationRemainingMs, question, readingRemainingMs, recorder.remainingMs]);
 
   return {
     currentIndex,
@@ -337,6 +369,8 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     completeDirections,
     completePart3Intro,
     completePart4Reading,
+    completePreparationCue,
+    completeResponseCue,
     markPart4TableVisible,
     beginResponse,
     finishResponse,
