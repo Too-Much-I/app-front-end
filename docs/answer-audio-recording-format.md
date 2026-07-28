@@ -174,7 +174,7 @@ S3가 **403**을 내며 업로드 자체가 실패한다. 앱은 `audio/mp4`를 
 나온다. **S3 이벤트 알림은 쓰지 않는다.** PUT의 bounded retry와 submit runner는 분리되어
 있고, PUT 성공 뒤 받은 `fileKey`를 registry에 보존한다.
 
-변환은 이 안에서 **비동기로** 돌려야 한다. `submit` 응답을 붙잡고 동기로 ffmpeg를 돌리면 응답이 그만큼 느려진다. `ExamAnswerSubmitResult`가 이미 `PENDING | PROCESSING | COMPLETED | FAILED` 상태 머신이고 `ExamQuestionPollResult` 폴링 구조가 있어서, **변환 단계를 `PROCESSING`에 그대로 흡수시킬 수 있다** — 클라이언트 코드는 바뀌지 않는다.
+변환은 이 안에서 **비동기로** 돌려야 한다. `submit` 응답을 붙잡고 동기로 ffmpeg를 돌리면 응답이 그만큼 느려진다. `ExamAnswerSubmitResult`가 이미 `PENDING | PROCESSING | COMPLETED | FAILED`를 반환하므로, 서버는 접수 응답에서 변환·채점 대기 상태를 표현할 수 있다. 클라이언트에는 문항별 상태 조회 API가 없으며, 별도 폴링으로 성공 여부를 보정하지 않는다.
 
 **(4) 변환 실패의 표면화.**
 변환 실패는 `FAILED`로 내려와야 한다. 클라이언트의 `ExamAnswerUploadError.stage`는 `"upload" | "grading"`까지만 구분하는데, 변환 실패는 파일이 이미 S3에 있는 상태이므로 사용자에게 "재녹음"이 아니라 "재시도"를 안내해야 하고 그건 `grading` 취급이 맞다. 지금 구조로 커버된다.
@@ -196,21 +196,35 @@ Promise로 합쳐 stop과 파일 확정을 한 번만 수행한다. AppState 이
 요청과 retry wait를 취소하고, native 파일 읽기가 끝난 뒤 registry가 가진 임시 파일을
 best-effort로 정리한다.
 
-### 10.3 submit 모호성은 자동 재-POST하지 않는다
+### 10.3 시험 cue가 끝난 뒤에만 타이머를 시작한다
 
-submit timeout이나 연결 유실 뒤에는 같은 Answer Key의 status를 먼저 조회한다.
-`PENDING`, `PROCESSING`, `COMPLETED`는 접수 성공, `FAILED`는 처리 실패로 확정한다. status
-조회 실패는 미접수 증거가 아니므로 `submission-unknown`으로 남기고 같은 `fileKey`를
-보존한다.
+각 문항의 준비 시간 전에는 `beep.wav`를 먼저 재생하고 `cue_begin_preparing.wav`를 이어서
+재생한다. 응답 시간 전에도 같은 beep를 먼저 재생한 뒤 Part 1은
+`cue_begin_reading_aloud.wav`, Part 3은 `cue_begin_responding.wav`, 나머지 파트는
+`cue_begin_speaking.wav`를 재생한다. 준비 타이머는 준비 cue 전체가 끝난 뒤, 응답 타이머와
+녹음은 응답 cue 전체가 끝난 뒤에만 시작한다. cue 중 앱이 inactive되거나 화면 focus를 잃으면 완료로 간주하지 않고
+foreground/focus 복귀 시 해당 cue를 처음부터 다시 재생한다.
 
-자동 재-POST를 활성화하려면 서버가 다음 두 계약을 통합 환경에서 먼저 보장해야 한다.
+### 10.4 S3 PUT과 업로드 완료 고지는 독립적으로 재시도한다
 
-- 같은 `(examId, questionNumber, retryCount, fileKey)` 요청은 하나로 처리하고 기존 상태를
-  반환한다.
-- 같은 Answer Key에 다른 `fileKey`가 오면 conflict로 거부하며, 미접수 상태를 명확히
-  구분해 반환한다.
+S3 PUT은 최초 요청 이후 같은 presigned URL과 `fileKey`로 최대 5회 추가 재시도한다. 서버
+고지는 PUT 2xx 뒤 같은 Answer Key와 `fileKey`로 최초 요청 이후 최대 3회 추가 재시도한다.
+두 단계 모두 1, 2, 4초 계열의 bounded backoff에 50~100% equal jitter를 적용하고, S3 쪽은
+8초와 16초 단계까지 사용한다. transport retry는 피드백 페이지의 새 답변 회차가 아니므로
+`retryCount`를 절대 증가시키지 않는다.
 
-현재 client는 이 계약이 확인되지 않았으므로 모호한 submit을 자동 재-POST하지 않는다.
+PUT 성공 여부는 job의 `uploadCompleted`에 보존하고 로컬 파일은 즉시 삭제한다. 이후 고지
+요청이나 응답이 유실되어도 S3 PUT 또는 업로드 주소 요청으로 돌아가지 않는다. network,
+timeout, 408, 429, 5xx만 자동 재시도하고 일반 4xx, 만료된 URL, `FAILED` 응답은 최종 실패로
+처리한다. 실제로 존재하지 않는 문항 상태 조회와 URL 재발급 흐름은 사용하지 않는다.
+
+반복 고지가 안전하려면 서버가 같은 `(examId, questionNumber, retryCount, fileKey)`를 하나의
+채점 작업으로 멱등 처리해야 한다. 이 서버 계약은 통합 환경에서 별도로 검증한다.
+
+모든 자동 재시도가 끝난 뒤에는 `public/mascots/error.png`를 사용하는 최종 실패 화면을
+표시한다. 재시도 가능한 오류에는 수동 재시도와 홈 이동을 함께 제공하고, 일반 4xx나 만료
+URL처럼 다시 보내도 해결되지 않는 오류에는 홈 이동만 제공한다. 홈 이동 시 현재 submission
+registry를 dispose하고 모의고사 stack을 초기화한다.
 
 ## 11. 남은 과제
 
@@ -218,8 +232,8 @@ submit timeout이나 연결 유실 뒤에는 같은 Answer Key의 status를 먼�
 - 96kbps는 실측 없이 정한 값이다. 실제 채점 결과가 쌓이면 재조정한다 — 4절의 비대칭성 때문에 **낮추는 방향으로만** 조정하는 게 안전하다.
 - 5절의 고주파 손실이 발음 평가에 실제 영향을 주는지 확인되지 않았다. 영향이 확인되면 비트레이트 상향 → 그래도 부족하면 6.4절 PCM 직접 녹음 순서로 검토한다.
 - 마이크 전처리(자동 이득 조절·노이즈 억제·에코 제거)를 어떻게 둘지 정해지지 않았다. 웹 구현은 `getUserMedia`에서 셋 다 껐지만, `expo-audio`에는 대응하는 옵션이 없다 — iOS는 `RecordingOptionsIos`에 오디오 처리 항목 자체가 없고 `AudioMode`도 AVAudioSession의 mode를 노출하지 않는다. Android만 `audioSource: 'unprocessed'`로 근사할 수 있는데, 그러면 3절에서 `LOW_QUALITY`를 기각한 것과 같은 이유로 **안드로이드 사용자만 다른 전처리로 채점받게 된다.** 그래서 지금은 양 플랫폼 모두 기본값을 그대로 둔다. 다만 노이즈 억제가 마찰음을 깎을 수 있다는 점은 5절의 고주파 손실과 같은 계열의 위험이므로, 발음 평가에서 문제가 실측되고 iOS까지 함께 제어할 방법이 생기면 재검토한다. 웹에서 셋 다 끈 결정 자체도 근거가 기록돼 있지 않아, 원음 보존이 채점에 유리하다는 건 아직 가설이다.
-- 서버의 submit 멱등성과 명확한 미접수 응답을 test backend에서 검증해야 한다. 검증 전에는
-  안전한 `submission-unknown` 상태까지만 제공한다.
+- 서버가 동일한 Answer Key와 `fileKey`의 반복 고지를 중복 채점 없이 처리하는지 test
+  backend에서 검증해야 한다.
 - iOS/Android 실기기에서 전화·알람·오디오 route 변경과 finalize/AppState 순서 경쟁을
   검증해야 한다.
 
