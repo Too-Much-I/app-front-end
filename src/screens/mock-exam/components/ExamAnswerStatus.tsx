@@ -13,6 +13,7 @@ import type {
 } from "@/types/exam";
 
 const errorMascot = require("../../../../public/mascots/error.png");
+const scoringMascot = require("../../../../public/mascots/scoring.png");
 
 interface ExamAnswerStatusProps {
   phase: ExamSessionPhase;
@@ -56,7 +57,13 @@ export function ExamAnswerStatus({
   if (phase === "completed") {
     return (
       <View accessibilityLiveRegion="polite" className="items-center rounded-2xl bg-sky-surface p-6">
-        <MaterialCommunityIcons name="check-circle" size={38} color={colors.sky.text} />
+        <Image
+          accessible
+          accessibilityLabel="답변 채점 시작을 알리는 고양이 캐릭터"
+          className="h-44 w-52"
+          resizeMode="contain"
+          source={scoringMascot}
+        />
         <Text className="mt-3 text-center text-xl text-sky-text">모든 답변을 제출했어요</Text>
         <Text className="mt-2 text-center text-sm leading-5 text-ink-muted">
           채점이 시작됐습니다. 결과는 완료 후 확인할 수 있어요.
