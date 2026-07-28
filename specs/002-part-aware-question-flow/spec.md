@@ -61,7 +61,8 @@
 - 문제·가이드 오디오의 서버 생성 방식 변경
 - 답변 녹음, 업로드, 채점 기준의 변경
 - 결과 및 피드백 화면 변경
-- 답변 업로드 및 채점 요청의 재시도 정책 변경
+- `specs/001-record-upload-answer/`에서 승인된 bounded retry 외의 답변 업로드 및 채점 요청
+  재시도 정책 변경
 
 ## User Scenarios & Testing *(mandatory)*
 

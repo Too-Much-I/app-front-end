@@ -53,7 +53,6 @@ export function ExamPhaseCue({
   const hasObservedPlayingRef = useRef(false);
   const shouldRestartRef = useRef(false);
   const isActiveRef = useRef(isActive);
-  isActiveRef.current = isActive;
   const hasCompleted = useCallback(() => stageRef.current === "completed", []);
 
   const playFromStart = useCallback(async (reloadSources = false) => {
@@ -82,6 +81,10 @@ export function ExamPhaseCue({
       setHasPlaybackError(true);
     }
   }, [beepPlayer, beepSource, cueKind, cuePlayer, cueSource, hasCompleted]);
+
+  useEffect(() => {
+    isActiveRef.current = isActive;
+  }, [isActive]);
 
   useEffect(() => {
     if (!isActive) {

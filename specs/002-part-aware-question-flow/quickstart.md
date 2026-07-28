@@ -5,8 +5,20 @@
 ```sh
 pnpm lint
 pnpm exec tsc --noEmit
+pnpm exec expo export --platform all --output-dir /tmp/app-front-end-dist
 git diff --check
 ```
+
+## Validation record — 2026-07-28
+
+- `pnpm lint`: exit 0. 변경 범위 밖 `src/screens/home/HomeScreen.tsx:69`의 기존 미사용
+  `DebugGrid` warning 1건이 남아 있다.
+- `pnpm exec tsc --noEmit`: exit 2. 같은 기존 `DebugGrid`의 TS6133 한 건만 보고했다.
+- `pnpm exec tsc --noEmit --noUnusedLocals false`: exit 0.
+- `pnpm exec expo export --platform all --output-dir /tmp/app-front-end-dist`: exit 0. Android와
+  iOS bundle을 모두 생성했다.
+- `git diff --check`: exit 0.
+- iOS/Android 실기기 audio·AppState 검증: 현재 workspace에 기기가 없어 실행하지 않았다.
 
 ## Mock happy path
 

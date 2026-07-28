@@ -14,12 +14,14 @@ import { colors } from "@/theme";
 
 interface ExamPartDirectionsContentProps {
   directions: ExamPartDirections;
+  isActive: boolean;
   partNumber: number;
   onComplete: () => void;
 }
 
 export function ExamPartDirectionsContent({
   directions,
+  isActive,
   partNumber,
   onComplete,
 }: ExamPartDirectionsContentProps) {
@@ -28,13 +30,17 @@ export function ExamPartDirectionsContent({
   const playbackStatus = useAudioPlayerStatus(player);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);
   const hasCompletedRef = useRef(false);
+  const hasStartedRef = useRef(false);
+  const hasObservedPlayingRef = useRef(false);
+  const shouldRestartRef = useRef(false);
+  const isActiveRef = useRef(isActive);
   const hasFinished =
     playbackStatus.didJustFinish ||
     (playbackStatus.duration > 0 && playbackStatus.currentTime >= playbackStatus.duration);
   const cannotPlay = audioSource === undefined || hasPlaybackError || playbackStatus.error !== null;
 
   const completeDirections = useCallback(() => {
-    if (hasCompletedRef.current) return;
+    if (!isActiveRef.current || hasCompletedRef.current) return;
 
     hasCompletedRef.current = true;
     player.pause();
@@ -46,16 +52,23 @@ export function ExamPartDirectionsContent({
       setHasPlaybackError(true);
       return;
     }
+    if (!isActiveRef.current || hasCompletedRef.current) return;
 
     try {
       setHasPlaybackError(false);
+      hasObservedPlayingRef.current = false;
       await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
+      if (!isActiveRef.current || hasCompletedRef.current) return;
+
+      player.pause();
 
       if (player.currentTime > 0) {
         await player.seekTo(0);
       }
 
       player.play();
+      hasStartedRef.current = true;
+      shouldRestartRef.current = false;
     } catch (error) {
       console.error(`[ExamPartDirections] Part ${partNumber} 안내 음성 재생 실패`, error);
       setHasPlaybackError(true);
@@ -63,12 +76,35 @@ export function ExamPartDirectionsContent({
   }, [audioSource, partNumber, player]);
 
   useEffect(() => {
-    void playDirections();
-  }, [playDirections]);
+    isActiveRef.current = isActive;
+  }, [isActive]);
 
   useEffect(() => {
-    if (hasFinished) completeDirections();
-  }, [completeDirections, hasFinished]);
+    if (!isActive) {
+      player.pause();
+      hasObservedPlayingRef.current = false;
+      if (hasStartedRef.current && !hasCompletedRef.current) {
+        shouldRestartRef.current = true;
+      }
+      return;
+    }
+
+    if (!hasStartedRef.current || shouldRestartRef.current) {
+      void playDirections();
+    }
+  }, [isActive, playDirections, player]);
+
+  useEffect(() => {
+    if (playbackStatus.playing && isActive) {
+      hasObservedPlayingRef.current = true;
+    }
+  }, [isActive, playbackStatus.playing]);
+
+  useEffect(() => {
+    if (isActive && hasFinished && hasObservedPlayingRef.current && !cannotPlay) {
+      completeDirections();
+    }
+  }, [cannotPlay, completeDirections, hasFinished, isActive]);
 
   return (
     <View className="flex-1 bg-surface-subtle">

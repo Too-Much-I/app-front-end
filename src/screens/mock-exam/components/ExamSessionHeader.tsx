@@ -21,7 +21,9 @@ export function ExamSessionHeader({ partNumber }: { partNumber: number }) {
 
       <View className="h-14">
         <View className="z-10 flex-1 items-center justify-center">
-          <Text className="text-lg text-white">Part {partNumber}</Text>
+          <Text accessibilityRole="header" className="text-lg text-white">
+            Part {partNumber}
+          </Text>
         </View>
       </View>
     </View>

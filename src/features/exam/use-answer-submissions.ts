@@ -234,7 +234,10 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
         job = registryRef.current[id];
       }
 
-      if (!job?.uploadCompleted || !job.fileKey) return;
+      if (!job?.uploadCompleted || !job.fileKey) {
+        markFailed(id, failure("notify", "답변 업로드 정보가 올바르지 않아요.", false));
+        return;
+      }
 
       for (let attempt = 0; ; attempt += 1) {
         patchJob(id, {

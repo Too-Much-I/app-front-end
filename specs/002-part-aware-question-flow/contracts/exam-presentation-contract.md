@@ -31,4 +31,5 @@
 - `submission-barrier` 전체는 safe-area 내부 vertical ScrollView다.
 - 긴 목록은 상단부터 자연스럽게 흐르고 마지막 버튼 아래에 bottom content padding을 둔다.
 - 실패 카드/버튼은 자연 높이를 사용하며 `maxHeight`, 고정 높이, `numberOfLines`로 자르지 않는다.
-- job의 `questionNumber:retryCount` key를 유지한다.
+- registry는 전체 `(examId, questionNumber, retryCount)` identity를 유지하고, 단일 시험 화면의
+  rendering key에만 `questionNumber:retryCount`를 사용한다.

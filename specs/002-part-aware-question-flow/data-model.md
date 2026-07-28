@@ -52,11 +52,12 @@ Part 4 prelude가 valid이면 모든 Part 4 `ExamQuestion.tableContext`는 같�
 
 ```text
 new part -> directions
-directions -- Part 1/2/5 --> preparation
-directions -- valid Part 3 --> part3-intro -- audio finished --> preparation
-directions -- valid Part 4 --> part4-reading -- visible 45s or user completes --> preparation
+directions -- Part 1/2/5 --> preparation-cue -- beep/cue --> preparation
+directions -- valid Part 3 --> part3-intro -- audio finished --> preparation-cue
+directions -- valid Part 4 --> part4-reading -- visible 45s or user completes --> preparation-cue
 directions -- invalid Part 3/4 --> part-prelude-error -- exit --> ready screen
-preparation -> starting-response -> response -> finalizing -> next question
+preparation -- timer/user completes --> response-cue -- beep/cue --> starting-response
+starting-response -> response -> finalizing -> answer registration -> next question
 last answer registered -> submission-barrier -> completed
 ```
 

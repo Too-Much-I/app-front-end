@@ -72,7 +72,7 @@ Validation rules:
 | `answerKey` | Answer Key | 시작 시 복사해 고정 |
 | `maxDurationMs` | positive number | 문항의 답변 제한 시간 |
 | `status` | Recording Status | recorder lifecycle 상태 |
-| `elapsedMs` | non-negative number | native recorder가 보고한 실제 녹음 시간 |
+| `elapsedMs` | non-negative number | `record()` 직후의 `startedAtMs`에서 계산한 wall-clock 경과 시간 |
 | `meteringDb` | number or null | 표시 전용 입력 레벨 |
 | `canAskPermissionAgain` | boolean | 권한 복구 UI 결정 |
 | `terminalIntent` | finalize or discard or null | 경쟁하는 종료 event의 최종 정책 |
@@ -99,7 +99,7 @@ preparing
 
 Terminal result:
 
-- `FinalizedAnswer`: Answer Key, generation ID, non-empty local file URI, duration
+- `FinalizedAnswer`: Answer Key, generation ID, non-empty local file URI
 - `InterruptedAnswer`: 제출 가능한 URI 없음, 부분 파일 삭제 완료 또는 best-effort 삭제 기록
 - `RecordingFailure`: 권한/prepare/stop/file-validation 단계와 복구 가능 여부
 

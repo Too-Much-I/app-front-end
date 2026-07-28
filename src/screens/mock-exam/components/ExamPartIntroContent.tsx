@@ -35,7 +35,6 @@ export function ExamPartIntroContent({
   const shouldRestartRef = useRef(false);
   const hasObservedPlayingRef = useRef(false);
   const isActiveRef = useRef(isActive);
-  isActiveRef.current = isActive;
 
   const playFromStart = useCallback(
     async (reloadSource = false) => {
@@ -65,6 +64,10 @@ export function ExamPartIntroContent({
     },
     [audioSource, player],
   );
+
+  useEffect(() => {
+    isActiveRef.current = isActive;
+  }, [isActive]);
 
   useEffect(() => {
     if (!isActive) {

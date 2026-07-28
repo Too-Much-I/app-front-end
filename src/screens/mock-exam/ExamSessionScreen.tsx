@@ -65,8 +65,9 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
         : "preparation";
 
   const handleExitExam = useCallback(() => {
+    submissions.dispose();
     navigation.popToTop();
-  }, [navigation]);
+  }, [navigation, submissions]);
 
   const handleGoHome = useCallback(() => {
     const tabNavigation = navigation.getParent<BottomTabNavigationProp<MainTabParamList>>();
@@ -126,6 +127,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
         {phase === "directions" && directions ? (
           <ExamPartDirectionsContent
             directions={directions}
+            isActive={isExamActive}
             partNumber={question.partNumber}
             onComplete={completeDirections}
           />
@@ -137,7 +139,9 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
               onComplete={completePart3Intro}
               onExit={handleExitExam}
             />
-          ) : null
+          ) : (
+            <ExamPreludeError onExit={handleExitExam} />
+          )
         ) : phase === "part4-reading" ? (
           part4Prelude ? (
             <View className="flex-1 bg-surface">
@@ -158,7 +162,9 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
                 </Pressable>
               </View>
             </View>
-          ) : null
+          ) : (
+            <ExamPreludeError onExit={handleExitExam} />
+          )
         ) : phase === "part-prelude-error" ? (
           <ExamPreludeError prelude={invalidPrelude} onExit={handleExitExam} />
         ) : isSubmissionState ? (

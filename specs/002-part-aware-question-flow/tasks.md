@@ -87,7 +87,12 @@ Q5/Q8 준비로 이동하며, 동일 표가 Part 4 준비 화면과 Q8~Q10 모�
 
 **Purpose**: 문서와 구현의 일치 및 저장소 품질 gate를 검증한다.
 
-- [X] T018 Run `pnpm lint`, `pnpm exec tsc --noEmit`, and `git diff --check` from the repository root
+- [X] T018a Run `pnpm lint` and `git diff --check` from the repository root; both pass, with the
+  pre-existing `HomeScreen.tsx:69` unused `DebugGrid` lint warning reported separately
+- [ ] T018b Pass `pnpm exec tsc --noEmit`; blocked by the pre-existing
+  `src/screens/home/HomeScreen.tsx:69` TS6133 error outside this feature diff
+- [X] T018c Run `pnpm exec tsc --noEmit --noUnusedLocals false`; strict typecheck excluding the
+  known unused declaration passes
 - [X] T019 Review the final diff against `specs/002-part-aware-question-flow/spec.md`, `specs/002-part-aware-question-flow/plan.md`, and `specs/002-part-aware-question-flow/contracts/`
 - [X] T020 Execute or report environment limits for the manual scenarios in `specs/002-part-aware-question-flow/quickstart.md`
 - [X] T021 Complete the Developer Explain-Back checklist in `specs/002-part-aware-question-flow/plan.md`
@@ -101,7 +106,14 @@ Q5/Q8 준비로 이동하며, 동일 표가 Part 4 준비 화면과 Q8~Q10 모�
 - [X] T022 [US3] Remove the rounded directions card and restore the full beige directions background in `src/screens/mock-exam/components/ExamPartDirectionsContent.tsx`
 - [X] T023 [US1] Remove visible Part 3 situation-intro labels in `src/screens/mock-exam/components/ExamPartIntroContent.tsx` and `src/screens/mock-exam/components/ExamPreludeError.tsx`
 - [X] T024 [US1] Add an early-completion action that transitions from Part 4 reading to Q8 preparation in `src/screens/mock-exam/ExamSessionScreen.tsx` and `src/screens/mock-exam/hooks/use-exam-session-controller.ts`
-- [X] T025 Re-run lint, typecheck, Expo bundle, and diff validation from the repository root after the approved corrections
+- [X] T025a Re-run `pnpm lint` after the approved corrections
+- [ ] T025b Pass `pnpm exec tsc --noEmit`; the existing `HomeScreen.tsx:69` TS6133 error remains
+- [X] T025c Run `pnpm exec tsc --noEmit --noUnusedLocals false` after the approved corrections
+- [X] T025d Run `pnpm exec expo export --platform all --output-dir /tmp/app-front-end-dist` and
+  produce both Android and iOS bundles
+- [X] T025e Re-run `git diff --check` after the approved corrections
+- [ ] T025f Execute iOS/Android device and manual audio/AppState scenarios; no device is available
+  in the current workspace
 
 ---
 

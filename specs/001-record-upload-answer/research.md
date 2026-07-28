@@ -39,9 +39,10 @@ Android가 같은 포맷을 만들며, 60초 약 720KB로 15초 PUT 제한 안�
 
 ## Decision 3 — native duration cap과 generation terminal Promise를 함께 사용한다
 
-**Decision**: `record({ forDuration: speakTimeSec })`를 hard cutoff로 사용하고 native finish
-event, 사용자 완료, JS fallback timer를 모두 같은 generation의 terminal Promise로 합친다.
-표시 시간은 recorder의 `durationMillis`를 사용한다.
+**Decision**: `record({ forDuration: speakTimeSec })`를 native hard cutoff로 사용하고 native
+finish event, 사용자 완료, JS fallback timer를 모두 같은 generation의 terminal Promise로
+합친다. 표시 시간은 실제 `record()` 호출 직후 저장한 `startedAtMs`와 현재 시각의 wall-clock
+차이로 계산한다.
 
 **Rationale**: JS thread 지연에도 녹음 제한을 native에서 지킬 수 있고, timeout과 버튼이
 동시에 들어와도 stop·URI 확정·audio mode 복원이 한 번만 실행된다. 실제 record가 시작된
@@ -50,7 +51,7 @@ event, 사용자 완료, JS fallback timer를 모두 같은 generation의 termin
 **Alternatives considered**:
 
 - JS `setTimeout`만 사용: 구현은 단순하지만 JS stall에서 제한 시간을 넘길 수 있어 기각
-- wall-clock만 표시: native pause와 실제 파일 길이가 어긋날 수 있어 response에는 기각
+- permission 또는 prepare 시작부터 wall-clock 측정: 실제 녹음 전부터 답변 시간을 소모하므로 기각
 
 ## Decision 4 — 정상 종료와 active 이탈은 먼저 확정된 terminal intent를 따른다
 

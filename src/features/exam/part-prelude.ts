@@ -8,8 +8,10 @@ import type {
   RawExamQuestion,
 } from "@/types/exam";
 
+/** 번들 음원을 찾기 위한 synthetic lookup key이며 원격 요청에 사용하는 URL이 아니다. */
 export const PART3_GUIDE_AUDIO_LOGICAL_URL = "/assets/audio/part3_intro.wav";
 export const PART4_READING_DURATION_SEC = 45 as const;
+const PART4_FIRST_QUESTION_NUMBER = 8;
 
 const PART3_GUIDE_AUDIO_SOURCES: Record<string, AudioSource> = {
   [PART3_GUIDE_AUDIO_LOGICAL_URL]: require("../../../public/assets/audio/part3_intro.wav"),
@@ -110,8 +112,12 @@ function normalizePart3Prelude(questions: RawExamQuestion[]): ExamPartPrelude {
 function normalizePart4Prelude(
   questions: RawExamQuestion[],
 ): { prelude: ExamPartPrelude; canonicalTable?: ExamTableContext } {
-  const firstQuestion = questions.find((question) => question.questionNumber === 8);
-  const laterQuestions = questions.filter((question) => question.questionNumber !== 8);
+  const firstQuestion = questions.find(
+    (question) => question.questionNumber === PART4_FIRST_QUESTION_NUMBER,
+  );
+  const laterQuestions = questions.filter(
+    (question) => question.questionNumber !== PART4_FIRST_QUESTION_NUMBER,
+  );
   const canonicalTable = normalizeExamTableContext(firstQuestion?.tableContext);
 
   if (!firstQuestion?.tableContext) {

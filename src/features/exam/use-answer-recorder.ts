@@ -97,6 +97,7 @@ export function useAnswerRecorder() {
   const terminalPromiseRef = useRef<Promise<FinalizedAnswer | null> | null>(null);
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ownedFinalizedUriRef = useRef<string | null>(null);
+  const disposeRef = useRef<() => void>(() => undefined);
 
   const updateStatus = useCallback((nextStatus: AnswerRecordingStatus) => {
     statusRef.current = nextStatus;
@@ -403,6 +404,10 @@ export function useAnswerRecorder() {
   }, [discard]);
 
   useEffect(() => {
+    disposeRef.current = dispose;
+  }, [dispose]);
+
+  useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
       if (nextState !== "active") void discard("app-state").catch(() => undefined);
     });
@@ -427,8 +432,8 @@ export function useAnswerRecorder() {
 
   useEffect(() => {
     mountedRef.current = true;
-    return dispose;
-  }, [dispose]);
+    return () => disposeRef.current();
+  }, []);
 
   // recorderState 폴링이 렌더를 유발하므로 wall-clock 경과도 매 tick 갱신된다.
   const activeGeneration = activeGenerationRef.current;

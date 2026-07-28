@@ -177,7 +177,11 @@ S3가 **403**을 내며 업로드 자체가 실패한다. 앱은 `audio/mp4`를 
 변환은 이 안에서 **비동기로** 돌려야 한다. `submit` 응답을 붙잡고 동기로 ffmpeg를 돌리면 응답이 그만큼 느려진다. `ExamAnswerSubmitResult`가 이미 `PENDING | PROCESSING | COMPLETED | FAILED`를 반환하므로, 서버는 접수 응답에서 변환·채점 대기 상태를 표현할 수 있다. 클라이언트에는 문항별 상태 조회 API가 없으며, 별도 폴링으로 성공 여부를 보정하지 않는다.
 
 **(4) 변환 실패의 표면화.**
-변환 실패는 `FAILED`로 내려와야 한다. 클라이언트의 `ExamAnswerUploadError.stage`는 `"upload" | "grading"`까지만 구분하는데, 변환 실패는 파일이 이미 S3에 있는 상태이므로 사용자에게 "재녹음"이 아니라 "재시도"를 안내해야 하고 그건 `grading` 취급이 맞다. 지금 구조로 커버된다.
+변환 또는 채점 접수 실패가 `submit` 응답의 `FAILED`로 내려오면 클라이언트는 이를 파일이
+이미 S3에 저장된 뒤 발생한 `notify` 단계의 terminal failure로 기록한다. 현재
+`AnswerSubmissionFailure.stage`는 `"upload" | "notify"`를 구분하며, 명시적인 `FAILED`는 같은
+고지를 자동 재시도하지 않고 홈 이동을 제공한다. 일시적인 network error, timeout, 408, 429,
+5xx만 동일한 Answer Key와 `fileKey`로 bounded retry한다.
 
 ## 10. 녹음·제출 생명주기 불변식
 

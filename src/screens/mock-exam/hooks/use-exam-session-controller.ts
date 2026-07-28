@@ -61,10 +61,12 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
   const currentIndexRef = useRef(currentIndex);
   const transitionPromiseRef = useRef<Promise<void> | null>(null);
   const beginResponseRef = useRef<() => void>(() => undefined);
+  const preparationRemainingMsRef = useRef(
+    (session.questions[0]?.prepTimeSec ?? 0) * 1_000,
+  );
   const readingRemainingMsRef = useRef(0);
   const completedPartPreludesRef = useRef(new Set<number>());
   const isExamActiveRef = useRef(isExamActive);
-  isExamActiveRef.current = isExamActive;
   const recorder = useAnswerRecorder();
   const submissions = useAnswerSubmissions(session.questions.length);
   const question = session.questions[currentIndex];
@@ -77,7 +79,9 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
 
   const enterPreparationCue = useCallback(
     (activeQuestion: ExamQuestion) => {
-      setPreparationRemainingMs(activeQuestion.prepTimeSec * 1_000);
+      const durationMs = activeQuestion.prepTimeSec * 1_000;
+      preparationRemainingMsRef.current = durationMs;
+      setPreparationRemainingMs(durationMs);
       updatePhase("preparation-cue");
     },
     [updatePhase],
@@ -86,6 +90,10 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
   useEffect(() => {
     currentIndexRef.current = currentIndex;
   }, [currentIndex]);
+
+  useEffect(() => {
+    isExamActiveRef.current = isExamActive;
+  }, [isExamActive]);
 
   const advanceAfterRegistration = useCallback(() => {
     const activeIndex = currentIndexRef.current;
@@ -112,12 +120,12 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
       try {
         const result = submissions.register(answer);
         if (!result.accepted) {
-          setPendingFinalizedAnswer(answer);
           if (result.reason === "invalid-file") {
             recorder.resetForRetry();
             setPendingFinalizedAnswer(null);
             updatePhase("recording-recovery");
           } else {
+            setPendingFinalizedAnswer(answer);
             updatePhase("registration-recovery");
           }
           return false;
@@ -268,7 +276,9 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
 
   const completePreparationCue = useCallback(() => {
     if (phaseRef.current !== "preparation-cue" || !question) return;
-    setPreparationRemainingMs(question.prepTimeSec * 1_000);
+    const durationMs = question.prepTimeSec * 1_000;
+    preparationRemainingMsRef.current = durationMs;
+    setPreparationRemainingMs(durationMs);
     updatePhase("preparation");
   }, [question, updatePhase]);
 
@@ -290,18 +300,25 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
   }, [beginResponse]);
 
   useEffect(() => {
-    if (phase !== "preparation" || !question) return;
-    const deadline = Date.now() + question.prepTimeSec * 1_000;
-    setPreparationRemainingMs(question.prepTimeSec * 1_000);
+    if (phase !== "preparation" || !question || !isExamActive) return;
+
+    const deadline = Date.now() + preparationRemainingMsRef.current;
     const tick = () => {
+      if (phaseRef.current !== "preparation" || !isExamActiveRef.current) return;
       const remaining = Math.max(0, deadline - Date.now());
+      preparationRemainingMsRef.current = remaining;
       setPreparationRemainingMs(remaining);
       if (remaining === 0) beginResponseRef.current();
     };
     const intervalId = setInterval(tick, TIMER_UPDATE_INTERVAL_MS);
     tick();
-    return () => clearInterval(intervalId);
-  }, [currentIndex, phase, question]);
+    return () => {
+      clearInterval(intervalId);
+      if (phaseRef.current === "preparation") {
+        preparationRemainingMsRef.current = Math.max(0, deadline - Date.now());
+      }
+    };
+  }, [currentIndex, isExamActive, phase, question]);
 
   useEffect(() => {
     if (phase !== "part4-reading" || !isReadingTableVisible || !isExamActive) return;

@@ -53,20 +53,20 @@ export const EXAM_PART_DIRECTIONS: Record<number, ExamPartDirections> = {
 };
 
 // Metro가 로컬 음원을 앱 번들에 포함할 수 있도록 경로를 정적으로 선언한다.
-const EXAM_PART_DIRECTION_AUDIO_SOURCES: Record<string, AudioSource> = {
-  "/assets/audio/Part1_Directions.wav": require(
+const EXAM_PART_DIRECTION_AUDIO_SOURCES: Record<number, AudioSource> = {
+  1: require(
     "../../../public/assets/audio/Part1_Directions.wav",
   ),
-  "/assets/audio/Part2_Directions.wav": require(
+  2: require(
     "../../../public/assets/audio/Part2_Directions.wav",
   ),
-  "/assets/audio/Part3_Directions.wav": require(
+  3: require(
     "../../../public/assets/audio/Part3_Directions.wav",
   ),
-  "/assets/audio/Part4_Directions.wav": require(
+  4: require(
     "../../../public/assets/audio/Part4_Directions.wav",
   ),
-  "/assets/audio/Part5_Directions.wav": require(
+  5: require(
     "../../../public/assets/audio/Part5_Directions.wav",
   ),
 };
@@ -76,6 +76,5 @@ export function getExamPartDirections(partNumber: number): ExamPartDirections | 
 }
 
 export function getExamPartDirectionAudioSource(partNumber: number): AudioSource | undefined {
-  const audioUrl = getExamPartDirections(partNumber)?.audioUrl;
-  return audioUrl ? EXAM_PART_DIRECTION_AUDIO_SOURCES[audioUrl] : undefined;
+  return EXAM_PART_DIRECTION_AUDIO_SOURCES[partNumber];
 }
