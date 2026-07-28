@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { getExamGradingStatus } from "@/features/exam/api/exam-grading-status";
+import { getExamGradingStatus } from "@/features/exam/api/exam-grading-summary";
 
 /** 예상 대기 시간(45초)보다 여유 있게, 90초에 걸쳐 진행률을 채워나간다. */
 const PROGRESS_DURATION_MS = 90_000;
