@@ -53,16 +53,104 @@ export interface ExamQuestion {
   isLastInPart: boolean;
 }
 
+export type ExamPartPreludeInvalidReason =
+  | "missing-part3-intro"
+  | "missing-part3-guide-audio"
+  | "misplaced-part3-content"
+  | "unsupported-part3-guide-audio"
+  | "missing-part4-table"
+  | "misplaced-part4-table"
+  | "conflicting-part4-table"
+  | "invalid-part4-table";
+
+export interface ExamPartIntroPrelude {
+  kind: "part3-intro";
+  partNumber: 3;
+  text: string;
+  guideAudioUrl: string;
+}
+
+export interface ExamPartReadingPrelude {
+  kind: "part4-reading";
+  partNumber: 4;
+  tableContext: ExamTableContext;
+  durationSec: 45;
+}
+
+export interface InvalidExamPartPrelude {
+  kind: "invalid";
+  partNumber: 3 | 4;
+  reason: ExamPartPreludeInvalidReason;
+}
+
+export type ExamPartPrelude =
+  | ExamPartIntroPrelude
+  | ExamPartReadingPrelude
+  | InvalidExamPartPrelude;
+
 export interface ExamSession {
   examId: string;
   title: string;
   questions: ExamQuestion[];
+  partPreludes: ExamPartPrelude[];
 }
 
 export interface ExamAttempt {
   id: string;
   status: "in_progress" | "uploading" | "grading" | "completed" | "failed";
   startedAt: string;
+}
+
+export interface AnswerKey {
+  examId: string;
+  questionNumber: number;
+  retryCount: number;
+}
+
+export interface FinalizedAnswer {
+  key: AnswerKey;
+  generationId: number;
+  audioFileUri: string;
+}
+
+export type AnswerSubmissionStage =
+  | "queued-upload"
+  | "uploading"
+  | "queued-notify"
+  | "notifying"
+  | "retry-wait"
+  | "succeeded"
+  | "failed"
+  | "cancelled";
+
+export type AnswerSubmissionFailureStage = "upload" | "notify";
+
+export interface AnswerSubmissionFailure {
+  stage: AnswerSubmissionFailureStage;
+  message: string;
+  retryable: boolean;
+}
+
+export interface AnswerSubmissionJob {
+  key: AnswerKey;
+  audioFileUri: string;
+  uploadUrl: string | null;
+  uploadExpiresAt: number | null;
+  fileKey: string | null;
+  uploadCompleted: boolean;
+  stage: AnswerSubmissionStage;
+  stageAttempt: number;
+  nextRetryAt: number | null;
+  lastError: AnswerSubmissionFailure | null;
+  acceptedStatus: Exclude<ExamAnswerSubmitResult["status"], "FAILED"> | null;
+}
+
+export interface AnswerSubmissionSummary {
+  registeredCount: number;
+  pendingCount: number;
+  failedCount: number;
+  succeededCount: number;
+  isComplete: boolean;
 }
 
 /** GET /api/v1/exams/{examId}/questions/{questionId}/upload-url 의 result */
@@ -74,14 +162,6 @@ export interface ExamAnswerUploadUrl {
 
 /** POST /api/v1/exams/{examId}/questions/{questionId}/submit 의 result */
 export interface ExamAnswerSubmitResult {
-  status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
-}
-
-/** GET /api/v1/exams/{examId}/questions/status (문항별 재시도 채점 진행 상태 폴링)의 result */
-export interface ExamQuestionPollResult {
-  examId: string;
-  questionNumber: number;
-  retryCount: number;
   status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
 }
 

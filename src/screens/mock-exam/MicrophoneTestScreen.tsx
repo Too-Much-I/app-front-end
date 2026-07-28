@@ -7,6 +7,7 @@ import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import type { MockExamStackParamList } from "@/navigation/types";
 import { DeviceTestLayout } from "@/screens/mock-exam/components/DeviceTestLayout";
+import { AudioWaveform } from "@/screens/mock-exam/components/AudioWaveform";
 import { useMicrophoneTest } from "@/screens/mock-exam/hooks/use-microphone-test";
 import { colors } from "@/theme";
 
@@ -23,7 +24,7 @@ export function MicrophoneTestScreen({ navigation }: MicrophoneTestScreenProps) 
     canAskPermissionAgain,
     durationSeconds,
     elapsedSeconds,
-    waveformHeights,
+    meteringDb,
     isComplete,
     isRecording,
     isBusy,
@@ -87,17 +88,13 @@ export function MicrophoneTestScreen({ navigation }: MicrophoneTestScreenProps) 
             />
           </View>
 
-          <View className="mt-7 h-16 flex-row gap-1.5">
-            {waveformHeights.map((height, index) => (
-              <View key={index} className="h-16 justify-center">
-                <View
-                  className={`w-1.5 rounded-full ${
-                    isComplete ? "bg-sky" : isRecording ? "bg-brand-cta" : "bg-brand-200"
-                  }`}
-                  style={{ height }}
-                />
-              </View>
-            ))}
+          <View className="mt-7">
+            <AudioWaveform
+              active={isRecording}
+              meteringDb={meteringDb}
+              state={isComplete ? "complete" : isRecording ? "recording" : "idle"}
+              variant="microphone-test"
+            />
           </View>
 
           <View accessibilityLiveRegion="polite" className="mt-3 flex-row items-center gap-2">

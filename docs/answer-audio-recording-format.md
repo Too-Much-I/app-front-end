@@ -2,9 +2,10 @@
 
 시험 답변 녹음을 RN으로 재구현하면서 **어떤 포맷으로 녹음해 올릴지**, 그리고 **채점 파이프라인이 원하는 WAV로의 변환을 어디서 할지**를 정한 과정과, 검토했다가 기각한 대안들을 정리한다.
 
-기존 웹 구현(`src/features/exam/use-answer-recorder.ts`)은 `MediaRecorder`/`getUserMedia`/`AudioContext` 기반이라 RN에서 한 줄도 동작하지 않는다. 즉 이건 포팅이 아니라 재구현이고, 그 과정에서 포맷 결정이 먼저 필요했다.
-
-이 파일은 이후 삭제했다. 동작하지 않는 코드가 폴더에 남아 "답변 녹음이 이미 구현돼 있다"는 오해를 만들었기 때문이다. 원본은 커밋 `891ab93`에 남아 있다.
+과거 웹 구현은 `MediaRecorder`/`getUserMedia`/`AudioContext` 기반이라 RN에서 한 줄도 동작하지
+않았다. 그 구현은 커밋 `891ab93`에만 남기고 삭제했으며, 현재
+[`use-answer-recorder.ts`](../src/features/exam/use-answer-recorder.ts)는 `expo-audio`로 새로 만든
+네이티브 상태 머신이다. 즉 이번 작업은 포팅이 아니라 재구현이고, 포맷 결정이 먼저 필요했다.
 
 ## 1. 결론 요약
 
@@ -32,7 +33,9 @@ recorder.uri  →  "file:///var/mobile/.../Caches/.../recording-A1B2.m4a"
 타입은 `string | null`이고 `stop()`이 resolve된 뒤에만 값이 찬다. 이에 따라 두 가지가 바뀐다.
 
 - 녹음 훅의 `stopRecording(): Promise<Blob>` → `Promise<string>`(URI)
-- [../src/features/exam/api/exam-answer-upload.ts](../src/features/exam/api/exam-answer-upload.ts)의 `uploadExamAnswer(..., audioBlob: Blob, ...)` 시그니처가 URI를 받도록 바뀌고, S3 PUT은 RN `fetch`의 body에 Blob을 넣는 대신 `expo-file-system`의 바이너리 업로드로 간다(폴리필 Blob은 실제 바이트를 담지 않아 신뢰할 수 없다).
+- [`upload-answer-audio.ts`](../src/features/exam/upload-answer-audio.ts)가 URI를 받아 S3 PUT을
+  수행한다. RN `fetch`의 body에 폴리필 Blob을 넣지 않고 `expo-file-system`의 바이너리
+  업로드를 사용한다.
 
 부수 효과로 **재시도 로직이 오히려 안전해진다**. 기존 훅 주석의 "업로드 전까지 메모리(Blob)에만 들고 있는다"는 전제가 사라지고, 파일이 디스크에 있으므로 최대 31초(1+2+4+8+16s)의 백오프 재시도 동안 메모리를 붙들고 있지 않아도 된다. 대신 업로드 성공 후 임시 파일을 직접 지워야 한다(웹에서는 GC가 하던 일).
 
@@ -144,8 +147,12 @@ Flutter가 나아 보이는 건 두 곳(raw PCM 스트림, 플랫폼별 오디�
 이 문서의 결정은 **포맷/변환 위치**만 정리한 것이다. 녹음 재구현 자체에는 다음이 남아있고, 영향이 큰 순서다.
 
 1. **iOS 오디오 세션 모드 전환** — 시험 흐름이 "문항 오디오 재생 → 답변 녹음"의 반복인데 iOS는 둘이 같은 `AVAudioSession`을 공유한다. `setAudioModeAsync({ allowsRecording: true })`를 끄지 않고 재생으로 넘어가면 세션이 `playAndRecord`에 남아 **문항 오디오가 작게 나오거나 수화기로 라우팅된다.** Android에는 없는 현상이라 안드로이드만 테스트하면 못 잡는다. 화면마다 흩지 말고 모드 전환 래퍼 하나로 관리한다. `playsInSilentMode`도 함께.
-2. **FFT 상실** — `AnalyserNode`가 없고 `expo-audio`는 `metering` 스칼라 하나(dB)만 준다. 답변 녹음 화면의 24바 스펙트럼은 진폭 기반 애니메이션으로 재설계해야 하고(`el.style.height` 직접 조작 → Reanimated shared value), 마이크 테스트의 평탄도 게이트는 볼륨 게이트 + [mic-test-voice-verification.md](mic-test-voice-verification.md) 12절의 "사용자가 직접 듣고 판단" 구조에 의존하는 쪽으로 축소한다. `metering`이 **이미 dB 스케일**이므로 웹의 `VOICE_THRESHOLD`(0.08, 선형 0~1 기준)를 그대로 가져오면 안 된다 — `mic-test-voice-verification.md` 11.4절의 교훈이 그대로 재발하는 지점.
-3. **인터럽션/백그라운드** — 전화·알람·타 앱에 오디오 세션을 뺏기면 녹음이 중단된다. `interruptionMode`를 시험 중에는 `'doNotMix'`로 잡고, `AppState` 핸들링이 필요하다. **시험 중 전화가 오면 그 문항 답변을 어떻게 처리할지**(잘린 녹음 업로드 vs 재녹음) 정책 결정이 필요하다.
+2. **FFT 상실** — `AnalyserNode`가 없고 `expo-audio`는 `metering` 스칼라 하나(dB)만 준다.
+   답변 녹음 화면은 dB를 정규화한 24개 진폭 막대로 표시한다. 파형은 표시 전용이며 무음
+   판정이나 파일 유효성 판정에는 사용하지 않는다.
+3. **인터럽션/백그라운드** — 전화·알람·타 앱에 오디오 세션을 뺏기거나 앱이
+   inactive/background가 되면 현재 부분 녹음을 폐기하고 같은 문항을 전체 시간으로 다시
+   녹음한다. 정상 종료 intent가 먼저 기록된 경우에만 그 finalize를 유지한다.
 4. **권한** — `app.json`에 `expo-audio` 플러그인과 iOS `microphonePermission`을 추가했고 Android `recordAudioAndroid`는 기본값 `true`를 사용한다. 거부 후 UX는 플랫폼별로 갈린다 — iOS는 한 번 거부하면 앱에서 다시 물을 수 없어 설정 앱으로 유도해야 하고, Android는 "다시 묻지 않음" 상태를 따로 구분해야 한다. 마이크 테스트는 설정 앱에서 foreground로 돌아올 때 권한을 다시 읽어 `idle` 또는 `denied`로 복구한다. 실제 답안 녹음도 같은 복구 원칙을 적용해야 한다.
 5. **전처리 통제 불가** — 웹에서는 `echoCancellation`/`noiseSuppression`/`autoGainControl`을 명시적으로 전부 끄고 원본을 채점에 보냈다. `expo-audio`는 이 노브를 노출하지 않으므로 **"전처리 없는 원본"이라는 기존 보장이 넘어오지 않고**, 기기·OS별로 채점 입력 오디오의 특성이 달라질 수 있다. 영향이 확인되면 config plugin 또는 6.4절로 내려간다.
 6. **실기기 필수** — Android 에뮬레이터는 호스트 마이크 설정이 따로 필요하고, 1번의 라우팅 문제는 시뮬레이터에서 재현되지 않는다.
@@ -153,33 +160,92 @@ Flutter가 나아 보이는 건 두 곳(raw PCM 스트림, 플랫폼별 오디�
 ## 9. 백엔드와 맞춰야 할 것
 
 **(1) presigned URL 서명의 `Content-Type` — 유일한 하드 블로커.**
-서명에 `Content-Type`이 포함돼 있으면 앱이 보내는 헤더와 정확히 일치해야 하고, 안 맞으면 S3가 **403**을 내며 업로드 자체가 실패한다. 앱은 `audio/mp4`를 보낸다(m4a의 정식 MIME. `audio/m4a`는 비표준). [../src/features/exam/api/exam-answer-upload.ts](../src/features/exam/api/exam-answer-upload.ts)의 `audioBlob.type || "audio/wav"` 폴백도 함께 바뀐다.
+서명에 `Content-Type`이 포함돼 있으면 앱이 보내는 헤더와 정확히 일치해야 하고, 안 맞으면
+S3가 **403**을 내며 업로드 자체가 실패한다. 앱은 `audio/mp4`를 보낸다(m4a의 정식 MIME.
+`audio/m4a`는 비표준). 이 헤더는
+[`upload-answer-audio.ts`](../src/features/exam/upload-answer-audio.ts)에서 고정한다.
 
 **(2) `fileKey`의 확장자 — 블로커가 아니라 위생 문제.**
 `fileKey`는 서버가 만들어 내려주는 S3 객체 키고, 앱은 그대로 `submit`에 되돌려줄 뿐이다(앱이 이름을 짓지 않는다). 웹 기준으로 `.webm`이 박혀 있을 수 있는데, **S3는 확장자를 신경 쓰지 않고 ffmpeg는 파일 내용으로 포맷을 판별**하므로 그대로 둬도 변환은 동작한다. 실제 문제가 되는 건 백엔드가 확장자로 분기하거나 거기서 MIME을 추론할 때뿐이다. 나중에 S3를 뒤질 때 헷갈리지 않도록 `.m4a`로 맞춰두는 걸 권한다.
 
 **(3) 변환 트리거 위치 — `submit`이 유일한 진입점이다.**
-현재 합의된 흐름은 이렇다. 앱이 S3에 PUT을 끝내고 `submit`으로 "저장됐다"를 알리면, 서버가 그 시점에 AI 서버로 채점을 넘긴다. 마지막 문항까지 제출되면 그때 최종 리포트가 나온다. **S3 이벤트 알림은 쓰지 않는다** — 트리거가 `submit` 하나뿐이라 같은 답변이 두 번 처리될 경로가 애초에 없고, 앱의 S3 PUT 재시도([../src/features/exam/api/exam-answer-upload.ts](../src/features/exam/api/exam-answer-upload.ts))는 재시도 루프 안에 `submit`이 들어있지 않아 몇 번을 재시도하든 `submit`은 한 번만 나간다.
+현재 합의된 흐름은 이렇다. 앱이 S3에 PUT을 끝내고 `submit`으로 "저장됐다"를 알리면,
+서버가 그 시점에 AI 서버로 채점을 넘긴다. 마지막 문항까지 제출되면 그때 최종 리포트가
+나온다. **S3 이벤트 알림은 쓰지 않는다.** PUT의 bounded retry와 submit runner는 분리되어
+있고, PUT 성공 뒤 받은 `fileKey`를 registry에 보존한다.
 
-변환은 이 안에서 **비동기로** 돌려야 한다. `submit` 응답을 붙잡고 동기로 ffmpeg를 돌리면 응답이 그만큼 느려진다. `ExamAnswerSubmitResult`가 이미 `PENDING | PROCESSING | COMPLETED | FAILED` 상태 머신이고 `ExamQuestionPollResult` 폴링 구조가 있어서, **변환 단계를 `PROCESSING`에 그대로 흡수시킬 수 있다** — 클라이언트 코드는 바뀌지 않는다.
+변환은 이 안에서 **비동기로** 돌려야 한다. `submit` 응답을 붙잡고 동기로 ffmpeg를 돌리면 응답이 그만큼 느려진다. `ExamAnswerSubmitResult`가 이미 `PENDING | PROCESSING | COMPLETED | FAILED`를 반환하므로, 서버는 접수 응답에서 변환·채점 대기 상태를 표현할 수 있다. 클라이언트에는 문항별 상태 조회 API가 없으며, 별도 폴링으로 성공 여부를 보정하지 않는다.
 
 **(4) 변환 실패의 표면화.**
-변환 실패는 `FAILED`로 내려와야 한다. 클라이언트의 `ExamAnswerUploadError.stage`는 `"upload" | "grading"`까지만 구분하는데, 변환 실패는 파일이 이미 S3에 있는 상태이므로 사용자에게 "재녹음"이 아니라 "재시도"를 안내해야 하고 그건 `grading` 취급이 맞다. 지금 구조로 커버된다.
+변환 또는 채점 접수 실패가 `submit` 응답의 `FAILED`로 내려오면 클라이언트는 이를 파일이
+이미 S3에 저장된 뒤 발생한 `notify` 단계의 terminal failure로 기록한다. 현재
+`AnswerSubmissionFailure.stage`는 `"upload" | "notify"`를 구분하며, 명시적인 `FAILED`는 같은
+고지를 자동 재시도하지 않고 홈 이동을 제공한다. 일시적인 network error, timeout, 408, 429,
+5xx만 동일한 Answer Key와 `fileKey`로 bounded retry한다.
 
-## 10. 남은 과제
+## 10. 녹음·제출 생명주기 불변식
+
+### 10.1 먼저 기록된 terminal intent가 이긴다
+
+사용자 완료, native duration 종료, JS fallback timeout은 모두 같은 generation의 terminal
+Promise로 합쳐 stop과 파일 확정을 한 번만 수행한다. AppState 이탈이나 media reset이 먼저
+발생하면 intent는 `discard`로 고정되고 부분 파일을 삭제한다. 사용자 완료나 제한 시간 종료가
+먼저 `finalize`를 기록했다면 뒤늦은 AppState 이벤트가 이를 discard로 덮지 않는다.
+
+### 10.2 background는 인앱 비차단 실행을 뜻한다
+
+제출 registry는 이전 문항 업로드 중에도 다음 문항 녹음을 막지 않고, 앱이 foreground로
+복귀하면 중단된 runner를 재개한다. iOS background session이나 Android background service에
+의존하지 않으며 프로세스 종료 뒤의 영속 복원은 보장하지 않는다. 화면이 dispose되면 활성
+요청과 retry wait를 취소하고, native 파일 읽기가 끝난 뒤 registry가 가진 임시 파일을
+best-effort로 정리한다.
+
+### 10.3 시험 cue가 끝난 뒤에만 타이머를 시작한다
+
+각 문항의 준비 시간 전에는 `beep.wav`를 먼저 재생하고 `cue_begin_preparing.wav`를 이어서
+재생한다. 응답 시간 전에도 같은 beep를 먼저 재생한 뒤 Part 1은
+`cue_begin_reading_aloud.wav`, Part 3은 `cue_begin_responding.wav`, 나머지 파트는
+`cue_begin_speaking.wav`를 재생한다. 준비 타이머는 준비 cue 전체가 끝난 뒤, 응답 타이머와
+녹음은 응답 cue 전체가 끝난 뒤에만 시작한다. cue 중 앱이 inactive되거나 화면 focus를 잃으면 완료로 간주하지 않고
+foreground/focus 복귀 시 해당 cue를 처음부터 다시 재생한다.
+
+### 10.4 S3 PUT과 업로드 완료 고지는 독립적으로 재시도한다
+
+S3 PUT은 최초 요청 이후 같은 presigned URL과 `fileKey`로 최대 5회 추가 재시도한다. 서버
+고지는 PUT 2xx 뒤 같은 Answer Key와 `fileKey`로 최초 요청 이후 최대 3회 추가 재시도한다.
+두 단계 모두 1, 2, 4초 계열의 bounded backoff에 50~100% equal jitter를 적용하고, S3 쪽은
+8초와 16초 단계까지 사용한다. transport retry는 피드백 페이지의 새 답변 회차가 아니므로
+`retryCount`를 절대 증가시키지 않는다.
+
+PUT 성공 여부는 job의 `uploadCompleted`에 보존하고 로컬 파일은 즉시 삭제한다. 이후 고지
+요청이나 응답이 유실되어도 S3 PUT 또는 업로드 주소 요청으로 돌아가지 않는다. network,
+timeout, 408, 429, 5xx만 자동 재시도하고 일반 4xx, 만료된 URL, `FAILED` 응답은 최종 실패로
+처리한다. 실제로 존재하지 않는 문항 상태 조회와 URL 재발급 흐름은 사용하지 않는다.
+
+반복 고지가 안전하려면 서버가 같은 `(examId, questionNumber, retryCount, fileKey)`를 하나의
+채점 작업으로 멱등 처리해야 한다. 이 서버 계약은 통합 환경에서 별도로 검증한다.
+
+모든 자동 재시도가 끝난 뒤에는 `public/mascots/error.png`를 사용하는 최종 실패 화면을
+표시한다. 재시도 가능한 오류에는 수동 재시도와 홈 이동을 함께 제공하고, 일반 4xx나 만료
+URL처럼 다시 보내도 해결되지 않는 오류에는 홈 이동만 제공한다. 홈 이동 시 현재 submission
+registry를 dispose하고 모의고사 stack을 초기화한다.
+
+## 11. 남은 과제
 
 - 채점 파이프라인이 원하는 최종 샘플레이트(`-ar` 값)를 확정해야 한다. 앱은 44.1kHz로 올리고 서버가 맞춰 내리는 구조라 클라이언트 변경 없이 조정 가능하다.
 - 96kbps는 실측 없이 정한 값이다. 실제 채점 결과가 쌓이면 재조정한다 — 4절의 비대칭성 때문에 **낮추는 방향으로만** 조정하는 게 안전하다.
 - 5절의 고주파 손실이 발음 평가에 실제 영향을 주는지 확인되지 않았다. 영향이 확인되면 비트레이트 상향 → 그래도 부족하면 6.4절 PCM 직접 녹음 순서로 검토한다.
 - 마이크 전처리(자동 이득 조절·노이즈 억제·에코 제거)를 어떻게 둘지 정해지지 않았다. 웹 구현은 `getUserMedia`에서 셋 다 껐지만, `expo-audio`에는 대응하는 옵션이 없다 — iOS는 `RecordingOptionsIos`에 오디오 처리 항목 자체가 없고 `AudioMode`도 AVAudioSession의 mode를 노출하지 않는다. Android만 `audioSource: 'unprocessed'`로 근사할 수 있는데, 그러면 3절에서 `LOW_QUALITY`를 기각한 것과 같은 이유로 **안드로이드 사용자만 다른 전처리로 채점받게 된다.** 그래서 지금은 양 플랫폼 모두 기본값을 그대로 둔다. 다만 노이즈 억제가 마찰음을 깎을 수 있다는 점은 5절의 고주파 손실과 같은 계열의 위험이므로, 발음 평가에서 문제가 실측되고 iOS까지 함께 제어할 방법이 생기면 재검토한다. 웹에서 셋 다 끈 결정 자체도 근거가 기록돼 있지 않아, 원음 보존이 채점에 유리하다는 건 아직 가설이다.
-- `submit`만 실패한 상태(S3 PUT은 성공)의 재시도 방식이 정해지지 않았다. 같은 `retryCount`로 `submit`만 다시 보내면 앞 요청이 서버에 도달하고 응답만 유실된 경우 같은 `fileKey`가 두 번 들어가고, `retryCount`를 올려 처음부터 다시 하면 중복은 없는 대신 S3에 고아 객체가 남는다. 녹음 화면에서 재시도 UI를 붙일 때 정한다.
-- 8절 항목들은 이 문서의 범위 밖이며, 녹음 화면 구현 시 별도로 다룬다.
+- 서버가 동일한 Answer Key와 `fileKey`의 반복 고지를 중복 채점 없이 처리하는지 test
+  backend에서 검증해야 한다.
+- iOS/Android 실기기에서 전화·알람·오디오 route 변경과 finalize/AppState 순서 경쟁을
+  검증해야 한다.
 
-## 11. 마이크 테스트 녹음 재생 장애와 수정
+## 12. 마이크 테스트 녹음 재생 장애와 수정
 
 네이티브 마이크 테스트를 처음 연결한 뒤 다음 문제가 순서대로 확인됐다.
 
-### 11.1 해제된 플레이어에 `pause()`를 호출한 오류
+### 12.1 해제된 플레이어에 `pause()`를 호출한 오류
 
 초기 구현은 `useAudioPlayer(recordingUri)`로 URI가 바뀔 때마다 네이티브 플레이어를 교체했다. `useAudioPlayer`가 이전 shared object를 자동으로 `release()`한 뒤 화면 cleanup effect가 같은 이전 객체에 `pause()`를 호출하면서 아래 오류가 발생했다.
 
@@ -189,18 +255,18 @@ NotFoundException: Unable to find the native shared object associated with given
 
 문제는 cleanup 자체가 아니라 이미 해제된 이전 객체를 closure가 계속 참조한 것이었다. 마이크 테스트의 녹음 재생기는 화면 수명 동안 하나를 유지하고 새 녹음이 끝날 때 `replace(uri)`로 소스만 교체한다. Navigation blur와 AppState 처리는 아직 살아 있는 이 객체의 활성 작업만 중지하고, 네이티브 shared object의 최종 `release()`는 Expo 훅의 unmount cleanup에 맡긴다. 자세한 생명주기 정책은 [microphone-test-audio-lifecycle.md](microphone-test-audio-lifecycle.md)에 기록했다.
 
-### 11.2 Android에서 부적절한 `LOW_QUALITY` 프리셋 사용
+### 12.2 Android에서 부적절한 `LOW_QUALITY` 프리셋 사용
 
 마이크 테스트가 이 문서 3절의 결정을 따르지 않고 `RecordingPresets.LOW_QUALITY`를 사용하고 있었다. 이 프리셋은 Android에서만 `.3gp` + `amr_nb`를 선택한다. AMR-NB는 8kHz 협대역 코덱이고 다른 플랫폼과 포맷도 갈라지므로, 로컬 재생과 이후 실제 답변 녹음의 기준으로 사용하면 안 된다.
 
 마이크 테스트도 `HIGH_QUALITY`의 `.m4a` + AAC 구성을 기반으로 `numberOfChannels: 1`, `bitRate: 96_000`을 덮어써서 이 문서의 결론과 동일하게 맞췄다.
 
-### 11.3 `isLoaded`를 버튼 활성화 조건으로 사용한 교착
+### 12.3 `isLoaded`를 버튼 활성화 조건으로 사용한 교착
 
 Android의 `playbackStatus.isLoaded`는 플레이어가 `STATE_READY`가 된 뒤에만 참이다. 초기 구현은 이 값이 참이 되기 전 재생 버튼을 비활성화하고 `play()` 호출도 반환시켰다. 로컬 파일 준비가 늦거나 상태 이벤트 반영이 지연되면 사용자는 재생을 시작할 방법 없이 계속 대기하게 된다.
 
 `isLoaded`는 종료 위치에서 `seekTo(0)`이 안전한지를 판단할 때만 사용한다. 재생 버튼은 파일 URI가 있고 명시적 로드 오류가 없는 한 `play()`를 호출할 수 있게 해서 네이티브 플레이어가 로딩·버퍼링을 진행하도록 한다.
 
-### 11.4 iOS 재생 모드 복구
+### 12.4 iOS 재생 모드 복구
 
 iOS에서 `setAudioModeAsync({ allowsRecording: false })`만 호출하면 생략된 `playsInSilentMode`가 기본값 `false`로 적용될 수 있다. 녹음 종료 뒤에는 `{ allowsRecording: false, playsInSilentMode: true }`를 함께 설정해 무음 스위치 상태에서도 테스트 녹음과 음향 테스트가 스피커로 재생되게 한다. Android 장애의 직접 원인은 아니지만 같은 구현 과정에서 확인한 플랫폼별 결함이므로 함께 기록한다.

@@ -2,7 +2,7 @@ import { View } from "react-native";
 
 import { Text } from "@/components/ui/Text";
 
-export type ExamTimerMode = "preparation" | "response";
+export type ExamTimerMode = "preparation" | "reading" | "response";
 
 interface ExamTimerCardProps {
   mode: ExamTimerMode;
@@ -19,11 +19,18 @@ function formatSeconds(seconds: number) {
 /** 웹 시험 화면의 2단 타이머를 RN View로 그대로 재구성한다. */
 export function ExamTimerCard({ mode, remainingSeconds }: ExamTimerCardProps) {
   const isResponse = mode === "response";
-  const label = isResponse ? "RESPONSE TIME" : "PREPARATION TIME";
+  const isReading = mode === "reading";
+  const label = isResponse
+    ? "RESPONSE TIME"
+    : isReading
+      ? "READING TIME"
+      : "PREPARATION TIME";
 
   return (
     <View
-      accessibilityLabel={`${isResponse ? "답변" : "준비"} 시간 ${formatSeconds(remainingSeconds)}`}
+      accessibilityLabel={`${
+        isResponse ? "답변" : isReading ? "정보 읽기" : "준비"
+      } 시간 ${formatSeconds(remainingSeconds)}`}
       className="w-60 items-stretch"
     >
       <View className="rounded-t-xl bg-exam-navy py-2">

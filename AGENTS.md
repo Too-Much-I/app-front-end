@@ -62,7 +62,7 @@ No automated test runner is configured yet. For code changes, run `pnpm lint` an
 - Server responses use `ApiEnvelope<T>`; endpoint modules should unwrap and return `result` consistently with the existing API files.
 - Preserve the `Raw* -> mapper -> domain type` boundary. Normalize server inconsistencies in a mapper rather than leaking nullable, snake_case, or unstable response shapes into UI code.
 - Keep one endpoint per file under `src/features/exam/api/` and document non-obvious backend quirks close to their raw types or mappers.
-- `src/features/exam/use-answer-recorder.ts` and `use-grading-progress.ts` still contain browser-only code. Do not treat them as React Native-compatible until they are explicitly reimplemented using Expo-native APIs.
+- `src/features/exam/use-answer-recorder.ts` is Expo-native and owns answer recording lifecycle only. `use-grading-progress.ts` still contains browser-only code; do not treat it as React Native-compatible until it is explicitly reimplemented using Expo-native APIs.
 
 ## Spec-driven development
 
@@ -83,7 +83,8 @@ No automated test runner is configured yet. For code changes, run `pnpm lint` an
 
 ## Commits and pull requests
 
-- Do not create commits unless explicitly requested. When asked, stage only changes within the requested scope and use a Conventional Commit title with an optional scope, such as `feat(mock-exam): add part guidance`.
+- Do not create commits unless explicitly requested. When asked, stage only changes within the requested scope and use a Conventional Commit title with an optional scope, such as `feat(mock-exam): 파트별 안내 화면 추가`.
+- Write commit subjects and bodies in Korean. Keep the Conventional Commit type and optional scope in their standard lowercase English form.
 - Add a commit body only when the rationale, constraints, or follow-up work cannot be understood from the title and diff.
 - Use `.github/pull_request_template.md` when preparing a PR description. State the intended user outcome before implementation details, and record non-obvious decisions, tradeoffs, and intentional exclusions so human and automated reviewers can distinguish deliberate behavior from defects.
 - Keep PR sections concise and remove optional sections that add no review value instead of repeating the diff.

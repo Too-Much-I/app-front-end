@@ -1,4 +1,5 @@
 import { getExamPartTiming } from "@/features/exam/part-meta";
+import { normalizeExamPartPreludes } from "@/features/exam/part-prelude";
 import type {
   ExamSession,
   RawExamQuestion,
@@ -6,6 +7,7 @@ import type {
 } from "@/types/exam";
 
 export function mapExamSession(raw: RawExamSession): ExamSession {
+  const { partPreludes, canonicalPart4Table } = normalizeExamPartPreludes(raw.questions);
   const partGroups = new Map<number, RawExamQuestion[]>();
   for (const q of raw.questions) {
     const group = partGroups.get(q.part) ?? [];
@@ -27,7 +29,7 @@ export function mapExamSession(raw: RawExamSession): ExamSession {
       imageUrl: q.imageUrl,
       question: q.text,
       audioUrl: q.audioUrl,
-      tableContext: q.tableContext,
+      tableContext: q.part === 4 ? canonicalPart4Table : q.tableContext,
       partIntroText: q.partIntroText,
       guideAudioUrl: q.guideAudioUrl,
       isFirstInPart,
@@ -40,5 +42,6 @@ export function mapExamSession(raw: RawExamSession): ExamSession {
     examId: raw.examId,
     title: raw.title,
     questions,
+    partPreludes,
   };
 }

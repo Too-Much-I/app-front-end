@@ -1,36 +1,80 @@
+import { useIsFocused } from "@react-navigation/native";
+import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useEffect, useState } from "react";
-import { Alert, ScrollView, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { useCallback, useEffect, useState } from "react";
+import { AppState, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
-import type { MockExamStackParamList } from "@/navigation/types";
+import { getExamResponseCueKind } from "@/features/exam/exam-cue";
+import { getExamPartDirections } from "@/features/exam/part-directions";
+import type { MainTabParamList, MockExamStackParamList } from "@/navigation/types";
+import { AudioWaveform } from "@/screens/mock-exam/components/AudioWaveform";
+import { ExamAnswerStatus } from "@/screens/mock-exam/components/ExamAnswerStatus";
+import { ExamInformationReading } from "@/screens/mock-exam/components/ExamInformationReading";
+import { ExamPartIntroContent } from "@/screens/mock-exam/components/ExamPartIntroContent";
+import { ExamPartDirectionsContent } from "@/screens/mock-exam/components/ExamPartDirectionsContent";
+import { ExamPhaseCue } from "@/screens/mock-exam/components/ExamPhaseCue";
+import { ExamPreludeError } from "@/screens/mock-exam/components/ExamPreludeError";
 import { ExamQuestionContent } from "@/screens/mock-exam/components/ExamQuestionContent";
 import { ExamQuestionProgress } from "@/screens/mock-exam/components/ExamQuestionProgress";
+import { ExamSessionHeader } from "@/screens/mock-exam/components/ExamSessionHeader";
 import {
   ExamTimerCard,
   type ExamTimerMode,
 } from "@/screens/mock-exam/components/ExamTimerCard";
+import { useExamSessionController } from "@/screens/mock-exam/hooks/use-exam-session-controller";
 
 type ExamSessionScreenProps = NativeStackScreenProps<MockExamStackParamList, "ExamSession">;
 
-const WAVEFORM_HEIGHTS = [
-  8, 13, 20, 29, 18, 35, 24, 15, 31, 39, 25, 17, 28, 36, 21, 12, 19, 30, 23, 15, 9, 18,
-  13, 8,
-];
-
 export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps) {
-  const { questions } = route.params.session;
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [timerMode, setTimerMode] = useState<ExamTimerMode>("preparation");
+  const session = route.params.session;
+  const isFocused = useIsFocused();
+  const [isAppActive, setIsAppActive] = useState(AppState.currentState === "active");
+  const isExamActive = isFocused && isAppActive;
+  const controller = useExamSessionController(session, isExamActive);
+  const {
+    currentIndex,
+    question,
+    partPrelude,
+    phase,
+    remainingSeconds,
+    recorder,
+    submissions,
+    completeDirections,
+    completePart3Intro,
+    completePart4Reading,
+    completePreparationCue,
+    completeResponseCue,
+    markPart4TableVisible,
+    beginResponse,
+    finishResponse,
+    retryRecording,
+    retryRegistration,
+  } = controller;
+  const timerMode: ExamTimerMode =
+    phase === "response-cue" ||
+    phase === "response" ||
+    phase === "starting-response" ||
+    phase === "finalizing"
+      ? "response"
+      : phase === "part4-reading"
+        ? "reading"
+        : "preparation";
 
-  const question = questions[currentIndex];
-  const remainingSeconds = question
-    ? timerMode === "preparation"
-      ? question.prepTimeSec
-      : question.speakTimeSec
-    : 0;
+  const handleExitExam = useCallback(() => {
+    submissions.dispose();
+    navigation.popToTop();
+  }, [navigation, submissions]);
+
+  const handleGoHome = useCallback(() => {
+    const tabNavigation = navigation.getParent<BottomTabNavigationProp<MainTabParamList>>();
+    submissions.dispose();
+    navigation.popToTop();
+    tabNavigation?.navigate("Home");
+  }, [navigation, submissions]);
 
   useEffect(() => {
     const tabNavigator = navigation.getParent();
@@ -41,101 +85,194 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     };
   }, [navigation]);
 
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      setIsAppActive(nextState === "active");
+    });
+    return () => subscription.remove();
+  }, []);
+
   if (!question) return null;
 
-  const handleNextPhase = () => {
-    if (timerMode === "preparation") {
-      setTimerMode("response");
-      return;
-    }
-
-    if (currentIndex < questions.length - 1) {
-      setCurrentIndex((index) => index + 1);
-      setTimerMode("preparation");
-    }
-  };
-
-  const handleStop = () => {
-    Alert.alert(
-      "모의고사를 중단할까요?",
-      "지금까지 확인한 문항까지만 남고 시험 준비 화면으로 돌아가요.",
-      [
-        { text: "계속 풀기", style: "cancel" },
-        { text: "중단하기", style: "destructive", onPress: () => navigation.popToTop() },
-      ],
-    );
-  };
+  const directions = getExamPartDirections(question.partNumber);
+  const part3Prelude = partPrelude?.kind === "part3-intro" ? partPrelude : undefined;
+  const part4Prelude = partPrelude?.kind === "part4-reading" ? partPrelude : undefined;
+  const invalidPrelude = partPrelude?.kind === "invalid" ? partPrelude : undefined;
+  const isSubmissionState = phase === "submission-barrier" || phase === "completed";
+  const showTimer = [
+    "preparation-cue",
+    "preparation",
+    "response-cue",
+    "starting-response",
+    "response",
+    "finalizing",
+  ].includes(phase);
+  const showResponseWaveform = phase === "response" || phase === "finalizing";
+  const activeCueKind =
+    phase === "preparation-cue"
+      ? "preparing"
+      : phase === "response-cue"
+        ? getExamResponseCueKind(question.partNumber)
+        : null;
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-surface">
-      <View className="h-14 flex-row items-center border-b border-line px-5">
-        <Text className="flex-1 text-xl">Part {question.partNumber}</Text>
-        <Pressable
-          accessibilityLabel="모의고사 중단하기"
-          accessibilityRole="button"
-          className="rounded-full border border-line px-3 py-1.5"
-          onPress={handleStop}
-        >
-          <Text className="text-sm text-ink-muted">중단하기</Text>
-        </Pressable>
-      </View>
+    <View className="flex-1 bg-surface">
+      <StatusBar style="light" />
+      <ExamSessionHeader partNumber={question.partNumber} />
 
-      <View className="border-b border-line bg-surface px-4 py-3">
-        <ExamQuestionProgress currentIndex={currentIndex} total={questions.length} />
-      </View>
-
-      <ScrollView
-        bounces={false}
-        className="flex-1"
-        contentContainerClassName="flex-grow px-6 pb-5 pt-6"
-        showsVerticalScrollIndicator={false}
+      <SafeAreaView
+        edges={["bottom"]}
+        className={`flex-1 ${phase === "directions" ? "bg-surface-subtle" : "bg-surface"}`}
       >
-        <ExamQuestionContent question={question} />
-      </ScrollView>
-
-      <View className="items-center gap-3 border-t border-line bg-surface px-5 pb-3 pt-4">
-        <ExamTimerCard mode={timerMode} remainingSeconds={remainingSeconds} />
-
-        {timerMode === "response" ? (
-          <>
-            <View className="flex-row items-center gap-2">
-              <View className="h-2.5 w-2.5 rounded-full bg-exam-danger" />
-              <Text className="text-sm text-exam-danger">답변을 녹음하고 있어요</Text>
+        {phase === "directions" && directions ? (
+          <ExamPartDirectionsContent
+            directions={directions}
+            isActive={isExamActive}
+            partNumber={question.partNumber}
+            onComplete={completeDirections}
+          />
+        ) : phase === "part3-intro" ? (
+          part3Prelude ? (
+            <ExamPartIntroContent
+              isActive={isExamActive}
+              prelude={part3Prelude}
+              onComplete={completePart3Intro}
+              onExit={handleExitExam}
+            />
+          ) : (
+            <ExamPreludeError onExit={handleExitExam} />
+          )
+        ) : phase === "part4-reading" ? (
+          part4Prelude ? (
+            <View className="flex-1 bg-surface">
+              <ExamInformationReading
+                prelude={part4Prelude}
+                onTableVisible={markPart4TableVisible}
+              />
+              <View className="items-center gap-3 border-t border-line bg-surface px-5 pb-4 pt-4">
+                <ExamTimerCard mode="reading" remainingSeconds={remainingSeconds} />
+                <Pressable
+                  accessibilityRole="button"
+                  className="rounded-full border border-brand-300 px-4 py-2"
+                  onPress={completePart4Reading}
+                >
+                  <Text className="text-sm text-brand-text">
+                    준비 완료, 문제로 이동하기
+                  </Text>
+                </Pressable>
+              </View>
             </View>
-            <View accessibilityElementsHidden className="h-10 flex-row items-center gap-1">
-              {WAVEFORM_HEIGHTS.map((height, index) => (
-                <View
-                  key={index}
-                  className="w-1 rounded-full bg-exam-dangerSoft"
-                  style={{ height }}
+          ) : (
+            <ExamPreludeError onExit={handleExitExam} />
+          )
+        ) : phase === "part-prelude-error" ? (
+          <ExamPreludeError prelude={invalidPrelude} onExit={handleExitExam} />
+        ) : isSubmissionState ? (
+          <ScrollView
+            bounces={false}
+            className="flex-1 bg-surface"
+            contentContainerClassName={`flex-grow px-6 pb-8 pt-6 ${
+              phase === "completed" ? "justify-center" : ""
+            }`}
+            showsVerticalScrollIndicator={false}
+          >
+            <ExamAnswerStatus
+              canAskPermissionAgain={recorder.canAskPermissionAgain}
+              jobs={submissions.jobs}
+              phase={phase}
+              recordingErrorMessage={recorder.lastError?.message}
+              recordingStatus={recorder.status}
+              summary={submissions.summary}
+              onGoHome={handleGoHome}
+              onRetryRecording={retryRecording}
+              onRetryRegistration={retryRegistration}
+              onRetrySubmission={submissions.retry}
+            />
+          </ScrollView>
+        ) : (
+          <>
+            <View className="bg-surface px-4 py-3">
+              <ExamQuestionProgress currentIndex={currentIndex} total={session.questions.length} />
+            </View>
+
+            <ScrollView
+              bounces={false}
+              className="flex-1"
+              contentContainerClassName="flex-grow px-6 pb-5 pt-6"
+              showsVerticalScrollIndicator={false}
+            >
+              <ExamQuestionContent question={question} />
+            </ScrollView>
+
+            <View className="items-center gap-3 bg-surface px-5 pb-3 pt-4">
+              {showResponseWaveform ? (
+                <AudioWaveform
+                  active={phase === "response" && recorder.status === "recording"}
+                  meteringDb={recorder.meteringDb}
+                  variant="answer"
                 />
-              ))}
+              ) : null}
+
+              {showTimer ? (
+                <ExamTimerCard mode={timerMode} remainingSeconds={remainingSeconds} />
+              ) : null}
+
+              {activeCueKind ? (
+                <ExamPhaseCue
+                  cueKind={activeCueKind}
+                  isActive={isExamActive}
+                  onComplete={
+                    phase === "preparation-cue"
+                      ? completePreparationCue
+                      : completeResponseCue
+                  }
+                  onExit={handleExitExam}
+                />
+              ) : null}
+
+              <ExamAnswerStatus
+                canAskPermissionAgain={recorder.canAskPermissionAgain}
+                jobs={submissions.jobs}
+                phase={phase}
+                recordingErrorMessage={recorder.lastError?.message}
+                recordingStatus={recorder.status}
+                summary={submissions.summary}
+                onGoHome={handleGoHome}
+                onRetryRecording={retryRecording}
+                onRetryRegistration={retryRegistration}
+                onRetrySubmission={submissions.retry}
+              />
+
+              {phase === "preparation" || phase === "response" ? (
+                <Pressable
+                  accessibilityRole="button"
+                  className="rounded-full border border-brand-300 px-4 py-2"
+                  onPress={() => {
+                    if (phase === "preparation") void beginResponse();
+                    else void finishResponse("user");
+                  }}
+                >
+                  <Text className="text-sm text-brand-text">
+                    {phase === "preparation"
+                      ? "준비 완료, 바로 답변 시작하기"
+                      : currentIndex < session.questions.length - 1
+                        ? "답변 완료, 다음 문제 보기"
+                        : "마지막 답변 제출하기"}
+                  </Text>
+                </Pressable>
+              ) : null}
+
+              {phase !== "interrupted" &&
+              phase !== "recording-recovery" &&
+              phase !== "registration-recovery" ? (
+                <Text className="text-center text-xs leading-4 text-ink-disabled">
+                  답변 파일이 준비되면 다음 문제로 자동 전환되며 뒤로 갈 수 없어요.
+                </Text>
+              ) : null}
             </View>
           </>
-        ) : (
-          <Text className="text-center text-sm text-ink-muted">
-            곧 답변 시간이 시작돼요. 답변을 준비해 주세요.
-          </Text>
         )}
-
-        <Pressable
-          accessibilityRole="button"
-          className="rounded-full border border-brand-300 px-4 py-2"
-          onPress={handleNextPhase}
-        >
-          <Text className="text-sm text-brand-text">
-            {timerMode === "preparation"
-              ? "준비 완료, 바로 답변 시작하기"
-              : currentIndex < questions.length - 1
-                ? "답변 완료, 다음 문제 보기"
-                : "마지막 답변 확인"}
-          </Text>
-        </Pressable>
-
-        <Text className="text-center text-xs leading-4 text-ink-disabled">
-          다음 문제로 자동 전환되며 뒤로 갈 수 없어요.
-        </Text>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }

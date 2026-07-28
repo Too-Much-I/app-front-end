@@ -1,11 +1,12 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { useCallback, useState } from "react";
-import { Image, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Image, View } from "react-native";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
+import { PLAYBACK_AUDIO_MODE } from "@/features/exam/answer-audio";
 import { createExamSession } from "@/features/exam/api/exam-session-create";
 import type { MockExamStackParamList } from "@/navigation/types";
 import { DeviceTestLayout } from "@/screens/mock-exam/components/DeviceTestLayout";
@@ -21,7 +22,8 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
   const [isComplete, setIsComplete] = useState(false);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);
   const [isStartingExam, setIsStartingExam] = useState(false);
-  const [startExamError, setStartExamError] = useState(false);
+  const [startExamError, setStartExamError] = useState<string | null>(null);
+  const createRequestRef = useRef<AbortController | null>(null);
   const soundCheckPlayer = useAudioPlayer(soundCheckAudio, { updateInterval: 100 });
   const playbackStatus = useAudioPlayerStatus(soundCheckPlayer);
   const hasPlaybackFinished =
@@ -38,7 +40,7 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
 
     try {
       setHasPlaybackError(false);
-      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+      await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
 
       if (playbackStatus.isLoaded && hasPlaybackFinished) {
         await soundCheckPlayer.seekTo(0);
@@ -53,27 +55,38 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
   }, [hasPlaybackFinished, playbackStatus, soundCheckPlayer]);
 
   const handleBack = useCallback(() => {
+    createRequestRef.current?.abort();
     soundCheckPlayer.pause();
     navigation.goBack();
   }, [navigation, soundCheckPlayer]);
 
-  const handleStartExam = async () => {
-    if (isStartingExam) return;
+  const handleStartExam = useCallback(async () => {
+    if (createRequestRef.current) return;
 
     soundCheckPlayer.pause();
+    const controller = new AbortController();
+    createRequestRef.current = controller;
     setIsStartingExam(true);
-    setStartExamError(false);
+    setStartExamError(null);
 
     try {
-      const session = await createExamSession();
-      setIsStartingExam(false);
-      navigation.navigate("ExamSession", { session });
+      const session = await createExamSession(controller.signal);
+      if (!controller.signal.aborted) navigation.navigate("ExamSession", { session });
     } catch (error) {
-      console.error("[SoundTest] 시험 세션 생성 실패", error);
-      setStartExamError(true);
-      setIsStartingExam(false);
+      if (controller.signal.aborted) return;
+      console.error("[SoundTest] 모의고사 세션 생성 실패", error);
+      setStartExamError("시험 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      if (createRequestRef.current === controller) {
+        createRequestRef.current = null;
+        if (!controller.signal.aborted) setIsStartingExam(false);
+      }
     }
-  };
+  }, [navigation, soundCheckPlayer]);
+
+  useEffect(() => {
+    return () => createRequestRef.current?.abort();
+  }, []);
 
   return (
     <DeviceTestLayout currentStep={2} onBack={handleBack}>
@@ -82,7 +95,10 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
           <Text className="text-center text-3xl">음향 테스트</Text>
           <Text className="mt-2 text-center text-base leading-6 text-ink-muted">
             {isComplete
-              ? "잘 들린다면 시험을 시작해주세요"
+              ? startExamError ??
+                (isStartingExam
+                  ? "시험 문제를 준비하고 있어요"
+                  : "잘 들린다면 시험을 시작해주세요")
               : hasSoundPlaybackError
                 ? "안내 음성을 재생하지 못했어요. 다시 시도해주세요"
                 : "오디오나 헤드폰 환경을 권장해요"}
@@ -135,7 +151,7 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
         {isComplete ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityState={{ disabled: isStartingExam }}
+            accessibilityState={{ busy: isStartingExam, disabled: isStartingExam }}
             className={`items-center justify-center rounded-2xl py-4 ${
               isStartingExam ? "bg-line" : "bg-brand-cta"
             }`}
@@ -144,9 +160,16 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
               void handleStartExam();
             }}
           >
-            <Text className={`text-lg ${isStartingExam ? "text-ink-disabled" : "text-white"}`}>
-              {isStartingExam ? "시험 준비 중..." : "모의고사 시작하기"}
-            </Text>
+            {isStartingExam ? (
+              <View className="flex-row items-center gap-2">
+                <ActivityIndicator color={colors.ink.disabled} />
+                <Text className="text-lg text-ink-disabled">시험 준비 중...</Text>
+              </View>
+            ) : (
+              <Text className="text-lg text-white">
+                {startExamError ? "시험 시작 다시 시도" : "모의고사 시작하기"}
+              </Text>
+            )}
           </Pressable>
         ) : (
           <Pressable
@@ -171,14 +194,6 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
             </Text>
           </Pressable>
         )}
-        {startExamError ? (
-          <Text
-            accessibilityLiveRegion="polite"
-            className="mt-3 text-center text-sm text-exam-danger"
-          >
-            시험을 불러오지 못했어요. 네트워크를 확인하고 다시 시도해주세요.
-          </Text>
-        ) : null}
       </View>
     </DeviceTestLayout>
   );
