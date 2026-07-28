@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
+import { retryExamGrading } from "@/features/exam/api/exam-grading-retry";
 import { getExamGradingStatus } from "@/features/exam/api/exam-grading-summary";
 
 /** 채점표에 올라가는 파트 수. 토익 스피킹 정규 구성과 같다. */
@@ -12,33 +13,57 @@ const ATTEMPT_TIMEOUT_MS = 180_000;
 const COMPLETE_STEP_INTERVAL_MS = 180;
 const COMPLETE_HOLD_MS = 600;
 
-export type GradingStatus = "grading" | "completed" | "failed";
+export type GradingWaitPhase =
+  | "polling"
+  | "retry-ready"
+  | "retry-requesting"
+  | "completing"
+  | "terminal-error";
+
+type GradingAttempt = 0 | 1;
 
 export interface GradingProgress {
-  status: GradingStatus;
+  phase: GradingWaitPhase;
   /** 시간으로는 최대 4까지만 증가하고, 5는 서버 COMPLETED 뒤에만 가능하다. */
+  gradedPartCount: number;
+  /** 최초 실패 뒤 한 번만 유효하다. 연속 호출은 내부 single-flight guard가 막는다. */
+  retry: () => void;
+}
+
+interface GradingProgressState {
+  phase: GradingWaitPhase;
   gradedPartCount: number;
 }
 
 /**
- * 시험 단위 summary를 순차 polling하고 채점표에 표시할 단일 완료 개수를 만든다.
+ * 시험 단위 summary polling, 시도별 timeout과 사용자 재요청 lifecycle을 소유한다.
  *
- * 각 요청은 같은 시도의 AbortSignal을 캡처한다. 시도가 정리된 뒤 늦게 끝난 요청은
- * `signal.aborted`를 보고 결과를 적용하지 않는다.
+ * 각 시도는 자신의 AbortSignal을 캡처한다. timeout, 재요청 또는 unmount로 해당
+ * controller가 abort된 뒤 늦게 끝난 요청은 `signal.aborted`를 보고 결과를 적용하지 않는다.
  */
 export function useGradingStatus(
   examId: string,
   onComplete: () => void,
 ): GradingProgress {
-  const [progress, setProgress] = useState<GradingProgress>({
-    status: "grading",
+  const [attempt, setAttempt] = useState<GradingAttempt>(0);
+  const [progress, setProgress] = useState<GradingProgressState>({
+    phase: "polling",
     gradedPartCount: 0,
   });
-  const gradedPartCountRef = useRef(0);
+  const activeAttemptStopRef = useRef<(() => void) | null>(null);
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didNavigateRef = useRef(false);
+  const gradedPartCountRef = useRef(0);
   const mountedRef = useRef(true);
   const onCompleteRef = useRef(onComplete);
+  const phaseRef = useRef<GradingWaitPhase>("polling");
+  const retryControllerRef = useRef<AbortController | null>(null);
+  const retryLockedRef = useRef(false);
+
+  const updatePhase = useCallback((phase: GradingWaitPhase) => {
+    phaseRef.current = phase;
+    setProgress((current) => ({ ...current, phase }));
+  }, []);
 
   useEffect(() => {
     onCompleteRef.current = onComplete;
@@ -48,6 +73,8 @@ export function useGradingStatus(
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      activeAttemptStopRef.current?.();
+      retryControllerRef.current?.abort();
       if (completeTimerRef.current) clearTimeout(completeTimerRef.current);
     };
   }, []);
@@ -59,6 +86,10 @@ export function useGradingStatus(
     const signal = controller.signal;
     const startedAt = Date.now();
 
+    gradedPartCountRef.current = 0;
+    phaseRef.current = "polling";
+    setProgress({ phase: "polling", gradedPartCount: 0 });
+
     const stopAttempt = () => {
       settled = true;
       controller.abort();
@@ -66,11 +97,12 @@ export function useGradingStatus(
       clearTimeout(deadlineTimer);
       if (pollTimer) clearTimeout(pollTimer);
     };
+    activeAttemptStopRef.current = stopAttempt;
 
     const complete = () => {
       if (settled) return;
       stopAttempt();
-      setProgress((current) => ({ ...current, status: "completed" }));
+      updatePhase("completing");
 
       const advanceCheck = () => {
         if (!mountedRef.current) return;
@@ -79,7 +111,7 @@ export function useGradingStatus(
           gradedPartCountRef.current + 1,
         );
         gradedPartCountRef.current = nextCount;
-        setProgress({ status: "completed", gradedPartCount: nextCount });
+        setProgress({ phase: "completing", gradedPartCount: nextCount });
 
         completeTimerRef.current = setTimeout(() => {
           if (nextCount < GRADING_PART_COUNT) {
@@ -98,7 +130,7 @@ export function useGradingStatus(
     const fail = () => {
       if (settled) return;
       stopAttempt();
-      setProgress((current) => ({ ...current, status: "failed" }));
+      updatePhase(attempt === 0 ? "retry-ready" : "terminal-error");
     };
 
     const syncTimedChecks = () => {
@@ -109,7 +141,7 @@ export function useGradingStatus(
       );
       if (nextCount === gradedPartCountRef.current) return;
       gradedPartCountRef.current = nextCount;
-      setProgress({ status: "grading", gradedPartCount: nextCount });
+      setProgress({ phase: "polling", gradedPartCount: nextCount });
     };
 
     const checkTimer = setInterval(syncTimedChecks, PART_INTERVAL_MS);
@@ -139,8 +171,41 @@ export function useGradingStatus(
     };
 
     void poll();
-    return stopAttempt;
-  }, [examId]);
+    return () => {
+      stopAttempt();
+      if (activeAttemptStopRef.current === stopAttempt) {
+        activeAttemptStopRef.current = null;
+      }
+    };
+  }, [attempt, examId, updatePhase]);
 
-  return progress;
+  const retry = useCallback(() => {
+    if (retryLockedRef.current || phaseRef.current !== "retry-ready") return;
+    retryLockedRef.current = true;
+    activeAttemptStopRef.current?.();
+    gradedPartCountRef.current = 0;
+    phaseRef.current = "retry-requesting";
+    setProgress({ phase: "retry-requesting", gradedPartCount: 0 });
+
+    const controller = new AbortController();
+    retryControllerRef.current = controller;
+
+    void retryExamGrading(examId, controller.signal)
+      .then(() => {
+        if (controller.signal.aborted || !mountedRef.current) return;
+        setAttempt(1);
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted || !mountedRef.current) return;
+        console.error("[GradingWait] 채점 재요청을 접수하지 못했어요", error);
+        updatePhase("terminal-error");
+      })
+      .finally(() => {
+        if (retryControllerRef.current === controller) {
+          retryControllerRef.current = null;
+        }
+      });
+  }, [examId, updatePhase]);
+
+  return { ...progress, retry };
 }
