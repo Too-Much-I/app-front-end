@@ -4,7 +4,7 @@ import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { colors } from "@/theme";
 
-const retryMascot = require("../../../../public/mascots/waiting_rabbit.png");
+const retryMascot = require("../../../../public/mascots/waiting_rabbit_tight.png");
 
 interface GradingRetryNoticeProps {
   isRequesting: boolean;
@@ -32,7 +32,7 @@ export function GradingRetryNotice({
         채점이 예상보다 오래 걸리고 있어요
       </Text>
       <Text className="mt-2 text-center text-sm leading-6 text-ink-muted">
-        답변은 안전하게 보관돼 있어요. 채점을 한 번 다시 요청해주세요.
+        답변은 안전하게 보관돼 있어요.{"\n"}채점을 한 번 다시 요청해주세요.
       </Text>
       <Pressable
         accessibilityHint="보관된 답변의 채점을 서버에 다시 요청합니다"
