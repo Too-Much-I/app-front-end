@@ -161,14 +161,20 @@ export interface ExamAnswerUploadUrl {
 }
 
 /** POST /api/v1/exams/{examId}/questions/{questionId}/submit 의 result */
+export type ExamGradingLifecycleStatus =
+  | "PENDING"
+  | "PROCESSING"
+  | "COMPLETED"
+  | "FAILED";
+
 export interface ExamAnswerSubmitResult {
-  status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
+  status: ExamGradingLifecycleStatus;
 }
 
-/** GET /api/v1/exams/{examId}/status 의 result */
+/** GET /api/v1/exams/{examId}/summary 의 채점 lifecycle result */
 export interface ExamGradingStatus {
   examId: string;
-  overallStatus: "PROCESSING" | "COMPLETED" | "FAILED";
+  overallStatus: ExamGradingLifecycleStatus;
   progressPercent: number;
 }
 
