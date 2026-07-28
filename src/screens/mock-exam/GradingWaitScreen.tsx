@@ -1,12 +1,15 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useCallback } from "react";
-import { ScrollView, View } from "react-native";
+import { useCallback, useEffect, useRef } from "react";
+import { AccessibilityInfo, Platform, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Text } from "@/components/ui/Text";
-import { useGradingStatus } from "@/features/exam/use-grading-status";
+import {
+  GRADING_PART_COUNT,
+  useGradingStatus,
+} from "@/features/exam/use-grading-status";
 import type { MainTabParamList, MockExamStackParamList } from "@/navigation/types";
 import { GradingFailedNotice } from "@/screens/mock-exam/components/GradingFailedNotice";
 import { GradingRabbitBanner } from "@/screens/mock-exam/components/GradingRabbitBanner";
@@ -47,6 +50,34 @@ export function GradingWaitScreen({ navigation, route }: GradingWaitScreenProps)
   }, [navigation]);
 
   const { phase, gradedPartCount, retry } = useGradingStatus(examId, handleComplete);
+  const lastAnnouncementRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== "ios") return;
+
+    let announcement: string;
+    switch (phase) {
+      case "retry-ready":
+        announcement =
+          "채점이 예상보다 오래 걸리고 있어요. 채점을 한 번 다시 요청해주세요.";
+        break;
+      case "retry-requesting":
+        announcement = "채점을 다시 요청하고 있어요.";
+        break;
+      case "terminal-error":
+        announcement =
+          "채점을 마치지 못했어요. 홈으로 돌아간 뒤 잠시 후 다시 확인해주세요.";
+        break;
+      case "polling":
+      case "completing":
+        announcement = `채점 진행, ${GRADING_PART_COUNT}개 중 ${gradedPartCount}개 완료`;
+        break;
+    }
+
+    if (lastAnnouncementRef.current === announcement) return;
+    lastAnnouncementRef.current = announcement;
+    AccessibilityInfo.announceForAccessibility(announcement);
+  }, [gradedPartCount, phase]);
 
   const isRetryPhase = phase === "retry-ready" || phase === "retry-requesting";
   if (phase === "terminal-error" || isRetryPhase) {
