@@ -10,6 +10,7 @@ import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { getExamResponseCueKind } from "@/features/exam/exam-cue";
 import { getExamPartDirections } from "@/features/exam/part-directions";
+import { getQuestionAudioPlayCount } from "@/features/exam/question-audio";
 import type { MainTabParamList, MockExamStackParamList } from "@/navigation/types";
 import { AudioWaveform } from "@/screens/mock-exam/components/AudioWaveform";
 import { ExamAnswerStatus } from "@/screens/mock-exam/components/ExamAnswerStatus";
@@ -19,6 +20,7 @@ import { ExamPartDirectionsContent } from "@/screens/mock-exam/components/ExamPa
 import { ExamPhaseCue } from "@/screens/mock-exam/components/ExamPhaseCue";
 import { ExamPreludeError } from "@/screens/mock-exam/components/ExamPreludeError";
 import { ExamQuestionContent } from "@/screens/mock-exam/components/ExamQuestionContent";
+import { ExamQuestionCue } from "@/screens/mock-exam/components/ExamQuestionCue";
 import { ExamQuestionProgress } from "@/screens/mock-exam/components/ExamQuestionProgress";
 import { ExamSessionHeader } from "@/screens/mock-exam/components/ExamSessionHeader";
 import {
@@ -42,6 +44,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     currentIndex,
     question,
     partPrelude,
+    questionAudioUrl,
     phase,
     remainingSeconds,
     recorder,
@@ -49,6 +52,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     completeDirections,
     completePart3Intro,
     completePart4Reading,
+    completeQuestionCue,
     completePreparationCue,
     completeResponseCue,
     markPart4TableVisible,
@@ -231,6 +235,19 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
 
               {showTimer ? (
                 <ExamTimerCard mode={timerMode} remainingSeconds={remainingSeconds} />
+              ) : null}
+
+              {phase === "question-cue" && questionAudioUrl ? (
+                <ExamQuestionCue
+                  audioUrl={questionAudioUrl}
+                  isActive={isExamActive}
+                  playCount={getQuestionAudioPlayCount(
+                    question.partNumber,
+                    question.isLastInPart,
+                  )}
+                  onComplete={completeQuestionCue}
+                  onExit={handleExitExam}
+                />
               ) : null}
 
               {activeCueKind ? (
