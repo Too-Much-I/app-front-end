@@ -10,15 +10,18 @@ import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { getExamResponseCueKind } from "@/features/exam/exam-cue";
 import { getExamPartDirections } from "@/features/exam/part-directions";
+import { getQuestionAudioPlayCount } from "@/features/exam/question-audio";
 import type { MainTabParamList, MockExamStackParamList } from "@/navigation/types";
 import { AudioWaveform } from "@/screens/mock-exam/components/AudioWaveform";
 import { ExamAnswerStatus } from "@/screens/mock-exam/components/ExamAnswerStatus";
+import { ExamExitConfirmationModal } from "@/screens/mock-exam/components/ExamExitConfirmationModal";
 import { ExamInformationReading } from "@/screens/mock-exam/components/ExamInformationReading";
 import { ExamPartIntroContent } from "@/screens/mock-exam/components/ExamPartIntroContent";
 import { ExamPartDirectionsContent } from "@/screens/mock-exam/components/ExamPartDirectionsContent";
 import { ExamPhaseCue } from "@/screens/mock-exam/components/ExamPhaseCue";
 import { ExamPreludeError } from "@/screens/mock-exam/components/ExamPreludeError";
 import { ExamQuestionContent } from "@/screens/mock-exam/components/ExamQuestionContent";
+import { ExamQuestionCue } from "@/screens/mock-exam/components/ExamQuestionCue";
 import { ExamQuestionProgress } from "@/screens/mock-exam/components/ExamQuestionProgress";
 import { ExamSessionHeader } from "@/screens/mock-exam/components/ExamSessionHeader";
 import {
@@ -36,12 +39,14 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
   const session = route.params.session;
   const isFocused = useIsFocused();
   const [isAppActive, setIsAppActive] = useState(AppState.currentState === "active");
+  const [isExitConfirmationVisible, setIsExitConfirmationVisible] = useState(false);
   const isExamActive = isFocused && isAppActive;
   const controller = useExamSessionController(session, isExamActive);
   const {
     currentIndex,
     question,
     partPrelude,
+    questionAudioUrl,
     phase,
     remainingSeconds,
     recorder,
@@ -49,6 +54,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     completeDirections,
     completePart3Intro,
     completePart4Reading,
+    completeQuestionCue,
     completePreparationCue,
     completeResponseCue,
     markPart4TableVisible,
@@ -71,6 +77,19 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     submissions.dispose();
     navigation.popToTop();
   }, [navigation, submissions]);
+
+  const handleRequestExitExam = useCallback(() => {
+    setIsExitConfirmationVisible(true);
+  }, []);
+
+  const handleCancelExitExam = useCallback(() => {
+    setIsExitConfirmationVisible(false);
+  }, []);
+
+  const handleConfirmExitExam = useCallback(() => {
+    setIsExitConfirmationVisible(false);
+    handleExitExam();
+  }, [handleExitExam]);
 
   const handleGoHome = useCallback(() => {
     const tabNavigation = navigation.getParent<BottomTabNavigationProp<MainTabParamList>>();
@@ -134,7 +153,14 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
   return (
     <View className="flex-1 bg-surface">
       <StatusBar style="light" />
-      <ExamSessionHeader partNumber={question.partNumber} />
+      <ExamSessionHeader
+        partNumber={question.partNumber}
+        onExit={
+          phase === "submission-barrier" || phase === "completed"
+            ? undefined
+            : handleRequestExitExam
+        }
+      />
 
       <SafeAreaView
         edges={["bottom"]}
@@ -233,6 +259,19 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
                 <ExamTimerCard mode={timerMode} remainingSeconds={remainingSeconds} />
               ) : null}
 
+              {phase === "question-cue" && questionAudioUrl ? (
+                <ExamQuestionCue
+                  audioUrl={questionAudioUrl}
+                  isActive={isExamActive}
+                  playCount={getQuestionAudioPlayCount(
+                    question.partNumber,
+                    question.isLastInPart,
+                  )}
+                  onComplete={completeQuestionCue}
+                  onExit={handleExitExam}
+                />
+              ) : null}
+
               {activeCueKind ? (
                 <ExamPhaseCue
                   cueKind={activeCueKind}
@@ -289,6 +328,12 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
           </>
         )}
       </SafeAreaView>
+
+      <ExamExitConfirmationModal
+        visible={isExitConfirmationVisible}
+        onCancel={handleCancelExitExam}
+        onConfirm={handleConfirmExitExam}
+      />
     </View>
   );
 }

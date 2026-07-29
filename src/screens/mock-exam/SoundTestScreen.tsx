@@ -8,6 +8,7 @@ import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { PLAYBACK_AUDIO_MODE } from "@/features/exam/answer-audio";
 import { createExamSession } from "@/features/exam/api/exam-session-create";
+import { ExamQuestionAudioError } from "@/features/exam/question-audio";
 import type { MockExamStackParamList } from "@/navigation/types";
 import { DeviceTestLayout } from "@/screens/mock-exam/components/DeviceTestLayout";
 import { colors } from "@/theme";
@@ -74,6 +75,14 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
       if (!controller.signal.aborted) navigation.navigate("ExamSession", { session });
     } catch (error) {
       if (controller.signal.aborted) return;
+      if (error instanceof ExamQuestionAudioError) {
+        console.error("[SoundTest] 문제 음성이 없어 응시를 차단", {
+          examId: error.examId,
+          issues: error.issues,
+        });
+        setStartExamError("문제 음성이 준비되지 않은 시험이에요. 다시 시도해주세요.");
+        return;
+      }
       console.error("[SoundTest] 모의고사 세션 생성 실패", error);
       setStartExamError("시험 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.");
     } finally {

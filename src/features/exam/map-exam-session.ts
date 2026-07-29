@@ -1,5 +1,6 @@
 import { getExamPartTiming } from "@/features/exam/part-meta";
 import { normalizeExamPartPreludes } from "@/features/exam/part-prelude";
+import { assertQuestionAudioAvailable } from "@/features/exam/question-audio";
 import type {
   ExamSession,
   RawExamQuestion,
@@ -7,6 +8,10 @@ import type {
 } from "@/types/exam";
 
 export function mapExamSession(raw: RawExamSession): ExamSession {
+  // 파트 사전 정보 판정보다 먼저 본다. 질문 오디오 누락은 특정 파트가 아니라
+  // 응시 자체를 막는 조건이라, 응시자가 답변을 시작하기 전에 걸러야 한다.
+  assertQuestionAudioAvailable(raw);
+
   const { partPreludes, canonicalPart4Table } = normalizeExamPartPreludes(raw.questions);
   const partGroups = new Map<number, RawExamQuestion[]>();
   for (const q of raw.questions) {

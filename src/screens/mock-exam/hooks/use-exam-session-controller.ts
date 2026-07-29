@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getExamPartDirections } from "@/features/exam/part-directions";
+import { getPlayableQuestionAudioUrl } from "@/features/exam/question-audio";
 import {
   AnswerRecordingError,
   useAnswerRecorder,
@@ -18,6 +19,7 @@ export type ExamSessionPhase =
   | "part3-intro"
   | "part4-reading"
   | "part-prelude-error"
+  | "question-cue"
   | "preparation-cue"
   | "preparation"
   | "response-cue"
@@ -71,6 +73,8 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
   const submissions = useAnswerSubmissions(session.questions.length);
   const question = session.questions[currentIndex];
   const partPrelude = getPartPrelude(session.partPreludes, question?.partNumber);
+  // 화면과 컨트롤러가 같은 값을 보게 한다. 이 값이 없으면 question-cue로 진입하지 않는다.
+  const questionAudioUrl = question ? getPlayableQuestionAudioUrl(question) : undefined;
 
   const updatePhase = useCallback((nextPhase: ExamSessionPhase) => {
     phaseRef.current = nextPhase;
@@ -85,6 +89,21 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
       updatePhase("preparation-cue");
     },
     [updatePhase],
+  );
+
+  /**
+   * 문항 진입 지점. 재생할 질문 오디오가 있으면 준비 안내보다 먼저 듣게 한다.
+   * Part 1·2는 항상 undefined라 기존 흐름 그대로 준비 안내로 간다.
+   */
+  const enterQuestionStart = useCallback(
+    (activeQuestion: ExamQuestion) => {
+      if (getPlayableQuestionAudioUrl(activeQuestion)) {
+        updatePhase("question-cue");
+        return;
+      }
+      enterPreparationCue(activeQuestion);
+    },
+    [enterPreparationCue, updatePhase],
   );
 
   useEffect(() => {
@@ -111,9 +130,9 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
       setPreparationRemainingMs(nextQuestion.prepTimeSec * 1_000);
       updatePhase(getQuestionStartPhase(nextQuestion.partNumber));
     } else {
-      enterPreparationCue(nextQuestion);
+      enterQuestionStart(nextQuestion);
     }
-  }, [enterPreparationCue, session.questions, updatePhase]);
+  }, [enterQuestionStart, session.questions, updatePhase]);
 
   const registerFinalizedAnswer = useCallback(
     (answer: FinalizedAnswer) => {
@@ -257,20 +276,25 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
       }
     }
 
-    enterPreparationCue(question);
-  }, [enterPreparationCue, partPrelude, question, updatePhase]);
+    enterQuestionStart(question);
+  }, [enterQuestionStart, partPrelude, question, updatePhase]);
 
   const completePart3Intro = useCallback(() => {
     if (phaseRef.current !== "part3-intro" || !question) return;
     completedPartPreludesRef.current.add(question.partNumber);
-    enterPreparationCue(question);
-  }, [enterPreparationCue, question]);
+    enterQuestionStart(question);
+  }, [enterQuestionStart, question]);
 
   const completePart4Reading = useCallback(() => {
     if (phaseRef.current !== "part4-reading" || !question) return;
     completedPartPreludesRef.current.add(question.partNumber);
     readingRemainingMsRef.current = 0;
     setReadingRemainingMs(0);
+    enterQuestionStart(question);
+  }, [enterQuestionStart, question]);
+
+  const completeQuestionCue = useCallback(() => {
+    if (phaseRef.current !== "question-cue" || !question) return;
     enterPreparationCue(question);
   }, [enterPreparationCue, question]);
 
@@ -379,6 +403,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     currentIndex,
     question,
     partPrelude,
+    questionAudioUrl,
     phase,
     remainingSeconds,
     recorder,
@@ -386,6 +411,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     completeDirections,
     completePart3Intro,
     completePart4Reading,
+    completeQuestionCue,
     completePreparationCue,
     completeResponseCue,
     markPart4TableVisible,
