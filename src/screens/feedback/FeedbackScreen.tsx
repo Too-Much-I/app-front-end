@@ -1,8 +1,8 @@
-import { useFocusEffect, useRoute, type RouteProp } from "@react-navigation/native";
-import { useCallback, useMemo, useRef } from "react";
-import { BackHandler, View } from "react-native";
+import { useRoute, type RouteProp } from "@react-navigation/native";
+import { useMemo } from "react";
+import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import WebView, { type WebViewNavigation } from "react-native-webview";
+import WebView from "react-native-webview";
 
 import { Text } from "@/components/ui/Text";
 import type { MainTabParamList } from "@/navigation/types";
@@ -38,35 +38,11 @@ function FeedbackNotice({
 export function FeedbackScreen() {
   const route = useRoute<RouteProp<MainTabParamList, "Feedback">>();
   const examId = route.params?.examId;
-  const webViewRef = useRef<WebView>(null);
-  const canGoBackRef = useRef(false);
 
   const feedbackUrl = useMemo(() => {
     if (!WEB_BASE_URL || !examId) return null;
     return `${WEB_BASE_URL}/app-exam-screen?examId=${encodeURIComponent(examId)}`;
   }, [examId]);
-
-  const handleNavigationStateChange = useCallback(
-    (navigationState: WebViewNavigation) => {
-      canGoBackRef.current = navigationState.canGoBack;
-    },
-    [],
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      const subscription = BackHandler.addEventListener(
-        "hardwareBackPress",
-        () => {
-          if (!canGoBackRef.current) return false;
-          webViewRef.current?.goBack();
-          return true;
-        },
-      );
-
-      return () => subscription.remove();
-    }, []),
-  );
 
   if (!examId) {
     return (
@@ -88,12 +64,10 @@ export function FeedbackScreen() {
 
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-surface-subtle">
+      {/* 웹의 결과 복귀는 페이지 링크가, 기기 뒤로가기는 React Navigation이 각각 담당한다. */}
       <WebView
-        ref={webViewRef}
         source={{ uri: feedbackUrl }}
         className="flex-1 bg-surface-subtle"
-        allowsBackForwardNavigationGestures
-        onNavigationStateChange={handleNavigationStateChange}
         setSupportMultipleWindows={false}
         startInLoadingState
         renderLoading={() => <FeedbackWebViewSkeleton />}
