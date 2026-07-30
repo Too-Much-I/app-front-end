@@ -4,6 +4,9 @@ import tokens from "@/theme/tokens";
 
 export const { colors, tabBar } = tokens;
 
+/** 피드백 화면에서 JS 스타일 계산(SVG/상태 배지)에 사용하는 의미 색 타입. */
+export type FeedbackColors = typeof colors.feedback;
+
 /** 프리셋 조립용 원시값. 소비처는 아래 `shadows`를 쓰라고 일부러 export하지 않는다. */
 const { shadow } = tokens;
 

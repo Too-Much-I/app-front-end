@@ -115,6 +115,44 @@ const colors = {
     /** 왼쪽 세로 여백선 — 잉크를 흐리게 뺀 값. */
     margin: "#F0B6AE",
   },
+  /** 결과 피드백 화면의 카드, 상태 배지와 교실 칠판에만 쓰는 의미 색. */
+  feedback: {
+    scoreSurface: "#07513D",
+    scoreSurfaceSoft: "#116B53",
+    scoreTrack: "#397464",
+    chalkboard: "#174D3C",
+    chalkboardDeep: "#0E382C",
+    chalk: "#F7F2D7",
+    chalkMuted: "#C8DCCF",
+    wood: "#A76B3D",
+    woodLight: "#D49A62",
+    cardTint: "#FFF8EF",
+    cardLine: "#FFC3A2",
+    positive: "#169B5B",
+    positiveSoft: "#EAF8F0",
+    caution: "#E99A0B",
+    cautionSoft: "#FFF6DF",
+    improvement: "#EF5B62",
+    improvementSoft: "#FFF0F1",
+    radarGrid: "#89AA9D",
+    radarFill: "#FFCD45",
+    radarPoint: "#FF8B32",
+    /** 파트별 피드백 카드는 색을 통일하고 상태 배지만 별도 색으로 구분한다. */
+    part: {
+      surface: "#FFFDF8",
+      border: "#E9DED0",
+      accent: "#F76910",
+      body: "#374151",
+      action: "#FFF1E7",
+      actionText: "#993B00",
+      positive: "#137A4B",
+      positiveSoft: "#E8F5EE",
+      caution: "#A86600",
+      cautionSoft: "#FFF4D8",
+      improvement: "#C8454B",
+      improvementSoft: "#FDECEC",
+    },
+  },
 };
 
 /**
