@@ -1,12 +1,12 @@
 import { useFocusEffect, useRoute, type RouteProp } from "@react-navigation/native";
 import { useCallback, useMemo, useRef } from "react";
-import { ActivityIndicator, BackHandler, View } from "react-native";
+import { BackHandler, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import WebView, { type WebViewNavigation } from "react-native-webview";
 
 import { Text } from "@/components/ui/Text";
 import type { MainTabParamList } from "@/navigation/types";
-import { colors } from "@/theme";
+import { FeedbackWebViewSkeleton } from "@/screens/feedback/components/FeedbackWebViewSkeleton";
 
 const WEB_BASE_URL = (process.env.EXPO_PUBLIC_WEB_BASE_URL ?? "").replace(
   /\/+$/,
@@ -96,14 +96,7 @@ export function FeedbackScreen() {
         onNavigationStateChange={handleNavigationStateChange}
         setSupportMultipleWindows={false}
         startInLoadingState
-        renderLoading={() => (
-          <View className="absolute inset-0 items-center justify-center bg-surface-subtle">
-            <ActivityIndicator size="large" color={colors.brand.DEFAULT} />
-            <Text className="mt-3 text-sm text-ink-muted">
-              피드백을 불러오는 중이에요...
-            </Text>
-          </View>
-        )}
+        renderLoading={() => <FeedbackWebViewSkeleton />}
         renderError={(_errorDomain, _errorCode, errorDescription) => (
           <View className="flex-1 items-center justify-center bg-surface-subtle px-6">
             <Text accessibilityRole="header" className="text-center text-2xl">
