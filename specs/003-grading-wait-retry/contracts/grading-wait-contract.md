@@ -12,10 +12,10 @@ type GradingWaitParams = {
 - 문항 번호, 답변 retry count, file key 또는 callback을 전달하지 않는다.
 - 개발용 `preview` param은 제거한다.
 
-## Poll grading summary status
+## Poll grading status
 
 ```http
-GET /api/v1/exams/{examId}/summary
+GET /api/v1/exams/{examId}/status
 ```
 
 Polling에 필요한 lifecycle 값:
@@ -31,7 +31,8 @@ Client rules:
 - 일시적 transport error는 deadline 전까지 같은 방식으로 재조회한다.
 - `COMPLETED`만 전체 결과 이동의 권위다.
 - caller abort는 화면 해제, deadline, 완료 시 활성 요청을 취소한다.
-- summary의 구체적인 envelope mapping은 기존 Raw-to-domain API 경계에서 처리한다.
+- status의 구체적인 envelope mapping은 exam API 경계에서 처리한다.
+- 완료 뒤 상세 결과는 피드백 페이지가 `GET /api/v1/exams/{examId}/summary`로 조회한다.
 
 ## Retry exam grading
 
@@ -43,7 +44,7 @@ POST /api/v1/exams/{examId}/grading/retry
 - 시험 식별자 외에 question number, answer retry count, file key가 필요하지 않다.
 - HTTP 2xx는 재요청 접수 성공으로 해석한다.
 - non-2xx, timeout 또는 network error는 접수 실패로 해석한다.
-- 접수 성공 뒤 count 0과 새 180초 deadline으로 두 번째 summary polling을 시작한다.
+- 접수 성공 뒤 count 0과 새 180초 deadline으로 두 번째 status polling을 시작한다.
 - 접수 실패 뒤 추가 Retry를 제공하지 않고 terminal error로 전환한다.
 
 ## Hook-to-screen UI contract

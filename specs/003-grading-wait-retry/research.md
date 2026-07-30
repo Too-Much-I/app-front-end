@@ -75,7 +75,7 @@ GradingWait는 `examId`만 전달한다.
 ## Decision 6 — 재요청 접수와 전체 완료를 분리한다
 
 **Decision**: retry POST의 HTTP 2xx는 두 번째 polling 시작 근거이며, 결과 화면 이동은
-exam summary polling의 overall `COMPLETED`만 결정한다.
+exam status polling의 overall `COMPLETED`만 결정한다.
 
 **Rationale**: 재요청 접수는 채점 완료가 아니다. 새 작업이 `PENDING` 또는 `PROCESSING`일 수
 있으므로 같은 3분/3초 polling lifecycle을 다시 시작해야 한다.
@@ -114,17 +114,17 @@ exam summary polling의 overall `COMPLETED`만 결정한다.
   polling 위험이 커진다.
 - 모든 notice JSX를 screen inline: route는 하나지만 표현 책임이 과도하게 커진다.
 
-## Decision 9 — summary endpoint 책임을 하나의 API module로 모은다
+## Decision 9 — status polling과 summary 결과 조회를 분리한다
 
-**Decision**: polling은 확정된 `GET /api/v1/exams/{examId}/summary`를 사용하며, 같은 summary
-endpoint의 lifecycle 조회와 완료 결과 mapping은 하나의 API module에서 관리한다.
+**Decision**: polling은 확정된 `GET /api/v1/exams/{examId}/status`를 사용하며, 완료 뒤
+피드백 페이지가 `GET /api/v1/exams/{examId}/summary`로 결과를 조회한다.
 
-**Rationale**: 현재 status hook은 `/status`, result 함수는 `/summary`를 호출한다. 확정된
-backend contract에 맞추면서 저장소의 한 endpoint 한 파일 원칙을 지키려면 summary 책임을
-통합해야 한다.
+**Rationale**: lifecycle 확인과 전체 결과 조회는 응답 크기와 호출 시점이 다르다. 확정된
+backend contract와 저장소의 한 endpoint 한 파일 원칙에 맞춰 status와 summary API 경계를
+분리해야 한다.
 
 **Alternatives considered**:
 
-- 기존 status 파일의 path만 summary로 변경: result 파일과 같은 endpoint가 두 API 파일에
-  중복된다.
+- summary를 polling에 재사용: 대기 중 반복 요청에 결과 payload까지 포함시키고 endpoint
+  책임을 섞는다.
 - screen에서 raw summary fetch: Raw-to-domain과 API 계층 경계를 깨뜨린다.

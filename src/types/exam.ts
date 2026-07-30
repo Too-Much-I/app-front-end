@@ -171,7 +171,7 @@ export interface ExamAnswerSubmitResult {
   status: ExamGradingLifecycleStatus;
 }
 
-/** GET /api/v1/exams/{examId}/summary 의 채점 lifecycle result */
+/** GET /api/v1/exams/{examId}/status 의 채점 lifecycle result */
 export interface ExamGradingStatus {
   examId: string;
   overallStatus: ExamGradingLifecycleStatus;

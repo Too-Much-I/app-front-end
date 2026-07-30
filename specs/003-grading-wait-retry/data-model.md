@@ -9,7 +9,7 @@
 | `COMPLETED` | 전체 결과 준비 완료 | completion checks 후 이동 |
 | `FAILED` | 현재 채점 시도 실패 | attempt 0은 retry-ready, attempt 1은 terminal-error |
 
-시험 단위 summary polling의 `COMPLETED`만 결과 화면 이동의 근거다. retry POST의 성공은
+시험 단위 status polling의 `COMPLETED`만 결과 화면 이동의 근거다. retry POST의 성공은
 새 채점 시도가 접수됐다는 뜻이며 완료를 의미하지 않는다.
 
 ## Grading wait controller
