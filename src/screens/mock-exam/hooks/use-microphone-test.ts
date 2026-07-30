@@ -34,7 +34,6 @@ type AudioStopTrigger =
   | "app-background"
   | "screen-leave"
   | "test-reset"
-  | "unmount"
   | "start-cancelled"
   | "start-error"
   | "resume-error";
@@ -82,7 +81,7 @@ export function useMicrophoneTest() {
   }, []);
 
   /**
-   * blur/unmount와 시작 취소가 연달아 발생해도 네이티브 stop은 한 번만 실행한다.
+   * blur와 시작 취소가 연달아 발생해도 네이티브 stop은 한 번만 실행한다.
    * 두 번째 호출부터는 stopPromiseRef에 들어 있는 같은 결과를 기다린다.
    */
   const stopActiveAudio = useCallback(
@@ -447,9 +446,10 @@ export function useMicrophoneTest() {
     return () => {
       isMountedRef.current = false;
       isScreenFocusedRef.current = false;
-      void stopActiveAudio("unmount");
+      startAttemptRef.current += 1;
+      clearRecordingTimer();
     };
-  }, [stopActiveAudio]);
+  }, [clearRecordingTimer]);
 
   const togglePlayback = useCallback(async () => {
     if (recordingUri === null || playbackStatus.error !== null) return;

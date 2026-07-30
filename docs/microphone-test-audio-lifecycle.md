@@ -16,7 +16,8 @@
 
 - Navigation `blur`: `useFocusEffect` cleanup에서 처리한다.
 - 앱 백그라운드: `AppState`의 `background` 전환에서 녹음과 타이머를 일시정지한다.
-- 컴포넌트 제거: 일반 `useEffect` cleanup을 마지막 안전망으로 둔다.
+- 컴포넌트 제거: 일반 `useEffect` cleanup은 JS 타이머와 시도 ref만 정리하고, 네이티브
+  shared object의 최종 해제는 Expo 훅에 맡긴다.
 - 화면 버튼 이동: 내비게이션 전 재생을 즉시 멈추기 위해 같은 정리 함수를 먼저 호출한다.
 
 `inactive`는 iOS 권한 팝업, 제어센터 등 짧은 시스템 전환에서도 발생할 수 있다. 권한 요청 자체를 중단시키는 오탐을 피하기 위해 마이크 테스트는 `background`만 강제 중단 조건으로 사용한다. 실제 시험에서는 전화·알람 정책과 함께 `inactive` 처리 여부를 별도로 결정한다.
@@ -25,7 +26,7 @@ AppState 구독은 화면이 스택 아래에 남아 있어도 유지되므로 `
 
 ## 백그라운드는 종료가 아니라 일시정지
 
-3초짜리 기기 테스트는 채점 대상이 아니며 앱을 잠깐 벗어난 사용자에게 처음부터 다시 시킬 필요가 작다. 따라서 Navigation `blur`와 `unmount`는 완전 종료하지만, AppState `background`는 현재 m4a 파일을 닫지 않고 남은 녹음을 이어간다.
+3초짜리 기기 테스트는 채점 대상이 아니며 앱을 잠깐 벗어난 사용자에게 처음부터 다시 시킬 필요가 작다. 따라서 Navigation `blur`는 완전 종료하지만, AppState `background`는 현재 m4a 파일을 닫지 않고 남은 녹음을 이어간다. `unmount`에서는 Expo 훅이 recorder와 player를 자동 해제하므로 앱 cleanup이 해당 객체를 다시 호출하지 않는다.
 
 `allowsBackgroundRecording: false`일 때 Expo Audio 57은 네이티브에서 background 진입 시 recorder를 pause하고 foreground 복귀 시 resume한다. 앱은 같은 녹음기를 중복 pause하지 않고 다음 UI·타이머 상태만 관리한다.
 
@@ -50,7 +51,7 @@ foreground 복귀
 
 ## 정리 작업은 single-flight로 실행
 
-`blur`, 명시적 화면 이탈, `unmount`가 연달아 발생하거나 `requesting` 취소가 겹치면 모두 같은 정리 함수를 호출한다. 각 트리거가 `recorder.stop()`을 따로 실행하면 두 호출이 동시에 녹음 중임을 확인하는 레이스가 생길 수 있다. 정상적인 recording 상태의 background 전환은 이 종료 Promise를 만들지 않고 pause 경로를 탄다.
+`blur`, 명시적 화면 이탈과 `requesting` 취소가 겹치면 모두 같은 정리 함수를 호출한다. 각 트리거가 `recorder.stop()`을 따로 실행하면 두 호출이 동시에 녹음 중임을 확인하는 레이스가 생길 수 있다. 정상적인 recording 상태의 background 전환은 이 종료 Promise를 만들지 않고 pause 경로를 탄다. `unmount`는 이 정리 함수에 참여하지 않고 Expo 훅의 자동 release에 맡긴다.
 
 진행 중인 종료 Promise를 `stopPromiseRef`에 저장한다.
 
@@ -80,7 +81,21 @@ foreground 복귀
 
 녹음 모드는 앱 전체가 공유하는 OS 오디오 세션이다. 훅이 녹음 모드로 전환하기 직전에 소유권 ref를 켜고 복원 성공 후 끈다. 이미 blur cleanup을 마친 숨겨진 화면이나 나중에 unmount되는 화면은 소유권이 없으므로, 다른 화면이 사용 중인 전역 오디오 모드를 덮어쓰지 않는다.
 
-정상 타이머 종료는 반환된 URI를 플레이어에 연결한 뒤에만 화면을 `complete`로 전환한다. Navigation 이탈과 unmount는 같은 종료 결과를 기다리지만 파일을 재생기에 연결하지 않는다. background는 파일을 완성하지 않고 열린 상태로 유지한다.
+정상 타이머 종료는 반환된 URI를 플레이어에 연결한 뒤에만 화면을 `complete`로 전환한다. Navigation 이탈은 같은 종료 결과를 기다리지만 파일을 재생기에 연결하지 않는다. background는 파일을 완성하지 않고 열린 상태로 유지한다.
+
+## Unmount에서는 shared object를 호출하지 않는다
+
+`useAudioPlayer`와 `useAudioRecorder`는 컴포넌트가 제거될 때 Android 네이티브 shared object를
+자동으로 release한다. 앱의 일반 effect cleanup에서 `pause()`, `stop()` 또는 `recorder.uri`를
+다시 호출하면 Expo의 release보다 늦게 실행될 수 있고 다음 오류가 발생한다.
+
+```text
+Cannot use shared object that was already released
+```
+
+따라서 활성 오디오 정지는 아직 화면이 살아 있는 `screen-leave`와 Navigation `blur`에서
+수행한다. unmount cleanup은 비동기 시작 시도를 무효화하고 JS 타이머와 mount/focus ref만
+정리한다. recorder와 player의 최종 native release는 Expo 훅의 책임이다.
 
 ## 시작과 종료가 겹치는 레이스
 
