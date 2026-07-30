@@ -42,12 +42,10 @@ export function GradingWaitScreen({ navigation, route }: GradingWaitScreenProps)
   }, [navigation]);
 
   const handleComplete = useCallback(() => {
-    // 결과 화면이 아직 없어서 피드백 탭으로 보낸다. 채점 결과 화면이 생기면
-    // 이 한 곳만 그 화면으로 바꾸면 된다.
     const tabNavigation = navigation.getParent<BottomTabNavigationProp<MainTabParamList>>();
     navigation.popToTop();
-    tabNavigation?.navigate("Feedback");
-  }, [navigation]);
+    tabNavigation?.navigate("Feedback", { examId });
+  }, [examId, navigation]);
 
   const { phase, gradedPartCount, retry } = useGradingStatus(examId, handleComplete);
   const lastAnnouncementRef = useRef<string | null>(null);

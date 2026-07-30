@@ -3,7 +3,7 @@ import type { ExamSession } from "@/types/exam";
 export type MainTabParamList = {
   Home: undefined;
   MockExam: undefined;
-  Feedback: undefined;
+  Feedback: { examId?: string } | undefined;
   Study: undefined;
   MyPage: undefined;
 };
