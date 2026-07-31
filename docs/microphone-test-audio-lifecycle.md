@@ -101,6 +101,24 @@ Cannot use shared object that was already released
 
 권한 요청과 `prepareToRecordAsync()`는 비동기다. 이 사이 화면을 떠나면 정리가 먼저 끝난 뒤 늦게 완료된 시작 로직이 다시 녹음 모드를 켜거나 백그라운드에서 `record()`를 호출할 수 있다.
 
+mount 여부 확인은 이미 네이티브에 전달된 Promise를 취소하지 않는다. 다음처럼 오디오 모드 전환이나 recorder 준비가 진행 중인 상태에서 화면이 제거될 수 있다.
+
+```text
+requestRecordingPermissionsAsync()
+→ setAudioModeAsync(RECORDING_AUDIO_MODE)
+→ prepareToRecordAsync()
+→ record()
+            ↑ 각 await 중간에 unmount 가능
+```
+
+이때 발생할 수 있는 문제는 세 종류다.
+
+| 경합 상황 | 발생 가능한 결과 |
+|---|---|
+| unmount 전에 시작한 Promise가 늦게 완료됨 | 화면이 사라진 뒤 `prepareToRecordAsync()` 또는 `record()`로 진행 |
+| Expo 훅이 recorder/player를 release한 뒤 늦은 cleanup이 실행됨 | `pause()`, `stop()`, `uri`, `isRecording` 접근에서 `Cannot use shared object that was already released` 발생 |
+| 늦은 `setAudioModeAsync(RECORDING_AUDIO_MODE)`가 완료됨 | 다음 화면에서도 녹음용 전역 오디오 모드가 남아 음성 출력 경로나 크기에 영향 |
+
 각 시작에 증가하는 시도 번호를 부여하고 다음 조건을 비동기 단계마다 다시 확인한다.
 
 ```text
@@ -111,6 +129,24 @@ Cannot use shared object that was already released
 ```
 
 정리 함수는 시작 시도 번호를 무효화한다. 무효화된 시작이 나중에 완료되면 녹음을 시작하지 않고 공통 정리 함수로 오디오 모드만 다시 복원한다.
+
+### 늦게 완료된 작업의 예방 규칙
+
+- 모든 비동기 단계가 끝난 직후 시도 번호, mount, focus, AppState를 다시 확인한다.
+- `isMountedRef.current`가 거짓이면 `recorder.isRecording` 같은 getter를 포함해 recorder/player shared object에 접근하지 않는다.
+- 진행 중인 종료 Promise를 기다린 뒤에도 mount 여부를 다시 확인한다. 기다리는 동안 unmount될 수 있기 때문이다.
+- unmount cleanup 자체는 시도 번호, 타이머, mount/focus ref만 정리하며 Expo shared object의 최종 release와 경쟁하지 않는다.
+- 늦은 시작 작업이 이미 녹음용 전역 오디오 모드를 적용했다면, 이 훅의 `ownsRecordingAudioModeRef`가 참일 때에만 모듈 수준의 `setAudioModeAsync(PLAYBACK_AUDIO_MODE)`를 호출한다. 이 복원은 release된 recorder/player를 사용하지 않는다.
+
+```text
+늦은 비동기 작업 완료
+→ mount 여부 확인
+├─ mount: 현재 시도·focus·AppState가 유효할 때만 다음 녹음 단계 진행
+└─ unmount: recorder/player 접근 금지
+             └─ 이 훅이 소유한 전역 오디오 모드만 재생용으로 복원
+```
+
+`ownsRecordingAudioModeRef`는 이 훅이 설정하지 않은 오디오 모드를 함부로 복원하지 않기 위한 최소 소유권 표시다. 향후 서로 다른 화면이 동시에 오디오 모드를 바꿀 수 있게 되면 화면별 ref만으로는 새 소유자를 구분할 수 없으므로 앱 전역 오디오 세션 조정자를 도입해야 한다.
 
 ## 상태와 오류 처리
 
