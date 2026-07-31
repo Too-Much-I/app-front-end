@@ -12,17 +12,17 @@
 
 **Purpose**: 폴링과 재요청이 공유할 타입 및 시험 단위 API 경계를 준비한다.
 
-- [X] T001 Define the shared four-state grading lifecycle type and add `PENDING` to summary polling types in src/types/exam.ts
+- [X] T001 Define the shared four-state grading lifecycle type and add `PENDING` to status polling types in src/types/exam.ts
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: 화면 lifecycle이 사용할 abort 가능한 summary polling과 retry API를 준비한다.
+**Purpose**: 화면 lifecycle이 사용할 abort 가능한 status polling과 retry API를 준비한다.
 
 **⚠️ CRITICAL**: 이 단계가 끝나기 전에는 화면 controller를 구현하지 않는다.
 
-- [X] T002 Consolidate the `GET /api/v1/exams/{examId}/summary` lifecycle/result boundary with caller AbortSignal support in src/features/exam/api/exam-grading-summary.ts and update imports from src/features/exam/api/exam-grading-status.ts and src/features/exam/api/exam-grading-result.ts
+- [X] T002 Implement the `GET /api/v1/exams/{examId}/status` lifecycle boundary with caller AbortSignal support in src/features/exam/api/exam-grading-status.ts and keep completed result retrieval in src/features/exam/api/exam-grading-summary.ts
 - [X] T003 [P] Implement bodyless `POST /api/v1/exams/{examId}/grading/retry` with caller AbortSignal support in src/features/exam/api/exam-grading-retry.ts
 
 **Checkpoint**: 시험 식별자 하나로 polling과 retry를 호출할 수 있다.
@@ -33,7 +33,7 @@
 
 **Goal**: 3초 순차 polling, 10초 단위 첫 네 체크와 `COMPLETED` 기반 마지막 체크 후 이동을 제공한다.
 
-**Independent Test**: summary를 `PENDING → PROCESSING → COMPLETED`로 바꾸고 10/20/30/40초 count, 요청 중첩 0건, 마지막 체크 뒤 Feedback 이동 1회를 확인한다.
+**Independent Test**: status를 `PENDING → PROCESSING → COMPLETED`로 바꾸고 10/20/30/40초 count, 요청 중첩 0건, 마지막 체크 뒤 Feedback 이동 1회를 확인한다.
 
 - [X] T004 [US1] Rework the attempt-scoped AbortController, 180-second deadline, sequential three-second polling, and ten-second count progression in src/features/exam/use-grading-status.ts
 - [X] T005 [US1] Add abort-safe sequential completion count animation through part five and exactly-once completion callback handling in src/features/exam/use-grading-status.ts

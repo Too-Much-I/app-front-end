@@ -66,9 +66,9 @@ validation을 포함한다. Constitution exception은 필요하지 않다.
    `succeeded` before the controller changes from
    `submission-barrier` to `completed`.
 2. `ExamSessionScreen` waits briefly, then replaces itself with `GradingWait` and passes `examId`.
-3. `useGradingStatus`는 현재 `GET /api/v1/exams/{examId}/status`를 호출하지만, 확정된 polling
-   경로는 `GET /api/v1/exams/{examId}/summary`다. 현재 loop는 각 응답 종료 3초 뒤 다음 호출을
-   예약해 요청 중첩을 이미 방지한다.
+3. `useGradingStatus`는 확정된 polling 경로인 `GET /api/v1/exams/{examId}/status`를 호출한다.
+   현재 loop는 각 응답 종료 3초 뒤 다음 호출을 예약해 요청 중첩을 방지한다. 완료 후 결과
+   조회는 피드백 페이지가 `GET /api/v1/exams/{examId}/summary`로 별도 수행한다.
 4. The current hook derives checks over 90 seconds, caps them at four, sets all five at once on
    `COMPLETED`, and navigates after 900ms. `FAILED` goes directly to the terminal notice. There is no
    three-minute attempt deadline, abort signal, or manual re-request.
@@ -224,7 +224,8 @@ specs/003-grading-wait-retry/
 src/
 ├── features/exam/
 │   ├── api/
-│   │   ├── exam-grading-summary.ts     # GET summary lifecycle/result endpoint 통합
+│   │   ├── exam-grading-status.ts      # GET status lifecycle endpoint
+│   │   ├── exam-grading-summary.ts     # GET summary result endpoint
 │   │   └── exam-grading-retry.ts       # POST exam-level retry
 │   └── use-grading-status.ts           # count, polling, deadline, retry, completion
 ├── navigation/
@@ -242,10 +243,10 @@ src/
     └── exam.ts                         # polling의 4-state union
 ```
 
-**Structure Decision**: 기존 Expo 단일 앱 구조와 exam feature/API 경계를 유지한다. 현재
-`exam-grading-status.ts`와 `exam-grading-result.ts`가 서로 다른 경로를 가정하므로 확정된
-`GET /summary` 책임은 `exam-grading-summary.ts` 한 파일로 모아 한 endpoint 한 파일 원칙을
-지킨다. 화면은 navigation/rendering, hook은 lifecycle, `GradingSheet`는 표현만 담당한다.
+**Structure Decision**: 기존 Expo 단일 앱 구조와 exam feature/API 경계를 유지한다. lifecycle
+polling의 `GET /status`와 완료 결과 조회의 `GET /summary`를 각각 전용 API 파일에 두어 한
+endpoint 한 파일 원칙을 지킨다. 화면은 navigation/rendering, hook은 lifecycle,
+`GradingSheet`는 표현만 담당한다.
 재요청 POST는 별도 API 파일과 `retryExamGrading(examId)` 경계로 연결한다.
 
 ## Complexity Tracking

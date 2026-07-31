@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - iOS Simulator/device와 Android Emulator/device에서 앱을 실행할 수 있어야 한다.
-- summary lifecycle 응답 순서와 `POST /grading/retry` 성공/실패를 제어할 수 있는 개발
+- status lifecycle 응답 순서와 `POST /grading/retry` 성공/실패를 제어할 수 있는 개발
   backend 또는 proxy가 있어야 한다.
 
 ## Static validation
@@ -17,7 +17,7 @@ pnpm exec tsc --noEmit
 
 ## Scenario 1 — timed checks and sequential polling
 
-1. summary lifecycle을 계속 `PENDING` 또는 `PROCESSING`으로 유지한다.
+1. status lifecycle을 계속 `PENDING` 또는 `PROCESSING`으로 유지한다.
 2. GradingWait 진입 직후 첫 GET이 한 번 실행되는지 확인한다.
 3. 각 GET 완료 뒤 다음 GET 시작까지 약 3초이며 동시에 활성 GET이 1개 이하인지 확인한다.
 4. 진입 후 0/10/20/30/40/50초의 check count를 기록한다.
@@ -30,7 +30,7 @@ Expected: count는 각각 0/1/2/3/4/4이며 180초 전에는 시간만으로 다
 
 Expected:
 
-- summary poll, 10초 check timer, 180초 deadline이 중지된다.
+- status poll, 10초 check timer, 180초 deadline이 중지된다.
 - 현재 count 다음 값부터 5까지 하나씩 순서대로 표시된다.
 - 다섯 번째 체크가 표시된 뒤 2초 안에 Feedback 진입점으로 정확히 한 번 이동한다.
 
@@ -41,14 +41,14 @@ Expected:
 Expected:
 
 - 두 경우 모두 terminal error가 아니라 Retry CTA가 표시된다.
-- 전환 뒤 summary polling과 check count 증가가 멈춘다.
+- 전환 뒤 status polling과 check count 증가가 멈춘다.
 - 사용자가 Retry를 누르기 전 `POST /grading/retry`는 0건이다.
 
 ## Scenario 4 — successful re-request
 
 1. 첫 attempt를 `FAILED`로 만든 뒤 Retry를 빠르게 여러 번 누른다.
 2. `POST /api/v1/exams/{examId}/grading/retry`를 HTTP 2xx로 반환한다.
-3. 두 번째 summary lifecycle을 `PENDING -> PROCESSING -> COMPLETED`로 전환한다.
+3. 두 번째 status lifecycle을 `PENDING -> PROCESSING -> COMPLETED`로 전환한다.
 
 Expected:
 

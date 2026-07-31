@@ -16,7 +16,8 @@
 
 - Navigation `blur`: `useFocusEffect` cleanup에서 처리한다.
 - 앱 백그라운드: `AppState`의 `background` 전환에서 녹음과 타이머를 일시정지한다.
-- 컴포넌트 제거: 일반 `useEffect` cleanup을 마지막 안전망으로 둔다.
+- 컴포넌트 제거: 일반 `useEffect` cleanup은 JS 타이머와 시도 ref만 정리하고, 네이티브
+  shared object의 최종 해제는 Expo 훅에 맡긴다.
 - 화면 버튼 이동: 내비게이션 전 재생을 즉시 멈추기 위해 같은 정리 함수를 먼저 호출한다.
 
 `inactive`는 iOS 권한 팝업, 제어센터 등 짧은 시스템 전환에서도 발생할 수 있다. 권한 요청 자체를 중단시키는 오탐을 피하기 위해 마이크 테스트는 `background`만 강제 중단 조건으로 사용한다. 실제 시험에서는 전화·알람 정책과 함께 `inactive` 처리 여부를 별도로 결정한다.
@@ -25,7 +26,7 @@ AppState 구독은 화면이 스택 아래에 남아 있어도 유지되므로 `
 
 ## 백그라운드는 종료가 아니라 일시정지
 
-3초짜리 기기 테스트는 채점 대상이 아니며 앱을 잠깐 벗어난 사용자에게 처음부터 다시 시킬 필요가 작다. 따라서 Navigation `blur`와 `unmount`는 완전 종료하지만, AppState `background`는 현재 m4a 파일을 닫지 않고 남은 녹음을 이어간다.
+3초짜리 기기 테스트는 채점 대상이 아니며 앱을 잠깐 벗어난 사용자에게 처음부터 다시 시킬 필요가 작다. 따라서 Navigation `blur`는 완전 종료하지만, AppState `background`는 현재 m4a 파일을 닫지 않고 남은 녹음을 이어간다. `unmount`에서는 Expo 훅이 recorder와 player를 자동 해제하므로 앱 cleanup이 해당 객체를 다시 호출하지 않는다.
 
 `allowsBackgroundRecording: false`일 때 Expo Audio 57은 네이티브에서 background 진입 시 recorder를 pause하고 foreground 복귀 시 resume한다. 앱은 같은 녹음기를 중복 pause하지 않고 다음 UI·타이머 상태만 관리한다.
 
@@ -50,7 +51,7 @@ foreground 복귀
 
 ## 정리 작업은 single-flight로 실행
 
-`blur`, 명시적 화면 이탈, `unmount`가 연달아 발생하거나 `requesting` 취소가 겹치면 모두 같은 정리 함수를 호출한다. 각 트리거가 `recorder.stop()`을 따로 실행하면 두 호출이 동시에 녹음 중임을 확인하는 레이스가 생길 수 있다. 정상적인 recording 상태의 background 전환은 이 종료 Promise를 만들지 않고 pause 경로를 탄다.
+`blur`, 명시적 화면 이탈과 `requesting` 취소가 겹치면 모두 같은 정리 함수를 호출한다. 각 트리거가 `recorder.stop()`을 따로 실행하면 두 호출이 동시에 녹음 중임을 확인하는 레이스가 생길 수 있다. 정상적인 recording 상태의 background 전환은 이 종료 Promise를 만들지 않고 pause 경로를 탄다. `unmount`는 이 정리 함수에 참여하지 않고 Expo 훅의 자동 release에 맡긴다.
 
 진행 중인 종료 Promise를 `stopPromiseRef`에 저장한다.
 
@@ -80,11 +81,43 @@ foreground 복귀
 
 녹음 모드는 앱 전체가 공유하는 OS 오디오 세션이다. 훅이 녹음 모드로 전환하기 직전에 소유권 ref를 켜고 복원 성공 후 끈다. 이미 blur cleanup을 마친 숨겨진 화면이나 나중에 unmount되는 화면은 소유권이 없으므로, 다른 화면이 사용 중인 전역 오디오 모드를 덮어쓰지 않는다.
 
-정상 타이머 종료는 반환된 URI를 플레이어에 연결한 뒤에만 화면을 `complete`로 전환한다. Navigation 이탈과 unmount는 같은 종료 결과를 기다리지만 파일을 재생기에 연결하지 않는다. background는 파일을 완성하지 않고 열린 상태로 유지한다.
+정상 타이머 종료는 반환된 URI를 플레이어에 연결한 뒤에만 화면을 `complete`로 전환한다. Navigation 이탈은 같은 종료 결과를 기다리지만 파일을 재생기에 연결하지 않는다. background는 파일을 완성하지 않고 열린 상태로 유지한다.
+
+## Unmount에서는 shared object를 호출하지 않는다
+
+`useAudioPlayer`와 `useAudioRecorder`는 컴포넌트가 제거될 때 Android 네이티브 shared object를
+자동으로 release한다. 앱의 일반 effect cleanup에서 `pause()`, `stop()` 또는 `recorder.uri`를
+다시 호출하면 Expo의 release보다 늦게 실행될 수 있고 다음 오류가 발생한다.
+
+```text
+Cannot use shared object that was already released
+```
+
+따라서 활성 오디오 정지는 아직 화면이 살아 있는 `screen-leave`와 Navigation `blur`에서
+수행한다. unmount cleanup은 비동기 시작 시도를 무효화하고 JS 타이머와 mount/focus ref만
+정리한다. recorder와 player의 최종 native release는 Expo 훅의 책임이다.
 
 ## 시작과 종료가 겹치는 레이스
 
 권한 요청과 `prepareToRecordAsync()`는 비동기다. 이 사이 화면을 떠나면 정리가 먼저 끝난 뒤 늦게 완료된 시작 로직이 다시 녹음 모드를 켜거나 백그라운드에서 `record()`를 호출할 수 있다.
+
+mount 여부 확인은 이미 네이티브에 전달된 Promise를 취소하지 않는다. 다음처럼 오디오 모드 전환이나 recorder 준비가 진행 중인 상태에서 화면이 제거될 수 있다.
+
+```text
+requestRecordingPermissionsAsync()
+→ setAudioModeAsync(RECORDING_AUDIO_MODE)
+→ prepareToRecordAsync()
+→ record()
+            ↑ 각 await 중간에 unmount 가능
+```
+
+이때 발생할 수 있는 문제는 세 종류다.
+
+| 경합 상황 | 발생 가능한 결과 |
+|---|---|
+| unmount 전에 시작한 Promise가 늦게 완료됨 | 화면이 사라진 뒤 `prepareToRecordAsync()` 또는 `record()`로 진행 |
+| Expo 훅이 recorder/player를 release한 뒤 늦은 cleanup이 실행됨 | `pause()`, `stop()`, `uri`, `isRecording` 접근에서 `Cannot use shared object that was already released` 발생 |
+| 늦은 `setAudioModeAsync(RECORDING_AUDIO_MODE)`가 완료됨 | 다음 화면에서도 녹음용 전역 오디오 모드가 남아 음성 출력 경로나 크기에 영향 |
 
 각 시작에 증가하는 시도 번호를 부여하고 다음 조건을 비동기 단계마다 다시 확인한다.
 
@@ -96,6 +129,24 @@ foreground 복귀
 ```
 
 정리 함수는 시작 시도 번호를 무효화한다. 무효화된 시작이 나중에 완료되면 녹음을 시작하지 않고 공통 정리 함수로 오디오 모드만 다시 복원한다.
+
+### 늦게 완료된 작업의 예방 규칙
+
+- 모든 비동기 단계가 끝난 직후 시도 번호, mount, focus, AppState를 다시 확인한다.
+- `isMountedRef.current`가 거짓이면 `recorder.isRecording` 같은 getter를 포함해 recorder/player shared object에 접근하지 않는다.
+- 진행 중인 종료 Promise를 기다린 뒤에도 mount 여부를 다시 확인한다. 기다리는 동안 unmount될 수 있기 때문이다.
+- unmount cleanup 자체는 시도 번호, 타이머, mount/focus ref만 정리하며 Expo shared object의 최종 release와 경쟁하지 않는다.
+- 늦은 시작 작업이 이미 녹음용 전역 오디오 모드를 적용했다면, 이 훅의 `ownsRecordingAudioModeRef`가 참일 때에만 모듈 수준의 `setAudioModeAsync(PLAYBACK_AUDIO_MODE)`를 호출한다. 이 복원은 release된 recorder/player를 사용하지 않는다.
+
+```text
+늦은 비동기 작업 완료
+→ mount 여부 확인
+├─ mount: 현재 시도·focus·AppState가 유효할 때만 다음 녹음 단계 진행
+└─ unmount: recorder/player 접근 금지
+             └─ 이 훅이 소유한 전역 오디오 모드만 재생용으로 복원
+```
+
+`ownsRecordingAudioModeRef`는 이 훅이 설정하지 않은 오디오 모드를 함부로 복원하지 않기 위한 최소 소유권 표시다. 향후 서로 다른 화면이 동시에 오디오 모드를 바꿀 수 있게 되면 화면별 ref만으로는 새 소유자를 구분할 수 없으므로 앱 전역 오디오 세션 조정자를 도입해야 한다.
 
 ## 상태와 오류 처리
 

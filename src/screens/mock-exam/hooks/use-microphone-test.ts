@@ -34,7 +34,6 @@ type AudioStopTrigger =
   | "app-background"
   | "screen-leave"
   | "test-reset"
-  | "unmount"
   | "start-cancelled"
   | "start-error"
   | "resume-error";
@@ -82,7 +81,28 @@ export function useMicrophoneTest() {
   }, []);
 
   /**
-   * blur/unmount와 시작 취소가 연달아 발생해도 네이티브 stop은 한 번만 실행한다.
+   * 오디오 모드는 recorder/player shared object와 달리 앱 전체에 남을 수 있다.
+   * 화면이 unmount된 뒤에도 이 모듈 함수는 호출할 수 있으므로, shared object에
+   * 접근하지 않고 이 훅이 소유한 녹음 모드만 재생 모드로 되돌린다.
+   */
+  const restorePlaybackAudioMode = useCallback(
+    async (trigger: AudioStopTrigger): Promise<boolean> => {
+      if (!ownsRecordingAudioModeRef.current) return false;
+
+      try {
+        await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
+        ownsRecordingAudioModeRef.current = false;
+        return false;
+      } catch (error) {
+        console.error(`[MicrophoneTest] ${trigger}: 오디오 모드 복원 실패`, error);
+        return true;
+      }
+    },
+    [],
+  );
+
+  /**
+   * blur와 시작 취소가 연달아 발생해도 네이티브 stop은 한 번만 실행한다.
    * 두 번째 호출부터는 stopPromiseRef에 들어 있는 같은 결과를 기다린다.
    */
   const stopActiveAudio = useCallback(
@@ -95,6 +115,13 @@ export function useMicrophoneTest() {
 
       const stopPromise = (async (): Promise<AudioStopResult> => {
         let hasError = false;
+
+        // Expo 훅은 unmount 시 recorder/player를 먼저 release할 수 있다. 늦게 끝난
+        // 비동기 시작·종료 작업에서는 shared object를 건드리지 않고 전역 모드만 복원한다.
+        if (!isMountedRef.current) {
+          hasError = await restorePlaybackAudioMode(trigger);
+          return { audioUri: null, hasError };
+        }
 
         try {
           recordingPlayer.pause();
@@ -116,15 +143,11 @@ export function useMicrophoneTest() {
           console.error(`[MicrophoneTest] ${trigger}: 녹음기 정지 실패`, error);
         }
 
-        if (ownsRecordingAudioModeRef.current) {
-          try {
-            await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
-            ownsRecordingAudioModeRef.current = false;
-          } catch (error) {
-            hasError = true;
-            console.error(`[MicrophoneTest] ${trigger}: 오디오 모드 복원 실패`, error);
-          }
-        }
+        if (await restorePlaybackAudioMode(trigger)) hasError = true;
+
+        // recorder.stop()이나 오디오 모드 복원을 기다리는 동안 unmount될 수 있다.
+        // 이 경우 URI getter도 이미 release된 shared object에 접근하므로 읽지 않는다.
+        if (!isMountedRef.current) return { audioUri: null, hasError };
 
         let audioUri: string | null = null;
         try {
@@ -147,7 +170,7 @@ export function useMicrophoneTest() {
 
       return stopPromise;
     },
-    [clearRecordingTimer, recorder, recordingPlayer],
+    [clearRecordingTimer, recorder, recordingPlayer, restorePlaybackAudioMode],
   );
 
   const isStartAttemptActive = useCallback((attempt: number) => {
@@ -160,8 +183,21 @@ export function useMicrophoneTest() {
   }, []);
 
   const cleanupCancelledStart = useCallback(async () => {
+    // 비동기 permission/audio-mode/prepare 작업은 unmount로 자동 취소되지 않는다.
+    // 늦게 돌아온 continuation은 release된 recorder/player 대신 전역 모드만 정리한다.
+    if (!isMountedRef.current) {
+      await restorePlaybackAudioMode("start-cancelled");
+      return;
+    }
+
     const activeStopPromise = stopPromiseRef.current;
     if (activeStopPromise !== null) await activeStopPromise;
+
+    // 위 Promise를 기다리는 사이에도 화면이 제거될 수 있다.
+    if (!isMountedRef.current) {
+      await restorePlaybackAudioMode("start-cancelled");
+      return;
+    }
 
     // 앞선 cleanup보다 녹음 모드 전환이 늦게 끝났다면 한 번 더 복원해야 한다.
     if (
@@ -171,7 +207,7 @@ export function useMicrophoneTest() {
     ) {
       await stopActiveAudio("start-cancelled");
     }
-  }, [recorder, stopActiveAudio]);
+  }, [recorder, restorePlaybackAudioMode, stopActiveAudio]);
 
   const interruptAndStop = useCallback(
     (trigger: AudioStopTrigger) => {
@@ -447,9 +483,10 @@ export function useMicrophoneTest() {
     return () => {
       isMountedRef.current = false;
       isScreenFocusedRef.current = false;
-      void stopActiveAudio("unmount");
+      startAttemptRef.current += 1;
+      clearRecordingTimer();
     };
-  }, [stopActiveAudio]);
+  }, [clearRecordingTimer]);
 
   const togglePlayback = useCallback(async () => {
     if (recordingUri === null || playbackStatus.error !== null) return;

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { retryExamGrading } from "@/features/exam/api/exam-grading-retry";
-import { getExamGradingStatus } from "@/features/exam/api/exam-grading-summary";
+import { getExamGradingStatus } from "@/features/exam/api/exam-grading-status";
 
 /** 채점표에 올라가는 파트 수. 토익 스피킹 정규 구성과 같다. */
 export const GRADING_PART_COUNT = 5;
@@ -36,7 +36,7 @@ interface GradingProgressState {
 }
 
 /**
- * 시험 단위 summary polling, 시도별 timeout과 사용자 재요청 lifecycle을 소유한다.
+ * 시험 단위 status polling, 시도별 timeout과 사용자 재요청 lifecycle을 소유한다.
  *
  * 각 시도는 자신의 AbortSignal을 캡처한다. timeout, 재요청 또는 unmount로 해당
  * controller가 abort된 뒤 늦게 끝난 요청은 `signal.aborted`를 보고 결과를 적용하지 않는다.
