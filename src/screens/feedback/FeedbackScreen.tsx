@@ -79,7 +79,9 @@ export function FeedbackScreen() {
   const hasOpenedReanswerRef = useRef(false);
   const webViewRef = useRef<WebView>(null);
   const questionNumberRef = useRef(questionNumber);
-  questionNumberRef.current = questionNumber;
+  useEffect(() => {
+    questionNumberRef.current = questionNumber;
+  }, [questionNumber]);
   // 문제별 주소로 처음 마운트되는 경우에는 이미 올바른 source를 쓰므로 추가 reload가 필요 없다.
   const initialQuestionRequestRef = useRef(
     examId && questionNumber !== undefined
