@@ -472,24 +472,14 @@ function ExamHistoryPanel({ onOpenExam }: MockExamHistoryScreenProps) {
         className="mt-5 rounded-3xl border border-line bg-surface p-5"
         style={shadows.card}
       >
-        <View className="flex-row items-start justify-between gap-4">
-          <View>
-            <Text className="text-lg">전체 평균 총점</Text>
-            <View className="mt-1 flex-row items-end">
-              <Text className="text-3xl text-brand-text">
-                {MOCK_EXAM_AVERAGE_TOTAL_SCORE.toFixed(1)}
-              </Text>
-              <Text className="mb-1 ml-1 text-lg text-brand-text">
-                /{MOCK_EXAM_MAX_TOTAL_SCORE}
-              </Text>
-            </View>
-          </View>
-
-          {/* 파트별 기록 API가 생기기 전에는 전체 파트 단일 상태만 표시한다. */}
-          <View className="flex-row items-center gap-2 rounded-xl border border-line px-3 py-2">
-            <Text className="text-sm text-ink-muted">전체 파트</Text>
-            <Feather name="chevron-down" size={16} color={colors.ink.muted} />
-          </View>
+        <Text className="text-lg">전체 평균 총점</Text>
+        <View className="mt-1 flex-row items-end">
+          <Text className="text-3xl text-brand-text">
+            {MOCK_EXAM_AVERAGE_TOTAL_SCORE.toFixed(1)}
+          </Text>
+          <Text className="mb-1 ml-1 text-lg text-brand-text">
+            /{MOCK_EXAM_MAX_TOTAL_SCORE}
+          </Text>
         </View>
         <ScoreTrendChart items={MOCK_EXAM_HISTORY} />
       </View>
