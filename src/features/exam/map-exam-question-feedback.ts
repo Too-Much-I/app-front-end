@@ -1,3 +1,4 @@
+import { mapExamQuestionInfo } from "@/features/exam/map-exam-question-info";
 import type {
   ExamDetailedScores,
   ExamQuestionDetail,
@@ -75,18 +76,6 @@ export function mapExamQuestionDetail(
       offset: word.offset,
       duration: word.duration,
     })),
-    questionInfo: {
-      partNumber: question.questionInfo.part,
-      questionNumber: question.questionInfo.questionNumber,
-      text: question.questionInfo.text,
-      referenceText: question.questionInfo.referenceText,
-      partIntroText: question.questionInfo.partIntroText,
-      audioUrl: question.questionInfo.audioUrl,
-      guideAudioUrl: question.questionInfo.guideAudioUrl,
-      imageUrl: question.questionInfo.imageUrl,
-      tableContext: question.questionInfo.tableContext,
-      prepTimeSec: question.questionInfo.prepTimeSec,
-      speakTimeSec: question.questionInfo.speakTimeSec,
-    },
+    questionInfo: mapExamQuestionInfo(question.questionInfo),
   };
 }
