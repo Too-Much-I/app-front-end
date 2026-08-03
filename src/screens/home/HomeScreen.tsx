@@ -188,18 +188,27 @@ export function HomeScreen() {
 
           {/* 최근 피드백 카드 — 옅은 배경 위에서 유일하게 흰색인 카드 */}
           <Pressable
+            accessibilityLabel={`${RECENT_FEEDBACK.title}, ${RECENT_FEEDBACK.level}, 총점 ${RECENT_FEEDBACK.totalScore}점 만점 ${RECENT_FEEDBACK.maxTotalScore}점`}
             className="mt-3 flex-row items-center justify-between rounded-3xl bg-surface p-5"
             style={shadows.card}
             onPress={() => navigation.navigate("Feedback")}
           >
             <View className="flex-1 pr-3" onLayout={handleFeedbackTextLayout}>
-              <Text className="text-sm text-ink-muted">{RECENT_FEEDBACK.part}</Text>
-              <Text className="mt-1 text-xl">{RECENT_FEEDBACK.question}</Text>
+              <Text className="text-xl">{RECENT_FEEDBACK.title}</Text>
+              <Text className="mt-1 text-sm text-ink-muted">
+                예상 등급 {RECENT_FEEDBACK.level}
+              </Text>
               <View className="mt-2 flex-row items-end gap-1">
-                <Text className="text-2xl text-brand-text">{RECENT_FEEDBACK.score}</Text>
-                <Text className="pb-0.5 text-sm text-ink-muted">/{RECENT_FEEDBACK.maxScore}</Text>
+                <Text className="text-2xl text-brand-text">
+                  {RECENT_FEEDBACK.totalScore}
+                </Text>
+                <Text className="pb-0.5 text-sm text-ink-muted">
+                  /{RECENT_FEEDBACK.maxTotalScore}점
+                </Text>
               </View>
-              <Text className="mt-3 text-xs text-ink-disabled">{RECENT_FEEDBACK.date}</Text>
+              <Text className="mt-3 text-xs text-ink-disabled">
+                {RECENT_FEEDBACK.completedDateLabel}
+              </Text>
             </View>
             {feedbackTextHeight > 0 && (
               <View className="relative">
@@ -223,17 +232,17 @@ export function HomeScreen() {
             여기서는 마스코트 대신 반짝임을 카드 전체에 고르게 흩뿌리고, 시계 배지만 남긴다.
           */}
           <Pressable
+            accessibilityLabel="10초 챌린지, 커밍 순"
+            accessibilityState={{ disabled: true }}
             className="relative mt-3 flex-row items-center gap-3 rounded-3xl border border-sky-line bg-sky-surface p-5"
+            disabled
             style={shadows.card}
-            // TODO: 챌린지 화면 라우트가 생기면 연결
-            onPress={() => console.log("[Home] 10초 챌린지 press")}
           >
             <View className="flex-1">
               <Text className="text-base">10초 챌린지</Text>
               <Text className="mt-0.5 text-xs text-sky-text">매일 10초, 영작 감각을 깨워요</Text>
-              <View className="mt-3 flex-row items-center gap-1 self-start rounded-full bg-surface px-3 py-1.5">
-                <Text className="text-xs text-sky-text">시작하기</Text>
-                <Feather name="chevron-right" size={12} color={colors.sky.text} />
+              <View className="mt-3 self-start rounded-full bg-surface px-3 py-1.5">
+                <Text className="text-xs text-sky-text">Coming Soon</Text>
               </View>
             </View>
             <TickingClock size={56} />
