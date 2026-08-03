@@ -171,6 +171,17 @@ export interface ExamAnswerSubmitResult {
   status: ExamGradingLifecycleStatus;
 }
 
+/**
+ * GET /api/v1/exams/{examId}/questions/status 의 result.
+ * 시험 전체가 아니라 문제 하나의 특정 회차만 본다 — 재답변 채점 완료를 판정하는 신호다.
+ */
+export interface ExamQuestionPollResult {
+  examId: string;
+  questionNumber: number;
+  retryCount: number;
+  status: ExamGradingLifecycleStatus;
+}
+
 /** GET /api/v1/exams/{examId}/status 의 채점 lifecycle result */
 export interface ExamGradingStatus {
   examId: string;
@@ -309,7 +320,10 @@ export interface RawSpokenWord {
   errorType: string;
 }
 
-/** GET /api/v1/exams/{examId}/questions/{questionNumber} 의 result.question.questionInfo — 문제 원문. */
+/**
+ * GET /api/v1/exams/{examId}/questions/{questionNumber} 의 result.question.questionInfo — 문제 원문.
+ * 준비·답변 제한 시간은 서버 필드가 아니라 파트 규칙으로 계산해 도메인 타입에 추가한다.
+ */
 export interface RawExamQuestionInfo {
   part: number;
   questionNumber: number;
@@ -320,8 +334,6 @@ export interface RawExamQuestionInfo {
   guideAudioUrl?: string;
   imageUrl?: string;
   tableContext?: ExamTableContext;
-  prepTimeSec: number;
-  speakTimeSec: number;
 }
 
 /** GET /api/v1/exams/{examId}/questions/{questionNumber} 의 result.question */
