@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import WebView, { type WebViewMessageEvent } from "react-native-webview";
 
 import { Text } from "@/components/ui/Text";
+import { isGoHomeRequestedMessage } from "@/features/exam/go-home-message";
 import { parseReanswerRequest } from "@/features/exam/reanswer-message";
 import { WEB_BASE_URL } from "@/lib/web-base-url";
 import type { MainTabParamList, RootStackParamList } from "@/navigation/types";
@@ -143,6 +144,12 @@ export function FeedbackScreen() {
 
   const handleWebViewMessage = useCallback(
     (event: WebViewMessageEvent) => {
+      // examId 로딩 실패로 에러 폴백이 뜬 경우에도 동작해야 하므로 examId 가드보다 먼저 검사한다.
+      if (isGoHomeRequestedMessage(event.nativeEvent.data)) {
+        navigation.navigate("MainTabs", { screen: "Home" });
+        return;
+      }
+
       if (!examId) return;
 
       const request = parseReanswerRequest(event.nativeEvent.data, examId);
