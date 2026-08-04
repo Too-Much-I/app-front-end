@@ -99,16 +99,6 @@ export function HomeScreen() {
             </View>
             <View className="flex-row items-center gap-1">
               <Pressable
-                className="h-10 w-10 items-center justify-center rounded-full"
-                // TODO: 알림 화면 라우트가 생기면 연결
-                onPress={() => console.log("[Home] 알림 버튼 press")}
-              >
-                <View>
-                  <Feather name="bell" size={22} color={colors.ink.DEFAULT} />
-                  <View className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-brand" />
-                </View>
-              </Pressable>
-              <Pressable
                 accessibilityLabel="설정"
                 className="h-10 w-10 items-center justify-center rounded-full"
                 onPress={() => navigation.navigate("Settings")}
