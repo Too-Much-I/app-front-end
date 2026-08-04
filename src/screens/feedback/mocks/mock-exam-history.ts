@@ -347,6 +347,9 @@ export const MOCK_REANSWER_QUESTIONS: readonly MockReanswerQuestionItem[] =
       initialAttempt.score === null ||
       !latestAttempt ||
       latestAttempt.score === null ||
+      // status가 COMPLETED여도 completedAt은 null로 내려올 수 있다. 카드가 이 값을
+      // 그대로 날짜로 포맷하므로, 비어 있으면 항목 자체를 내보내지 않는다.
+      latestAttempt.completedAt === null ||
       initialAttempt.maxScore !== latestAttempt.maxScore
     ) {
       return [];
@@ -361,7 +364,7 @@ export const MOCK_REANSWER_QUESTIONS: readonly MockReanswerQuestionItem[] =
         initialScore: initialAttempt.score,
         latestScore: latestAttempt.score,
         maxScore: latestAttempt.maxScore,
-        completedAt: latestAttempt.completedAt ?? "",
+        completedAt: latestAttempt.completedAt,
       },
     ];
   });

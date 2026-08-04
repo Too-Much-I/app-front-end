@@ -353,18 +353,27 @@ function ReanswerQuestionCard({ item }: { item: MockReanswerQuestionItem }) {
       {/*
         옅은 주황이 최초 달성분, 그 뒤로 이어지는 진한 브랜드 주황이 다시 답변으로
         늘어난 만큼이다. 같은 색조의 명도 차로만 구분해 화면의 톤을 브랜드에 맞춘다.
+
+        점수가 오르지 않았다면 성장분 막대를 아예 그리지 않고 최신 점수만큼만 채운다.
+        위에 덮이는 최초 막대가 더 넓어 실제 최신 점수보다 많이 찬 것처럼 보이면
+        배지의 숫자와 달리 게이지만 성과를 부풀리게 된다.
       */}
       <View
         className="mt-4 rounded-full bg-brand-100"
         style={{ height: GAUGE_HEIGHT }}
       >
+        {hasGrown && (
+          <View
+            className="absolute bottom-0 left-0 top-0 rounded-full"
+            style={{ backgroundColor: colors.brand.DEFAULT, width: latestWidth }}
+          />
+        )}
         <View
           className="absolute bottom-0 left-0 top-0 rounded-full"
-          style={{ backgroundColor: colors.brand.DEFAULT, width: latestWidth }}
-        />
-        <View
-          className="absolute bottom-0 left-0 top-0 rounded-full"
-          style={{ backgroundColor: colors.brand[300], width: initialWidth }}
+          style={{
+            backgroundColor: colors.brand[300],
+            width: hasGrown ? initialWidth : latestWidth,
+          }}
         />
       </View>
 
