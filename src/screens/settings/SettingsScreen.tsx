@@ -1,11 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Image, ScrollView, Switch, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
+import { getStoredConsent } from "@/features/consent/consent-storage";
 import type { RootStackParamList } from "@/navigation/types";
 import { SettingsRow } from "@/screens/settings/components/SettingsRow";
 import { SettingsSection } from "@/screens/settings/components/SettingsSection";
@@ -16,8 +17,21 @@ const encouragementMascot = require("../../../public/mascots/growing_rabbit.png"
 
 type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, "Settings">;
 
+function formatConsentDate(iso: string): string {
+  const date = new Date(iso);
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}.${mm}.${dd}`;
+}
+
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [isStudyReminderEnabled, setStudyReminderEnabled] = useState(true);
+  const [consentAgreedAt, setConsentAgreedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    getStoredConsent().then((record) => setConsentAgreedAt(record?.agreedAt ?? null));
+  }, []);
 
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-surface-subtle">
@@ -95,6 +109,17 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               }
               title="이용약관"
             />
+            {consentAgreedAt ? (
+              <SettingsRow
+                icon="check-circle"
+                title="동의 일시"
+                trailing={
+                  <Text className="text-sm text-ink-muted">
+                    {formatConsentDate(consentAgreedAt)}
+                  </Text>
+                }
+              />
+            ) : null}
             <SettingsRow
               description="버그 제보 및 기능 제안을 할 수 있어요."
               icon="message-circle"
