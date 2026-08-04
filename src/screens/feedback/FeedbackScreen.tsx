@@ -16,6 +16,7 @@ import { Text } from "@/components/ui/Text";
 import { parseReanswerRequest } from "@/features/exam/reanswer-message";
 import type { MainTabParamList, RootStackParamList } from "@/navigation/types";
 import { FeedbackWebViewSkeleton } from "@/screens/feedback/components/FeedbackWebViewSkeleton";
+import { MockExamHistoryScreen } from "@/screens/feedback/components/MockExamHistoryScreen";
 
 const WEB_BASE_URL = (process.env.EXPO_PUBLIC_WEB_BASE_URL ?? "").replace(
   /\/+$/,
@@ -165,9 +166,8 @@ export function FeedbackScreen() {
 
   if (!examId) {
     return (
-      <FeedbackNotice
-        title="아직 확인할 피드백이 없어요"
-        description="모의고사를 완료하면 채점 결과를 이곳에서 확인할 수 있어요."
+      <MockExamHistoryScreen
+        onOpenExam={(nextExamId) => navigation.setParams({ examId: nextExamId })}
       />
     );
   }

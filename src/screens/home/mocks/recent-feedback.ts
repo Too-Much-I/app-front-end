@@ -3,9 +3,10 @@
  * 데이터 연동 시 이 파일째로 지우고 API 응답으로 교체한다.
  */
 export const RECENT_FEEDBACK = {
-  part: "Part 5 - 의견 제시하기",
-  question: "문제 11번",
-  score: 2.2,
-  maxScore: 5,
-  date: "2024.05.20",
+  examId: "ex_005",
+  title: "토선생 모의고사 5회",
+  level: "AL",
+  totalScore: 176,
+  maxTotalScore: 200,
+  completedDateLabel: "2026.08.01",
 };

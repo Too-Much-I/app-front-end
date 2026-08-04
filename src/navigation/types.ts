@@ -12,7 +12,6 @@ export type MainTabParamList = {
   Feedback:
     | { examId?: string; questionNumber?: number; retryCount?: number }
     | undefined;
-  Study: undefined;
   MyPage: undefined;
 };
 
