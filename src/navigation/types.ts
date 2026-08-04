@@ -36,4 +36,6 @@ export type RootStackParamList = {
     questionNumber: number;
     nextRetryCount: number;
   };
+  /** 설정 화면. 탭이 아니라 홈 화면 헤더 아이콘으로 진입하는 루트 스택 push 화면이다. */
+  Settings: undefined;
 };
