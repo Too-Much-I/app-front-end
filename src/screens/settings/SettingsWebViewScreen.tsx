@@ -23,7 +23,7 @@ export function SettingsWebViewScreen({
   const url = WEB_BASE_URL ? `${WEB_BASE_URL}${path}` : null;
 
   return (
-    <SafeAreaView edges={["top"]} className="flex-1 bg-surface-subtle">
+    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-surface-subtle">
       <View className="h-16 flex-row items-center px-5">
         <Pressable
           accessibilityLabel="뒤로 가기"
