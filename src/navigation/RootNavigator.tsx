@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { MainTabNavigator } from "@/navigation/MainTabNavigator";
 import type { RootStackParamList } from "@/navigation/types";
 import { ReanswerScreen } from "@/screens/reanswer/ReanswerScreen";
+import { SettingsScreen } from "@/screens/settings/SettingsScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -16,6 +17,7 @@ export function RootNavigator() {
         component={ReanswerScreen}
         options={{ gestureEnabled: false }}
       />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
 }
