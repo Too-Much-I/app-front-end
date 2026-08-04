@@ -1,15 +1,16 @@
 import { AntDesign, Feather } from "@expo/vector-icons";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, type CompositeNavigationProp } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useState } from "react";
-import { Image, ScrollView, Text as RNText, View, type LayoutChangeEvent } from "react-native";
+import { Image, ScrollView, View, type LayoutChangeEvent } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Sparkle, type SparkleProps } from "@/components/ui/Sparkle";
 import { Text } from "@/components/ui/Text";
 import { TickingClock } from "@/components/ui/TickingClock";
-import type { MainTabParamList } from "@/navigation/types";
+import type { MainTabParamList, RootStackParamList } from "@/navigation/types";
 import { RECENT_FEEDBACK } from "@/screens/home/mocks/recent-feedback";
 import { colors, shadows } from "@/theme";
 
@@ -20,7 +21,11 @@ const feedbackMascot = require("../../../public/mascots/paper_rabbit.png");
 /** paper_rabbit.png를 내용 기준으로 타이트 크롭한 실제 가로/세로 비율. */
 const FEEDBACK_MASCOT_ASPECT_RATIO = 1329 / 1918;
 
-type HomeNavigationProp = BottomTabNavigationProp<MainTabParamList, "Home">;
+/** 탭 안에서 루트 스택의 설정 화면으로 이동해야 하므로 두 내비게이터를 함께 쓴다. */
+type HomeNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList, "Home">,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 /**
  * 인사 섹션 전체(텍스트+마스코트)에 흩뿌리는 반짝임들.
@@ -62,52 +67,6 @@ const CHALLENGE_SPARKLES: SparkleProps[] = [
   { className: "left-[150px] top-[104px]", size: "sm", colorClassName: "text-brand-200" },
 ];
 
-// TODO(디버그, 좌표 보정 끝나면 삭제): 20px 격자 + 라벨.
-// Sparkle의 className과 같은 좌표계라, 여기서 읽은 숫자를 그대로 top-N/left-N에 쓸 수 있다.
-const GRID_STEP = 20;
-const GRID_SIZE = 420;
-function DebugGrid() {
-  const ticks = Array.from({ length: Math.floor(GRID_SIZE / GRID_STEP) + 1 }, (_, i) => i * GRID_STEP);
-  return (
-    <View pointerEvents="none" className="absolute left-0 top-0" style={{ width: GRID_SIZE, height: GRID_SIZE }}>
-      {ticks.map((x) => (
-        <View
-          key={`v-${x}`}
-          className="absolute bottom-0 top-0 w-px bg-red-500/40"
-          style={{ left: x }}
-        />
-      ))}
-      {ticks.map((y) => (
-        <View
-          key={`h-${y}`}
-          className="absolute left-0 right-0 h-px bg-red-500/40"
-          style={{ top: y }}
-        />
-      ))}
-      {ticks.map((x) =>
-        x % 40 === 0 ? (
-          <RNText
-            key={`vl-${x}`}
-            style={{ position: "absolute", left: x + 1, top: 0, fontSize: 8, color: "red" }}
-          >
-            {x}
-          </RNText>
-        ) : null,
-      )}
-      {ticks.map((y) =>
-        y % 40 === 0 ? (
-          <RNText
-            key={`hl-${y}`}
-            style={{ position: "absolute", top: y + 1, left: 0, fontSize: 8, color: "red" }}
-          >
-            {y}
-          </RNText>
-        ) : null,
-      )}
-    </View>
-  );
-}
-
 export function HomeScreen() {
   const navigation = useNavigation<HomeNavigationProp>();
   // 텍스트 컬럼(Part~날짜) 높이를 측정해 마스코트 이미지 높이를 그대로 맞춘다.
@@ -138,16 +97,25 @@ export function HomeScreen() {
                 토선생
               </Text>
             </View>
-            <Pressable
-              className="h-10 w-10 items-center justify-center rounded-full"
-              // TODO: 알림 화면 라우트가 생기면 연결
-              onPress={() => console.log("[Home] 알림 버튼 press")}
-            >
-              <View>
-                <Feather name="bell" size={22} color={colors.ink.DEFAULT} />
-                <View className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-brand" />
-              </View>
-            </Pressable>
+            <View className="flex-row items-center gap-1">
+              <Pressable
+                className="h-10 w-10 items-center justify-center rounded-full"
+                // TODO: 알림 화면 라우트가 생기면 연결
+                onPress={() => console.log("[Home] 알림 버튼 press")}
+              >
+                <View>
+                  <Feather name="bell" size={22} color={colors.ink.DEFAULT} />
+                  <View className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-brand" />
+                </View>
+              </Pressable>
+              <Pressable
+                accessibilityLabel="설정"
+                className="h-10 w-10 items-center justify-center rounded-full"
+                onPress={() => navigation.navigate("Settings")}
+              >
+                <Feather name="settings" size={22} color={colors.ink.DEFAULT} />
+              </Pressable>
+            </View>
           </View>
 
           {/* 인사 섹션 — 페이지 배경 전체가 이 옅은 브랜드 톤이라 별도 박스 없이 바로 얹는다 */}
@@ -160,8 +128,6 @@ export function HomeScreen() {
             {GREETING_SPARKLES.map((sparkle) => (
               <Sparkle key={sparkle.className} {...sparkle} />
             ))}
-            {/* 격자를 맨 위에 그려야 토끼에 덮인 부분도 읽을 수 있다 */}
-            {/* <DebugGrid /> */}
           </View>
 
           {/* 모의고사 시작 CTA — 규칙: 버튼이 주황이면 아이콘·글자는 흰색 */}
