@@ -12,7 +12,7 @@ import { SettingsSection } from "@/screens/settings/components/SettingsSection";
 import { colors, shadows } from "@/theme";
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
-const encouragementMascot = require("../../../public/mascots/greeting_rabbit.png");
+const encouragementMascot = require("../../../public/mascots/growing_rabbit.png");
 
 type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, "Settings">;
 
@@ -77,29 +77,34 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           <SettingsSection title="서비스">
             <SettingsRow
               icon="file-text"
-              // TODO: 개인정보 처리방침 화면/링크가 생기면 연결
-              onPress={() => console.log("[Settings] 개인정보 처리방침 press")}
+              onPress={() =>
+                navigation.navigate("SettingsWebView", {
+                  path: "/app-settings/privacy",
+                  title: "개인정보 처리방침",
+                })
+              }
               title="개인정보 처리방침"
             />
             <SettingsRow
               icon="clipboard"
-              // TODO: 이용약관 화면/링크가 생기면 연결
-              onPress={() => console.log("[Settings] 이용약관 press")}
+              onPress={() =>
+                navigation.navigate("SettingsWebView", {
+                  path: "/app-settings/terms",
+                  title: "이용약관",
+                })
+              }
               title="이용약관"
             />
             <SettingsRow
               description="버그 제보 및 기능 제안을 할 수 있어요."
               icon="message-circle"
-              // TODO: 문의하기 화면/링크가 생기면 연결
-              onPress={() => console.log("[Settings] 문의하기 press")}
+              onPress={() =>
+                navigation.navigate("SettingsWebView", {
+                  path: "/app-settings/contact",
+                  title: "문의하기",
+                })
+              }
               title="문의하기"
-            />
-            <SettingsRow
-              description="토선생에게 별점을 남겨주세요!"
-              icon="star"
-              // TODO: 스토어 리뷰 링크가 생기면 연결
-              onPress={() => console.log("[Settings] 앱 평가하기 press")}
-              title="앱 평가하기"
             />
             <SettingsRow
               icon="info"

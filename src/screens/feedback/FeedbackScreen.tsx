@@ -14,14 +14,10 @@ import WebView, { type WebViewMessageEvent } from "react-native-webview";
 
 import { Text } from "@/components/ui/Text";
 import { parseReanswerRequest } from "@/features/exam/reanswer-message";
+import { WEB_BASE_URL } from "@/lib/web-base-url";
 import type { MainTabParamList, RootStackParamList } from "@/navigation/types";
 import { FeedbackWebViewSkeleton } from "@/screens/feedback/components/FeedbackWebViewSkeleton";
 import { MockExamHistoryScreen } from "@/screens/feedback/components/MockExamHistoryScreen";
-
-const WEB_BASE_URL = (process.env.EXPO_PUBLIC_WEB_BASE_URL ?? "").replace(
-  /\/+$/,
-  "",
-);
 
 /** 탭 안에서 파라미터를 지우고, 탭 위로 재답변 화면을 띄우기 위해 두 내비게이터를 함께 쓴다. */
 type FeedbackNavigationProp = CompositeNavigationProp<

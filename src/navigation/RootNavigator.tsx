@@ -4,6 +4,7 @@ import { MainTabNavigator } from "@/navigation/MainTabNavigator";
 import type { RootStackParamList } from "@/navigation/types";
 import { ReanswerScreen } from "@/screens/reanswer/ReanswerScreen";
 import { SettingsScreen } from "@/screens/settings/SettingsScreen";
+import { SettingsWebViewScreen } from "@/screens/settings/SettingsWebViewScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -18,6 +19,7 @@ export function RootNavigator() {
         options={{ gestureEnabled: false }}
       />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="SettingsWebView" component={SettingsWebViewScreen} />
     </Stack.Navigator>
   );
 }
