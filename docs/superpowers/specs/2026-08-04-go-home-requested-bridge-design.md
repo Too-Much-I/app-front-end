@@ -23,6 +23,5 @@
 
 ## 검증
 
-- `go-home-message.ts`에 대한 유닛 테스트 추가: 유효한 메시지, `type`이 다른 메시지, 잘못된 JSON, 배열/원시값 등 비객체 입력을 커버.
-- `pnpm lint`, `pnpm exec tsc --noEmit` 통과.
+- 이 저장소에는 자동화된 테스트 러너가 구성되어 있지 않다(`AGENTS.md`). `pnpm lint`, `pnpm exec tsc --noEmit` 통과로 정적 검증을 대신한다.
 - Expo Go 또는 시뮬레이터에서 `webViewRef.current?.injectJavaScript(...)`로 실제 웹 없이도 메시지를 주입해 홈 탭 이동을 육안 확인(또는 실제 웹 배포 스테이징 URL 연결 시 버튼 탭으로 확인).
