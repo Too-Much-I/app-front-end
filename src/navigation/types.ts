@@ -12,7 +12,6 @@ export type MainTabParamList = {
   Feedback:
     | { examId?: string; questionNumber?: number; retryCount?: number }
     | undefined;
-  MyPage: undefined;
 };
 
 export type MockExamStackParamList = {
@@ -37,4 +36,11 @@ export type RootStackParamList = {
     questionNumber: number;
     nextRetryCount: number;
   };
+  /** 설정 화면. 탭이 아니라 홈 화면 헤더 아이콘으로 진입하는 루트 스택 push 화면이다. */
+  Settings: undefined;
+  /**
+   * 설정 화면에서 여는 범용 정적 페이지 웹뷰(개인정보 처리방침, 이용약관, 문의하기 등).
+   * `path`는 `EXPO_PUBLIC_WEB_BASE_URL` 뒤에 그대로 붙는 쿼리 파라미터 없는 경로다.
+   */
+  SettingsWebView: { path: string; title: string };
 };
