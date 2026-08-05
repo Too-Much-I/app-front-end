@@ -27,6 +27,14 @@ type FeedbackNavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<RootStackParamList>
 >;
 
+/**
+ * FEEDBACK_DATA_READY가 이 시간 안에 안 오면 스켈레톤을 강제로 걷어낸다.
+ *
+ * 웹 배포 불일치나 메시지 유실 등으로 신호 자체가 안 오는 경우의 안전장치다 —
+ * 이게 없으면 스켈레톤이 영원히 안 사라져 화면이 아예 안 뜨는 것처럼 보인다.
+ */
+const FEEDBACK_READY_TIMEOUT_MS = 10_000;
+
 function buildOverviewUrl(examId: string): string | null {
   if (!WEB_BASE_URL) return null;
   return `${WEB_BASE_URL}/app-exam-screen?examId=${encodeURIComponent(examId)}`;
@@ -117,11 +125,20 @@ export function FeedbackScreen() {
    */
   const [isContentReady, setIsContentReady] = useState(false);
   const [hasLoadError, setHasLoadError] = useState(false);
+  // feedbackUrl이 그대로인 채 webViewRef.current?.reload()만 호출되는 경우(아래 참고)에도
+  // 리셋 effect를 다시 돌리기 위한 트리거. 값 자체엔 의미가 없다.
+  const [reloadNonce, setReloadNonce] = useState(0);
 
   useEffect(() => {
     setIsContentReady(false);
     setHasLoadError(false);
-  }, [feedbackUrl]);
+
+    const timeout = setTimeout(
+      () => setIsContentReady(true),
+      FEEDBACK_READY_TIMEOUT_MS,
+    );
+    return () => clearTimeout(timeout);
+  }, [feedbackUrl, reloadNonce]);
 
   // 문제 지정 없이 시험만 바뀐 경우에는 종합 피드백을 연다.
   useEffect(() => {
@@ -152,9 +169,8 @@ export function FeedbackScreen() {
     initialQuestionRequestRef.current = null;
 
     if (!isInitialRequest && nextUrl === feedbackUrl) {
-      // 주소가 그대로라 feedbackUrl이 안 바뀌므로, 위 리셋 effect가 안 돈다 — 직접 리셋한다.
-      setIsContentReady(false);
-      setHasLoadError(false);
+      // 주소가 그대로라 feedbackUrl이 안 바뀌므로, nonce를 올려 위 리셋 effect를 다시 돌린다.
+      setReloadNonce((nonce) => nonce + 1);
       webViewRef.current?.reload();
     } else {
       setFeedbackUrl(nextUrl);
@@ -221,6 +237,7 @@ export function FeedbackScreen() {
           className="flex-1 bg-surface-subtle"
           onMessage={handleWebViewMessage}
           onError={() => setHasLoadError(true)}
+          onHttpError={() => setHasLoadError(true)}
           setSupportMultipleWindows={false}
           renderError={(_errorDomain, _errorCode, errorDescription) => (
             <View className="flex-1 items-center justify-center bg-surface-subtle px-6">
