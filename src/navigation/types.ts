@@ -24,6 +24,11 @@ export type MockExamStackParamList = {
 };
 
 export type RootStackParamList = {
+  /**
+   * 최초 실행(또는 로컬 저장소 초기화 이후) 개인정보 동의 게이트. `App.tsx`가 로컬 동의
+   * 기록 유무로 시작 화면을 이 화면과 `MainTabs` 중 하나로 고른다.
+   */
+  Consent: undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList>;
   /**
    * 재답변 녹음 화면. 웹 문제별 피드백의 `REANSWER_REQUESTED`가 준 값을 그대로 받는다.
