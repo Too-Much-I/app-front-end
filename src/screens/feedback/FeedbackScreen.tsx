@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import WebView, { type WebViewMessageEvent } from "react-native-webview";
 
 import { Text } from "@/components/ui/Text";
+import { isFeedbackDataReadyMessage } from "@/features/exam/feedback-data-ready-message";
 import { isGoHomeRequestedMessage } from "@/features/exam/go-home-message";
 import { parseReanswerRequest } from "@/features/exam/reanswer-message";
 import { WEB_BASE_URL } from "@/lib/web-base-url";
@@ -25,6 +26,14 @@ type FeedbackNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, "Feedback">,
   NativeStackNavigationProp<RootStackParamList>
 >;
+
+/**
+ * FEEDBACK_DATA_READY가 이 시간 안에 안 오면 스켈레톤을 강제로 걷어낸다.
+ *
+ * 웹 배포 불일치나 메시지 유실 등으로 신호 자체가 안 오는 경우의 안전장치다 —
+ * 이게 없으면 스켈레톤이 영원히 안 사라져 화면이 아예 안 뜨는 것처럼 보인다.
+ */
+const FEEDBACK_READY_TIMEOUT_MS = 10_000;
 
 function buildOverviewUrl(examId: string): string | null {
   if (!WEB_BASE_URL) return null;
@@ -108,6 +117,29 @@ export function FeedbackScreen() {
       : null,
   );
 
+  /**
+   * 웹뷰의 문서 로드 완료(renderLoading이 사라지는 시점)와 웹 페이지 내부 데이터 로드
+   * 완료 시점이 어긋나서, 스켈레톤 이후 "불러오는 중" 텍스트가 잠깐 끼어 보이는 문제가
+   * 있었다. 이제 스켈레톤은 WebView가 아니라 이 state로 직접 통제하고,
+   * FEEDBACK_DATA_READY 메시지(웹의 데이터 로드 완료 신호)를 받을 때까지 유지한다.
+   */
+  const [isContentReady, setIsContentReady] = useState(false);
+  const [hasLoadError, setHasLoadError] = useState(false);
+  // feedbackUrl이 그대로인 채 webViewRef.current?.reload()만 호출되는 경우(아래 참고)에도
+  // 리셋 effect를 다시 돌리기 위한 트리거. 값 자체엔 의미가 없다.
+  const [reloadNonce, setReloadNonce] = useState(0);
+
+  useEffect(() => {
+    setIsContentReady(false);
+    setHasLoadError(false);
+
+    const timeout = setTimeout(
+      () => setIsContentReady(true),
+      FEEDBACK_READY_TIMEOUT_MS,
+    );
+    return () => clearTimeout(timeout);
+  }, [feedbackUrl, reloadNonce]);
+
   // 문제 지정 없이 시험만 바뀐 경우에는 종합 피드백을 연다.
   useEffect(() => {
     if (!examId) {
@@ -136,8 +168,13 @@ export function FeedbackScreen() {
     const isInitialRequest = initialQuestionRequestRef.current === nextUrl;
     initialQuestionRequestRef.current = null;
 
-    if (!isInitialRequest && nextUrl === feedbackUrl) webViewRef.current?.reload();
-    else setFeedbackUrl(nextUrl);
+    if (!isInitialRequest && nextUrl === feedbackUrl) {
+      // 주소가 그대로라 feedbackUrl이 안 바뀌므로, nonce를 올려 위 리셋 effect를 다시 돌린다.
+      setReloadNonce((nonce) => nonce + 1);
+      webViewRef.current?.reload();
+    } else {
+      setFeedbackUrl(nextUrl);
+    }
 
     navigation.setParams({ questionNumber: undefined, retryCount: undefined });
   }, [examId, feedbackUrl, navigation, questionNumber, retryCount]);
@@ -147,6 +184,11 @@ export function FeedbackScreen() {
       // examId 로딩 실패로 에러 폴백이 뜬 경우에도 동작해야 하므로 examId 가드보다 먼저 검사한다.
       if (isGoHomeRequestedMessage(event.nativeEvent.data)) {
         navigation.navigate("MainTabs", { screen: "Home" });
+        return;
+      }
+
+      if (isFeedbackDataReadyMessage(event.nativeEvent.data)) {
+        setIsContentReady(true);
         return;
       }
 
@@ -187,26 +229,30 @@ export function FeedbackScreen() {
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-surface-subtle">
       {/* 웹의 결과 복귀는 페이지 링크가, 기기 뒤로가기는 React Navigation이 각각 담당한다. */}
-      <WebView
-        ref={webViewRef}
-        key={feedbackUrl}
-        source={{ uri: feedbackUrl }}
-        className="flex-1 bg-surface-subtle"
-        onMessage={handleWebViewMessage}
-        setSupportMultipleWindows={false}
-        startInLoadingState
-        renderLoading={() => <FeedbackWebViewSkeleton />}
-        renderError={(_errorDomain, _errorCode, errorDescription) => (
-          <View className="flex-1 items-center justify-center bg-surface-subtle px-6">
-            <Text accessibilityRole="header" className="text-center text-2xl">
-              피드백 페이지를 열지 못했어요
-            </Text>
-            <Text className="mt-3 text-center text-sm leading-6 text-ink-muted">
-              {errorDescription}
-            </Text>
-          </View>
-        )}
-      />
+      <View className="flex-1">
+        <WebView
+          ref={webViewRef}
+          key={feedbackUrl}
+          source={{ uri: feedbackUrl }}
+          className="flex-1 bg-surface-subtle"
+          onMessage={handleWebViewMessage}
+          onError={() => setHasLoadError(true)}
+          onHttpError={() => setHasLoadError(true)}
+          setSupportMultipleWindows={false}
+          renderError={(_errorDomain, _errorCode, errorDescription) => (
+            <View className="flex-1 items-center justify-center bg-surface-subtle px-6">
+              <Text accessibilityRole="header" className="text-center text-2xl">
+                피드백 페이지를 열지 못했어요
+              </Text>
+              <Text className="mt-3 text-center text-sm leading-6 text-ink-muted">
+                {errorDescription}
+              </Text>
+            </View>
+          )}
+        />
+        {/* 문서 로드 완료가 아니라 FEEDBACK_DATA_READY 수신까지 스켈레톤을 유지한다. */}
+        {!isContentReady && !hasLoadError && <FeedbackWebViewSkeleton />}
+      </View>
     </SafeAreaView>
   );
 }
