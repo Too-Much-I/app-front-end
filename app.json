@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "app-front-end",
+    "name": "토선생",
     "slug": "app-front-end",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -31,7 +31,15 @@
     },
     "plugins": [
       "expo-font",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
       [
         "expo-audio",
         {
