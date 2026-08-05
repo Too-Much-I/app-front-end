@@ -5,27 +5,41 @@ import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { useConsentGate } from "@/features/consent/use-consent-gate";
+import { useAuth } from "@/features/auth/auth-context";
+import { AuthProvider } from "@/features/auth/auth-provider";
 import { RootNavigator } from "@/navigation/RootNavigator";
 import { useAppFonts } from "@/theme/use-app-fonts";
 
-export default function App() {
+function AppContent() {
   const { ready: fontsReady, onLayoutRootView } = useAppFonts();
-  const { ready: consentReady, hasConsented } = useConsentGate();
-  const ready = fontsReady && consentReady;
+  const { state } = useAuth();
+  const authHasRenderableState =
+    state.status === "AUTHENTICATED" ||
+    state.status === "CONSENT_REQUIRED" ||
+    state.status === "CONSENT_UPDATING" ||
+    state.status === "RETRYABLE_ERROR" ||
+    (state.status === "GUEST_RECOVERING" && state.source === "consent-submit");
 
-  if (!ready) {
+  if (!fontsReady || !authHasRenderableState) {
     return null;
   }
 
   return (
+    <View className="flex-1" onLayout={onLayoutRootView}>
+      <NavigationContainer>
+        <RootNavigator state={state} />
+      </NavigationContainer>
+      <StatusBar style="auto" />
+    </View>
+  );
+}
+
+export default function App() {
+  return (
     <SafeAreaProvider>
-      <View className="flex-1" onLayout={onLayoutRootView}>
-        <NavigationContainer>
-          <RootNavigator initialRouteName={hasConsented ? "MainTabs" : "Consent"} />
-        </NavigationContainer>
-        <StatusBar style="auto" />
-      </View>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }
