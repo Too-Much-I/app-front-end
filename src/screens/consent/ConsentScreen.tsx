@@ -128,7 +128,7 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
         >
           <Text
             className="text-base"
-            style={{ color: allChecked ? "#FFFFFF" : colors.ink.disabled }}
+            style={{ color: allChecked ? colors.surface.DEFAULT : colors.ink.disabled }}
           >
             모두 동의하고 시작하기
           </Text>

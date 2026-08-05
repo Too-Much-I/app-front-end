@@ -14,14 +14,27 @@ export type ConsentRecord = {
   agreedAt: string;
 };
 
-export async function getStoredConsent(): Promise<ConsentRecord | null> {
-  const raw = await AsyncStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    return null;
-  }
+function isConsentRecord(value: unknown): value is ConsentRecord {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "version" in value &&
+    "agreedAt" in value &&
+    typeof value.version === "string" &&
+    typeof value.agreedAt === "string" &&
+    Number.isFinite(Date.parse(value.agreedAt))
+  );
+}
 
+export async function getStoredConsent(): Promise<ConsentRecord | null> {
   try {
-    return JSON.parse(raw) as ConsentRecord;
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed: unknown = JSON.parse(raw);
+    return isConsentRecord(parsed) ? parsed : null;
   } catch {
     return null;
   }
