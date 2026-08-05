@@ -30,7 +30,9 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [consentAgreedAt, setConsentAgreedAt] = useState<string | null>(null);
 
   useEffect(() => {
-    getStoredConsent().then((record) => setConsentAgreedAt(record?.agreedAt ?? null));
+    getStoredConsent()
+      .then((record) => setConsentAgreedAt(record?.privacy.agreedAt ?? null))
+      .catch(() => setConsentAgreedAt(null));
   }, []);
 
   return (

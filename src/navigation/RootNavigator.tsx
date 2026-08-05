@@ -1,7 +1,9 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
+import type { AuthBootstrapState } from "@/features/auth/types";
 import { MainTabNavigator } from "@/navigation/MainTabNavigator";
 import type { RootStackParamList } from "@/navigation/types";
+import { AuthRecoveryScreen } from "@/screens/auth/AuthRecoveryScreen";
 import { ConsentScreen } from "@/screens/consent/ConsentScreen";
 import { NotificationsScreen } from "@/screens/notifications/NotificationsScreen";
 import { ReanswerScreen } from "@/screens/reanswer/ReanswerScreen";
@@ -10,22 +12,40 @@ import { SettingsWebViewScreen } from "@/screens/settings/SettingsWebViewScreen"
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-type RootNavigatorProps = {
-  /** 부팅 시 로컬 동의 기록 유무로 `App.tsx`가 정한다. */
-  initialRouteName: "Consent" | "MainTabs";
-};
-
-export function RootNavigator({ initialRouteName }: RootNavigatorProps) {
+function isConsentFlow(state: AuthBootstrapState): boolean {
   return (
-    <Stack.Navigator initialRouteName={initialRouteName} screenOptions={{ headerShown: false }}>
-      {/* 동의 전에는 스와이프/뒤로 가기로 건너뛸 수 없어야 하므로 제스처를 막는다. */}
-      <Stack.Screen
-        name="Consent"
-        component={ConsentScreen}
-        options={{ gestureEnabled: false }}
-      />
+    state.status === "CONSENT_REQUIRED" ||
+    state.status === "CONSENT_UPDATING" ||
+    (state.status === "GUEST_RECOVERING" && state.source === "consent-submit") ||
+    (state.status === "RETRYABLE_ERROR" && state.source === "consent-submit")
+  );
+}
+
+export function RootNavigator({ state }: { state: AuthBootstrapState }) {
+  if (isConsentFlow(state)) {
+    return (
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Consent" component={ConsentScreen} options={{ gestureEnabled: false }} />
+        <Stack.Screen name="SettingsWebView" component={SettingsWebViewScreen} />
+      </Stack.Navigator>
+    );
+  }
+
+  if (state.status === "RETRYABLE_ERROR") {
+    return (
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen
+          name="AuthRecovery"
+          component={AuthRecoveryScreen}
+          options={{ gestureEnabled: false }}
+        />
+      </Stack.Navigator>
+    );
+  }
+
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MainTabs" component={MainTabNavigator} />
-      {/* 녹음 중 스와이프로 빠져나가면 확인 없이 녹음이 사라지므로 제스처를 막는다. */}
       <Stack.Screen
         name="Reanswer"
         component={ReanswerScreen}

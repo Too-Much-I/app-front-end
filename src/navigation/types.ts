@@ -25,10 +25,12 @@ export type MockExamStackParamList = {
 
 export type RootStackParamList = {
   /**
-   * 최초 실행(또는 로컬 저장소 초기화 이후) 개인정보 동의 게이트. `App.tsx`가 로컬 동의
-   * 기록 유무로 시작 화면을 이 화면과 `MainTabs` 중 하나로 고른다.
+   * 신규 Guest 동의 또는 서버가 요구한 기존 사용자 재동의를 받는 인증 게이트.
+   * 현재 AuthBootstrapState에 따라 controller가 이 route의 노출을 결정한다.
    */
   Consent: undefined;
+  /** 앱 시작 인증 복구가 실패했을 때 실패한 작업만 다시 실행하는 화면. */
+  AuthRecovery: undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList>;
   /**
    * 재답변 녹음 화면. 웹 문제별 피드백의 `REANSWER_REQUESTED`가 준 값을 그대로 받는다.
