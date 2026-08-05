@@ -1,55 +1,71 @@
-// Expo는 EXPO_PUBLIC_ 접두사 붙은 변수만 process.env를 통해 클라이언트 번들에 인라인한다.
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
-const DEFAULT_TIMEOUT_MS = 10_000;
+import { authController } from "@/features/auth/auth-controller";
+import { getLearningApiBaseUrl } from "@/lib/api/service-base-url";
+import {
+  ApiError,
+  serviceFetch,
+  type JsonRequestInit,
+} from "@/lib/api/transport";
 
-export class ApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-  ) {
-    super(message);
-    this.name = "ApiError";
+export { ApiError } from "@/lib/api/transport";
+
+function waitForCaller<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) {
+    return promise;
   }
+  if (signal.aborted) {
+    return Promise.reject(signal.reason ?? new Error("요청이 취소되었습니다."));
+  }
+
+  return new Promise<T>((resolve, reject) => {
+    const handleAbort = () => reject(signal.reason ?? new Error("요청이 취소되었습니다."));
+    signal.addEventListener("abort", handleAbort, { once: true });
+    promise.then(resolve, reject).finally(() => signal.removeEventListener("abort", handleAbort));
+  });
+}
+
+async function requestWithToken<T>(
+  path: string,
+  snapshot: { accessToken: string },
+  init: JsonRequestInit,
+  timeoutMs?: number,
+): Promise<T> {
+  const envelope = await serviceFetch<unknown>(
+    `${getLearningApiBaseUrl()}${path}`,
+    {
+      ...init,
+      headers: {
+        ...init.headers,
+        Authorization: `Bearer ${snapshot.accessToken}`,
+      },
+    },
+    timeoutMs,
+  );
+
+  // apiFetch의 제네릭은 endpoint가 기대하는 검증 완료 Envelope 타입을 표현한다.
+  return envelope as T;
 }
 
 export async function apiFetch<T>(
   path: string,
-  init?: RequestInit,
-  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+  init: JsonRequestInit = {},
+  timeoutMs?: number,
 ): Promise<T> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  const callerSignal = init?.signal;
-  const abortFromCaller = () => controller.abort(callerSignal?.reason);
-
-  if (callerSignal?.aborted) {
-    abortFromCaller();
-  } else {
-    callerSignal?.addEventListener("abort", abortFromCaller, { once: true });
-  }
+  const firstSnapshot = await waitForCaller(
+    authController.prepareRequest(),
+    init.signal ?? undefined,
+  );
 
   try {
-    const res = await fetch(`${API_BASE_URL}${path}`, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...init?.headers,
-      },
-      signal: controller.signal,
-    });
-
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      throw new ApiError(res.status, body || res.statusText);
+    return await requestWithToken<T>(path, firstSnapshot, init, timeoutMs);
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 401) {
+      throw error;
     }
-
-    if (res.status === 204) {
-      return undefined as T;
-    }
-
-    return (await res.json()) as T;
-  } finally {
-    clearTimeout(timeoutId);
-    callerSignal?.removeEventListener("abort", abortFromCaller);
   }
+
+  const retrySnapshot = await waitForCaller(
+    authController.recoverUnauthorized(firstSnapshot.generation),
+    init.signal ?? undefined,
+  );
+  return requestWithToken<T>(path, retrySnapshot, init, timeoutMs);
 }
