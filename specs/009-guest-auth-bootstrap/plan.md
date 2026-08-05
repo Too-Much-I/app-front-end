@@ -21,7 +21,7 @@ single-flight와 Token 세대 비교 정책은 유지한다.
 **Language/Version**: TypeScript `~6.0.3` strict mode, React `19.2.3`, React Native `0.86.0`
 
 **Primary Dependencies**: Expo `~57.0.7`, React Navigation 7, AsyncStorage 2.2.0,
-`expo-secure-store ~57.0.1` 및 `expo-crypto ~57.0.1` 추가 예정
+설치된 `expo-secure-store ~57.0.1` 및 `expo-crypto ~57.0.1`
 
 **Storage**: AsyncStorage(비밀이 아닌 동의 기록), Expo SecureStore(installationId와 인증 세션을
 서로 다른 key로 저장), 메모리(auth state와 Token generation)
@@ -37,8 +37,9 @@ single-flight와 Token 세대 비교 정책은 유지한다.
 **Performance Goals**: 정상 네트워크의 재방문 인증 부트스트랩을 5초 안에 완료하고, 만료되지
 않은 보호 요청에는 인증 계층이 추가 네트워크 왕복을 만들지 않는다.
 
-**Constraints**: Refresh Rotation 결과를 부분 저장하지 않음, 보호 요청 자동 재시도 최대 1회,
-403에서 갱신 금지, Token/installationId 로그 금지, 알림·시험 재개·WebView 인증은 제외
+**Constraints**: Refresh Rotation 결과를 부분 저장하지 않음, 안전한 GET만 401 자동 재시도 최대
+1회, 쓰기 요청 자동 재전송 금지, 403에서 갱신 금지, Token/installationId 로그 금지,
+알림·시험 재개·WebView 인증은 제외
 
 **Scale/Scope**: 앱 시작 경로 1개, 동의 화면 1개, 복구 오류 화면 1개, Identity 공개 API 2개,
 Identity Bearer API 2개, 기존 Learning Core API 전송 계층 전체
@@ -80,7 +81,7 @@ single-flight Rotation과 Token generation을 소유한다. Identity의 Guest/Re
 준비한다. React Auth Provider는 상태를 구독하고 동의 완료·재시도 이벤트만 전달한다.
 
 - 장점: 일반 함수인 기존 시험 API에서도 같은 인증 규칙을 사용하고 `/reissue` 재귀를 구조적으로
-  막는다. Rotation과 저장의 소유자가 하나라 동시성 불변식을 설명하기 쉽다.
+  막는다. Rotation과 저장의 소유자가 하나라 동시성 불변식과 GET 전용 replay 정책을 설명하기 쉽다.
 - 비용: 작은 상태 머신과 구독 경계를 새로 만들고 저장/네트워크 의존성을 명시해야 한다.
 - 실패 모드: 서버 Rotation 성공 후 저장 실패가 가능하므로 받은 세션 저장 재시도와 same-install
   Guest 복구가 필요하다.
@@ -113,7 +114,9 @@ service transport (HTTP + JSON + Envelope 검증)
 ├── Identity public APIs: guest / reissue
 ├── Identity authenticated consent APIs: get / update
 │       └── Auth Controller가 명시적인 최신 Access Token 전달
-└── authenticated Learning Core apiFetch
+└── authenticated Learning Core client
+        ├── apiFetch: 모든 method 단일 attempt
+        ├── apiFetchWithAuthRetry: GET만 401 복구 후 최대 한 번 재전송
         └── Auth Controller
               ├── consent AsyncStorage
               ├── installationId SecureStore
@@ -135,7 +138,8 @@ Consent 화면은 직접 MainTabs로 reset하지 않고 `acceptConsent()`를 호
 서비스 주소는 `EXPO_PUBLIC_IDENTITY_API_BASE_URL`과
 `EXPO_PUBLIC_LEARNING_API_BASE_URL`로 분리한다. Gateway 환경에서는 두 값을 같게 둘 수 있고,
 전환 기간에는 기존 `EXPO_PUBLIC_API_BASE_URL`을 명시적 fallback으로 허용한다. 정확한 운영 URL은
-public 환경 설정이며 코드에 고정하지 않는다. 현재 staging 설정은 Identity Guest/Reissue/consents에
+public 환경 설정이며 코드에 고정하지 않는다. 선택된 값은 URL 파싱과 HTTPS scheme 검증을 통과한
+뒤에만 Token이 포함된 요청에 사용한다. 현재 staging 설정은 Identity Guest/Reissue/consents에
 `https://identity-staging.to-teacher.com`, 기존 Learning API에
 `https://api-staging.to-teacher.com`을 사용한다.
 
@@ -196,15 +200,16 @@ Refresh Token이 없거나 확정적으로 invalid/expired/reused이면 같은 i
 요청이 현재 Token generation을 캡처
 → 만료 60초 이내면 single-flight Reissue
 → 최신 Access Token으로 Learning Core 요청
-→ 401이면 사용한 generation과 현재 generation 비교
-   ├─ 이미 변경됨: 추가 Rotation 없이 최신 Token으로 재시도
-   └─ 같음: single-flight Reissue 후 재시도
-→ 원 요청 재시도는 최대 1회
+→ 안전한 GET의 401이면 사용한 generation과 현재 generation 비교
+   ├─ 이미 변경됨: 추가 Rotation 없이 최신 Token으로 GET 재시도
+   └─ 같음: single-flight Reissue 후 GET 재시도
+→ GET 재시도는 최대 1회
+→ POST/PUT/PATCH/DELETE의 401은 동일 요청을 자동 재전송하지 않고 오류 전달
 ```
 
-호출자의 AbortSignal은 그 호출의 대기/재시도만 취소하고 공유 Reissue를 취소하지 않는다. S3 PUT은
-Learning Core 인증 client 밖에 유지한다. 인증 client Body는 현재의 문자열 JSON 또는 body 없음으로
-제한해 재시도 가능성을 타입으로 보장한다.
+호출자의 AbortSignal은 그 호출의 대기/GET 재시도만 취소하고 공유 Reissue를 취소하지 않는다.
+S3 PUT은 Learning Core 인증 client 밖에 유지한다. GET 재시도 함수는 method를 GET으로 제한하고
+body를 타입 수준에서 금지한다.
 
 ## Failure and Recovery Paths
 
@@ -222,8 +227,9 @@ Learning Core 인증 client 밖에 유지한다. 인증 client Body는 현재의
 | 기존 사용자 동의 PUT 실패 | 선택을 유지하고 동일 PUT 재시도; Guest 호출 금지 | 차단 |
 | PUT 성공 후 로컬 동의 저장 실패 | PUT 반복 없이 받은 snapshot의 로컬 저장부터 재시도 | 차단 |
 | Rotation 성공 후 세션 저장 실패 | 새 응답 저장부터 재시도; 재시작 후 확정 무효면 Guest 복구 | 차단/요청 실패 |
-| 보호 요청 401 | Token generation 확인 후 한 번만 갱신·재시도 | 유지 |
-| 보호 요청 재시도도 401 | 인증 복구 오류로 종료, 반복 금지 | 보호 요청 중단 |
+| 안전한 GET 401 | Token generation 확인 후 한 번만 갱신·GET 재시도 | 유지 |
+| GET 재시도도 401 | 인증 복구 오류로 종료, 반복 금지 | 보호 요청 중단 |
+| 쓰기 요청 401 | 동일 요청 자동 재전송 없이 ApiError 전달 | 해당 작업 중단 |
 | 403 | 갱신하지 않고 ApiError 전달 | 유지 |
 | HTTP 200 + `isSuccess=false` | 구조화된 ApiError로 처리 | 오류 성격에 따름 |
 | caller abort | 해당 요청만 중단, 공유 Rotation과 저장은 계속 | 유지 |
@@ -241,7 +247,8 @@ start처럼 Consent 화면을 거치지 않은 bootstrap 실패에 사용한다.
   → consent GET → 필요 시 PUT → 로컬 기록 → 보호 navigator 흐름을 구분해 설명할 수 있다.
 - [x] React store 직접 소유와 refresh-only 저장을 기각한 이유 및 중앙 controller의 비용을
   설명할 수 있다.
-- [x] Rotation 저장 실패, 동시/늦은 401, 취소, 403과 `isSuccess=false` 검증 방법을 설명할 수 있다.
+- [x] Rotation 저장 실패, 조회 요청의 동시/늦은 401, 쓰기 non-replay, 취소, 403과
+  `isSuccess=false` 검증 방법을 설명할 수 있다.
 
 ## Project Structure
 
@@ -287,7 +294,7 @@ src/
 │   │   └── use-consent-gate.ts             # AuthProvider로 대체 후 제거
 │   └── exam/api/*.ts                       # 기존 endpoint/result 경계 유지
 ├── lib/api/
-│   ├── client.ts                           # Learning 인증 client와 401 1회 재시도
+│   ├── client.ts                           # Learning 단일 요청과 GET 전용 401 1회 재시도
 │   ├── service-base-url.ts                 # 서비스별 public 환경 URL 결정
 │   └── transport.ts                        # timeout, abort, JSON/Envelope/ApiError
 ├── navigation/

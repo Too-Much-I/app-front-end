@@ -87,19 +87,22 @@
 
 ## Phase 5: User Story 3 - 사용 중 만료를 방해 없이 복구 (Priority: P1)
 
-**Goal**: 동시 또는 늦은 401에서도 Reissue를 한 번만 수행하고 최신 세션으로 원 요청을 최대 한 번
-재시도한다.
+**Goal**: 동시 또는 늦은 GET 401에서도 Reissue를 한 번만 수행하고 안전한 조회만 최신 세션으로
+최대 한 번 재시도하며 쓰기 요청은 자동 재전송하지 않는다.
 
-**Independent Test**: 두 요청이 같은 generation의 Token을 사용하게 한 뒤 동시 401과 늦은 401을
-각각 반환해 Identity Reissue call count가 한 번인지 확인한다.
+**Independent Test**: 두 GET이 같은 generation의 Token을 사용하게 한 뒤 동시 401과 늦은 401을
+각각 반환해 Identity Reissue call count가 한 번인지 확인하고, POST 401은 재전송되지 않는지 확인한다.
 
 ### Implementation for User Story 3
 
 - [x] T022 [US3] 메모리 AuthSession commit 시 단조 증가 generation, 요청 snapshot, 60초 사전 만료, shared Reissue Promise를 `src/features/auth/auth-controller.ts`에 구현
-- [x] T023 [US3] 매 attempt 최신 Authorization 구성, generation 비교, 401 최대 1회 replay, 403/5xx/network non-retry를 `src/lib/api/client.ts`에 구현
+- [x] T023 [US3] 매 attempt 최신 Authorization 구성, GET 전용 generation 비교·401 최대 1회 replay,
+  쓰기 요청과 403/5xx/network non-retry를 `src/lib/api/client.ts`에 구현
 - [x] T024 [US3] caller abort가 해당 요청의 대기/retry만 중단하고 shared Reissue와 세션 commit은 계속되도록 `src/lib/api/client.ts`와 `src/features/auth/auth-controller.ts`의 취소 경계를 연결
-- [x] T025 [US3] 기존 시험 endpoint의 JSON 문자열/빈 body replay 가능성과 S3 PUT 비인증 경계를 `src/features/exam/api/*.ts` 및 `src/features/exam/upload-answer-audio.ts`에서 검토하고 필요한 호출부만 조정
-- [ ] T026 [US3] proactive expiry, 첫 401, 재시도 401, 403, 동시 401, late 401, caller abort 시나리오를 `specs/009-guest-auth-bootstrap/quickstart.md` 8~9절에 따라 수동 검증하고 결과 기록
+- [x] T025 [US3] 기존 시험 GET만 명시적 auth retry client를 사용하고 POST는 단일 attempt로 유지하며
+  S3 PUT 비인증 경계를 `src/features/exam/api/*.ts`와 `src/features/exam/upload-answer-audio.ts`에서 검토
+- [ ] T026 [US3] proactive expiry, GET 첫/두 번째 401, POST 401 non-replay, 403, GET 동시/late 401,
+  caller abort 시나리오를 `specs/009-guest-auth-bootstrap/quickstart.md` 8~9절에 따라 수동 검증하고 결과 기록
 
 **Checkpoint**: 동일 프로세스의 Refresh Rotation 경합과 늦은 과거 Token 응답이 중복 Rotation을 만들지 않음
 
@@ -217,7 +220,8 @@ Task T008: installationId SecureStore adapter 구현
 
 - 자동 테스트 러너가 없어 테스트 파일 대신 quickstart 기반 fault injection/device evidence를 남긴다.
 - generation은 TanStack Query cache가 아니라 controller 메모리에 있고 AuthSession commit 때만 증가한다.
-- `apiFetch`는 Learning Core 요청에만 인증을 적용하며 Identity와 S3 요청은 이 경계를 타지 않는다.
+- `apiFetch`와 GET 전용 `apiFetchWithAuthRetry`는 Learning Core 요청에만 인증을 적용하며 Identity와
+  S3 요청은 이 경계를 타지 않는다.
 - push와 Jira 변경은 별도 명시적 요청 전에는 수행하지 않는다. commit은 2026-08-05 사용자 요청으로
   작업 단위별 수행을 승인받았다.
 
@@ -245,3 +249,17 @@ write/commit → consent GET 순서를 확인한다. privacy만 재동의가 필
 
 **Checkpoint**: 로컬 버전은 서버 동의 판정을 앞서지 않고, 기존 사용자 재동의가 Guest API를
 호출하거나 PUT 성공 전에 로컬 최신 동의를 남기지 않음
+
+---
+
+## Phase 9: PR Review Follow-up
+
+**Purpose**: 승인된 CodeRabbit 지적만 반영해 자동 재전송 범위와 인증 복구 화면을 안전하게 제한
+
+- [x] T048 [US3] 기본 `apiFetch`를 단일 attempt로 바꾸고 GET 전용 401 재시도 함수를 추가한 뒤
+  기존 시험 GET/POST 호출부를 `src/features/exam/api/*.ts`에서 분리
+- [x] T049 [US2] consent GET 재시도의 `source`를 보존하고 Identity/Learning base URL의 HTTPS
+  검증을 `src/features/auth/auth-controller.ts`와 `src/lib/api/service-base-url.ts`에 구현
+- [x] T050 승인된 GET retry/write non-replay, HTTPS, memory commit, 설치된 dependency 상태를
+  `specs/009-guest-auth-bootstrap/`의 명세·계획·계약·검증 문서에 동기화
+- [x] T051 `pnpm lint`, `pnpm exec tsc --noEmit`과 최종 diff 검토로 후속 수정 범위를 검증

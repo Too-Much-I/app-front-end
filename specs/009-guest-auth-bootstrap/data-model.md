@@ -267,9 +267,10 @@ type RequestAuthSnapshot = {
 ```
 
 - `generation`은 AuthSession commit마다 단조 증가한다.
-- 401 response가 돌아오면 snapshot generation과 현재 generation을 비교한다.
+- 자동 복구가 허용된 GET의 401 response가 돌아오면 snapshot generation과 현재 generation을 비교한다.
 - 다르면 이미 다른 요청이 Rotation을 완료한 것이므로 추가 Reissue 없이 최신 snapshot으로 한 번
-  재시도한다.
+  GET을 재시도한다.
+- 쓰기 요청의 401은 generation 복구와 동일 요청 자동 재전송 대상이 아니다.
 - 이 값은 영속화하지 않는다.
 
 ## 13. State transitions

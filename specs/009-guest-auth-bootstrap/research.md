@@ -22,6 +22,7 @@ API와 Learning Core 인증 API를 나눈다. `/guest`와 `/reissue`는 인증 i
 분리하고 기존 `EXPO_PUBLIC_API_BASE_URL`은 전환용 fallback으로만 사용한다. Gateway 환경에서는
 두 새 값을 같은 URL로 설정할 수 있다. 현재 staging은 각각
 `https://identity-staging.to-teacher.com`과 `https://api-staging.to-teacher.com`을 사용한다.
+선택된 값은 URL로 파싱하고 HTTPS scheme이 아니면 Token이 포함된 요청 전에 거부한다.
 
 **Rationale**: 백엔드 문서는 로컬 8081/8080 두 서비스를 명시하지만 현재 앱은 8000 단일 URL만
 알고 있어 gateway 존재를 코드만으로 확정할 수 없다. 서비스 역할을 설정에 드러내면 두 배포
@@ -121,7 +122,8 @@ installationId를 보관해야 Guest 호출과 모든 재시도가 동일 사용
 
 **Decision**: 응답을 받은 시각의 `Date.now() + expiresIn`으로 절대 만료 시각을 계산한다.
 보호 요청 직전 Access Token 만료까지 60초 이하이면 Reissue한다. 앱 cold start에서는 Refresh
-Token이 있으면 Access Token 잔여 시간과 무관하게 한 번 Reissue한다. 서버 401이 최종 안전장치다.
+Token이 있으면 Access Token 잔여 시간과 무관하게 한 번 Reissue한다. 서버 401은 안전한 GET
+조회에서만 자동 복구의 최종 안전장치로 사용한다.
 
 **Rationale**: 모바일 background timer는 실행이 보장되지 않는다. 요청 시점 비교는 불필요한
 타이머를 없애고, 잘못된 기기 시각은 401 fallback이 보완한다.
@@ -133,9 +135,9 @@ Token이 있으면 Access Token 잔여 시간과 무관하게 한 번 Reissue한
 
 ## 9. 동시 401과 늦은 401
 
-**Decision**: Reissue는 공유 Promise 하나로 직렬화하고 각 보호 요청은 자신이 사용한 Access Token
-generation을 캡처한다. 401 도착 시 현재 generation이 이미 달라졌으면 추가 Rotation 없이 현재
-Token으로 한 번 재시도한다.
+**Decision**: Reissue는 공유 Promise 하나로 직렬화하고 자동 복구가 허용된 각 GET 요청은 자신이
+사용한 Access Token generation을 캡처한다. 401 도착 시 현재 generation이 이미 달라졌으면 추가
+Rotation 없이 현재 Token으로 GET을 한 번 재시도한다. 쓰기 요청은 401 뒤 자동 재전송하지 않는다.
 
 **Rationale**: single-flight Promise가 정리된 뒤 old Token의 늦은 401이 도착할 수 있다. 세대
 비교가 없으면 이미 새 Refresh Token으로 바뀐 직후 불필요한 두 번째 Rotation을 일으킨다.
@@ -148,17 +150,17 @@ Token으로 한 번 재시도한다.
 ## 10. 취소와 요청 재시도
 
 **Decision**: 호출자 AbortSignal은 해당 요청의 wait/retry만 취소하고 공유 Reissue에는 전달하지
-않는다. 보호 요청은 JSON 문자열 또는 body 없음만 허용하고 401 뒤 최대 한 번 재시도한다. 403,
-5xx와 네트워크 오류는 인증 계층이 재시도하지 않는다.
+않는다. 기본 `apiFetch`는 모든 method를 한 번만 보내고, 별도 `apiFetchWithAuthRetry`는 body 없는
+GET만 401 뒤 최대 한 번 재시도한다. 403, 5xx와 네트워크 오류는 인증 계층이 재시도하지 않는다.
 
 **Rationale**: 한 화면의 unmount가 Rotation을 취소하면 다른 요청이 모두 실패한다. 서버가 이미
-Rotation했는데 client만 취소하면 새 Refresh Token 저장 기회도 잃는다. 문자열 body는 매 시도
-재사용할 수 있지만 stream은 소비된 뒤 재사용할 수 없다.
+Rotation했는데 client만 취소하면 새 Refresh Token 저장 기회도 잃는다. 쓰기 body가 문자열이어도
+서버 처리 여부를 클라이언트가 확정할 수 없으므로 자동 재전송 대상에서 제외한다.
 
 **Alternatives considered**:
 
 - 첫 요청자의 signal로 Reissue 취소: 공유 세션을 손상시킬 수 있다.
-- 모든 RequestInit body 허용: stream/multipart를 조용히 잘못 재전송할 수 있다.
+- 문자열 JSON 쓰기 body 재전송 허용: 인증 실패 전후 서버 처리 여부에 따라 작업이 중복될 수 있다.
 - 무제한 재시도: POST 중복 실행과 인증 loop를 만든다.
 
 ## 11. Envelope와 오류 모델

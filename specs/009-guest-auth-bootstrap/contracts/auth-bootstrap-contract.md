@@ -56,6 +56,7 @@ submit/storage/guest/update 작업 진행 중 아님
 → ConsentRecordV2 write
 → Guest request
 → AuthSession write
+→ memory session/sessionGeneration commit
 → AUTHENTICATED
 ```
 

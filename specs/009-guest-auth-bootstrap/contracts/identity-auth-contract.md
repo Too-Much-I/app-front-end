@@ -4,7 +4,8 @@
 
 Identity 요청은 `EXPO_PUBLIC_IDENTITY_API_BASE_URL`을 사용한다. 설정되지 않은 전환 환경에서만
 `EXPO_PUBLIC_API_BASE_URL`을 fallback으로 사용한다. 값이 둘 다 없으면 네트워크 요청 전에 구성
-오류로 실패한다.
+오류로 실패한다. 선택된 값은 유효한 HTTPS URL이어야 하며, 다른 scheme이나 잘못된 URL은
+Authorization 또는 Refresh Token을 구성하기 전에 거부한다.
 
 ## Common success rule
 

@@ -12,9 +12,9 @@
 - same-install Guest 요청이 같은 Guest를 반환하는 test backend 계약 확인
 - iOS Simulator/device와 Android Emulator/device 중 최소 하나씩 준비
 
-> 2026-08-05 staging 확인 시 아직 배포 전 계약이어서 legacy 필수 필드 `isAudioConsent`가 없으면
-> `INVALID_REQUEST`를 반환했다. client에는 임시 호환 필드를 남기지 않으며, 본 문서의 다섯 필드
-> 계약이 배포된 뒤 Guest bootstrap 시나리오를 다시 검증한다.
+> 2026-08-05 staging의 초기 배포 전 계약은 legacy `isAudioConsent`를 요구했지만, 이후 다섯 필드
+> 계약 배포와 `privacy-v1`/`term-v1` Guest bootstrap 홈 진입을 Android emulator에서 확인했다.
+> client에는 임시 호환 필드를 남기지 않는다.
 
 환경 예시:
 
@@ -29,7 +29,7 @@ secret을 환경 변수에 넣지 않는다.
 
 ## 2. Install and static checks
 
-계획 승인 후 구현 단계에서 Expo SDK 호환 패키지를 pnpm으로 설치한다.
+Expo SDK 호환 패키지는 다음 명령으로 설치된 상태다.
 
 ```sh
 pnpm exec expo install expo-secure-store expo-crypto
@@ -41,6 +41,7 @@ Expected:
 
 - npm/yarn lockfile이 생기지 않는다.
 - lint와 strict TypeScript가 모두 성공한다.
+- Identity/Learning/legacy base URL에 잘못된 URL 또는 HTTP URL을 넣으면 Token 요청 전에 실패한다.
 - 실패 시 command, 원인, 변경 범위 관련성을 결과에 기록한다.
 
 ## 3. Fresh install and consent
@@ -170,15 +171,21 @@ Access expiry가 현재 시각 기준 60초 이내인 세션에서 Learning Core
 
 Expected: 원 요청 전에 Reissue하고 새 Access Token으로 요청한다.
 
-### Device clock mismatch / first 401
+### Device clock mismatch / retryable GET first 401
 
-client가 Token을 유효하다고 판단하지만 Learning Core가 첫 attempt에 401을 반환하게 한다.
+client가 Token을 유효하다고 판단하지만 Learning Core GET이 첫 attempt에 401을 반환하게 한다.
 
-Expected: Reissue 후 Authorization을 새로 구성해 원 요청을 정확히 한 번 재시도한다.
+Expected: Reissue 후 Authorization을 새로 구성해 GET을 정확히 한 번 재시도한다.
 
 ### Retry also returns 401
 
 Expected: 두 번째 Reissue나 무한 loop 없이 ApiError/복구 상태로 종료한다.
+
+### Write request returns 401
+
+시험 생성 또는 제출 POST의 첫 attempt에 401을 반환하게 한다.
+
+Expected: 동일 method와 body가 자동 재전송되지 않고 첫 오류로 종료한다.
 
 ### 403
 
@@ -188,7 +195,7 @@ Expected: Reissue가 한 번도 호출되지 않는다.
 
 ## 9. Concurrent and late 401
 
-제어 가능한 test endpoint/proxy로 요청 A와 B가 같은 old Token을 쓰게 한다.
+제어 가능한 GET test endpoint/proxy로 조회 요청 A와 B가 같은 old Token을 쓰게 한다.
 
 ### Simultaneous 401
 
@@ -252,7 +259,7 @@ Expected: 늦은 실행이 잘못된 navigator를 렌더링하지 않고, 시작
 ## 12. Scope regression
 
 - 기존 시험 생성, upload URL, S3 PUT, submit, status, summary 요청이 인증 header 외에는 바뀌지
-  않았는지 확인한다.
+  않았고 GET만 401 뒤 자동 재전송되는지 확인한다.
 - submit body나 examId 재개 정책을 이 변경에서 수정하지 않았는지 diff로 확인한다.
 - Notifications 화면/API/device registration 관련 변경이 없는지 확인한다.
 - WebView 인증, 이메일/소셜 로그인, logout API가 추가되지 않았는지 확인한다.
