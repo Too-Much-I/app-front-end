@@ -34,8 +34,8 @@ API와 Learning Core 인증 API를 나눈다. `/guest`와 `/reissue`는 인증 i
 
 ## 3. Token과 installationId 저장
 
-**Decision**: Expo SDK 57 호환 `expo-secure-store`를 사용한다. `installation-id:v1`과
-`auth-session:v1` key는 분리하고, Access/Refresh Token·grant type·두 절대 만료 시각은 하나의
+**Decision**: Expo SDK 57 호환 `expo-secure-store`를 사용한다. `installation-id.v1`과
+`auth-session.v1` key는 분리하고, Access/Refresh Token·grant type·두 절대 만료 시각은 하나의
 JSON 세션 레코드로 저장한다. `requireAuthentication`은 사용하지 않는다.
 
 **Rationale**: Refresh Token과 same-install Guest를 복구하는 installationId는 인증 자격이다.

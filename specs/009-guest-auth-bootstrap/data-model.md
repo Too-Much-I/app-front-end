@@ -6,7 +6,7 @@
 
 | Field | Type | Persisted | Validation |
 | --- | --- | --- | --- |
-| `installationId` | `string` | SecureStore `installation-id:v1` | lowercase/uppercase를 허용하는 표준 UUIDv4 형식 |
+| `installationId` | `string` | SecureStore `installation-id.v1` | lowercase/uppercase를 허용하는 표준 UUIDv4 형식 |
 
 ### Invariants
 

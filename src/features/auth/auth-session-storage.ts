@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 
 import { isAuthSession, type AuthSession } from "@/features/auth/types";
 
-const AUTH_SESSION_KEY = "auth-session:v1";
+const AUTH_SESSION_KEY = "auth-session.v1";
 
 export class AuthStorageError extends Error {
   constructor(message: string) {
