@@ -11,6 +11,16 @@ function getConfiguredUrl(service: ServiceName): string {
     throw new Error(`${service} API 주소가 설정되지 않았습니다.`);
   }
 
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    throw new Error(`${service} API 주소 형식이 올바르지 않습니다.`);
+  }
+  if (parsedUrl.protocol !== "https:") {
+    throw new Error(`${service} API 주소는 HTTPS여야 합니다.`);
+  }
+
   return url.replace(/\/$/, "");
 }
 

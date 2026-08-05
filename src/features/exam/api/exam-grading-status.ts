@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api/client";
+import { apiFetchWithAuthRetry } from "@/lib/api/client";
 import type { ApiEnvelope } from "@/types/api";
 import type { ExamGradingStatus } from "@/types/exam";
 
@@ -7,7 +7,7 @@ export async function getExamGradingStatus(
   examId: string,
   signal?: AbortSignal,
 ): Promise<ExamGradingStatus> {
-  const { result } = await apiFetch<ApiEnvelope<ExamGradingStatus>>(
+  const { result } = await apiFetchWithAuthRetry<ApiEnvelope<ExamGradingStatus>>(
     `/api/v1/exams/${examId}/status`,
     { signal },
   );

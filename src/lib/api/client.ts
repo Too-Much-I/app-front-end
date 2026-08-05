@@ -8,6 +8,11 @@ import {
 
 export { ApiError } from "@/lib/api/transport";
 
+type ReadRequestInit = Omit<JsonRequestInit, "body" | "method"> & {
+  body?: never;
+  method?: "GET";
+};
+
 function waitForCaller<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
   if (!signal) {
     return promise;
@@ -48,6 +53,19 @@ async function requestWithToken<T>(
 export async function apiFetch<T>(
   path: string,
   init: JsonRequestInit = {},
+  timeoutMs?: number,
+): Promise<T> {
+  const snapshot = await waitForCaller(
+    authController.prepareRequest(),
+    init.signal ?? undefined,
+  );
+
+  return requestWithToken<T>(path, snapshot, init, timeoutMs);
+}
+
+export async function apiFetchWithAuthRetry<T>(
+  path: string,
+  init: ReadRequestInit = {},
   timeoutMs?: number,
 ): Promise<T> {
   const firstSnapshot = await waitForCaller(

@@ -270,6 +270,7 @@ class AuthController {
 
   private async checkServerConsent(
     run: number,
+    source: BootstrapSource = "startup",
     preserveRetryUi = false,
     didRetryUnauthorized = false,
   ): Promise<void> {
@@ -294,7 +295,7 @@ class AuthController {
         await persistConsent(consent);
       } catch {
         this.setRetry(
-          "startup",
+          source,
           { operation: "persist-consent", consent, continuation: "authenticated" },
           run,
         );
@@ -306,13 +307,13 @@ class AuthController {
       if (error instanceof ApiError && error.status === 401 && !didRetryUnauthorized) {
         try {
           await this.rotateSession();
-          await this.checkServerConsent(run, preserveRetryUi, true);
+          await this.checkServerConsent(run, source, preserveRetryUi, true);
           return;
         } catch {
           // 아래의 동일 GET 재시도 상태로 수렴한다.
         }
       }
-      this.setRetry("startup", { operation: "check-consent" }, run);
+      this.setRetry(source, { operation: "check-consent" }, run);
     }
   }
 
@@ -476,7 +477,7 @@ class AuthController {
       return;
     }
     if (retry.operation === "check-consent") {
-      await this.checkServerConsent(run, true);
+      await this.checkServerConsent(run, source, true);
       return;
     }
     await this.updateExistingConsents(retry.request, run, true);

@@ -1,5 +1,5 @@
 import { mapExamQuestionDetail } from "@/features/exam/map-exam-question-feedback";
-import { apiFetch } from "@/lib/api/client";
+import { apiFetchWithAuthRetry } from "@/lib/api/client";
 import type { ApiEnvelope } from "@/types/api";
 import type { ExamQuestionDetail, RawExamQuestionDetailResult } from "@/types/exam";
 
@@ -12,7 +12,7 @@ export async function getExamQuestionFeedback(
   questionNumber: number,
   retryCount: number,
 ): Promise<ExamQuestionDetail> {
-  const { result } = await apiFetch<ApiEnvelope<RawExamQuestionDetailResult>>(
+  const { result } = await apiFetchWithAuthRetry<ApiEnvelope<RawExamQuestionDetailResult>>(
     `/api/v1/exams/${examId}/questions?questionNumber=${questionNumber}&retryCount=${retryCount}`,
   );
   return mapExamQuestionDetail(result);

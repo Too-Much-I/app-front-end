@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api/client";
+import { apiFetchWithAuthRetry } from "@/lib/api/client";
 import type { ApiEnvelope } from "@/types/api";
 import type { AnswerKey, ExamQuestionPollResult } from "@/types/exam";
 
@@ -13,7 +13,7 @@ export async function getExamQuestionStatus(
   signal?: AbortSignal,
 ): Promise<ExamQuestionPollResult> {
   const { examId, questionNumber, retryCount } = key;
-  const { result } = await apiFetch<ApiEnvelope<ExamQuestionPollResult>>(
+  const { result } = await apiFetchWithAuthRetry<ApiEnvelope<ExamQuestionPollResult>>(
     `/api/v1/exams/${examId}/questions/status?questionNumber=${questionNumber}&retryCount=${retryCount}`,
     { signal },
   );

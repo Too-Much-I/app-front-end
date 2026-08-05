@@ -1,5 +1,5 @@
 import { mapExamGradingResult } from "@/features/exam/map-exam-grading-result";
-import { apiFetch } from "@/lib/api/client";
+import { apiFetchWithAuthRetry } from "@/lib/api/client";
 import type { ApiEnvelope } from "@/types/api";
 import type {
   ExamGradingResult,
@@ -13,7 +13,7 @@ export async function getExamGradingResult(
   examId: string,
   signal?: AbortSignal,
 ): Promise<ExamGradingResult> {
-  const { result } = await apiFetch<ApiEnvelope<RawExamSummaryResult>>(
+  const { result } = await apiFetchWithAuthRetry<ApiEnvelope<RawExamSummaryResult>>(
     gradingSummaryPath(examId),
     { signal },
   );
