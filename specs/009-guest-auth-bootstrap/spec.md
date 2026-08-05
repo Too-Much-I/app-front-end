@@ -266,7 +266,8 @@ Guest의 세션을 복구한다.
 
 - 같은 `installationId`로 Guest 인증을 반복하면 백엔드는 중복 Guest를 만들지 않고 같은
   Guest에 사용할 새 인증 정보 쌍을 발급한다.
-- 신규 Guest 요청의 현재 동의 버전은 개인정보 `privacy-v2`, 이용약관 `term-v1`이다.
+- 신규 Guest 요청의 현재 동의 버전은 개인정보 `privacy-v1`, 이용약관 `term-v1`이며 클라이언트
+  상수로 고정한다.
 - 확정된 Guest 요청 필드명은 `installationId`, `isPrivacyConsented`,
   `privacyConsentVersion`, `isTermConsented`, `termConsentVersion`이다.
 - 개인정보 수집·이용 동의에는 현재 서비스가 요구하는 음성 데이터 수집·처리가 포함된다.

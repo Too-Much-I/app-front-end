@@ -39,7 +39,7 @@ Content-Type: application/json
 {
   "installationId": "550e8400-e29b-41d4-a716-446655440000",
   "isPrivacyConsented": true,
-  "privacyConsentVersion": "privacy-v2",
+  "privacyConsentVersion": "privacy-v1",
   "isTermConsented": true,
   "termConsentVersion": "term-v1"
 }

@@ -38,7 +38,7 @@ type ConsentRecordV2 = {
 | --- | --- |
 | `schemaVersion` | literal `2` |
 | `privacy.consented` | Guest 인증 시 반드시 `true` |
-| `privacy.version` | 현재 `PRIVACY_CONSENT_VERSION`과 정확히 일치, 현재값 `"privacy-v2"` |
+| `privacy.version` | 현재 `PRIVACY_CONSENT_VERSION`과 정확히 일치, 현재값 `"privacy-v1"` |
 | `privacy.agreedAt` | 유효한 ISO-8601 timestamp |
 | `term.consented` | Guest 인증 시 반드시 `true` |
 | `term.version` | 현재 `TERM_CONSENT_VERSION`과 정확히 일치, 현재값 `"term-v1"` |

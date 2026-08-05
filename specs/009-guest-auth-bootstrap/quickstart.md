@@ -54,7 +54,7 @@ Expected:
    busy 접근성 상태가 전달되는지 확인한다.
 6. 진행 중 버튼을 다시 눌러도 동의 저장 또는 Guest 요청이 중복되지 않는지 확인한다.
 7. Guest request가 [Identity contract](./contracts/identity-auth-contract.md)의 단수형 다섯 필드와
-   version `"privacy-v2"`, `"term-v1"`을 보내는지 backend test log의 redacted metadata로 확인한다.
+   version `"privacy-v1"`, `"term-v1"`을 보내는지 backend test log의 redacted metadata로 확인한다.
 8. Token pair가 저장된 뒤에만 MainTabs가 표시되는지 확인한다.
 9. Learning Core 요청이 Authorization header를 사용하고 userId/installationId를 보내지 않는지
    확인한다.

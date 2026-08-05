@@ -148,7 +148,7 @@ CHECKING_LOCAL
 → auth-session 없음 확인
 → installationId 읽기 또는 UUIDv4 생성 후 저장
 → CONSENT_REQUIRED
-→ 개인정보 `privacy-v2`, 약관 `term-v1` 동의 저장
+→ 개인정보 `privacy-v1`, 약관 `term-v1` 동의 저장
 → GUEST_RECOVERING(source=consent-submit; Consent 화면 busy 유지)
 → POST Identity /auth/guest
 → Token 응답 검증 + 절대 만료 시각 계산

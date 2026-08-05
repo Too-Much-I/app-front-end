@@ -67,8 +67,8 @@ I/O 오류는 새 ID로 덮지 않고 복구 오류로 올린다.
 ## 5. 동의 기록과 legacy migration
 
 **Decision**: 동의는 비밀이 아니므로 AsyncStorage에 유지하되 schema v2에서 privacy와 term을
-각각 `{ consented, version, agreedAt }`로 기록한다. 현재 서버 버전은 개인정보
-`"privacy-v2"`, 이용약관 `"term-v1"`이다. legacy `{ version: "1", agreedAt }`은
+각각 `{ consented, version, agreedAt }`로 기록한다. 신규 Guest 계약에 고정한 현재 버전은 개인정보
+`"privacy-v1"`, 이용약관 `"term-v1"`이다. legacy `{ version: "1", agreedAt }`은
 `privacy-v1`과 `term-v1`으로 명시적으로
 매핑하고 다른 값은 재동의를 요구한다.
 
@@ -217,7 +217,7 @@ AuthController → consent endpoint` 순환 의존도 피할 수 있다.
 ## Resolved Unknowns
 
 - Guest request 필드는 단수형 `isTermConsented`, `termConsentVersion`을 사용한다.
-- 현재 개인정보/이용약관 버전은 각각 `privacy-v2`, `term-v1`이며 legacy 통합 v1은
+- 신규 Guest의 개인정보/이용약관 버전은 각각 `privacy-v1`, `term-v1`이며 legacy 통합 v1은
   `privacy-v1`, `term-v1`으로만 이관한다.
 - Identity/Learning Core URL은 서비스별 public 환경 변수로 분리하고 gateway에서 같게 설정한다.
 - 알림, 시험 재개, WebView 인증과 submit body 변경은 이 계획에 포함하지 않는다.

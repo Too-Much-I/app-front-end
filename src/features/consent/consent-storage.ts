@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const PRIVACY_CONSENT_VERSION = "privacy-v2";
+export const PRIVACY_CONSENT_VERSION = "privacy-v1";
 export const TERM_CONSENT_VERSION = "term-v1";
 export const CONSENT_VERSION = "1";
 
