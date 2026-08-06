@@ -63,8 +63,9 @@ function failure(
   stage: AnswerSubmissionFailure["stage"],
   message: string,
   retryable: boolean,
+  kind: AnswerSubmissionFailure["kind"] = "request",
 ): AnswerSubmissionFailure {
-  return { stage, message, retryable };
+  return { stage, kind, message, retryable };
 }
 
 function wait(ms: number, signal: AbortSignal): Promise<void> {
@@ -239,6 +240,7 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
         return;
       }
 
+      let retriedFailedStatus = false;
       for (let attempt = 0; ; attempt += 1) {
         patchJob(id, {
           stage: "notifying",
@@ -247,9 +249,21 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
           lastError: null,
         });
         try {
-          const result = await notifyAnswerUploadComplete(job.key, job.fileKey, signal);
+          let result = await notifyAnswerUploadComplete(job.key, signal);
+          if (result.status === "FAILED" && !retriedFailedStatus) {
+            retriedFailedStatus = true;
+            result = await notifyAnswerUploadComplete(job.key, signal);
+          }
           if (result.status === "FAILED") {
-            markFailed(id, failure("notify", "서버가 답변 처리 실패를 반환했어요.", false));
+            markFailed(
+              id,
+              failure(
+                "notify",
+                "서버가 답변을 처리하지 못했어요.",
+                false,
+                "server-processing",
+              ),
+            );
             return;
           }
           markSucceeded(id, result.status);
