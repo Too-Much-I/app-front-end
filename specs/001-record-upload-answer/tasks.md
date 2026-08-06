@@ -138,7 +138,7 @@ Task T008: error mascot and failure actions after prop contract is known
 ### Incremental Delivery
 
 1. US1로 정상 제출 계약 수정
-2. US2로 같은 target/fileKey를 유지하는 복구 추가
+2. US2로 같은 target과 Answer Key를 유지하는 복구 추가
 3. US3로 서버 고지 재시도와 실패 UX 추가
 4. 정적 검사와 가능한 quickstart 검증 완료
 
@@ -146,5 +146,5 @@ Task T008: error mascot and failure actions after prop contract is known
 
 - 새 dependency 또는 lockfile 변경은 허용하지 않는다.
 - 네트워크 재시도는 `retryCount`를 변경하지 않는다.
-- 동일 tuple/fileKey 고지를 서버가 멱등 처리한다는 통합 계약이 필요하다.
+- 동일 tuple 고지를 서버가 멱등 처리한다는 통합 계약이 필요하다.
 - commit, push, Jira write는 별도 명시적 요청 전에는 수행하지 않는다.

@@ -75,6 +75,11 @@ export function ExamAnswerStatus({
   if (phase === "submission-barrier") {
     const failedJobs = jobs.filter((job) => job.stage === "failed");
     const retryableFailedJobs = failedJobs.filter((job) => job.lastError?.retryable);
+    const processingFailedJobs = failedJobs.filter(
+      (job) => job.lastError?.kind === "server-processing",
+    );
+    const onlyProcessingFailed =
+      failedJobs.length > 0 && processingFailedJobs.length === failedJobs.length;
 
     if (failedJobs.length > 0 && summary.pendingCount === 0) {
       return (
@@ -90,11 +95,13 @@ export function ExamAnswerStatus({
             source={errorMascot}
           />
           <Text className="mt-4 text-center text-xl text-exam-danger">
-            답변을 제출하지 못했어요
+            {onlyProcessingFailed ? "답변 처리에 실패했어요" : "답변을 제출하지 못했어요"}
           </Text>
           <Text className="mt-2 text-center text-sm leading-6 text-ink-muted">
             {retryableFailedJobs.length > 0
               ? "네트워크나 서버 연결이 안정된 뒤 다시 시도하거나 홈으로 돌아가주세요."
+              : onlyProcessingFailed
+                ? "답변 파일은 전송됐지만 서버가 처리하지 못했어요. 자동으로 한 번 더 시도했지만 같은 결과가 돌아왔습니다."
               : "현재 요청은 다시 보내도 해결되지 않아요. 홈으로 돌아간 뒤 다시 시작해주세요."}
           </Text>
 

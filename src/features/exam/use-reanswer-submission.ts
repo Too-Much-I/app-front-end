@@ -31,6 +31,8 @@ function getGradingTimeoutMs(questionNumber: number): number {
 }
 
 const SUBMIT_FAILURE_MESSAGE = "제출 중 문제가 생겼어요. 다시 시도해 주세요.";
+const SUBMIT_PROCESSING_FAILURE_MESSAGE =
+  "서버가 답변을 처리하지 못했어요. 피드백 화면에서 다시 시작해 주세요.";
 const GRADING_FAILURE_MESSAGE = "채점 결과를 확인하지 못했어요.";
 const GRADING_TIMEOUT_MESSAGE = "채점이 예상보다 오래 걸리고 있어요.";
 
@@ -148,11 +150,14 @@ export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionIn
           Date.now() + uploadTarget.expiresIn * 1_000,
           controller.signal,
         );
-        await notifyAnswerUploadComplete(
-          keyRef.current,
-          uploadTarget.fileKey,
-          controller.signal,
-        );
+        let submitResult = await notifyAnswerUploadComplete(keyRef.current, controller.signal);
+        if (submitResult.status === "FAILED") {
+          submitResult = await notifyAnswerUploadComplete(keyRef.current, controller.signal);
+        }
+        if (submitResult.status === "FAILED") {
+          fail("submit", SUBMIT_PROCESSING_FAILURE_MESSAGE);
+          return;
+        }
       } catch (error) {
         if (controller.signal.aborted || !mountedRef.current) return;
         console.error("[Reanswer] 답변 제출 실패", error);

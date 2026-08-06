@@ -156,15 +156,15 @@ Stage rules:
 - `uploadUrl === null`이면 최초 upload target 요청부터 시작한다. target을 받으면
   `uploadUrl`, `uploadExpiresAt`, `fileKey`를 한 번에 저장하고 이후 PUT 재시도에서 바꾸지 않는다.
 - `uploadCompleted === true`이면 로컬 파일이나 upload URL의 존재 여부와 관계없이 S3 PUT을
-  다시 실행하지 않고 같은 `fileKey`의 서버 고지만 실행한다.
+  다시 실행하지 않고 같은 Answer Key의 서버 고지만 실행한다.
 - S3 PUT의 network/timeout/408/429/5xx는 같은 target으로 최대 5회 추가 재시도한다.
 - PUT 2xx 뒤에는 로컬 파일을 삭제하고 `queued-notify`로 전환한다.
-- 서버 고지의 network/timeout/408/429/5xx는 같은 fileKey로 최대 3회 추가 재시도한다.
+- 서버 고지의 network/timeout/408/429/5xx는 같은 Answer Key로 최대 3회 추가 재시도한다.
 - 모든 자동 retry wait는 equal jitter를 사용하며 S3는 다음 시도가 만료 예산을 넘으면 중단한다.
 - 같은 key가 이미 registry에 있으면 두 번째 registration은 새 runner를 만들지 않는다.
 - 같은 key에 다른 URI가 들어오면 invariant violation으로 처리한다.
 - 서버 고지 응답 유실은 `submission-unknown`이나 status 조회로 분기하지 않고 동일 고지를
-  재시도한다. 이 동작은 서버가 tuple/fileKey를 멱등 처리한다는 계약에 의존한다.
+  재시도한다. 이 동작은 서버가 tuple을 멱등 처리한다는 계약에 의존한다.
 - `PENDING`, `PROCESSING`, `COMPLETED`는 고지 성공이다. `FAILED`와 일반 4xx는 terminal failure다.
 - PUT 전 `failed`에서는 파일을 유지한다. PUT 뒤 notify failure에는 로컬 파일이 필요하지 않다.
 

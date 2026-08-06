@@ -107,7 +107,7 @@ PUT을 재시도하고, PUT 성공 뒤 고지 실패는 같은 `fileKey`에서 �
 ## Decision 7 — 서버 고지는 동일 요청을 최대 3회 재시도한다
 
 **Decision**: S3 PUT 2xx 뒤 서버 고지의 network error, timeout, 408, 429, 5xx는 동일한
-`(examId, questionNumber, retryCount, fileKey)`로 최대 3회 추가 재시도한다. PUT은 다시 하지
+`(examId, questionNumber, retryCount)`로 최대 3회 추가 재시도한다. PUT은 다시 하지
 않고 존재하지 않는 question status endpoint도 조회하지 않는다. 일반 4xx와 명시적인 처리
 실패는 terminal failure로 둔다.
 
@@ -116,7 +116,7 @@ S3에 이미 저장된 파일을 다시 올릴 이유는 없다. 응답 유실�
 있으므로 동일 고지는 서버에서 중복 작업 없이 처리되는 계약이 필요하다. 이 계약 아래에서는
 별도 상태 조회 없이 같은 요청을 재전송하는 것이 가장 단순하다.
 
-**Integration prerequisite**: 서버는 동일한 tuple/fileKey 고지를 여러 번 받아도 채점 작업을
+**Integration prerequisite**: 서버는 동일한 tuple 고지를 여러 번 받아도 채점 작업을
 하나만 만들고 이미 접수된 요청에는 성공으로 해석 가능한 응답을 반환해야 한다.
 
 **Alternatives considered**:

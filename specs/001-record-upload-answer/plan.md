@@ -140,11 +140,11 @@ Option B를 채택한다.
    재녹음하지 않고 같은 파일의 등록을 재시도한다. 실제 네트워크 작업은 인앱
    background에서 계속되며 AppState suspension 뒤에는 foreground에서 재개한다.
 10. registry는 FIFO가 아니며 문항 key별 job과 single-flight runner를 보관한다. 한 job의
-    retry wait가 다른 job을 막지 않는다. PUT 2xx 뒤 서버 고지는 같은 tuple/fileKey로 최대
+    retry wait가 다른 job을 막지 않는다. PUT 2xx 뒤 서버 고지는 같은 tuple로 최대
     3회 추가 재시도한다. 고지 실패 때 PUT을 다시 실행하거나 status API를 조회하지 않는다.
 11. 로컬 파일은 S3 PUT 성공 뒤 삭제한다. PUT 전 재시도 가능한 실패에서는 유지하고,
     중단·screen leave·session dispose에서는 실행 중 파일 읽기가 끝난 뒤 best-effort로
-    삭제한다. 고지 재시도는 fileKey만 사용한다.
+    삭제한다. 고지 재시도는 Answer Key만 사용한다.
 12. `apiFetch`는 내부 timeout과 호출자 cancellation signal을 합성해 화면 이탈 시 endpoint
     요청과 retry wait를 함께 중단할 수 있게 한다.
 13. 최종 barrier에서 모든 pending job이 끝났는데 failed job이 있으면

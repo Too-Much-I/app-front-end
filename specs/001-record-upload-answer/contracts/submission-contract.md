@@ -55,15 +55,12 @@ Client rules:
 - local file은 PUT 전에 존재하고 size가 0보다 커야 한다.
 - job cancellation과 PUT timeout signal을 합성한다.
 - 다음 delay와 PUT timeout을 더한 시점이 deadline을 넘으면 시도하지 않는다.
-- PUT 2xx 뒤 local file을 삭제하고 이후 고지 재시도에서는 fileKey만 사용한다.
+- PUT 2xx 뒤 local file을 삭제하고 이후 고지 재시도에서는 Answer Key만 사용한다.
 
 ## Step 3 — Notify Upload Completion
 
 ```http
 POST /api/v1/exams/{examId}/questions/{questionNumber}/submit?retryCount={retryCount}
-Content-Type: application/json
-
-{"fileKey":"answer/path/file.m4a"}
 ```
 
 Accepted result status:
@@ -76,12 +73,12 @@ Accepted result status:
 
 Notification retry rules:
 
-1. network error, timeout, 408, 429, 5xx는 동일 body와 Answer Key로 최대 3회 추가 재시도한다.
+1. network error, timeout, 408, 429, 5xx는 동일 Answer Key로 최대 3회 추가 재시도한다.
 2. base delay `1s, 2s, 4s`마다 50~100% equal jitter를 적용한다.
 3. 일반 4xx와 `FAILED`는 자동 재시도하지 않는다.
 4. 고지 실패나 응답 유실 때 S3 PUT을 반복하지 않는다.
 5. 존재하지 않는 question status endpoint를 조회하지 않는다.
-6. 서버는 같은 `(examId, questionNumber, retryCount, fileKey)`의 반복 고지를 하나의 채점
+6. 서버는 같은 `(examId, questionNumber, retryCount)`의 반복 고지를 하나의 채점
    작업으로 처리하고 이미 접수된 요청에 성공으로 해석 가능한 응답을 반환해야 한다.
 
 ## Client Registry Contract
