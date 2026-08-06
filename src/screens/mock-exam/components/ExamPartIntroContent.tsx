@@ -10,6 +10,8 @@ import { getExamPartIntroAudioSource } from "@/features/exam/part-prelude";
 import { colors } from "@/theme";
 import type { ExamPartIntroPrelude } from "@/types/exam";
 
+const REMOTE_AUDIO_LOAD_TIMEOUT_MS = 10_000;
+
 interface ExamPartIntroContentProps {
   isActive: boolean;
   prelude: ExamPartIntroPrelude;
@@ -27,7 +29,10 @@ export function ExamPartIntroContent({
     () => getExamPartIntroAudioSource(prelude.guideAudioUrl),
     [prelude.guideAudioUrl],
   );
-  const player = useAudioPlayer(audioSource ?? null, { updateInterval: 100 });
+  const player = useAudioPlayer(audioSource ?? null, {
+    updateInterval: 100,
+    downloadFirst: true,
+  });
   const playbackStatus = useAudioPlayerStatus(player);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);
   const hasCompletedRef = useRef(false);
@@ -45,12 +50,19 @@ export function ExamPartIntroContent({
 
       try {
         hasObservedPlayingRef.current = false;
-        await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
-        if (!isActiveRef.current || hasCompletedRef.current) return;
         player.pause();
         if (reloadSource) {
+          hasStartedRef.current = false;
+          shouldRestartRef.current = true;
+          setHasPlaybackError(false);
           player.replace(audioSource);
-        } else if (player.currentTime > 0) {
+          return;
+        }
+        if (!playbackStatus.isLoaded) return;
+
+        await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
+        if (!isActiveRef.current || hasCompletedRef.current) return;
+        if (player.currentTime > 0) {
           await player.seekTo(0);
         }
         player.play();
@@ -62,7 +74,7 @@ export function ExamPartIntroContent({
         setHasPlaybackError(true);
       }
     },
-    [audioSource, player],
+    [audioSource, playbackStatus.isLoaded, player],
   );
 
   useEffect(() => {
@@ -79,10 +91,36 @@ export function ExamPartIntroContent({
       return;
     }
 
-    if (!hasStartedRef.current || shouldRestartRef.current) {
+    // 번들 음원과 달리 원격 URL은 player 생성 뒤 비동기로 로드된다. 로드 전에 play()를
+    // 호출하면 오류 없이 무시될 수 있으므로 isLoaded가 된 시점에 재생을 시작한다.
+    if (
+      playbackStatus.isLoaded &&
+      (!hasStartedRef.current || shouldRestartRef.current)
+    ) {
       void playFromStart();
     }
-  }, [isActive, playFromStart, player]);
+  }, [isActive, playFromStart, playbackStatus.isLoaded, player]);
+
+  useEffect(() => {
+    if (
+      !isActive ||
+      playbackStatus.isLoaded ||
+      hasPlaybackError ||
+      hasCompletedRef.current
+    ) {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      player.pause();
+      hasObservedPlayingRef.current = false;
+      shouldRestartRef.current = true;
+      console.error("[ExamPartIntro] 안내 음성 로딩 시간 초과");
+      setHasPlaybackError(true);
+    }, REMOTE_AUDIO_LOAD_TIMEOUT_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [hasPlaybackError, isActive, playbackStatus.isLoaded, player]);
 
   useEffect(() => {
     if (playbackStatus.playing && isActive) {
