@@ -16,6 +16,7 @@ import { Text } from "@/components/ui/Text";
 import { isFeedbackDataReadyMessage } from "@/features/exam/feedback-data-ready-message";
 import { isGoHomeRequestedMessage } from "@/features/exam/go-home-message";
 import {
+  buildNativeCapabilitiesScript,
   buildNativeDataRefreshScript,
   buildNativeDataScript,
   parseNativeDataRequest,
@@ -43,6 +44,7 @@ type FeedbackNavigationProp = CompositeNavigationProp<
  * 이게 없으면 스켈레톤이 영원히 안 사라져 화면이 아예 안 뜨는 것처럼 보인다.
  */
 const FEEDBACK_READY_TIMEOUT_MS = 10_000;
+const NATIVE_CAPABILITIES_SCRIPT = buildNativeCapabilitiesScript();
 
 function buildOverviewUrl(examId: string): string | null {
   if (!WEB_BASE_URL) return null;
@@ -296,6 +298,7 @@ export function FeedbackScreen() {
           key={feedbackUrl}
           source={{ uri: feedbackUrl }}
           className="flex-1 bg-surface-subtle"
+          injectedJavaScriptBeforeContentLoaded={NATIVE_CAPABILITIES_SCRIPT}
           onMessage={handleWebViewMessage}
           onError={() => setHasLoadError(true)}
           onHttpError={() => setHasLoadError(true)}

@@ -11,6 +11,7 @@ import { getRawExamQuestionFeedback } from "@/features/exam/api/exam-question-fe
  *   type: "NATIVE_DATA_REQUEST", requestId, resource, params }))`.
  */
 const REQUEST_TYPE = "NATIVE_DATA_REQUEST";
+const NATIVE_DATA_REQUEST_VERSION = 1;
 
 const FALLBACK_ERROR_MESSAGE = "데이터를 불러오지 못했어요.";
 
@@ -27,6 +28,20 @@ export type NativeDataRequest =
 export type NativeDataResponse =
   | { requestId: string; ok: true; result: unknown }
   | { requestId: string; ok: false; message: string };
+
+/**
+ * 웹이 페이지 초기화 시점에 이 앱 버전의 데이터 브리지 지원 여부를 판별하게 한다.
+ *
+ * `window.ReactNativeWebView` 존재 여부만 보면 브리지가 없던 이전 앱도 네이티브로 오인한다.
+ * 버전 1은 `NATIVE_DATA_REQUEST` 요청과 `__nativeDataBridge.deliver` 응답 계약을 뜻한다.
+ * 페이지 코드보다 먼저 실행해야 하므로 WebView의 injectedJavaScriptBeforeContentLoaded에 쓴다.
+ */
+export function buildNativeCapabilitiesScript(): string {
+  const capabilities = JSON.stringify({
+    nativeDataRequestVersion: NATIVE_DATA_REQUEST_VERSION,
+  });
+  return `window.__nativeCapabilities = ${capabilities}; true;`;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
