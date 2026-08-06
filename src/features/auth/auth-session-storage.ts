@@ -47,3 +47,12 @@ export async function writeAuthSession(session: AuthSession): Promise<void> {
     throw new AuthStorageError("인증 정보를 저장하지 못했습니다.");
   }
 }
+
+export async function clearAuthSession(): Promise<void> {
+  assertNativeStorage();
+  try {
+    await SecureStore.deleteItemAsync(AUTH_SESSION_KEY);
+  } catch {
+    throw new AuthStorageError("인증 정보를 삭제하지 못했습니다.");
+  }
+}

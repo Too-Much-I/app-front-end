@@ -1,11 +1,16 @@
 import { getConsentStatus } from "@/features/auth/api/get-consent-status";
 import { createGuest } from "@/features/auth/api/create-guest";
+import { logout } from "@/features/auth/api/logout";
 import {
   isDefinitiveRefreshFailure,
   reissueTokens,
 } from "@/features/auth/api/reissue-tokens";
 import { updateConsents } from "@/features/auth/api/update-consents";
-import { readAuthSession, writeAuthSession } from "@/features/auth/auth-session-storage";
+import {
+  clearAuthSession,
+  readAuthSession,
+  writeAuthSession,
+} from "@/features/auth/auth-session-storage";
 import {
   getOrCreateInstallationId,
   InstallationIdError,
@@ -34,6 +39,26 @@ import { ApiError } from "@/lib/api/transport";
 const PROACTIVE_REFRESH_WINDOW_MS = 60_000;
 const RETRY_MESSAGE = "인증을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.";
 const ALL_CONSENTS_REQUIRED: ConsentRequirements = { privacy: true, terms: true };
+
+function logAuthDebug(message: string, error?: unknown): void {
+  if (!__DEV__) return;
+  if (error === undefined) {
+    console.log(`[Auth] ${message}`);
+    return;
+  }
+  const details =
+    error instanceof ApiError
+      ? {
+          name: error.name,
+          message: error.message,
+          status: error.status,
+          code: error.code,
+        }
+      : error instanceof Error
+        ? { name: error.name, message: error.message }
+        : { valueType: typeof error };
+  console.error(`[Auth] ${message}`, details);
+}
 
 type AuthStateListener = () => void;
 type SessionContinuation = "authenticated" | "check-consent";
@@ -106,7 +131,8 @@ class AuthController {
       }
 
       await this.prepareSessionlessBootstrap(run, preserveRetryUi);
-    } catch {
+    } catch (error) {
+      logAuthDebug("bootstrap failed unexpectedly", error);
       this.setRetry("startup", { operation: "read-local" }, run);
     }
   }
@@ -115,6 +141,7 @@ class AuthController {
     try {
       this.installationId = await getOrCreateInstallationId();
     } catch (error) {
+      logAuthDebug("installation id preparation failed", error);
       if (error instanceof InstallationIdError && error.pendingInstallationId) {
         this.setRetry(
           "startup",
@@ -134,7 +161,8 @@ class AuthController {
     let consent: ConsentRecordV2 | null;
     try {
       consent = await getStoredConsent();
-    } catch {
+    } catch (error) {
+      logAuthDebug("stored consent read failed", error);
       this.setRetry("startup", { operation: "read-local" }, run);
       return;
     }
@@ -215,7 +243,8 @@ class AuthController {
       const continuation: SessionContinuation =
         source === "startup" ? "check-consent" : "authenticated";
       await this.persistAndCommit(session, source, continuation, run);
-    } catch {
+    } catch (error) {
+      logAuthDebug("guest recovery failed", error);
       this.setRetry(source, { operation: "guest" }, run);
     }
   }
@@ -229,6 +258,7 @@ class AuthController {
       const nextSession = await reissueTokens(session.refreshToken);
       await this.persistAndCommit(nextSession, "startup", "check-consent", run);
     } catch (error) {
+      logAuthDebug("token reissue failed", error);
       if (isDefinitiveRefreshFailure(error)) {
         await this.prepareSessionlessBootstrap(run, preserveRetryUi);
         return;
@@ -245,7 +275,8 @@ class AuthController {
   ): Promise<boolean> {
     try {
       await writeAuthSession(session);
-    } catch {
+    } catch (error) {
+      logAuthDebug("session persistence failed", error);
       this.setRetry(
         source,
         { operation: "persist-session", session, continuation },
@@ -304,6 +335,7 @@ class AuthController {
       this.consent = consent;
       this.setState({ status: "AUTHENTICATED" }, run);
     } catch (error) {
+      logAuthDebug("server consent check failed", error);
       if (error instanceof ApiError && error.status === 401 && !didRetryUnauthorized) {
         try {
           await this.rotateSession();
@@ -429,6 +461,7 @@ class AuthController {
     }
     const { retry, source } = this.state;
     const run = this.runGeneration;
+    logAuthDebug(`retry started: source=${source}, operation=${retry.operation}`);
     this.setState({ ...this.state, isRetrying: true }, run);
 
     if (retry.operation === "read-local") {
@@ -481,6 +514,53 @@ class AuthController {
       return;
     }
     await this.updateExistingConsents(retry.request, run, true);
+  }
+
+  /**
+   * 게스트 계정을 삭제하고 새 게스트로 앱을 다시 시작한다 — 설정의 "모든 학습 기록 삭제".
+   *
+   * consent와 installationId는 남긴다. 로컬 동의 기록이 있어야 재부트스트랩이 재동의
+   * 화면으로 빠지지 않고, 서버 게스트가 이미 삭제됐으므로 같은 installationId로도
+   * 복구될 대상이 없어 빈 게스트가 새로 발급된다.
+   */
+  async deleteGuestAccount(): Promise<void> {
+    logAuthDebug("guest account deletion started");
+    // 회전이 진행 중이면 먼저 끝낸다. 회전 직후의 낡은 refresh token으로 로그아웃하면
+    // 재사용 감지에 걸려 불필요하게 실패한다.
+    if (this.rotationPromise) {
+      try {
+        await this.rotationPromise;
+      } catch {
+        // 회전 실패는 아래 로그아웃 실패로 그대로 드러난다.
+      }
+    }
+
+    // 서버 삭제가 실패하면 로컬을 하나도 건드리지 않는다. 여기서 로컬만 지우면 살아있는
+    // 계정의 학습 기록에 사용자가 다시 접근할 방법이 없어진다.
+    await logout(this.requireSession().refreshToken);
+    logAuthDebug("server logout completed");
+
+    try {
+      await clearAuthSession();
+      logAuthDebug("local auth session cleared");
+    } catch (error) {
+      logAuthDebug("local auth session clear failed", error);
+      // 서버 계정은 이미 사라져 되돌릴 수 없다. 남은 저장 세션은 죽은 값이고, 다음 부팅의
+      // reissue가 확정적 401을 받아 sessionless 경로로 자가 치유한다.
+    }
+
+    this.session = null;
+    this.serverConsent = null;
+    this.reissueSession = null;
+    this.pendingRotationSession = null;
+    this.rotationPromise = null;
+    // 비우지 않으면 아래 bootstrap()이 직전 실행의 promise를 보고 조기 반환한다.
+    this.bootstrapPromise = null;
+
+    // 완료를 기다리지 않는다. 재부트스트랩이 시작되는 순간 App이 NavigationContainer를
+    // 언마운트하므로 이 호출을 기다리던 화면은 이미 사라져 있다.
+    logAuthDebug("bootstrap after deletion started");
+    void this.bootstrap();
   }
 
   private requireSession(): AuthSession {
