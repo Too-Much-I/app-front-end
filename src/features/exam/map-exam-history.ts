@@ -42,6 +42,10 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function isValidDateString(value: unknown): value is string {
+  return isNonEmptyString(value) && Number.isFinite(new Date(value).getTime());
+}
+
 function chartDateLabel(completedAt: string): string {
   const date = new Date(completedAt);
   return `${date.getMonth() + 1}/${date.getDate()}`;
@@ -78,7 +82,7 @@ function mapItem(value: unknown): ExamHistoryItem {
   if (
     !isNonEmptyString(examId) ||
     typeof title !== "string" ||
-    !isNonEmptyString(completedAt) ||
+    !isValidDateString(completedAt) ||
     !isFiniteNumber(totalScore) ||
     typeof levelEstimate !== "string"
   ) {

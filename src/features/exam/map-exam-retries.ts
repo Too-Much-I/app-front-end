@@ -1,4 +1,7 @@
-import { getExamQuestionMaxScore } from "@/features/exam/part-meta";
+import {
+  getExamPartNumberByQuestionNumber,
+  getExamQuestionMaxScore,
+} from "@/features/exam/part-meta";
 import type { RawExamRetriesResult } from "@/types/exam";
 
 export type ReanswerQuestionItem = {
@@ -34,6 +37,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
 }
 
 type GradedAttempt = {
@@ -76,11 +83,12 @@ function toReanswerQuestion(
 ): ReanswerQuestionItem | null {
   if (!isRecord(value)) return null;
 
-  const { partNumber, questionNumber, attempts } = value;
+  const { questionNumber, attempts } = value;
   if (!isFiniteNumber(questionNumber) || !Array.isArray(attempts)) return null;
 
+  const partNumber = getExamPartNumberByQuestionNumber(questionNumber);
   const maxScore = getExamQuestionMaxScore(questionNumber);
-  if (maxScore === null || maxScore <= 0) return null;
+  if (partNumber === null || maxScore === null || maxScore <= 0) return null;
 
   const graded = attempts
     .map(toGradedAttempt)
@@ -97,8 +105,8 @@ function toReanswerQuestion(
 
   return {
     examId,
-    // 문항 번호로 파트를 되짚을 수 있으므로 서버 값이 없어도 화면을 포기하지 않는다.
-    partNumber: isFiniteNumber(partNumber) ? partNumber : 0,
+    // 서버의 partNumber가 누락되거나 어긋나도 문항 번호와 배점 기준이 서로 갈리지 않는다.
+    partNumber,
     questionNumber,
     retryCount: latest.retryCount,
     initialScore: initial.score,
@@ -110,11 +118,15 @@ function toReanswerQuestion(
 
 /** 재답변 이력에서 비교 가능한 문항만 문항 번호 순으로 추린다. */
 export function mapExamRetries(raw: RawExamRetriesResult): ReanswerQuestionItem[] {
-  if (!isRecord(raw) || !Array.isArray(raw.questions)) {
+  if (
+    !isRecord(raw) ||
+    !isNonEmptyString(raw.examId) ||
+    !Array.isArray(raw.questions)
+  ) {
     throw new ExamRetriesContractError();
   }
 
-  const examId = typeof raw.examId === "string" ? raw.examId : "";
+  const examId = raw.examId;
 
   return raw.questions
     .map((question) => toReanswerQuestion(examId, question))
