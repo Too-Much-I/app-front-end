@@ -12,6 +12,21 @@ export function mapExamSession(raw: RawExamSession): ExamSession {
   // 응시 자체를 막는 조건이라, 응시자가 답변을 시작하기 전에 걸러야 한다.
   assertQuestionAudioAvailable(raw);
 
+  if (__DEV__) {
+    console.log(
+      "[ExamSession] Part 4 raw response",
+      raw.questions
+        .filter((question) => question.part === 4)
+        .map((question) => ({
+          questionNumber: question.questionNumber,
+          keys: Object.keys(question),
+          imageFields: Object.fromEntries(
+            Object.entries(question).filter(([key]) => /image|table/i.test(key)),
+          ),
+        })),
+    );
+  }
+
   const { partPreludes, canonicalPart4ImageUrl } = normalizeExamPartPreludes(raw.questions);
   const partGroups = new Map<number, RawExamQuestion[]>();
   for (const q of raw.questions) {
