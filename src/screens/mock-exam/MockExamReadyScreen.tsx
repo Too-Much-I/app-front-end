@@ -4,10 +4,11 @@ import { Image, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Pressable } from "@/components/ui/Pressable";
+import { StartMockExamButton } from "@/components/ui/StartMockExamButton";
 import { Text } from "@/components/ui/Text";
 import type { MockExamStackParamList } from "@/navigation/types";
 import { ExamReadyNoticeCard } from "@/screens/mock-exam/components/ExamReadyNoticeCard";
-import { colors, shadows } from "@/theme";
+import { colors } from "@/theme";
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
 // "조용히" 몸짓의 마스코트 — 안내 목록 첫 항목(조용한 곳에서 응시)과 그림이 그대로 맞는다.
@@ -73,16 +74,11 @@ export function MockExamReadyScreen({ navigation }: MockExamReadyScreenProps) {
 
         {/* 남는 공간의 중앙에 CTA를 두고, 작은 화면에서는 전체 콘텐츠와 함께 스크롤한다. */}
         <View className="flex-1 justify-center px-5 py-4">
-          {/* 규칙: 버튼이 주황이면 아이콘·글자는 흰색 */}
-          <Pressable
-            className="flex-row items-center justify-center gap-2 rounded-2xl bg-brand-cta py-4"
-            style={shadows.card}
+          {/* 마이크 테스트를 포함한 모의고사 준비 흐름 전체를 시작하는 버튼이다. */}
+          <StartMockExamButton
+            accessibilityHint="마이크와 소리 테스트를 거쳐 모의고사를 시작합니다"
             onPress={handleStartExam}
-          >
-            {/* 마이크 테스트를 포함한 모의고사 준비 흐름 전체를 시작하는 버튼이다. */}
-            <Feather name="play-circle" size={20} color="#FFFFFF" />
-            <Text className="text-base text-white">모의고사 시작하기</Text>
-          </Pressable>
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
