@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { Image, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { getStoredConsent } from "@/features/consent/consent-storage";
 import type { RootStackParamList } from "@/navigation/types";
 import { SettingsRow } from "@/screens/settings/components/SettingsRow";
 import { SettingsSection } from "@/screens/settings/components/SettingsSection";
+import { useDeleteLearningRecords } from "@/screens/settings/use-delete-learning-records";
 import { colors, shadows } from "@/theme";
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
@@ -27,6 +29,7 @@ function formatConsentDate(iso: string): string {
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [consentAgreedAt, setConsentAgreedAt] = useState<string | null>(null);
+  const deletion = useDeleteLearningRecords();
 
   useEffect(() => {
     getStoredConsent()
@@ -129,14 +132,32 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               description="삭제 후 복구할 수 없으니 신중히 선택해주세요."
               destructive
               icon="trash-2"
-              // TODO: 실제 삭제 로직과 확인 다이얼로그가 생기면 연결
-              onPress={() => console.log("[Settings] 모든 학습 기록 삭제 press")}
+              onPress={deletion.request}
               showDivider={false}
               title="모든 학습 기록 삭제"
             />
           </SettingsSection>
         </View>
       </ScrollView>
+
+      <ConfirmModal
+        cancelLabel="그대로 둘게요"
+        confirmHint="모든 학습 기록을 삭제하고 앱을 처음 상태로 되돌립니다"
+        confirmLabel="삭제하기"
+        confirmTone="danger"
+        errorMessage={
+          deletion.status === "error"
+            ? "삭제하지 못했어요. 잠시 후 다시 시도해주세요."
+            : undefined
+        }
+        message="지금까지의 시험 기록과 피드백이 모두 사라져요. 삭제하면 되돌릴 수 없어요."
+        onCancel={deletion.cancel}
+        onConfirm={deletion.confirm}
+        pending={deletion.status === "deleting"}
+        title="모든 학습 기록을 지울까요?"
+        visible={deletion.status !== "idle"}
+        warningBadge
+      />
     </SafeAreaView>
   );
 }

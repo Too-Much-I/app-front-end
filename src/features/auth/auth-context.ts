@@ -6,6 +6,7 @@ export type AuthContextValue = {
   state: AuthBootstrapState;
   acceptConsent: () => Promise<void>;
   retry: () => Promise<void>;
+  deleteGuestAccount: () => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

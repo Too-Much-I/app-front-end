@@ -17,6 +17,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       state,
       acceptConsent: () => authController.acceptConsent(),
       retry: () => authController.retry(),
+      deleteGuestAccount: () => authController.deleteGuestAccount(),
     }),
     [state],
   );
