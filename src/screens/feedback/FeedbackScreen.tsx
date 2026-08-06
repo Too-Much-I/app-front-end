@@ -14,6 +14,7 @@ import WebView, { type WebViewMessageEvent } from "react-native-webview";
 
 import { Text } from "@/components/ui/Text";
 import { isFeedbackDataReadyMessage } from "@/features/exam/feedback-data-ready-message";
+import { isFeedbackHistoryRequestedMessage } from "@/features/exam/feedback-history-message";
 import { isGoHomeRequestedMessage } from "@/features/exam/go-home-message";
 import {
   buildNativeCapabilitiesScript,
@@ -240,6 +241,15 @@ export function FeedbackScreen() {
       // examId 로딩 실패로 에러 폴백이 뜬 경우에도 동작해야 하므로 examId 가드보다 먼저 검사한다.
       if (isGoHomeRequestedMessage(event.nativeEvent.data)) {
         navigation.navigate("MainTabs", { screen: "Home" });
+        return;
+      }
+
+      if (isFeedbackHistoryRequestedMessage(event.nativeEvent.data)) {
+        navigation.setParams({
+          examId: undefined,
+          questionNumber: undefined,
+          retryCount: undefined,
+        });
         return;
       }
 
