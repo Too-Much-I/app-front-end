@@ -273,6 +273,7 @@ export function FeedbackScreen() {
     return (
       <ExamHistoryScreen
         onOpenExam={(nextExamId) => navigation.setParams({ examId: nextExamId })}
+        onStartExam={() => navigation.navigate("MockExam")}
       />
     );
   }

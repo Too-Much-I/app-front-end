@@ -47,6 +47,8 @@ const TAB_TRANSITION_DURATION_MS = 220;
 /** 패널이 밀려 들어오는 거리. 화면 폭만큼 밀면 스크롤 화면에서 과하게 흔들린다. */
 const PANEL_SLIDE_DISTANCE = 28;
 const chartIllustration = require("../../../../public/icons/chart.png");
+const greetingCat = require("../../../../public/mascots/greeting_cat.png");
+const graduateTurtle = require("../../../../public/mascots/graduate_turtle.png");
 
 type HistoryTab = "reanswers" | "exams";
 
@@ -74,8 +76,19 @@ const REANSWER_SUMMARY_SPARKLES: SparkleProps[] = [
   { className: "right-2 top-[84px]", size: "base", colorClassName: "text-yellow-400" },
 ];
 
+/** 빈 이력의 고양이 주변에 홈 인사 영역과 같은 색 조합으로 흩뿌리는 반짝임. */
+const EMPTY_HISTORY_SPARKLES: SparkleProps[] = [
+  { className: "left-[7%] top-4", size: "2xl", colorClassName: "text-sky-300" },
+  { className: "right-[9%] top-2", size: "xl", colorClassName: "text-brand-300" },
+  { className: "left-[14%] top-[118px]", size: "lg", colorClassName: "text-yellow-400" },
+  { className: "right-[10%] top-[132px]", size: "2xl", colorClassName: "text-sky-400" },
+  { className: "left-[24%] top-[66px]", size: "sm", colorClassName: "text-brand-200" },
+  { className: "right-[23%] top-[76px]", size: "base", colorClassName: "text-yellow-300" },
+];
+
 type ExamHistoryScreenProps = {
   onOpenExam: (examId: string) => void;
+  onStartExam: () => void;
 };
 
 const badgeColors: Record<ExamHistoryTone, { backgroundColor: string; color: string }> = {
@@ -456,11 +469,15 @@ function PanelLoading() {
 function PanelNotice({
   title,
   description,
-  onRetry,
+  actionLabel,
+  onAction,
+  actionHint,
 }: {
   title: string;
   description: string;
-  onRetry?: () => void;
+  actionLabel?: string;
+  onAction?: () => void;
+  actionHint?: string;
 }) {
   return (
     <View className="mt-16 items-center px-6">
@@ -470,15 +487,112 @@ function PanelNotice({
       <Text className="mt-2 text-center text-sm leading-6 text-ink-muted">
         {description}
       </Text>
-      {onRetry && (
+      {actionLabel && onAction && (
         <Pressable
-          accessibilityLabel="다시 시도"
-          className="mt-5 rounded-full border border-brand px-6 py-3"
-          onPress={onRetry}
+          accessibilityLabel={actionLabel}
+          accessibilityHint={actionHint}
+          className="mt-5 rounded-full bg-brand px-6 py-3"
+          onPress={onAction}
         >
-          <Text className="text-base text-brand-text">다시 시도</Text>
+          <Text className="text-base text-white">{actionLabel}</Text>
         </Pressable>
       )}
+    </View>
+  );
+}
+
+/** 시험 이력이 비었을 때 고양이 마스코트와 첫 응시 CTA를 함께 보여준다. */
+function EmptyExamHistory({ onStartExam }: { onStartExam: () => void }) {
+  return (
+    <View className="mt-8 items-center rounded-3xl border border-line bg-surface px-5 pb-6 pt-4">
+      <View className="relative h-52 w-full max-w-sm overflow-hidden">
+        <Image
+          accessible={false}
+          source={greetingCat}
+          style={{
+            bottom: 0,
+            height: "100%",
+            left: "29%",
+            position: "absolute",
+            width: "42%",
+            zIndex: 10,
+          }}
+          resizeMode="contain"
+        />
+        {EMPTY_HISTORY_SPARKLES.map((sparkle) => (
+          <Sparkle key={sparkle.className} {...sparkle} />
+        ))}
+      </View>
+
+      <Text accessibilityRole="header" className="mt-3 text-center text-xl">
+        첫 모의고사를 시작해 볼까요?
+      </Text>
+      <Text className="mt-2 text-center text-sm leading-6 text-ink-muted">
+        시험을 완료하면 점수 추이와 문제별 피드백이 여기에 쌓여요.
+      </Text>
+      <Pressable
+        accessibilityLabel="모의고사 시작하기"
+        accessibilityHint="모의고사 준비 화면으로 이동합니다"
+        className="mt-6 w-full items-center rounded-2xl bg-brand px-6 py-4"
+        onPress={onStartExam}
+      >
+        <Text className="text-base text-white">모의고사 시작하기</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+/** 재답변 기록이 비었을 때 터틀 마스코트와 다음 행동을 함께 보여준다. */
+function EmptyReanswerHistory({
+  feedbackExamId,
+  onOpenExam,
+  onStartExam,
+}: {
+  feedbackExamId: string | null;
+  onOpenExam: (examId: string) => void;
+  onStartExam: () => void;
+}) {
+  const actionLabel = feedbackExamId ? "문제별 피드백 보기" : "모의고사 시작하기";
+
+  return (
+    <View className="mt-8 items-center rounded-3xl border border-line bg-surface px-5 pb-6 pt-4">
+      <View className="relative h-52 w-full max-w-sm overflow-hidden">
+        <Image
+          accessible={false}
+          source={graduateTurtle}
+          style={{
+            bottom: 0,
+            height: "100%",
+            left: "29%",
+            position: "absolute",
+            width: "42%",
+            zIndex: 10,
+          }}
+          resizeMode="contain"
+        />
+        {EMPTY_HISTORY_SPARKLES.map((sparkle) => (
+          <Sparkle key={sparkle.className} {...sparkle} />
+        ))}
+      </View>
+
+      <Text accessibilityRole="header" className="mt-3 text-center text-xl">
+        아직 다시 답변한 기록이 없어요
+      </Text>
+      <Text className="mt-2 text-center text-sm leading-6 text-ink-muted">
+        문제별 피드백에서 다시 답변하면 최초 답변과 비교해 볼 수 있어요.
+      </Text>
+      <Pressable
+        accessibilityLabel={actionLabel}
+        accessibilityHint={
+          feedbackExamId
+            ? "재답변할 수 있는 모의고사의 종합 피드백으로 이동합니다"
+            : "모의고사 준비 화면으로 이동합니다"
+        }
+        className="mt-6 w-full items-center rounded-2xl bg-brand px-6 py-4"
+        onPress={feedbackExamId ? () => onOpenExam(feedbackExamId) : onStartExam}
+      >
+        <Text className="text-base text-white">{actionLabel}</Text>
+      </Pressable>
     </View>
   );
 }
@@ -491,11 +605,17 @@ function PanelNotice({
  * 없어진다.
  */
 function ReanswerHistoryPanel({
+  enabled,
   history,
   onRetryHistory,
+  onOpenExam,
+  onStartExam,
 }: {
+  enabled: boolean;
   history: ExamHistoryState;
   onRetryHistory: () => void;
+  onOpenExam: (examId: string) => void;
+  onStartExam: () => void;
 }) {
   const targetExamId =
     history.status === "ready"
@@ -507,6 +627,10 @@ function ReanswerHistoryPanel({
   const [reloadNonce, setReloadNonce] = useState(0);
 
   useEffect(() => {
+    // 탭을 처음 열기 전에는 불필요한 요청을 보내지 않는다. 한번 열리면 부모가 enabled를
+    // 계속 유지하므로 탭을 왕복해도 이 상태와 조회 결과가 사라지지 않는다.
+    if (!enabled) return;
+
     if (history.status === "loading") {
       setState({ status: "loading" });
       return;
@@ -537,7 +661,7 @@ function ReanswerHistoryPanel({
       });
 
     return () => controller.abort();
-  }, [history, targetExamId, reloadNonce]);
+  }, [enabled, history, targetExamId, reloadNonce]);
 
   if (state.status === "loading") {
     return <PanelLoading />;
@@ -550,7 +674,8 @@ function ReanswerHistoryPanel({
         description={
           state.retryable ? "잠시 후 다시 시도해 주세요." : CONTRACT_ERROR_DESCRIPTION
         }
-        onRetry={
+        actionLabel={state.retryable ? "다시 시도" : undefined}
+        onAction={
           state.retryable
             ? () => {
                 // 이력 단계에서 실패했다면 그쪽을 다시 받아야 대상 시험이 정해진다.
@@ -572,10 +697,14 @@ function ReanswerHistoryPanel({
    * 알 수 없으므로 같은 안내를 쓴다.
    */
   if (state.items.length === 0) {
+    const feedbackExamId =
+      targetExamId ?? (history.status === "ready" ? history.items[0]?.examId : null);
+
     return (
-      <PanelNotice
-        title="아직 다시 답변한 기록이 없어요"
-        description="문제별 피드백에서 다시 답변하면 최초 답변과 비교해 볼 수 있어요."
+      <EmptyReanswerHistory
+        feedbackExamId={feedbackExamId}
+        onOpenExam={onOpenExam}
+        onStartExam={onStartExam}
       />
     );
   }
@@ -650,6 +779,7 @@ function ExamHistoryPanel({
   state,
   onRetry,
   onOpenExam,
+  onStartExam,
 }: ExamHistoryScreenProps & {
   state: ExamHistoryState;
   onRetry: () => void;
@@ -666,18 +796,14 @@ function ExamHistoryPanel({
         description={
           state.retryable ? "잠시 후 다시 시도해 주세요." : CONTRACT_ERROR_DESCRIPTION
         }
-        onRetry={state.retryable ? onRetry : undefined}
+        actionLabel={state.retryable ? "다시 시도" : undefined}
+        onAction={state.retryable ? onRetry : undefined}
       />
     );
   }
 
   if (state.items.length === 0) {
-    return (
-      <PanelNotice
-        title="아직 모의고사 기록이 없어요"
-        description="첫 모의고사를 완료하면 점수 추이가 여기에 쌓여요."
-      />
-    );
+    return <EmptyExamHistory onStartExam={onStartExam} />;
   }
 
   return (
@@ -711,8 +837,10 @@ function ExamHistoryPanel({
   );
 }
 
-export function ExamHistoryScreen({ onOpenExam }: ExamHistoryScreenProps) {
+export function ExamHistoryScreen({ onOpenExam, onStartExam }: ExamHistoryScreenProps) {
   const [selectedTab, setSelectedTab] = useState<HistoryTab>("exams");
+  // 재답변 패널을 처음 열기 전에는 /retries를 지연하고, 이후에는 마운트를 유지해 결과를 보존한다.
+  const [hasOpenedReanswers, setHasOpenedReanswers] = useState(false);
   /**
    * 이력은 화면이 한 번만 받아 두 탭이 나눠 쓴다.
    *
@@ -753,6 +881,7 @@ export function ExamHistoryScreen({ onOpenExam }: ExamHistoryScreenProps) {
 
   const handleSelectTab = useCallback(
     (tab: HistoryTab) => {
+      if (tab === "reanswers") setHasOpenedReanswers(true);
       if (tab === selectedTab) return;
       setSelectedTab(tab);
       if (reduceMotion) return;
@@ -784,18 +913,23 @@ export function ExamHistoryScreen({ onOpenExam }: ExamHistoryScreenProps) {
       >
         <HistoryTabs selectedTab={selectedTab} onSelect={handleSelectTab} />
         <Animated.View style={panelStyle}>
-          {selectedTab === "exams" ? (
+          <View style={{ display: selectedTab === "exams" ? "flex" : "none" }}>
             <ExamHistoryPanel
               state={historyState}
               onRetry={retryHistory}
               onOpenExam={onOpenExam}
+              onStartExam={onStartExam}
             />
-          ) : (
+          </View>
+          <View style={{ display: selectedTab === "reanswers" ? "flex" : "none" }}>
             <ReanswerHistoryPanel
+              enabled={hasOpenedReanswers}
               history={historyState}
               onRetryHistory={retryHistory}
+              onOpenExam={onOpenExam}
+              onStartExam={onStartExam}
             />
-          )}
+          </View>
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
