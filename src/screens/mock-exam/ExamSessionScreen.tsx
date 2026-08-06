@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AppState, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { getExamResponseCueKind } from "@/features/exam/exam-cue";
@@ -14,7 +15,6 @@ import { getQuestionAudioPlayCount } from "@/features/exam/question-audio";
 import type { MainTabParamList, MockExamStackParamList } from "@/navigation/types";
 import { AudioWaveform } from "@/screens/mock-exam/components/AudioWaveform";
 import { ExamAnswerStatus } from "@/screens/mock-exam/components/ExamAnswerStatus";
-import { ExamExitConfirmationModal } from "@/screens/mock-exam/components/ExamExitConfirmationModal";
 import { ExamInformationReading } from "@/screens/mock-exam/components/ExamInformationReading";
 import { ExamPartIntroContent } from "@/screens/mock-exam/components/ExamPartIntroContent";
 import { ExamPartDirectionsContent } from "@/screens/mock-exam/components/ExamPartDirectionsContent";
@@ -320,10 +320,16 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
         )}
       </SafeAreaView>
 
-      <ExamExitConfirmationModal
-        visible={isExitConfirmationVisible}
+      <ConfirmModal
+        cancelLabel="계속 응시하기"
+        confirmHint="진행 중인 시험을 종료하고 모의고사 첫 화면으로 이동합니다"
+        confirmLabel="시험 나가기"
+        confirmTone="danger"
+        message="지금 나가면 이번 시험은 제출되지 않고 채점 결과도 받을 수 없어요."
         onCancel={handleCancelExitExam}
         onConfirm={handleConfirmExitExam}
+        visible={isExitConfirmationVisible}
+        warningBadge
       />
     </View>
   );

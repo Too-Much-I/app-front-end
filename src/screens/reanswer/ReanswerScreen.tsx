@@ -4,12 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Linking, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { ShardHeader } from "@/components/ui/ShardHeader";
 import { useAnswerRecorder } from "@/features/exam/use-answer-recorder";
 import { useReanswerQuestion } from "@/features/exam/use-reanswer-question";
 import { useReanswerSubmission } from "@/features/exam/use-reanswer-submission";
 import type { RootStackParamList } from "@/navigation/types";
-import { ReanswerDiscardModal } from "@/screens/reanswer/components/ReanswerDiscardModal";
 import { ReanswerQuestionCard } from "@/screens/reanswer/components/ReanswerQuestionCard";
 import { ReanswerRecordPanel } from "@/screens/reanswer/components/ReanswerRecordPanel";
 import { ReanswerStatusPanel } from "@/screens/reanswer/components/ReanswerStatusPanel";
@@ -241,9 +241,16 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
         )}
       </SafeAreaView>
 
-      <ReanswerDiscardModal
+      {/* 폐기되는 것(지금 녹음)과 남는 것(이미 받은 피드백과 이전 회차)을 함께 말한다 —
+          재답변은 기존 답변을 덮어쓰지 않으므로 여기서 잃는 건 방금 녹음뿐이다. */}
+      <ConfirmModal
+        cancelLabel="계속 녹음하기"
+        confirmHint="지금 녹음을 버리고 문제별 피드백으로 돌아갑니다"
+        confirmLabel="나가기"
+        message="지금 녹음한 답변은 저장되지 않아요. 이미 받은 피드백과 이전 회차는 그대로 남아요."
         onCancel={() => setIsDiscardVisible(false)}
         onConfirm={leaveScreen}
+        title="녹음을 그만둘까요?"
         visible={isDiscardVisible}
       />
     </View>
