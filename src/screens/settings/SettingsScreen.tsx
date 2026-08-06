@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
-import { Image, ScrollView, Switch, View } from "react-native";
+import { Image, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Pressable } from "@/components/ui/Pressable";
@@ -26,7 +26,6 @@ function formatConsentDate(iso: string): string {
 }
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
-  const [isStudyReminderEnabled, setStudyReminderEnabled] = useState(true);
   const [consentAgreedAt, setConsentAgreedAt] = useState<string | null>(null);
 
   useEffect(() => {
@@ -73,22 +72,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               accessible={false}
             />
           </View>
-
-          <SettingsSection title="학습 설정">
-            <SettingsRow
-              description="오늘의 문제 및 학습 리마인드 알림을 받아요."
-              icon="bell"
-              showDivider={false}
-              title="학습 알림"
-              trailing={
-                <Switch
-                  onValueChange={setStudyReminderEnabled}
-                  trackColor={{ false: colors.line.DEFAULT, true: colors.brand.DEFAULT }}
-                  value={isStudyReminderEnabled}
-                />
-              }
-            />
-          </SettingsSection>
 
           <SettingsSection title="서비스">
             <SettingsRow
