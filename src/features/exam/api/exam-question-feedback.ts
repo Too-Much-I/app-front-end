@@ -17,3 +17,20 @@ export async function getExamQuestionFeedback(
   );
   return mapExamQuestionDetail(result);
 }
+
+/**
+ * 웹뷰 브리지 전용 — 앱 도메인 타입으로 매핑하지 않고 서버 원본 result를 그대로 돌려준다.
+ * 이유는 getRawExamGradingSummary 참고.
+ */
+export async function getRawExamQuestionFeedback(
+  examId: string,
+  questionNumber: number,
+  retryCount: number,
+): Promise<RawExamQuestionDetailResult> {
+  const { result } = await apiFetchWithAuthRetry<
+    ApiEnvelope<RawExamQuestionDetailResult>
+  >(
+    `/api/v1/exams/${examId}/questions?questionNumber=${questionNumber}&retryCount=${retryCount}`,
+  );
+  return result;
+}

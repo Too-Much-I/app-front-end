@@ -15,11 +15,20 @@ import WebView, { type WebViewMessageEvent } from "react-native-webview";
 import { Text } from "@/components/ui/Text";
 import { isFeedbackDataReadyMessage } from "@/features/exam/feedback-data-ready-message";
 import { isGoHomeRequestedMessage } from "@/features/exam/go-home-message";
+import {
+  buildNativeDataRefreshScript,
+  buildNativeDataScript,
+  parseNativeDataRequest,
+  resolveNativeDataRequest,
+  toNativeDataErrorMessage,
+  type NativeDataRequest,
+} from "@/features/exam/native-data-bridge";
 import { parseReanswerRequest } from "@/features/exam/reanswer-message";
+import { useFeedbackDataRefresh } from "@/features/exam/use-feedback-data-refresh";
 import { WEB_BASE_URL } from "@/lib/web-base-url";
 import type { MainTabParamList, RootStackParamList } from "@/navigation/types";
 import { FeedbackWebViewSkeleton } from "@/screens/feedback/components/FeedbackWebViewSkeleton";
-import { MockExamHistoryScreen } from "@/screens/feedback/components/MockExamHistoryScreen";
+import { ExamHistoryScreen } from "@/screens/feedback/components/ExamHistoryScreen";
 
 /** 탭 안에서 파라미터를 지우고, 탭 위로 재답변 화면을 띄우기 위해 두 내비게이터를 함께 쓴다. */
 type FeedbackNavigationProp = CompositeNavigationProp<
@@ -129,16 +138,27 @@ export function FeedbackScreen() {
   // 리셋 effect를 다시 돌리기 위한 트리거. 값 자체엔 의미가 없다.
   const [reloadNonce, setReloadNonce] = useState(0);
 
+  /** 웹이 지금 보고 있는 회차 그대로 데이터를 다시 요청하게 한다. */
+  const requestWebDataRefresh = useCallback(() => {
+    webViewRef.current?.injectJavaScript(buildNativeDataRefreshScript());
+  }, []);
+
+  const { markDataDelivered, reset: resetDataRefresh } = useFeedbackDataRefresh({
+    onRefresh: requestWebDataRefresh,
+  });
+
   useEffect(() => {
     setIsContentReady(false);
     setHasLoadError(false);
+    // 주소가 바뀌거나 리로드되면 웹이 들고 있던 데이터도 함께 사라진다.
+    resetDataRefresh();
 
     const timeout = setTimeout(
       () => setIsContentReady(true),
       FEEDBACK_READY_TIMEOUT_MS,
     );
     return () => clearTimeout(timeout);
-  }, [feedbackUrl, reloadNonce]);
+  }, [feedbackUrl, reloadNonce, resetDataRefresh]);
 
   // 문제 지정 없이 시험만 바뀐 경우에는 종합 피드백을 연다.
   useEffect(() => {
@@ -179,6 +199,40 @@ export function FeedbackScreen() {
     navigation.setParams({ questionNumber: undefined, retryCount: undefined });
   }, [examId, feedbackUrl, navigation, questionNumber, retryCount]);
 
+  /**
+   * 웹이 요청한 데이터를 네이티브가 인증된 상태로 조회해 돌려준다.
+   *
+   * 실패도 반드시 응답한다 — 응답하지 않으면 웹의 대기 promise가 타임아웃까지 남고
+   * 사용자는 그 시간 동안 로딩만 보게 된다.
+   */
+  const deliverNativeData = useCallback(
+    async (request: NativeDataRequest) => {
+      try {
+        const result = await resolveNativeDataRequest(request);
+        webViewRef.current?.injectJavaScript(
+          buildNativeDataScript({
+            requestId: request.requestId,
+            ok: true,
+            result,
+          }),
+        );
+        // 만료되는 presigned 오디오 URL이 들어 있는 응답은 문제별 피드백뿐이다.
+        if (request.resource === "QUESTION_FEEDBACK") {
+          markDataDelivered();
+        }
+      } catch (error) {
+        webViewRef.current?.injectJavaScript(
+          buildNativeDataScript({
+            requestId: request.requestId,
+            ok: false,
+            message: toNativeDataErrorMessage(error),
+          }),
+        );
+      }
+    },
+    [markDataDelivered],
+  );
+
   const handleWebViewMessage = useCallback(
     (event: WebViewMessageEvent) => {
       // examId 로딩 실패로 에러 폴백이 뜬 경우에도 동작해야 하므로 examId 가드보다 먼저 검사한다.
@@ -194,6 +248,12 @@ export function FeedbackScreen() {
 
       if (!examId) return;
 
+      const dataRequest = parseNativeDataRequest(event.nativeEvent.data, examId);
+      if (dataRequest) {
+        void deliverNativeData(dataRequest);
+        return;
+      }
+
       const request = parseReanswerRequest(event.nativeEvent.data, examId);
       // 계약에 맞지 않는 메시지는 조용히 무시하고 지금 화면을 그대로 둔다.
       if (!request) return;
@@ -206,12 +266,12 @@ export function FeedbackScreen() {
         nextRetryCount: request.nextRetryCount,
       });
     },
-    [examId, navigation],
+    [deliverNativeData, examId, navigation],
   );
 
   if (!examId) {
     return (
-      <MockExamHistoryScreen
+      <ExamHistoryScreen
         onOpenExam={(nextExamId) => navigation.setParams({ examId: nextExamId })}
       />
     );

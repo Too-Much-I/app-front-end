@@ -19,3 +19,18 @@ export async function getExamGradingResult(
   );
   return mapExamGradingResult(result);
 }
+
+/**
+ * 웹뷰 브리지 전용 — 앱 도메인 타입으로 매핑하지 않고 서버 원본 result를 그대로 돌려준다.
+ *
+ * 웹은 자신의 매퍼와 렌더 타입을 따로 갖고 있다. 앱이 매핑해서 넘기면 두 도메인 타입이
+ * 영원히 동기화돼야 하므로, 앱은 인증만 책임지고 매핑은 웹에 맡긴다.
+ */
+export async function getRawExamGradingSummary(
+  examId: string,
+): Promise<RawExamSummaryResult> {
+  const { result } = await apiFetchWithAuthRetry<ApiEnvelope<RawExamSummaryResult>>(
+    gradingSummaryPath(examId),
+  );
+  return result;
+}
