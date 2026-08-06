@@ -2,8 +2,7 @@ import { AntDesign, Feather } from "@expo/vector-icons";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useNavigation, type CompositeNavigationProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useState } from "react";
-import { Image, ScrollView, View, type LayoutChangeEvent } from "react-native";
+import { Image, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Pressable } from "@/components/ui/Pressable";
@@ -11,15 +10,13 @@ import { Sparkle, type SparkleProps } from "@/components/ui/Sparkle";
 import { Text } from "@/components/ui/Text";
 import { TickingClock } from "@/components/ui/TickingClock";
 import type { MainTabParamList, RootStackParamList } from "@/navigation/types";
-import { RECENT_FEEDBACK } from "@/screens/home/mocks/recent-feedback";
+import { RecentFeedbackCard } from "@/screens/home/RecentFeedbackCard";
+import { useRecentFeedback } from "@/screens/home/use-recent-feedback";
 import { colors, shadows } from "@/theme";
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
 const logo = require("../../../public/logo.png");
 const greetingMascot = require("../../../public/mascots/greeting_rabbit_bust.png");
-const feedbackMascot = require("../../../public/mascots/paper_rabbit.png");
-/** paper_rabbit.png를 내용 기준으로 타이트 크롭한 실제 가로/세로 비율. */
-const FEEDBACK_MASCOT_ASPECT_RATIO = 1329 / 1918;
 
 /** 탭 안에서 루트 스택의 설정 화면으로 이동해야 하므로 두 내비게이터를 함께 쓴다. */
 type HomeNavigationProp = CompositeNavigationProp<
@@ -45,13 +42,6 @@ const GREETING_SPARKLES: SparkleProps[] = [
   { className: "top-[200px] left-[340px]", size: "lg", colorClassName: "text-sky-400" },
 ];
 
-/** 피드백 카드 마스코트 주변의 반짝임. 카드 강조용으로 노란 계열을 쓴다. */
-const FEEDBACK_SPARKLES: SparkleProps[] = [
-  { className: "-top-2 left-2", colorClassName: "text-yellow-400" },
-  { className: "-right-3 top-8", size: "base", colorClassName: "text-yellow-300" },
-  { className: "-bottom-2 left-6", colorClassName: "text-yellow-400" },
-];
-
 /**
  * 10초 챌린지 카드에 흩뿌리는 반짝임.
  * 텍스트·시계 배지의 실제 렌더 크기를 헤드리스 크롬으로 그려서 좌표를 잡았다
@@ -69,11 +59,7 @@ const CHALLENGE_SPARKLES: SparkleProps[] = [
 
 export function HomeScreen() {
   const navigation = useNavigation<HomeNavigationProp>();
-  // 텍스트 컬럼(Part~날짜) 높이를 측정해 마스코트 이미지 높이를 그대로 맞춘다.
-  const [feedbackTextHeight, setFeedbackTextHeight] = useState(0);
-  const handleFeedbackTextLayout = (event: LayoutChangeEvent) => {
-    setFeedbackTextHeight(event.nativeEvent.layout.height);
-  };
+  const recentFeedback = useRecentFeedback();
 
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-surface-subtle">
@@ -135,7 +121,13 @@ export function HomeScreen() {
             <Text className="text-lg">최근 피드백</Text>
             <Pressable
               className="flex-row items-center gap-1 py-1"
-              onPress={() => navigation.navigate("Feedback")}
+              onPress={() =>
+                navigation.navigate("Feedback", {
+                  examId: undefined,
+                  questionNumber: undefined,
+                  retryCount: undefined,
+                })
+              }
             >
               <Text className="text-sm text-ink-muted">전체 보기</Text>
               <Feather name="chevron-right" size={16} color={colors.ink.muted} />
@@ -143,45 +135,11 @@ export function HomeScreen() {
           </View>
 
           {/* 최근 피드백 카드 — 옅은 배경 위에서 유일하게 흰색인 카드 */}
-          <Pressable
-            accessibilityLabel={`${RECENT_FEEDBACK.title}, ${RECENT_FEEDBACK.level}, 총점 ${RECENT_FEEDBACK.totalScore}점 만점 ${RECENT_FEEDBACK.maxTotalScore}점`}
-            className="mt-3 flex-row items-center justify-between rounded-3xl bg-surface p-5"
-            style={shadows.card}
-            onPress={() => navigation.navigate("Feedback")}
-          >
-            <View className="flex-1 pr-3" onLayout={handleFeedbackTextLayout}>
-              <Text className="text-xl">{RECENT_FEEDBACK.title}</Text>
-              <Text className="mt-1 text-sm text-ink-muted">
-                예상 등급 {RECENT_FEEDBACK.level}
-              </Text>
-              <View className="mt-2 flex-row items-end gap-1">
-                <Text className="text-2xl text-brand-text">
-                  {RECENT_FEEDBACK.totalScore}
-                </Text>
-                <Text className="pb-0.5 text-sm text-ink-muted">
-                  /{RECENT_FEEDBACK.maxTotalScore}점
-                </Text>
-              </View>
-              <Text className="mt-3 text-xs text-ink-disabled">
-                {RECENT_FEEDBACK.completedDateLabel}
-              </Text>
-            </View>
-            {feedbackTextHeight > 0 && (
-              <View className="relative">
-                <Image
-                  source={feedbackMascot}
-                  style={{
-                    height: feedbackTextHeight,
-                    width: feedbackTextHeight * FEEDBACK_MASCOT_ASPECT_RATIO,
-                  }}
-                  resizeMode="contain"
-                />
-                {FEEDBACK_SPARKLES.map((sparkle) => (
-                  <Sparkle key={sparkle.className} {...sparkle} />
-                ))}
-              </View>
-            )}
-          </Pressable>
+          <RecentFeedbackCard
+            state={recentFeedback.state}
+            onOpenFeedback={(examId) => navigation.navigate("Feedback", { examId })}
+            onRetry={recentFeedback.retry}
+          />
 
           {/*
             10초 챌린지 배너 — 인사/피드백 카드에서 이미 토끼 마스코트를 두 번 썼기 때문에
