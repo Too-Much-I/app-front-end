@@ -1,4 +1,4 @@
-import { AntDesign, Feather } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useNavigation, type CompositeNavigationProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -7,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Sparkle, type SparkleProps } from "@/components/ui/Sparkle";
+import { StartMockExamButton } from "@/components/ui/StartMockExamButton";
 import { Text } from "@/components/ui/Text";
 import { TickingClock } from "@/components/ui/TickingClock";
 import type { MainTabParamList, RootStackParamList } from "@/navigation/types";
@@ -106,15 +107,10 @@ export function HomeScreen() {
             ))}
           </View>
 
-          {/* 모의고사 시작 CTA — 규칙: 버튼이 주황이면 아이콘·글자는 흰색 */}
-          <Pressable
-            className="mt-2 flex-row items-center justify-center gap-2 rounded-2xl bg-brand-cta py-4"
-            style={shadows.card}
+          <StartMockExamButton
+            className="mt-2"
             onPress={() => navigation.navigate("MockExam")}
-          >
-            <AntDesign name="audio" size={20} color="#FFFFFF" />
-            <Text className="text-base text-white">모의고사 시작하기</Text>
-          </Pressable>
+          />
 
           {/* 최근 피드백 섹션 헤더 */}
           <View className="mt-8 flex-row items-center justify-between">

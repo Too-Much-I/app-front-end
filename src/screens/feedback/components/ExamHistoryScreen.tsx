@@ -19,6 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Sparkle, type SparkleProps } from "@/components/ui/Sparkle";
+import { StartMockExamButton } from "@/components/ui/StartMockExamButton";
 import { Text } from "@/components/ui/Text";
 import { getExamHistory } from "@/features/exam/api/exam-history";
 import {
@@ -530,14 +531,11 @@ function EmptyExamHistory({ onStartExam }: { onStartExam: () => void }) {
       <Text className="mt-2 text-center text-sm leading-6 text-ink-muted">
         시험을 완료하면 점수 추이와 문제별 피드백이 여기에 쌓여요.
       </Text>
-      <Pressable
-        accessibilityLabel="모의고사 시작하기"
+      <StartMockExamButton
         accessibilityHint="모의고사 준비 화면으로 이동합니다"
-        className="mt-6 w-full items-center rounded-2xl bg-brand px-6 py-4"
+        className="mt-6 w-full"
         onPress={onStartExam}
-      >
-        <Text className="text-base text-white">모의고사 시작하기</Text>
-      </Pressable>
+      />
     </View>
   );
 }
@@ -552,8 +550,6 @@ function EmptyReanswerHistory({
   onOpenExam: (examId: string) => void;
   onStartExam: () => void;
 }) {
-  const actionLabel = feedbackExamId ? "문제별 피드백 보기" : "모의고사 시작하기";
-
   return (
     <View className="mt-8 items-center rounded-3xl border border-line bg-surface px-5 pb-6 pt-4">
       <View className="relative h-52 w-full max-w-sm overflow-hidden">
@@ -581,18 +577,23 @@ function EmptyReanswerHistory({
       <Text className="mt-2 text-center text-sm leading-6 text-ink-muted">
         문제별 피드백에서 다시 답변하면 최초 답변과 비교해 볼 수 있어요.
       </Text>
-      <Pressable
-        accessibilityLabel={actionLabel}
-        accessibilityHint={
-          feedbackExamId
-            ? "재답변할 수 있는 모의고사의 종합 피드백으로 이동합니다"
-            : "모의고사 준비 화면으로 이동합니다"
-        }
-        className="mt-6 w-full items-center rounded-2xl bg-brand px-6 py-4"
-        onPress={feedbackExamId ? () => onOpenExam(feedbackExamId) : onStartExam}
-      >
-        <Text className="text-base text-white">{actionLabel}</Text>
-      </Pressable>
+      {/* 재답변할 시험이 있으면 그쪽 피드백으로 보내고, 없을 때만 응시를 권한다. */}
+      {feedbackExamId ? (
+        <Pressable
+          accessibilityLabel="문제별 피드백 보기"
+          accessibilityHint="재답변할 수 있는 모의고사의 종합 피드백으로 이동합니다"
+          className="mt-6 w-full items-center rounded-2xl bg-brand px-6 py-4"
+          onPress={() => onOpenExam(feedbackExamId)}
+        >
+          <Text className="text-base text-white">문제별 피드백 보기</Text>
+        </Pressable>
+      ) : (
+        <StartMockExamButton
+          accessibilityHint="모의고사 준비 화면으로 이동합니다"
+          className="mt-6 w-full"
+          onPress={onStartExam}
+        />
+      )}
     </View>
   );
 }
