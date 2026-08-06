@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
 import type { ComponentProps, ComponentType } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -27,6 +28,13 @@ const TAB_CONFIG: TabConfig[] = [
 
 export function MainTabNavigator() {
   const insets = useSafeAreaInsets();
+  const defaultTabBarStyle = {
+    backgroundColor: colors.surface.DEFAULT,
+    borderTopColor: colors.line.DEFAULT,
+    height: tabBar.contentHeight + insets.bottom,
+    paddingTop: tabBar.verticalPadding,
+    paddingBottom: tabBar.verticalPadding + insets.bottom,
+  };
 
   return (
     <Tab.Navigator
@@ -52,13 +60,7 @@ export function MainTabNavigator() {
           lineHeight: tabBar.labelLineHeight,
         },
         // 하단 inset(홈 인디케이터/제스처 바)만 런타임에 더한다.
-        tabBarStyle: {
-          backgroundColor: colors.surface.DEFAULT,
-          borderTopColor: colors.line.DEFAULT,
-          height: tabBar.contentHeight + insets.bottom,
-          paddingTop: tabBar.verticalPadding,
-          paddingBottom: tabBar.verticalPadding + insets.bottom,
-        },
+        tabBarStyle: defaultTabBarStyle,
       }}
     >
       {TAB_CONFIG.map(({ name, title, icon, component }) => (
@@ -66,10 +68,14 @@ export function MainTabNavigator() {
           key={name}
           name={name}
           component={component}
-          options={{
+          options={({ route }) => ({
             title,
             tabBarIcon: ({ color }) => <Feather name={icon} color={color} size={tabBar.iconSize} />,
-          }}
+            tabBarStyle:
+              name === "MockExam" && getFocusedRouteNameFromRoute(route) === "ExamSession"
+                ? { display: "none" }
+                : defaultTabBarStyle,
+          })}
         />
       ))}
     </Tab.Navigator>

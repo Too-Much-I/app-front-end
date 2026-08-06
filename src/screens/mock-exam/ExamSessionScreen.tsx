@@ -99,15 +99,6 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
   }, [navigation, submissions]);
 
   useEffect(() => {
-    const tabNavigator = navigation.getParent();
-    tabNavigator?.setOptions({ tabBarStyle: { display: "none" } });
-
-    return () => {
-      tabNavigator?.setOptions({ tabBarStyle: undefined });
-    };
-  }, [navigation]);
-
-  useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
       setIsAppActive(nextState === "active");
     });
