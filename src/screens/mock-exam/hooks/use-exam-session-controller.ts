@@ -56,7 +56,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     (session.questions[0]?.prepTimeSec ?? 0) * 1_000,
   );
   const [readingRemainingMs, setReadingRemainingMs] = useState(0);
-  const [isReadingTableVisible, setIsReadingTableVisible] = useState(false);
+  const [isReadingImageLoaded, setIsReadingImageLoaded] = useState(false);
   const [pendingFinalizedAnswer, setPendingFinalizedAnswer] =
     useState<FinalizedAnswer | null>(null);
   const phaseRef = useRef(phase);
@@ -270,7 +270,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
         const durationMs = partPrelude.durationSec * 1_000;
         readingRemainingMsRef.current = durationMs;
         setReadingRemainingMs(durationMs);
-        setIsReadingTableVisible(false);
+        setIsReadingImageLoaded(false);
         updatePhase("part4-reading");
         return;
       }
@@ -310,8 +310,8 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     void startResponseRecording();
   }, [startResponseRecording]);
 
-  const markPart4TableVisible = useCallback(() => {
-    if (phaseRef.current === "part4-reading") setIsReadingTableVisible(true);
+  const markPart4ImageLoaded = useCallback(() => {
+    if (phaseRef.current === "part4-reading") setIsReadingImageLoaded(true);
   }, []);
 
   const retryRegistration = useCallback(() => {
@@ -345,7 +345,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
   }, [currentIndex, isExamActive, phase, question]);
 
   useEffect(() => {
-    if (phase !== "part4-reading" || !isReadingTableVisible || !isExamActive) return;
+    if (phase !== "part4-reading" || !isReadingImageLoaded || !isExamActive) return;
 
     const deadline = Date.now() + readingRemainingMsRef.current;
     const tick = () => {
@@ -364,7 +364,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
         readingRemainingMsRef.current = Math.max(0, deadline - Date.now());
       }
     };
-  }, [completePart4Reading, isExamActive, isReadingTableVisible, phase]);
+  }, [completePart4Reading, isExamActive, isReadingImageLoaded, phase]);
 
   useEffect(() => {
     // generation이 정리되면 remainingMs가 0으로 떨어지므로 녹음 중일 때만 만료로 본다.
@@ -414,7 +414,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     completeQuestionCue,
     completePreparationCue,
     completeResponseCue,
-    markPart4TableVisible,
+    markPart4ImageLoaded,
     beginResponse,
     finishResponse,
     retryRecording,

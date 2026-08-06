@@ -11,10 +11,10 @@ const ERROR_MESSAGES: Record<InvalidExamPartPrelude["reason"], string> = {
   "missing-part3-guide-audio": "Part 3 안내 음성이 제공되지 않았어요.",
   "misplaced-part3-content": "Part 3 안내 데이터의 위치가 올바르지 않아요.",
   "unsupported-part3-guide-audio": "Part 3 안내 음성 주소를 사용할 수 없어요.",
-  "missing-part4-table": "Part 4에서 참고할 정보 표가 제공되지 않았어요.",
-  "misplaced-part4-table": "Part 4 정보 표가 첫 문제에 제공되지 않았어요.",
-  "conflicting-part4-table": "Part 4 문제들의 정보 표가 서로 달라요.",
-  "invalid-part4-table": "Part 4 정보 표의 내용을 읽을 수 없어요.",
+  "missing-part4-image": "Part 4에서 참고할 정보 이미지가 제공되지 않았어요.",
+  "misplaced-part4-image": "Part 4 정보 이미지가 첫 문제에 제공되지 않았어요.",
+  "conflicting-part4-image": "Part 4 문제들의 정보 이미지가 서로 달라요.",
+  "invalid-part4-image": "Part 4 정보 이미지 주소를 사용할 수 없어요.",
 };
 
 export function ExamPreludeError({

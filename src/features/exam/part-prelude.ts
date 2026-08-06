@@ -3,8 +3,6 @@ import type { AudioSource } from "expo-audio";
 import type {
   ExamPartPrelude,
   ExamPartPreludeInvalidReason,
-  ExamTableContext,
-  ExamTableItem,
   RawExamQuestion,
 } from "@/types/exam";
 
@@ -23,46 +21,9 @@ function trimNonEmpty(value: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-function normalizeTableItem(item: ExamTableItem): ExamTableItem | undefined {
-  const time = trimNonEmpty(item.time);
-  const sessionTitle = trimNonEmpty(item.sessionTitle);
-  if (!time || !sessionTitle) return undefined;
-
-  const speaker = trimNonEmpty(item.speaker);
-  const note = trimNonEmpty(item.note);
-  return {
-    time,
-    sessionTitle,
-    ...(speaker ? { speaker } : {}),
-    ...(note ? { note } : {}),
-  };
-}
-
-export function normalizeExamTableContext(
-  context: ExamTableContext | undefined,
-): ExamTableContext | undefined {
-  if (!context || !Array.isArray(context.items) || context.items.length === 0) {
-    return undefined;
-  }
-
-  const title = trimNonEmpty(context.title);
-  const location = trimNonEmpty(context.location);
-  const date = trimNonEmpty(context.date);
-  const fee = trimNonEmpty(context.fee);
-  if (!title || !location || !date || !fee) return undefined;
-
-  const items: ExamTableItem[] = [];
-  for (const item of context.items) {
-    const normalizedItem = normalizeTableItem(item);
-    if (!normalizedItem) return undefined;
-    items.push(normalizedItem);
-  }
-
-  return { title, location, date, fee, items };
-}
-
-function areTablesEqual(left: ExamTableContext, right: ExamTableContext): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+function normalizeRemoteImageUrl(value: unknown): string | undefined {
+  const url = trimNonEmpty(value);
+  return url && /^https?:\/\//i.test(url) ? url : undefined;
 }
 
 export function isSupportedExamPartIntroAudioUrl(audioUrl: string): boolean {
@@ -77,7 +38,7 @@ export function getExamPartIntroAudioSource(audioUrl: string): AudioSource | und
 
 interface ExamPartPreludeNormalization {
   partPreludes: ExamPartPrelude[];
-  canonicalPart4Table?: ExamTableContext;
+  canonicalPart4ImageUrl?: string;
 }
 
 function invalidPrelude(
@@ -111,36 +72,38 @@ function normalizePart3Prelude(questions: RawExamQuestion[]): ExamPartPrelude {
 
 function normalizePart4Prelude(
   questions: RawExamQuestion[],
-): { prelude: ExamPartPrelude; canonicalTable?: ExamTableContext } {
+): { prelude: ExamPartPrelude; canonicalImageUrl?: string } {
   const firstQuestion = questions.find(
     (question) => question.questionNumber === PART4_FIRST_QUESTION_NUMBER,
   );
   const laterQuestions = questions.filter(
     (question) => question.questionNumber !== PART4_FIRST_QUESTION_NUMBER,
   );
-  const canonicalTable = normalizeExamTableContext(firstQuestion?.tableContext);
+  const canonicalImageUrl = normalizeRemoteImageUrl(firstQuestion?.tableImageUrl);
 
-  if (!firstQuestion?.tableContext) {
-    const hasLaterTable = laterQuestions.some((question) => question.tableContext !== undefined);
+  if (!firstQuestion?.tableImageUrl) {
+    const hasLaterImage = laterQuestions.some(
+      (question) => question.tableImageUrl !== undefined,
+    );
     return {
       prelude: invalidPrelude(
         4,
-        hasLaterTable ? "misplaced-part4-table" : "missing-part4-table",
+        hasLaterImage ? "misplaced-part4-image" : "missing-part4-image",
       ),
     };
   }
-  if (!canonicalTable) {
-    return { prelude: invalidPrelude(4, "invalid-part4-table") };
+  if (!canonicalImageUrl) {
+    return { prelude: invalidPrelude(4, "invalid-part4-image") };
   }
 
   for (const question of laterQuestions) {
-    if (question.tableContext === undefined) continue;
-    const repeatedTable = normalizeExamTableContext(question.tableContext);
-    if (!repeatedTable) {
-      return { prelude: invalidPrelude(4, "invalid-part4-table") };
+    if (question.tableImageUrl === undefined) continue;
+    const repeatedImageUrl = normalizeRemoteImageUrl(question.tableImageUrl);
+    if (!repeatedImageUrl) {
+      return { prelude: invalidPrelude(4, "invalid-part4-image") };
     }
-    if (!areTablesEqual(canonicalTable, repeatedTable)) {
-      return { prelude: invalidPrelude(4, "conflicting-part4-table") };
+    if (repeatedImageUrl !== canonicalImageUrl) {
+      return { prelude: invalidPrelude(4, "conflicting-part4-image") };
     }
   }
 
@@ -148,10 +111,10 @@ function normalizePart4Prelude(
     prelude: {
       kind: "part4-reading",
       partNumber: 4,
-      tableContext: canonicalTable,
+      tableImageUrl: canonicalImageUrl,
       durationSec: PART4_READING_DURATION_SEC,
     },
-    canonicalTable,
+    canonicalImageUrl,
   };
 }
 
@@ -171,8 +134,8 @@ export function normalizeExamPartPreludes(
   partPreludes.push(part4Normalization.prelude);
   return {
     partPreludes,
-    ...(part4Normalization.canonicalTable
-      ? { canonicalPart4Table: part4Normalization.canonicalTable }
+    ...(part4Normalization.canonicalImageUrl
+      ? { canonicalPart4ImageUrl: part4Normalization.canonicalImageUrl }
       : {}),
   };
 }
