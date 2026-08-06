@@ -1,3 +1,4 @@
+import { getLevelAbbreviation } from "@/features/exam/level-estimate";
 import type { RawExamHistoryResult } from "@/types/exam";
 
 /**
@@ -89,12 +90,14 @@ function mapItem(value: unknown): ExamHistoryItem {
     throw new ExamHistoryContractError();
   }
 
+  const level = getLevelAbbreviation(levelEstimate);
+
   return {
     examId,
     title,
     completedAt,
     chartDateLabel: chartDateLabel(completedAt),
-    level: levelEstimate,
+    level,
     totalScore,
     maxTotalScore: EXAM_TOTAL_MAX_SCORE,
     // 없으면 재답변이 없는 것으로 본다 — 부제에서 문구 하나가 빠질 뿐이라
@@ -102,7 +105,7 @@ function mapItem(value: unknown): ExamHistoryItem {
     retriedQuestionCount: isFiniteNumber(retriedQuestionCount)
       ? retriedQuestionCount
       : 0,
-    tone: toneForLevel(levelEstimate),
+    tone: toneForLevel(level),
   };
 }
 
