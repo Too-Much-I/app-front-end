@@ -125,8 +125,11 @@ export type AnswerSubmissionStage =
 
 export type AnswerSubmissionFailureStage = "upload" | "notify";
 
+export type AnswerSubmissionFailureKind = "request" | "server-processing";
+
 export interface AnswerSubmissionFailure {
   stage: AnswerSubmissionFailureStage;
+  kind: AnswerSubmissionFailureKind;
   message: string;
   retryable: boolean;
 }
@@ -205,6 +208,54 @@ export interface ExamPartScores {
   part3?: number;
   part4?: number;
   part5?: number;
+}
+
+/**
+ * GET /api/v1/exams/history 의 result.histories 항목.
+ *
+ * 서버는 시험 총점의 만점(maxScore)을 내려주지 않는다 — 화면은 map-exam-history.ts의
+ * EXAM_TOTAL_MAX_SCORE를 단일 출처로 쓴다.
+ */
+export interface RawExamHistoryItem {
+  examId: string;
+  title: string;
+  totalScore: number;
+  levelEstimate: string;
+  completedAt: string;
+  /** 이 시험에서 재답변한 문항 수. 0이면 /retries를 부를 필요가 없다. */
+  retriedQuestionCount: number;
+}
+
+/** GET /api/v1/exams/history 의 result */
+export interface RawExamHistoryResult {
+  histories: RawExamHistoryItem[];
+  totalCount: number;
+}
+
+/**
+ * GET /api/v1/exams/{examId}/retries 의 attempts 항목.
+ *
+ * 만점은 내려오지 않는다 — part-meta.ts의 getExamQuestionMaxScore로 문항 번호에서 구한다.
+ * 채점이 끝나지 않은 회차는 score가 없거나 null일 수 있어 nullable로 둔다.
+ */
+export interface RawExamRetryAttempt {
+  retryCount: number;
+  score: number | null;
+  completedAt: string | null;
+}
+
+/** GET /api/v1/exams/{examId}/retries 의 questions 항목 */
+export interface RawExamRetriedQuestion {
+  partNumber: number;
+  questionNumber: number;
+  latestRetryCount: number;
+  attempts: RawExamRetryAttempt[];
+}
+
+/** GET /api/v1/exams/{examId}/retries 의 result */
+export interface RawExamRetriesResult {
+  examId: string;
+  questions: RawExamRetriedQuestion[];
 }
 
 /** GET /api/v1/exams/{examId}/summary 의 result */

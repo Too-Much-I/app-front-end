@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   ScrollView,
   View,
@@ -19,16 +20,20 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Pressable } from "@/components/ui/Pressable";
 import { Sparkle, type SparkleProps } from "@/components/ui/Sparkle";
 import { Text } from "@/components/ui/Text";
+import { getExamHistory } from "@/features/exam/api/exam-history";
 import {
-  MOCK_EXAM_AVERAGE_TOTAL_SCORE,
-  MOCK_EXAM_HISTORY,
-  MOCK_EXAM_MAX_TOTAL_SCORE,
-  MOCK_REANSWER_PROGRESS,
-  MOCK_REANSWER_QUESTIONS,
-  type MockExamHistoryItem,
-  type MockExamHistoryTone,
-  type MockReanswerQuestionItem,
-} from "@/screens/feedback/mocks/mock-exam-history";
+  EXAM_TOTAL_MAX_SCORE,
+  ExamHistoryContractError,
+  averageTotalScore,
+  type ExamHistoryItem,
+  type ExamHistoryTone,
+} from "@/features/exam/map-exam-history";
+import { getExamRetries } from "@/features/exam/api/exam-retries";
+import {
+  ExamRetriesContractError,
+  summarizeReanswerProgress,
+  type ReanswerQuestionItem,
+} from "@/features/exam/map-exam-retries";
 import { colors, shadows } from "@/theme";
 
 const CHART_HEIGHT = 112;
@@ -69,11 +74,11 @@ const REANSWER_SUMMARY_SPARKLES: SparkleProps[] = [
   { className: "right-2 top-[84px]", size: "base", colorClassName: "text-yellow-400" },
 ];
 
-type MockExamHistoryScreenProps = {
+type ExamHistoryScreenProps = {
   onOpenExam: (examId: string) => void;
 };
 
-const badgeColors: Record<MockExamHistoryTone, { backgroundColor: string; color: string }> = {
+const badgeColors: Record<ExamHistoryTone, { backgroundColor: string; color: string }> = {
   green: {
     backgroundColor: colors.feedback.history.greenSoft,
     color: colors.feedback.history.green,
@@ -98,9 +103,11 @@ function scoreToY(score: number, maxScore: number): number {
   return CHART_BOTTOM - ratio * (CHART_BOTTOM - CHART_TOP);
 }
 
-function ScoreTrendChart({ items }: { items: readonly MockExamHistoryItem[] }) {
+function ScoreTrendChart({ items }: { items: readonly ExamHistoryItem[] }) {
   const [width, setWidth] = useState(0);
-  const chronologicalItems = [...items].reverse();
+  // 목록은 최신순이다. 최근 5개만 골라 시간순으로 뒤집는다 —
+  // 이력이 쌓이면 점과 날짜 라벨이 겹쳐 읽을 수 없다.
+  const chronologicalItems = [...items].slice(0, 5).reverse();
   const columnWidth = width > 0 ? width / chronologicalItems.length : 0;
   const points = chronologicalItems.map((item, index) => ({
     item,
@@ -189,7 +196,7 @@ function ExamHistoryCard({
   item,
   onPress,
 }: {
-  item: MockExamHistoryItem;
+  item: ExamHistoryItem;
   onPress: () => void;
 }) {
   const badgeColor = badgeColors[item.tone];
@@ -316,7 +323,7 @@ function GaugeLegendDot({ color }: { color: string }) {
   );
 }
 
-function ReanswerQuestionCard({ item }: { item: MockReanswerQuestionItem }) {
+function ReanswerQuestionCard({ item }: { item: ReanswerQuestionItem }) {
   const delta = item.latestScore - item.initialScore;
   const hasGrown = delta > 0;
   const initialWidth = gaugeWidth(item.initialScore, item.maxScore);
@@ -407,8 +414,174 @@ function ReanswerQuestionCard({ item }: { item: MockReanswerQuestionItem }) {
   );
 }
 
-function ReanswerHistoryPanel() {
-  const delta = MOCK_REANSWER_PROGRESS.averageDeltaPercentagePoints;
+/**
+ * 조회 실패는 두 종류다.
+ *
+ * `retryable`은 네트워크·타임아웃·서버 오류처럼 나중에 풀릴 수 있는 실패다.
+ * 계약 오류(서버 응답 형태와 앱의 기대가 어긋남)는 재시도해도 절대 안 풀리므로
+ * 재시도 버튼을 주지 않는다 — 주면 사용자를 무의미한 반복으로 유도한다.
+ */
+type FailureKind = { retryable: boolean };
+
+type ExamHistoryState =
+  | { status: "loading" }
+  | ({ status: "error" } & FailureKind)
+  | { status: "ready"; items: readonly ExamHistoryItem[] };
+
+type ReanswerState =
+  | { status: "loading" }
+  | ({ status: "error" } & FailureKind)
+  | { status: "ready"; items: readonly ReanswerQuestionItem[] };
+
+function isRetryableFailure(error: unknown): boolean {
+  return !(
+    error instanceof ExamHistoryContractError ||
+    error instanceof ExamRetriesContractError
+  );
+}
+
+/** 재시도해도 풀리지 않는 실패에 쓰는 안내. 앱과 서버 중 한쪽이 바뀌어야 한다. */
+const CONTRACT_ERROR_DESCRIPTION =
+  "앱을 최신 버전으로 업데이트하면 해결될 수 있어요.";
+
+function PanelLoading() {
+  return (
+    <View className="mt-16 items-center">
+      <ActivityIndicator color={colors.brand.DEFAULT} size="large" />
+    </View>
+  );
+}
+
+/** 두 탭이 공유하는 안내 화면. onRetry가 없으면 빈 상태, 있으면 오류 상태다. */
+function PanelNotice({
+  title,
+  description,
+  onRetry,
+}: {
+  title: string;
+  description: string;
+  onRetry?: () => void;
+}) {
+  return (
+    <View className="mt-16 items-center px-6">
+      <Text accessibilityRole="header" className="text-center text-lg">
+        {title}
+      </Text>
+      <Text className="mt-2 text-center text-sm leading-6 text-ink-muted">
+        {description}
+      </Text>
+      {onRetry && (
+        <Pressable
+          accessibilityLabel="다시 시도"
+          className="mt-5 rounded-full border border-brand px-6 py-3"
+          onPress={onRetry}
+        >
+          <Text className="text-base text-brand-text">다시 시도</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+/**
+ * 재답변 성과 탭.
+ *
+ * 재답변 조회는 시험 단위라 대상 시험이 필요하다 — 이력에서 재답변이 있는 가장 최근
+ * 시험을 고른다(목록은 최신순이다). 사용자 전체 스냅샷 endpoint가 생기면 이 선택은
+ * 없어진다.
+ */
+function ReanswerHistoryPanel({
+  history,
+  onRetryHistory,
+}: {
+  history: ExamHistoryState;
+  onRetryHistory: () => void;
+}) {
+  const targetExamId =
+    history.status === "ready"
+      ? (history.items.find((item) => item.retriedQuestionCount > 0)?.examId ?? null)
+      : null;
+
+  const [state, setState] = useState<ReanswerState>({ status: "loading" });
+  // 값 자체엔 의미가 없다. 재시도 버튼이 아래 effect를 다시 돌리기 위한 트리거다.
+  const [reloadNonce, setReloadNonce] = useState(0);
+
+  useEffect(() => {
+    if (history.status === "loading") {
+      setState({ status: "loading" });
+      return;
+    }
+    if (history.status === "error") {
+      // 이력을 못 받으면 대상 시험을 못 정한다. 원인 구분은 이력 쪽 판정을 그대로 물려받는다.
+      setState({ status: "error", retryable: history.retryable });
+      return;
+    }
+    // 이력은 받았는데 재답변한 시험이 없다 — 조회할 것이 없는 정상 빈 상태다.
+    if (!targetExamId) {
+      setState({ status: "ready", items: [] });
+      return;
+    }
+
+    const controller = new AbortController();
+    setState({ status: "loading" });
+
+    getExamRetries(targetExamId, controller.signal)
+      .then((items) => {
+        if (controller.signal.aborted) return;
+        setState({ status: "ready", items });
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        console.error("[ReanswerHistory] 재답변 이력 조회 실패", error);
+        setState({ status: "error", retryable: isRetryableFailure(error) });
+      });
+
+    return () => controller.abort();
+  }, [history, targetExamId, reloadNonce]);
+
+  if (state.status === "loading") {
+    return <PanelLoading />;
+  }
+
+  if (state.status === "error") {
+    return (
+      <PanelNotice
+        title="재답변 기록을 불러오지 못했어요"
+        description={
+          state.retryable ? "잠시 후 다시 시도해 주세요." : CONTRACT_ERROR_DESCRIPTION
+        }
+        onRetry={
+          state.retryable
+            ? () => {
+                // 이력 단계에서 실패했다면 그쪽을 다시 받아야 대상 시험이 정해진다.
+                if (history.status === "error") {
+                  onRetryHistory();
+                  return;
+                }
+                setReloadNonce((nonce) => nonce + 1);
+              }
+            : undefined
+        }
+      />
+    );
+  }
+
+  /**
+   * 비교 가능한 문항이 없는 경우가 두 가지다 — 재답변을 아직 안 했거나, 했지만 채점이
+   * 끝나지 않았거나. 둘을 구분하려면 회차 상태를 더 봐야 하는데 현재 응답으로는
+   * 알 수 없으므로 같은 안내를 쓴다.
+   */
+  if (state.items.length === 0) {
+    return (
+      <PanelNotice
+        title="아직 다시 답변한 기록이 없어요"
+        description="문제별 피드백에서 다시 답변하면 최초 답변과 비교해 볼 수 있어요."
+      />
+    );
+  }
+
+  const progress = summarizeReanswerProgress(state.items);
+  const delta = progress.averageDeltaPercentagePoints;
   const formattedDelta = `${delta > 0 ? "+" : ""}${delta.toFixed(1)}%p`;
 
   return (
@@ -419,7 +592,7 @@ function ReanswerHistoryPanel() {
       */}
       <View
         accessible
-        accessibilityLabel={`최초 답변 대비 평균 달성률 ${formattedDelta}, ${MOCK_REANSWER_PROGRESS.comparableQuestionCount}문제 중 ${MOCK_REANSWER_PROGRESS.improvedQuestionCount}문제 향상`}
+        accessibilityLabel={`최초 답변 대비 평균 달성률 ${formattedDelta}, ${progress.comparableQuestionCount}문제 중 ${progress.improvedQuestionCount}문제 향상`}
         className="relative mt-5 overflow-hidden rounded-3xl border border-sky-line bg-sky-surface p-5"
         style={shadows.card}
       >
@@ -447,8 +620,7 @@ function ReanswerHistoryPanel() {
           <View className="flex-1 rounded-2xl bg-surface p-4">
             <Text className="text-xs text-ink-muted">향상한 문제</Text>
             <Text className="mt-1 text-2xl text-brand-text">
-              {MOCK_REANSWER_PROGRESS.improvedQuestionCount}/
-              {MOCK_REANSWER_PROGRESS.comparableQuestionCount}
+              {progress.improvedQuestionCount}/{progress.comparableQuestionCount}
             </Text>
           </View>
         </View>
@@ -462,7 +634,7 @@ function ReanswerHistoryPanel() {
       <View className="mt-5">
         <Text className="text-lg">답변 기록</Text>
         <View className="mt-3 gap-3">
-          {MOCK_REANSWER_QUESTIONS.map((item) => (
+          {state.items.map((item) => (
             <ReanswerQuestionCard
               key={`${item.examId}-${item.questionNumber}`}
               item={item}
@@ -474,7 +646,40 @@ function ReanswerHistoryPanel() {
   );
 }
 
-function ExamHistoryPanel({ onOpenExam }: MockExamHistoryScreenProps) {
+function ExamHistoryPanel({
+  state,
+  onRetry,
+  onOpenExam,
+}: ExamHistoryScreenProps & {
+  state: ExamHistoryState;
+  onRetry: () => void;
+}) {
+  if (state.status === "loading") {
+    return <PanelLoading />;
+  }
+
+  // 조회 실패를 빈 상태로 바꾸지 않는다 — 기록이 정말 없는 경우와 구분해야 한다.
+  if (state.status === "error") {
+    return (
+      <PanelNotice
+        title="기록을 불러오지 못했어요"
+        description={
+          state.retryable ? "잠시 후 다시 시도해 주세요." : CONTRACT_ERROR_DESCRIPTION
+        }
+        onRetry={state.retryable ? onRetry : undefined}
+      />
+    );
+  }
+
+  if (state.items.length === 0) {
+    return (
+      <PanelNotice
+        title="아직 모의고사 기록이 없어요"
+        description="첫 모의고사를 완료하면 점수 추이가 여기에 쌓여요."
+      />
+    );
+  }
+
   return (
     <>
       <View
@@ -484,17 +689,17 @@ function ExamHistoryPanel({ onOpenExam }: MockExamHistoryScreenProps) {
         <Text className="text-lg">전체 평균 총점</Text>
         <View className="mt-1 flex-row items-end">
           <Text className="text-3xl text-brand-text">
-            {MOCK_EXAM_AVERAGE_TOTAL_SCORE.toFixed(1)}
+            {averageTotalScore(state.items).toFixed(1)}
           </Text>
           <Text className="mb-1 ml-1 text-lg text-brand-text">
-            /{MOCK_EXAM_MAX_TOTAL_SCORE}
+            /{EXAM_TOTAL_MAX_SCORE}
           </Text>
         </View>
-        <ScoreTrendChart items={MOCK_EXAM_HISTORY} />
+        <ScoreTrendChart items={state.items} />
       </View>
 
       <View className="mt-4 gap-3">
-        {MOCK_EXAM_HISTORY.map((item) => (
+        {state.items.map((item) => (
           <ExamHistoryCard
             key={item.examId}
             item={item}
@@ -506,11 +711,45 @@ function ExamHistoryPanel({ onOpenExam }: MockExamHistoryScreenProps) {
   );
 }
 
-export function MockExamHistoryScreen({ onOpenExam }: MockExamHistoryScreenProps) {
+export function ExamHistoryScreen({ onOpenExam }: ExamHistoryScreenProps) {
   const [selectedTab, setSelectedTab] = useState<HistoryTab>("exams");
+  /**
+   * 이력은 화면이 한 번만 받아 두 탭이 나눠 쓴다.
+   *
+   * 재답변 탭도 어느 시험을 조회할지 알려면 이력이 필요하다. 탭마다 따로 받으면
+   * 탭을 오갈 때마다 같은 요청이 반복된다.
+   */
+  const [historyState, setHistoryState] = useState<ExamHistoryState>({
+    status: "loading",
+  });
+  // 값 자체엔 의미가 없다. 재시도 버튼이 아래 effect를 다시 돌리기 위한 트리거다.
+  const [reloadNonce, setReloadNonce] = useState(0);
   const reduceMotion = useReducedMotion();
   const panelOffset = useSharedValue(0);
   const panelOpacity = useSharedValue(1);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setHistoryState({ status: "loading" });
+
+    getExamHistory(controller.signal)
+      .then((items) => {
+        if (controller.signal.aborted) return;
+        setHistoryState({ status: "ready", items });
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        // 화면 문구만으로는 네트워크·서버·계약 중 무엇이었는지 알 수 없다.
+        console.error("[ExamHistory] 모의고사 이력 조회 실패", error);
+        setHistoryState({ status: "error", retryable: isRetryableFailure(error) });
+      });
+
+    return () => controller.abort();
+  }, [reloadNonce]);
+
+  const retryHistory = useCallback(() => {
+    setReloadNonce((nonce) => nonce + 1);
+  }, []);
 
   const handleSelectTab = useCallback(
     (tab: HistoryTab) => {
@@ -546,9 +785,16 @@ export function MockExamHistoryScreen({ onOpenExam }: MockExamHistoryScreenProps
         <HistoryTabs selectedTab={selectedTab} onSelect={handleSelectTab} />
         <Animated.View style={panelStyle}>
           {selectedTab === "exams" ? (
-            <ExamHistoryPanel onOpenExam={onOpenExam} />
+            <ExamHistoryPanel
+              state={historyState}
+              onRetry={retryHistory}
+              onOpenExam={onOpenExam}
+            />
           ) : (
-            <ReanswerHistoryPanel />
+            <ReanswerHistoryPanel
+              history={historyState}
+              onRetryHistory={retryHistory}
+            />
           )}
         </Animated.View>
       </ScrollView>

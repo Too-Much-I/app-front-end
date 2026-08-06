@@ -33,6 +33,28 @@ export function getExamPartQuestionNumbers(part: number): number[] {
   return EXAM_PART_QUESTION_NUMBERS[part] ?? [];
 }
 
+/**
+ * 파트별 문항 만점. 토익 스피킹 공식 채점 기준(Part1~4는 3점, Part5는 5점)이다.
+ *
+ * 재답변 이력 API(GET /api/v1/exams/{examId}/retries)가 만점을 내려주지 않아 앱이 갖는다.
+ * 문제별 피드백 API는 `maxScore`를 직접 내려주므로 그 화면은 이 표를 쓰지 않는다 —
+ * 서버가 값을 주는 곳에서는 서버 값을 그대로 쓴다.
+ */
+export const EXAM_PART_MAX_SCORE: Record<number, number> = {
+  1: 3,
+  2: 3,
+  3: 3,
+  4: 3,
+  5: 5,
+};
+
+/** 문항 번호의 만점. 정규 구성에 없는 번호면 null. */
+export function getExamQuestionMaxScore(questionNumber: number): number | null {
+  const partNumber = getExamPartNumberByQuestionNumber(questionNumber);
+  if (partNumber === null) return null;
+  return EXAM_PART_MAX_SCORE[partNumber] ?? null;
+}
+
 /** questionNumber가 속한 파트 번호를 찾는다. 정규 구성에 없는 번호면 null. */
 export function getExamPartNumberByQuestionNumber(
   questionNumber: number,
