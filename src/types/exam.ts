@@ -1,25 +1,10 @@
-export interface ExamTableItem {
-  time: string;
-  sessionTitle: string;
-  speaker?: string | null;
-  note?: string;
-}
-
-export interface ExamTableContext {
-  title: string;
-  location: string;
-  date: string;
-  fee: string;
-  items: ExamTableItem[];
-}
-
 export interface RawExamQuestion {
   part: number;
   questionNumber: number;
   referenceText?: string;
   imageUrl?: string;
   text?: string;
-  tableContext?: ExamTableContext;
+  tableImageUrl?: string;
   audioUrl?: string;
   /** Part 3 setup narration text ("Imagine a cooking magazine..."), read once before the part's first question. */
   partIntroText?: string;
@@ -40,7 +25,7 @@ export interface ExamQuestion {
   imageUrl?: string;
   question?: string;
   audioUrl?: string;
-  tableContext?: ExamTableContext;
+  tableImageUrl?: string;
   /** Part 3 setup narration text ("Imagine a cooking magazine..."), read once before the part's first question. */
   partIntroText?: string;
   /** Narrated audio for partIntroText. */
@@ -58,10 +43,10 @@ export type ExamPartPreludeInvalidReason =
   | "missing-part3-guide-audio"
   | "misplaced-part3-content"
   | "unsupported-part3-guide-audio"
-  | "missing-part4-table"
-  | "misplaced-part4-table"
-  | "conflicting-part4-table"
-  | "invalid-part4-table";
+  | "missing-part4-image"
+  | "misplaced-part4-image"
+  | "conflicting-part4-image"
+  | "invalid-part4-image";
 
 export interface ExamPartIntroPrelude {
   kind: "part3-intro";
@@ -73,7 +58,7 @@ export interface ExamPartIntroPrelude {
 export interface ExamPartReadingPrelude {
   kind: "part4-reading";
   partNumber: 4;
-  tableContext: ExamTableContext;
+  tableImageUrl: string;
   durationSec: 45;
 }
 
@@ -384,7 +369,7 @@ export interface RawExamQuestionInfo {
   audioUrl?: string;
   guideAudioUrl?: string;
   imageUrl?: string;
-  tableContext?: ExamTableContext;
+  tableImageUrl?: string;
 }
 
 /** GET /api/v1/exams/{examId}/questions/{questionNumber} 의 result.question */
@@ -478,7 +463,7 @@ export interface ExamQuestionInfo {
   audioUrl?: string;
   guideAudioUrl?: string;
   imageUrl?: string;
-  tableContext?: ExamTableContext;
+  tableImageUrl?: string;
   prepTimeSec: number;
   speakTimeSec: number;
 }

@@ -2,7 +2,7 @@ import { Image, View } from "react-native";
 
 import { Text } from "@/components/ui/Text";
 import { getExamPartMeta } from "@/features/exam/part-meta";
-import { ExamInformationTable } from "@/screens/mock-exam/components/ExamInformationTable";
+import { ExamInformationImage } from "@/screens/mock-exam/components/ExamInformationImage";
 import type { ExamQuestion } from "@/types/exam";
 
 export function ExamQuestionContent({ question }: { question: ExamQuestion }) {
@@ -35,7 +35,9 @@ export function ExamQuestionContent({ question }: { question: ExamQuestion }) {
         </View>
       ) : null}
 
-      {question.tableContext ? <ExamInformationTable context={question.tableContext} /> : null}
+      {question.tableImageUrl ? (
+        <ExamInformationImage imageUrl={question.tableImageUrl} />
+      ) : null}
 
       {question.question && question.partNumber !== 4 ? (
         <Text className="text-center text-xl leading-8 text-exam-navy">{question.question}</Text>

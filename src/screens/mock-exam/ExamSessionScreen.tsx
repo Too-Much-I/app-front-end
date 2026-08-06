@@ -57,7 +57,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     completeQuestionCue,
     completePreparationCue,
     completeResponseCue,
-    markPart4TableVisible,
+    markPart4ImageLoaded,
     beginResponse,
     finishResponse,
     retryRecording,
@@ -180,7 +180,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
             <View className="flex-1 bg-surface">
               <ExamInformationReading
                 prelude={part4Prelude}
-                onTableVisible={markPart4TableVisible}
+                onImageLoad={markPart4ImageLoaded}
               />
               <View className="items-center gap-3 border-t border-line bg-surface px-5 pb-4 pt-4">
                 <ExamTimerCard mode="reading" remainingSeconds={remainingSeconds} />

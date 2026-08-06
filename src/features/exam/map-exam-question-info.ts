@@ -19,7 +19,7 @@ export function mapExamQuestionInfo(raw: RawExamQuestionInfo): ExamQuestionInfo 
     audioUrl: raw.audioUrl,
     guideAudioUrl: raw.guideAudioUrl,
     imageUrl: raw.imageUrl,
-    tableContext: raw.tableContext,
+    tableImageUrl: raw.tableImageUrl,
     ...timing,
   };
 }

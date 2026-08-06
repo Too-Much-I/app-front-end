@@ -7,7 +7,7 @@ import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { PLAYBACK_AUDIO_MODE } from "@/features/exam/answer-audio";
 import { getQuestionAudioSource } from "@/features/exam/question-audio";
-import { ExamInformationTable } from "@/screens/mock-exam/components/ExamInformationTable";
+import { ExamInformationImage } from "@/screens/mock-exam/components/ExamInformationImage";
 import { colors, shadows } from "@/theme";
 import type { ExamQuestionInfo } from "@/types/exam";
 
@@ -77,8 +77,8 @@ export function ReanswerQuestionCard({
           </View>
         ) : null}
 
-        {question.tableContext ? (
-          <ExamInformationTable context={question.tableContext} />
+        {question.tableImageUrl ? (
+          <ExamInformationImage imageUrl={question.tableImageUrl} />
         ) : null}
 
         {question.text ? (
