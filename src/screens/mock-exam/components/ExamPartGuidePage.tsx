@@ -5,6 +5,7 @@ import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import type { ExamPartGuide } from "@/features/exam/part-guide";
 import { colors } from "@/theme";
+import { useScaleValue } from "@/theme/rem-scale";
 
 interface ExamPartGuidePageProps {
   activeIndex: number;
@@ -91,10 +92,13 @@ export function ExamPartGuidePage({
   onSelectPart,
   onStart,
 }: ExamPartGuidePageProps) {
+  // height/width는 상대값이라 컨테이너를 따라가지만 상한은 고정 dp라 rem 스케일링을
+  // 타지 않는다. 큰 화면에서 글자만 커지고 마스코트가 상한에 막히지 않도록 함께 곱한다.
+  const scale = useScaleValue();
   const mascotSize = {
     height: "100%" as const,
-    maxHeight: 200,
-    maxWidth: 190,
+    maxHeight: 200 * scale,
+    maxWidth: 190 * scale,
     transform: [{ scale: guide.mascotScale }],
     width: "52%" as const,
   };

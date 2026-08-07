@@ -10,6 +10,7 @@ import { MockExamStackNavigator } from "@/navigation/MockExamStackNavigator";
 import { TabBarButton } from "@/navigation/TabBarButton";
 import type { MainTabParamList } from "@/navigation/types";
 import { colors, FONT_FAMILY, tabBar } from "@/theme";
+import { useScaleValue } from "@/theme/rem-scale";
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -28,12 +29,25 @@ const TAB_CONFIG: TabConfig[] = [
 
 export function MainTabNavigator() {
   const insets = useSafeAreaInsets();
+
+  /**
+   * 탭바 치수는 react-navigation 옵션에 넘기는 생 숫자라 NativeWind의 rem
+   * 스케일링을 타지 않는다. 화면 전체가 커졌는데 탭바만 그대로 남지 않도록
+   * 여기서 직접 곱한다.
+   *
+   * `insets.bottom`에는 곱하지 않는다. 그건 홈 인디케이터/제스처 바가 차지하는
+   * 물리적 영역이라 글자 크기와 무관하게 항상 같은 값이어야 한다. `tabBar` 토큰이
+   * 인셋을 빼고 `contentHeight`만 정의해둔 덕에 둘을 깔끔하게 분리할 수 있다.
+   */
+  const scale = useScaleValue();
+  const scaled = (value: number) => value * scale;
+
   const defaultTabBarStyle = {
     backgroundColor: colors.surface.DEFAULT,
     borderTopColor: colors.line.DEFAULT,
-    height: tabBar.contentHeight + insets.bottom,
-    paddingTop: tabBar.verticalPadding,
-    paddingBottom: tabBar.verticalPadding + insets.bottom,
+    height: scaled(tabBar.contentHeight) + insets.bottom,
+    paddingTop: scaled(tabBar.verticalPadding),
+    paddingBottom: scaled(tabBar.verticalPadding) + insets.bottom,
   };
 
   return (
@@ -48,16 +62,16 @@ export function MainTabNavigator() {
         // 기본 레이아웃은 유지하면서 Android 리플만 공용 opacity 피드백으로 바꾼다.
         tabBarButton: TabBarButton,
         tabBarIconStyle: {
-          width: tabBar.iconSize,
-          height: tabBar.iconSize,
-          marginBottom: tabBar.iconLabelGap,
+          width: scaled(tabBar.iconSize),
+          height: scaled(tabBar.iconSize),
+          marginBottom: scaled(tabBar.iconLabelGap),
         },
         // 폰트와 행 높이를 고정해야 iOS/Android에서 라벨이 같은 높이를 차지하고,
         // 그래야 아래 height 계산이 두 플랫폼에서 모두 맞는다.
         tabBarLabelStyle: {
           fontFamily: FONT_FAMILY,
-          fontSize: tabBar.labelFontSize,
-          lineHeight: tabBar.labelLineHeight,
+          fontSize: scaled(tabBar.labelFontSize),
+          lineHeight: scaled(tabBar.labelLineHeight),
         },
         // 하단 inset(홈 인디케이터/제스처 바)만 런타임에 더한다.
         tabBarStyle: defaultTabBarStyle,
@@ -70,7 +84,9 @@ export function MainTabNavigator() {
           component={component}
           options={({ route }) => ({
             title,
-            tabBarIcon: ({ color }) => <Feather name={icon} color={color} size={tabBar.iconSize} />,
+            tabBarIcon: ({ color }) => (
+              <Feather name={icon} color={color} size={scaled(tabBar.iconSize)} />
+            ),
             tabBarStyle:
               name === "MockExam" && getFocusedRouteNameFromRoute(route) === "ExamSession"
                 ? { display: "none" }
