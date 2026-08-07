@@ -196,18 +196,32 @@ const fontFamily = {
 };
 
 /**
+ * px 값을 rem 문자열로 환산한다.
+ *
+ * 기준이 14인 이유는 NativeWind의 rem 기본값이 14이기 때문이다. 16으로 바꾸면
+ * Tailwind 기본 여백(`p-4`, `gap-2` 등)이 전부 14.3% 커져 모든 화면에 영향이 간다.
+ * 그 변경은 별도 디자인 판단으로 다룬다.
+ */
+const remFromPx = (px) => `${px / 14}rem`;
+
+/**
  * fontSize에 lineHeight를 항상 붙여둔다.
  * lineHeight를 비워두면 플랫폼별 폰트 메트릭으로 행 높이가 갈려서
  * 탭바처럼 높이가 고정된 컨테이너의 수치를 다시 맞춰야 한다.
+ *
+ * px가 아니라 rem인 이유: 런타임 rem 스케일링(`src/theme/rem-scale.ts`)이
+ * 글자와 여백을 같은 계수로 움직이게 하려면 둘이 같은 단위여야 한다.
+ * 여백과 이미지는 Tailwind 기본 스케일을 따라 이미 rem이었고, fontSize만
+ * px로 고정돼 있어 글자가 스케일링에서 빠져 있었다.
  */
 const fontSize = {
-  xs: ["12px", { lineHeight: "16px" }],
-  sm: ["14px", { lineHeight: "20px" }],
-  base: ["16px", { lineHeight: "24px" }],
-  lg: ["18px", { lineHeight: "26px" }],
-  xl: ["20px", { lineHeight: "28px" }],
-  "2xl": ["24px", { lineHeight: "32px" }],
-  "3xl": ["30px", { lineHeight: "38px" }],
+  xs: [remFromPx(12), { lineHeight: remFromPx(16) }],
+  sm: [remFromPx(14), { lineHeight: remFromPx(20) }],
+  base: [remFromPx(16), { lineHeight: remFromPx(24) }],
+  lg: [remFromPx(18), { lineHeight: remFromPx(26) }],
+  xl: [remFromPx(20), { lineHeight: remFromPx(28) }],
+  "2xl": [remFromPx(24), { lineHeight: remFromPx(32) }],
+  "3xl": [remFromPx(30), { lineHeight: remFromPx(38) }],
 };
 
 /** 하단 탭바 치수. safe-area inset은 런타임에 더해지므로 여기 포함하지 않는다. */
