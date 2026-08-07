@@ -8,9 +8,13 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useAuth } from "@/features/auth/auth-context";
 import { AuthProvider } from "@/features/auth/auth-provider";
 import { RootNavigator } from "@/navigation/RootNavigator";
+import { useRemScale } from "@/theme/rem-scale";
 import { useAppFonts } from "@/theme/use-app-fonts";
 
 function AppContent() {
+  // early return보다 위에서 호출해야 훅 순서가 안정된다.
+  useRemScale();
+
   const { ready: fontsReady, onLayoutRootView } = useAppFonts();
   const { state } = useAuth();
   const authHasRenderableState =
