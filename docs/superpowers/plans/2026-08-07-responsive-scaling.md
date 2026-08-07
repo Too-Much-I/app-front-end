@@ -63,7 +63,7 @@
 
 iOS 시뮬레이터(iPhone 16 또는 15)에서 앱을 띄우고 세 화면을 캡처한다. 이 스크린샷이 Task 1~2의 회귀 판정 기준이다.
 
-```
+```bash
 pnpm ios
 ```
 
@@ -92,13 +92,13 @@ module.exports = withNativeWind(config, {
 
 옛 번들이 남아 있으면 상수로 구워진 rem이 그대로 쓰여 변경이 반영되지 않는다.
 
-```
+```bash
 pnpm start --clear
 ```
 
 - [ ] **Step 4: 타입·린트 검사**
 
-```
+```bash
 pnpm lint
 pnpm exec tsc --noEmit
 ```
@@ -176,13 +176,13 @@ const fontSize = {
 
 `tailwind.config.js`가 `tokens.js`를 읽으므로 CSS가 다시 생성돼야 한다.
 
-```
+```bash
 pnpm start --clear
 ```
 
 - [ ] **Step 3: 타입·린트 검사**
 
-```
+```bash
 pnpm lint
 pnpm exec tsc --noEmit
 ```
@@ -329,7 +329,7 @@ import는 기존 import 그룹의 알파벳 순서에 맞춰 `@/theme/use-app-fo
 
 - [ ] **Step 3: 타입·린트 검사**
 
-```
+```bash
 pnpm lint
 pnpm exec tsc --noEmit
 ```
@@ -338,7 +338,7 @@ Expected: 둘 다 통과. 실패한다면 `nativewind`가 `rem`을 export하는�
 
 - [ ] **Step 4: iPhone 회귀 확인**
 
-```
+```bash
 pnpm ios
 ```
 
@@ -470,7 +470,7 @@ export function SettingsWebViewScreen({
 
 - [ ] **Step 5: 타입·린트 검사**
 
-```
+```bash
 pnpm lint
 pnpm exec tsc --noEmit
 ```
@@ -551,7 +551,7 @@ document.documentElement.style.fontSize=(16*s)+'px';
 
 - [ ] **Step 2: 린트·빌드 검사**
 
-```
+```bash
 cd ~/soma/web-front-end
 pnpm lint
 pnpm build
@@ -561,7 +561,7 @@ Expected: 둘 다 통과.
 
 - [ ] **Step 3: 일반 웹 방문자 회귀 확인**
 
-```
+```bash
 cd ~/soma/web-front-end && pnpm dev
 ```
 
@@ -607,13 +607,13 @@ git commit -m "feat(webview): 앱이 전달한 rem 스케일을 루트 font-size
 
 - [ ] **Step 1: 후보 목록화**
 
-```
+```bash
 grep -rnoE "w-\[[0-9]+px\]|h-\[[0-9]+px\]|width: [0-9]+|height: [0-9]+" src --include='*.tsx'
 ```
 
 이 중 **주변 텍스트와 함께 커져야 하는 것**만 대상이다. 다음은 대상이 아니다.
 
-- `src/theme/tokens.js`의 `tabBar` 치수 — react-navigation `tabBarStyle`에 넘기는 JS 숫자다. 탭바 높이가 rem을 따라 커지면 safe-area 계산과 어긋나고, 하단 탭바는 화면이 커져도 같은 높이인 편이 자연스럽다.
+- 탭바의 하단 safe-area inset — 탭바 높이, 콘텐츠 padding, 아이콘과 라벨은 `useScaleValue()`로 명시적으로 스케일링하되, 기기가 제공하는 하단 inset만 원래 값으로 더해 시스템 영역과의 경계를 유지한다.
 - `<Feather size={24} />` 같은 아이콘 크기 — RN 숫자 prop이라 className이 닿지 않는다. 텍스트와 나란히 놓여 눈에 띄게 어긋나는 경우에만 개별 판단한다.
 - 헤어라인 두께, `hitSlop` — 스케일과 무관하다.
 
@@ -637,7 +637,7 @@ className으로 표현할 수 있는 치수라면 JS 계산을 없애고 `h-*`/`
 
 - [ ] **Step 3: 타입·린트 검사**
 
-```
+```bash
 pnpm lint
 pnpm exec tsc --noEmit
 ```
