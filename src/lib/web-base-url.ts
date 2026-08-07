@@ -15,6 +15,7 @@ export const WEB_BASE_URL = (process.env.EXPO_PUBLIC_WEB_BASE_URL ?? "").replace
  * 주소가 미세하게 흔들리면 웹뷰가 불필요하게 재로드된다.
  */
 export function withRemScale(url: string, scale: number): string {
-  const separator = url.includes("?") ? "&" : "?";
-  return `${url}${separator}scale=${scale.toFixed(3)}`;
+  const parsedUrl = new URL(url);
+  parsedUrl.searchParams.set("scale", scale.toFixed(3));
+  return parsedUrl.toString();
 }
