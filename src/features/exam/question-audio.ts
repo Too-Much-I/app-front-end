@@ -9,7 +9,11 @@ import type { ExamQuestion, RawExamSession } from "@/types/exam";
  */
 const QUESTION_AUDIO_REQUIRED_PARTS: ReadonlySet<number> = new Set([3, 4, 5]);
 
-/** Part 4 마지막 문항(Q10)은 실제 시험과 동일하게 질문 오디오를 두 번 들려준다. */
+/**
+ * Part 4 마지막 문항(Q10)은 실제 시험과 동일하게 질문 오디오를 두 번 들려준다.
+ * 두 회차 사이에는 `ExamQuestionCue`가 "Now listen again." 안내를 끼워 넣는다
+ * (`getExamListenAgainCueSource`).
+ */
 const PART4_LAST_QUESTION_PLAY_COUNT = 2;
 
 export type ExamQuestionAudioIssueReason = "missing" | "unsupported";
