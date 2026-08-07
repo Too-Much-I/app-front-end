@@ -6,9 +6,10 @@ import WebView from "react-native-webview";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
-import { WEB_BASE_URL } from "@/lib/web-base-url";
+import { WEB_BASE_URL, withRemScale } from "@/lib/web-base-url";
 import type { RootStackParamList } from "@/navigation/types";
 import { colors } from "@/theme";
+import { useScaleValue } from "@/theme/rem-scale";
 
 type SettingsWebViewScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -20,7 +21,9 @@ export function SettingsWebViewScreen({
   route,
 }: SettingsWebViewScreenProps) {
   const { path, title } = route.params;
-  const url = WEB_BASE_URL ? `${WEB_BASE_URL}${path}` : null;
+  // 웹뷰가 앱과 같은 비율로 커지도록 주소에 실어 보낸다.
+  const scale = useScaleValue();
+  const url = WEB_BASE_URL ? withRemScale(`${WEB_BASE_URL}${path}`, scale) : null;
 
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-surface-subtle">
