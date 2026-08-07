@@ -27,10 +27,11 @@ import {
 } from "@/features/exam/native-data-bridge";
 import { parseReanswerRequest } from "@/features/exam/reanswer-message";
 import { useFeedbackDataRefresh } from "@/features/exam/use-feedback-data-refresh";
-import { WEB_BASE_URL } from "@/lib/web-base-url";
+import { WEB_BASE_URL, withRemScale } from "@/lib/web-base-url";
 import type { MainTabParamList, RootStackParamList } from "@/navigation/types";
 import { FeedbackWebViewSkeleton } from "@/screens/feedback/components/FeedbackWebViewSkeleton";
 import { ExamHistoryScreen } from "@/screens/feedback/components/ExamHistoryScreen";
+import { useScaleValue } from "@/theme/rem-scale";
 
 /** 탭 안에서 파라미터를 지우고, 탭 위로 재답변 화면을 띄우기 위해 두 내비게이터를 함께 쓴다. */
 type FeedbackNavigationProp = CompositeNavigationProp<
@@ -47,23 +48,30 @@ type FeedbackNavigationProp = CompositeNavigationProp<
 const FEEDBACK_READY_TIMEOUT_MS = 10_000;
 const NATIVE_CAPABILITIES_SCRIPT = buildNativeCapabilitiesScript();
 
-function buildOverviewUrl(examId: string): string | null {
+function buildOverviewUrl(examId: string, scale: number): string | null {
   if (!WEB_BASE_URL) return null;
-  return `${WEB_BASE_URL}/app-exam-screen?examId=${encodeURIComponent(examId)}`;
+  return withRemScale(
+    `${WEB_BASE_URL}/app-exam-screen?examId=${encodeURIComponent(examId)}`,
+    scale,
+  );
 }
 
+// `scale`이 `retryCount` 앞에 오는 이유: 선택 인자 뒤에 필수 인자를 둘 수 없다.
 function buildQuestionUrl(
   examId: string,
   questionNumber: number,
+  scale: number,
   retryCount?: number,
 ): string | null {
   if (!WEB_BASE_URL) return null;
   const url = `${WEB_BASE_URL}/app-question-feedback?examId=${encodeURIComponent(
     examId,
   )}&questionNumber=${questionNumber}`;
-  return retryCount !== undefined && retryCount > 0
-    ? `${url}&retryCount=${retryCount}`
-    : url;
+  const withRetry =
+    retryCount !== undefined && retryCount > 0
+      ? `${url}&retryCount=${retryCount}`
+      : url;
+  return withRemScale(withRetry, scale);
 }
 
 function FeedbackNotice({
@@ -94,6 +102,8 @@ export function FeedbackScreen() {
   const examId = route.params?.examId;
   const questionNumber = route.params?.questionNumber;
   const retryCount = route.params?.retryCount;
+  // 웹뷰가 앱과 같은 비율로 커지도록 주소에 실어 보낸다.
+  const scale = useScaleValue();
   // 같은 요청이 연달아 와도 녹음 화면을 두 번 열지 않는다.
   const hasOpenedReanswerRef = useRef(false);
   const webViewRef = useRef<WebView>(null);
@@ -104,7 +114,7 @@ export function FeedbackScreen() {
   // 문제별 주소로 처음 마운트되는 경우에는 이미 올바른 source를 쓰므로 추가 reload가 필요 없다.
   const initialQuestionRequestRef = useRef(
     examId && questionNumber !== undefined
-      ? buildQuestionUrl(examId, questionNumber, retryCount)
+      ? buildQuestionUrl(examId, questionNumber, scale, retryCount)
       : null,
   );
 
@@ -124,8 +134,8 @@ export function FeedbackScreen() {
   const [feedbackUrl, setFeedbackUrl] = useState<string | null>(() =>
     examId
       ? questionNumber !== undefined
-        ? buildQuestionUrl(examId, questionNumber, retryCount)
-        : buildOverviewUrl(examId)
+        ? buildQuestionUrl(examId, questionNumber, scale, retryCount)
+        : buildOverviewUrl(examId, scale)
       : null,
   );
 
@@ -170,10 +180,10 @@ export function FeedbackScreen() {
       return;
     }
     if (questionNumberRef.current === undefined) {
-      setFeedbackUrl(buildOverviewUrl(examId));
+      setFeedbackUrl(buildOverviewUrl(examId, scale));
     }
     // questionNumber가 있으면 아래 effect가 문제별 주소를 적용한다.
-  }, [examId]);
+  }, [examId, scale]);
 
   /**
    * 재답변을 마치고 돌아온 경우: 새 회차의 문제별 피드백을 연다.
@@ -187,7 +197,7 @@ export function FeedbackScreen() {
   useEffect(() => {
     if (!examId || questionNumber === undefined) return;
 
-    const nextUrl = buildQuestionUrl(examId, questionNumber, retryCount);
+    const nextUrl = buildQuestionUrl(examId, questionNumber, scale, retryCount);
     const isInitialRequest = initialQuestionRequestRef.current === nextUrl;
     initialQuestionRequestRef.current = null;
 
@@ -200,7 +210,7 @@ export function FeedbackScreen() {
     }
 
     navigation.setParams({ questionNumber: undefined, retryCount: undefined });
-  }, [examId, feedbackUrl, navigation, questionNumber, retryCount]);
+  }, [examId, feedbackUrl, navigation, questionNumber, retryCount, scale]);
 
   /**
    * 웹이 요청한 데이터를 네이티브가 인증된 상태로 조회해 돌려준다.
