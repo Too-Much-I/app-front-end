@@ -10,7 +10,10 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import WebView, { type WebViewMessageEvent } from "react-native-webview";
+import WebView, {
+  type WebViewMessageEvent,
+  type WebViewNavigation,
+} from "react-native-webview";
 
 import { Text } from "@/components/ui/Text";
 import { isFeedbackDataReadyMessage } from "@/features/exam/feedback-data-ready-message";
@@ -74,6 +77,35 @@ function buildQuestionUrl(
   return withRemScale(withRetry, scale);
 }
 
+type FeedbackLocation =
+  | { page: "overview"; examId: string; url: string }
+  | { page: "question"; examId: string; questionNumber: number; url: string };
+
+/** WebView 내부 이동까지 포함해 현재 피드백 페이지를 scale 변경용으로 기억한다. */
+function parseFeedbackLocation(url: string | null): FeedbackLocation | null {
+  if (!url) return null;
+
+  try {
+    const parsedUrl = new URL(url);
+    const examId = parsedUrl.searchParams.get("examId");
+    if (!examId) return null;
+
+    const pathname = parsedUrl.pathname.replace(/\/+$/, "");
+    if (pathname.endsWith("/app-exam-screen")) {
+      return { page: "overview", examId, url };
+    }
+    if (pathname.endsWith("/app-question-feedback")) {
+      const questionNumber = Number(parsedUrl.searchParams.get("questionNumber"));
+      if (!Number.isInteger(questionNumber) || questionNumber <= 0) return null;
+      return { page: "question", examId, questionNumber, url };
+    }
+  } catch {
+    // WebView의 임시 주소(예: about:blank)는 피드백 위치가 아니므로 무시한다.
+  }
+
+  return null;
+}
+
 function FeedbackNotice({
   title,
   description,
@@ -107,15 +139,17 @@ export function FeedbackScreen() {
   // 같은 요청이 연달아 와도 녹음 화면을 두 번 열지 않는다.
   const hasOpenedReanswerRef = useRef(false);
   const webViewRef = useRef<WebView>(null);
-  const questionNumberRef = useRef(questionNumber);
-  useEffect(() => {
-    questionNumberRef.current = questionNumber;
-  }, [questionNumber]);
+  const initialFeedbackUrl = examId
+    ? questionNumber !== undefined
+      ? buildQuestionUrl(examId, questionNumber, scale, retryCount)
+      : buildOverviewUrl(examId, scale)
+    : null;
+  const feedbackLocationRef = useRef<FeedbackLocation | null>(
+    parseFeedbackLocation(initialFeedbackUrl),
+  );
   // 문제별 주소로 처음 마운트되는 경우에는 이미 올바른 source를 쓰므로 추가 reload가 필요 없다.
   const initialQuestionRequestRef = useRef(
-    examId && questionNumber !== undefined
-      ? buildQuestionUrl(examId, questionNumber, scale, retryCount)
-      : null,
+    questionNumber !== undefined ? initialFeedbackUrl : null,
   );
 
   useFocusEffect(
@@ -131,13 +165,7 @@ export function FeedbackScreen() {
    * 쓰자마자 지우기 때문에(아래 참고), 파라미터가 사라진 순간 주소가 종합 피드백으로
    * 되돌아가면 안 된다.
    */
-  const [feedbackUrl, setFeedbackUrl] = useState<string | null>(() =>
-    examId
-      ? questionNumber !== undefined
-        ? buildQuestionUrl(examId, questionNumber, scale, retryCount)
-        : buildOverviewUrl(examId, scale)
-      : null,
-  );
+  const [feedbackUrl, setFeedbackUrl] = useState<string | null>(initialFeedbackUrl);
 
   /**
    * 웹뷰의 문서 로드 완료(renderLoading이 사라지는 시점)와 웹 페이지 내부 데이터 로드
@@ -173,17 +201,32 @@ export function FeedbackScreen() {
     return () => clearTimeout(timeout);
   }, [feedbackUrl, reloadNonce, resetDataRefresh]);
 
-  // 문제 지정 없이 시험만 바뀐 경우에는 종합 피드백을 연다.
+  // 시험이 바뀌면 route가 지정한 페이지를 열고, scale만 바뀌면 현재 WebView 위치를 유지한다.
   useEffect(() => {
     if (!examId) {
+      feedbackLocationRef.current = null;
       setFeedbackUrl(null);
       return;
     }
-    if (questionNumberRef.current === undefined) {
-      setFeedbackUrl(buildOverviewUrl(examId, scale));
+
+    const currentLocation = feedbackLocationRef.current;
+    const nextUrl =
+      currentLocation?.examId === examId
+        ? withRemScale(currentLocation.url, scale)
+        : questionNumber !== undefined
+          ? buildQuestionUrl(examId, questionNumber, scale, retryCount)
+          : buildOverviewUrl(examId, scale);
+
+    feedbackLocationRef.current = parseFeedbackLocation(nextUrl);
+    setFeedbackUrl(nextUrl);
+  }, [examId, questionNumber, retryCount, scale]);
+
+  const handleNavigationStateChange = useCallback((state: WebViewNavigation) => {
+    const nextLocation = parseFeedbackLocation(state.url);
+    if (nextLocation) {
+      feedbackLocationRef.current = nextLocation;
     }
-    // questionNumber가 있으면 아래 effect가 문제별 주소를 적용한다.
-  }, [examId, scale]);
+  }, []);
 
   /**
    * 재답변을 마치고 돌아온 경우: 새 회차의 문제별 피드백을 연다.
@@ -198,6 +241,7 @@ export function FeedbackScreen() {
     if (!examId || questionNumber === undefined) return;
 
     const nextUrl = buildQuestionUrl(examId, questionNumber, scale, retryCount);
+    feedbackLocationRef.current = parseFeedbackLocation(nextUrl);
     const isInitialRequest = initialQuestionRequestRef.current === nextUrl;
     initialQuestionRequestRef.current = null;
 
@@ -319,6 +363,7 @@ export function FeedbackScreen() {
           source={{ uri: feedbackUrl }}
           className="flex-1 bg-surface-subtle"
           injectedJavaScriptBeforeContentLoaded={NATIVE_CAPABILITIES_SCRIPT}
+          onNavigationStateChange={handleNavigationStateChange}
           onMessage={handleWebViewMessage}
           onError={() => setHasLoadError(true)}
           onHttpError={() => setHasLoadError(true)}
