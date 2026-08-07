@@ -35,6 +35,7 @@ export function ExamPartIntroContent({
   });
   const playbackStatus = useAudioPlayerStatus(player);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);
+  const [reloadRevision, setReloadRevision] = useState(0);
   const hasCompletedRef = useRef(false);
   const hasStartedRef = useRef(false);
   const shouldRestartRef = useRef(false);
@@ -56,6 +57,7 @@ export function ExamPartIntroContent({
           shouldRestartRef.current = true;
           setHasPlaybackError(false);
           player.replace(audioSource);
+          setReloadRevision((revision) => revision + 1);
           return;
         }
         if (!playbackStatus.isLoaded) return;
@@ -68,7 +70,6 @@ export function ExamPartIntroContent({
         player.play();
         setHasPlaybackError(false);
         hasStartedRef.current = true;
-        shouldRestartRef.current = false;
       } catch (error) {
         console.error("[ExamPartIntro] 안내 음성 재생 실패", error);
         setHasPlaybackError(true);
@@ -99,32 +100,40 @@ export function ExamPartIntroContent({
     ) {
       void playFromStart();
     }
-  }, [isActive, playFromStart, playbackStatus.isLoaded, player]);
+  }, [isActive, playFromStart, playbackStatus.isLoaded, player, reloadRevision]);
 
   useEffect(() => {
     if (
       !isActive ||
-      playbackStatus.isLoaded ||
       hasPlaybackError ||
+      playbackStatus.playing ||
       hasCompletedRef.current
     ) {
       return;
     }
 
     const timeoutId = setTimeout(() => {
+      if (
+        !isActiveRef.current ||
+        hasObservedPlayingRef.current ||
+        hasCompletedRef.current
+      ) {
+        return;
+      }
       player.pause();
       hasObservedPlayingRef.current = false;
       shouldRestartRef.current = true;
-      console.error("[ExamPartIntro] 안내 음성 로딩 시간 초과");
+      console.error("[ExamPartIntro] 안내 음성 재생 시작 시간 초과");
       setHasPlaybackError(true);
     }, REMOTE_AUDIO_LOAD_TIMEOUT_MS);
 
     return () => clearTimeout(timeoutId);
-  }, [hasPlaybackError, isActive, playbackStatus.isLoaded, player]);
+  }, [hasPlaybackError, isActive, playbackStatus.playing, player, reloadRevision]);
 
   useEffect(() => {
     if (playbackStatus.playing && isActive) {
       hasObservedPlayingRef.current = true;
+      shouldRestartRef.current = false;
     }
   }, [isActive, playbackStatus.playing]);
 
