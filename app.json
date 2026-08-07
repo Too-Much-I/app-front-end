@@ -8,6 +8,7 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
+      "requireFullScreen": true,
       "bundleIdentifier": "com.anonymous.app-front-end"
     },
     "android": {
@@ -53,7 +54,13 @@
         }
       ],
       "expo-video",
-      "./plugins/with-ipad-portrait-only"
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "PORTRAIT_UP"
+        }
+      ],
+      "./plugins/with-ios-runtime-orientation-support"
     ]
   }
 }

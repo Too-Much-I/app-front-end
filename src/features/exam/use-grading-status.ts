@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AppState } from "react-native";
 
 import { retryExamGrading } from "@/features/exam/api/exam-grading-retry";
 import { getExamGradingStatus } from "@/features/exam/api/exam-grading-status";
+import type { ExamGradingLifecycleStatus } from "@/types/exam";
 
 /** 채점표에 올라가는 파트 수. 토익 스피킹 정규 구성과 같다. */
 export const GRADING_PART_COUNT = 5;
@@ -81,7 +83,12 @@ export function useGradingStatus(
 
   useEffect(() => {
     let settled = false;
+    let checkTimer: ReturnType<typeof setInterval> | null = null;
     let pollTimer: ReturnType<typeof setTimeout> | null = null;
+    let deadlineTimer: ReturnType<typeof setTimeout> | null = null;
+    let pollInFlight = false;
+    let failAfterCurrentPoll = false;
+    let isAppActive = AppState.currentState === "active";
     const controller = new AbortController();
     const signal = controller.signal;
     const startedAt = Date.now();
@@ -90,12 +97,25 @@ export function useGradingStatus(
     phaseRef.current = "polling";
     setProgress({ phase: "polling", gradedPartCount: 0 });
 
+    const clearAttemptTimers = () => {
+      if (checkTimer) {
+        clearInterval(checkTimer);
+        checkTimer = null;
+      }
+      if (deadlineTimer) {
+        clearTimeout(deadlineTimer);
+        deadlineTimer = null;
+      }
+      if (pollTimer) {
+        clearTimeout(pollTimer);
+        pollTimer = null;
+      }
+    };
+
     const stopAttempt = () => {
       settled = true;
       controller.abort();
-      clearInterval(checkTimer);
-      clearTimeout(deadlineTimer);
-      if (pollTimer) clearTimeout(pollTimer);
+      clearAttemptTimers();
     };
     activeAttemptStopRef.current = stopAttempt;
 
@@ -144,34 +164,94 @@ export function useGradingStatus(
       setProgress({ phase: "polling", gradedPartCount: nextCount });
     };
 
-    const checkTimer = setInterval(syncTimedChecks, PART_INTERVAL_MS);
-    const deadlineTimer = setTimeout(fail, ATTEMPT_TIMEOUT_MS);
+    const scheduleTimedChecks = () => {
+      if (settled || !isAppActive || checkTimer) return;
+      checkTimer = setInterval(syncTimedChecks, PART_INTERVAL_MS);
+    };
 
-    const poll = async () => {
-      if (settled) return;
-      try {
-        const status = await getExamGradingStatus(examId, signal);
-        if (signal.aborted || settled) return;
+    let poll: (failIfPending?: boolean) => Promise<void>;
 
-        if (status.overallStatus === "COMPLETED") {
-          complete();
-          return;
-        }
-        if (status.overallStatus === "FAILED") {
-          fail();
-          return;
-        }
-      } catch {
-        if (signal.aborted || settled) return;
-      }
+    const scheduleDeadline = () => {
+      if (settled || !isAppActive) return;
+      if (deadlineTimer) clearTimeout(deadlineTimer);
 
+      const remainingMs = Math.max(
+        0,
+        ATTEMPT_TIMEOUT_MS - (Date.now() - startedAt),
+      );
+      deadlineTimer = setTimeout(() => {
+        deadlineTimer = null;
+        // timeout 시점에도 서버 완료가 먼저인지 최종 확인한 뒤 실패 처리한다.
+        void poll(true);
+      }, remainingMs);
+    };
+
+    const scheduleNextPoll = () => {
+      if (settled || !isAppActive) return;
+      if (pollTimer) clearTimeout(pollTimer);
       pollTimer = setTimeout(() => {
+        pollTimer = null;
         void poll();
       }, POLL_INTERVAL_MS);
     };
 
+    poll = async (failIfPending = false) => {
+      if (failIfPending) failAfterCurrentPoll = true;
+      if (settled || !isAppActive || pollInFlight) return;
+
+      pollInFlight = true;
+      let overallStatus: ExamGradingLifecycleStatus | null = null;
+      try {
+        const status = await getExamGradingStatus(examId, signal);
+        overallStatus = status.overallStatus;
+      } catch {
+        // 복귀 직후 요청도 일시적으로 실패할 수 있다. 아래 timeout 정책에서 처리한다.
+      } finally {
+        pollInFlight = false;
+      }
+
+      if (signal.aborted || settled || !isAppActive) return;
+      if (overallStatus === "COMPLETED") {
+        complete();
+        return;
+      }
+      if (overallStatus === "FAILED") {
+        fail();
+        return;
+      }
+
+      const attemptExpired = Date.now() - startedAt >= ATTEMPT_TIMEOUT_MS;
+      if (failAfterCurrentPoll || attemptExpired) {
+        failAfterCurrentPoll = false;
+        fail();
+        return;
+      }
+
+      failAfterCurrentPoll = false;
+      scheduleNextPoll();
+      scheduleDeadline();
+    };
+
+    scheduleTimedChecks();
+    scheduleDeadline();
     void poll();
+
+    const appStateSubscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState !== "active") {
+        isAppActive = false;
+        clearAttemptTimers();
+        return;
+      }
+
+      isAppActive = true;
+      syncTimedChecks();
+      scheduleTimedChecks();
+      // 3분이 지났어도 timeout보다 완료 상태 확인을 반드시 먼저 수행한다.
+      void poll(Date.now() - startedAt >= ATTEMPT_TIMEOUT_MS);
+    });
+
     return () => {
+      appStateSubscription.remove();
       stopAttempt();
       if (activeAttemptStopRef.current === stopAttempt) {
         activeAttemptStopRef.current = null;

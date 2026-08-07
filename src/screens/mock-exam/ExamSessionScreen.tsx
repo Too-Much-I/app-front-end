@@ -12,6 +12,7 @@ import { Text } from "@/components/ui/Text";
 import { getExamResponseCueKind } from "@/features/exam/exam-cue";
 import { getExamPartDirections } from "@/features/exam/part-directions";
 import { getQuestionAudioPlayCount } from "@/features/exam/question-audio";
+import { useOrientation } from "@/features/orientation/orientation-context";
 import type { MainTabParamList, MockExamStackParamList } from "@/navigation/types";
 import { AudioWaveform } from "@/screens/mock-exam/components/AudioWaveform";
 import { ExamAnswerStatus } from "@/screens/mock-exam/components/ExamAnswerStatus";
@@ -28,18 +29,59 @@ import {
   ExamTimerCard,
   type ExamTimerMode,
 } from "@/screens/mock-exam/components/ExamTimerCard";
-import { useExamSessionController } from "@/screens/mock-exam/hooks/use-exam-session-controller";
+import { Part4TableLandscapeModal } from "@/screens/mock-exam/components/Part4TableLandscapeModal";
+import {
+  type ExamSessionPhase,
+  useExamSessionController,
+} from "@/screens/mock-exam/hooks/use-exam-session-controller";
+import type {
+  ExamPartPrelude,
+  ExamQuestion,
+  ExamTableContext,
+} from "@/types/exam";
 
 type ExamSessionScreenProps = NativeStackScreenProps<MockExamStackParamList, "ExamSession">;
 
 /** 제출 완료 안내를 읽을 시간. 이 뒤에 채점 대기 화면으로 넘어간다. */
 const COMPLETED_HANDOFF_MS = 1_600;
 
+const NON_QUESTION_TABLE_PHASES = new Set<ExamSessionPhase>([
+  "directions",
+  "part3-intro",
+  "part4-reading",
+  "part-prelude-error",
+  "submission-barrier",
+  "completed",
+]);
+
+function getActivePart4Table(
+  question: ExamQuestion | undefined,
+  partPrelude: ExamPartPrelude | undefined,
+  phase: ExamSessionPhase,
+): ExamTableContext | undefined {
+  if (phase === "part4-reading") {
+    return partPrelude?.kind === "part4-reading" ? partPrelude.tableContext : undefined;
+  }
+  if (
+    question?.partNumber !== 4 ||
+    NON_QUESTION_TABLE_PHASES.has(phase)
+  ) {
+    return undefined;
+  }
+  return question.tableContext;
+}
+
 export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps) {
   const session = route.params.session;
   const isFocused = useIsFocused();
   const [isAppActive, setIsAppActive] = useState(AppState.currentState === "active");
   const [isExitConfirmationVisible, setIsExitConfirmationVisible] = useState(false);
+  const {
+    mode: orientationMode,
+    isLandscapeTableRequested,
+    requestTableLandscape,
+    restorePortrait,
+  } = useOrientation();
   const isExamActive = isFocused && isAppActive;
   const controller = useExamSessionController(session, isExamActive);
   const {
@@ -64,6 +106,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     retryRecording,
     retryRegistration,
   } = controller;
+  const activePart4Table = getActivePart4Table(question, partPrelude, phase);
   const timerMode: ExamTimerMode =
     phase === "response-cue" ||
     phase === "response" ||
@@ -99,12 +142,31 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     tabNavigation?.navigate("Home");
   }, [navigation, submissions]);
 
+  const handleRequestTableLandscape = useCallback(() => {
+    void requestTableLandscape();
+  }, [requestTableLandscape]);
+
+  const handleCloseLandscapeTable = useCallback(() => {
+    void restorePortrait();
+  }, [restorePortrait]);
+
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
       setIsAppActive(nextState === "active");
     });
     return () => subscription.remove();
   }, []);
+
+  useEffect(() => {
+    if (!activePart4Table && isLandscapeTableRequested) void restorePortrait();
+  }, [activePart4Table, isLandscapeTableRequested, restorePortrait]);
+
+  useEffect(
+    () => () => {
+      void restorePortrait();
+    },
+    [restorePortrait],
+  );
 
   // 제출이 끝나면 채점 대기 화면으로 넘긴다. "모든 답변을 제출했어요"를 읽을
   // 시간만 잠깐 두고 넘어간다. `replace`인 이유: 응시 화면은 돌아갈 곳이 아니고,
@@ -180,8 +242,10 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
           part4Prelude ? (
             <View className="flex-1 bg-surface">
               <ExamInformationReading
+                landscapeActionDisabled={orientationMode !== "portrait"}
                 prelude={part4Prelude}
                 onTableReady={markPart4TableReady}
+                onRequestLandscape={handleRequestTableLandscape}
               />
               <View className="items-center gap-3 border-t border-line bg-surface px-5 pb-4 pt-4">
                 <ExamTimerCard mode="reading" remainingSeconds={remainingSeconds} />
@@ -245,7 +309,11 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
               contentContainerClassName="flex-grow px-6 pb-5 pt-6"
               showsVerticalScrollIndicator={false}
             >
-              <ExamQuestionContent question={question} />
+              <ExamQuestionContent
+                landscapeActionDisabled={orientationMode !== "portrait"}
+                question={question}
+                onRequestLandscape={handleRequestTableLandscape}
+              />
             </ScrollView>
 
             <View className="items-center gap-3 bg-surface px-5 pb-3 pt-4">
@@ -330,6 +398,15 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
           </>
         )}
       </SafeAreaView>
+
+      {activePart4Table ? (
+        <Part4TableLandscapeModal
+          table={activePart4Table}
+          transitioning={orientationMode === "restoring-portrait"}
+          visible={isLandscapeTableRequested}
+          onRequestClose={handleCloseLandscapeTable}
+        />
+      ) : null}
 
       <ConfirmModal
         cancelLabel="계속 응시하기"

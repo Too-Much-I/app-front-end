@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import * as Application from "expo-application";
 import { useEffect, useState } from "react";
 import { Image, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,6 +26,11 @@ function formatConsentDate(iso: string): string {
   const mm = String(date.getMonth() + 1).padStart(2, "0");
   const dd = String(date.getDate()).padStart(2, "0");
   return `${yyyy}.${mm}.${dd}`;
+}
+
+function formatApplicationVersion(version: string | null): string {
+  if (!version) return "확인 불가";
+  return version.startsWith("v") ? version : `v${version}`;
 }
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
@@ -123,7 +129,11 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               icon="info"
               showDivider={false}
               title="버전 정보"
-              trailing={<Text className="text-sm text-ink-muted">v1.0.0</Text>}
+              trailing={
+                <Text className="text-sm text-ink-muted">
+                  {formatApplicationVersion(Application.nativeApplicationVersion)}
+                </Text>
+              }
             />
           </SettingsSection>
 
