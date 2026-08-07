@@ -53,6 +53,18 @@ export function applyRemScale(width: number): void {
 }
 
 /**
+ * Part 4 가로 표 전용 배율.
+ *
+ * 가로 전환으로 길어진 width가 아니라 짧은 변을 사용해 기기 크기 차이는 반영하되,
+ * 넓은 화면에서 표까지 확대되지 않도록 상한을 1로 제한한다. 하한은
+ * `scaleForWidth()`의 MIN_SCALE 정책을 그대로 따른다.
+ */
+export function scaleForLandscapeTable(width: number, height: number): number {
+  const shortSide = Math.min(width, height);
+  return Math.min(1, scaleForWidth(shortSide));
+}
+
+/**
  * 모듈 로드 시점에 한 번 맞춘다.
  *
  * React 렌더 이후 effect에서만 set하면 첫 프레임이 기본값 14로 그려진 뒤 바뀌어
@@ -66,12 +78,19 @@ applyRemScale(Dimensions.get("window").width);
  * 폴더블 접힘/펼침, iPad Split View 조정처럼 앱이 살아 있는 채로 폭이 바뀌는
  * 경우를 위한 것이다. 앱 루트에서 한 번만 호출한다.
  */
-export function useRemScale(): void {
-  const { width } = useWindowDimensions();
+export function useRemScale(compactForLandscapeTable = false): void {
+  const { width, height } = useWindowDimensions();
 
   useEffect(() => {
-    applyRemScale(width);
-  }, [width]);
+    // Part 4 가로 표는 넓어진 viewport에 더 많은 정보를 보여주는 모드다.
+    // 이때 width 기반 배율까지 커지면 글자·여백이 1.35배가 되어 이점이 사라진다.
+    // 짧은 변으로 기기 차이는 반영하되 1배를 넘기지 않아 정보 밀도를 지킨다.
+    if (compactForLandscapeTable) {
+      rem.set(BASE_REM * scaleForLandscapeTable(width, height));
+    } else {
+      applyRemScale(width);
+    }
+  }, [compactForLandscapeTable, height, width]);
 }
 
 /**

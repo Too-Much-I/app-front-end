@@ -6,11 +6,15 @@ import type { ExamPartReadingPrelude } from "@/types/exam";
 interface ExamInformationReadingProps {
   prelude: ExamPartReadingPrelude;
   onTableReady: () => void;
+  onRequestLandscape: () => void;
+  landscapeActionDisabled: boolean;
 }
 
 export function ExamInformationReading({
   prelude,
   onTableReady,
+  onRequestLandscape,
+  landscapeActionDisabled,
 }: ExamInformationReadingProps) {
   return (
     <ScrollView
@@ -20,7 +24,12 @@ export function ExamInformationReading({
       showsVerticalScrollIndicator={false}
     >
       <View className="mx-auto w-full max-w-3xl">
-        <Part4Table table={prelude.tableContext} onReady={onTableReady} />
+        <Part4Table
+          landscapeActionDisabled={landscapeActionDisabled}
+          table={prelude.tableContext}
+          onReady={onTableReady}
+          onRequestLandscape={onRequestLandscape}
+        />
       </View>
     </ScrollView>
   );

@@ -2,7 +2,7 @@
 
 ## 배경
 
-앱은 세로로 완전히 잠겨 있다.
+앱은 기본적으로 세로로 잠겨 있다.
 
 - `app.json:6` — `"orientation": "portrait"`
 - `android/app/src/main/AndroidManifest.xml:28` — `android:screenOrientation="portrait"`
@@ -11,6 +11,20 @@
 사용자가 기기를 눕혀도 화면이 그대로라, 왜 안 돌아가는지 알 수 없다. 이 설계는 **기기가 가로로 눕혀졌을 때 "세로 모드만 지원합니다"를 알리는 전역 오버레이**를 추가한다.
 
 이 기능의 성격을 분명히 해둔다. **버그를 막는 것이 아니라 이미 잠긴 동작을 설명하는 안내다.** 그 대가로 상시 동작하는 가속도 센서 리스너와 네이티브 의존성(`expo-sensors`)이 붙는다. 이 trade-off는 사용자가 인지하고 승인했다.
+
+### 후속 보완: Part 4의 명시적 가로 표 보기
+
+`011-exam-landscape-mode`에서 이 세로 전용 정책에 한 가지 예외가 추가됐다. 일반 화면과 시험의
+기본 방향은 계속 세로지만, live Part 4 읽기·문제 화면에서 전용 버튼을 누른 경우에만
+`expo-screen-orientation`이 가로 잠금을 요청한다. 이때 `OrientationProvider`가 기존
+`PortraitOnlyNotice`를 잠시 숨기며, 표 modal을 닫거나 Part 4·시험 화면을 벗어나면 세로 잠금과
+안내 정책을 복원한다. 기기 자세나 센서 신호만으로 이 예외에 진입하지는 않는다.
+
+따라서 아래의 iPad 전용 세로 plugin과 “가로 레이아웃 제외” 내용은 이 후속 기능 이전의 설계
+기록이다. 현재 native 설정은 `plugins/with-ios-runtime-orientation-support.js`로 iPhone/iPad의
+세로와 양쪽 가로 capability를 선언하고, `app.json`의 초기 방향과 runtime provider로 실제 기본
+세로 정책을 유지한다. iPad runtime lock을 보장하기 위해 `ios.requireFullScreen: true`를
+사용하므로 Split View와 Slide Over는 명시적으로 지원하지 않는다.
 
 ## 사전 확인 사항
 

@@ -5,7 +5,17 @@ import { Text } from "@/components/ui/Text";
 import { getExamPartMeta } from "@/features/exam/part-meta";
 import type { ExamQuestion } from "@/types/exam";
 
-export function ExamQuestionContent({ question }: { question: ExamQuestion }) {
+interface ExamQuestionContentProps {
+  question: ExamQuestion;
+  landscapeActionDisabled: boolean;
+  onRequestLandscape: () => void;
+}
+
+export function ExamQuestionContent({
+  question,
+  landscapeActionDisabled,
+  onRequestLandscape,
+}: ExamQuestionContentProps) {
   const partMeta = getExamPartMeta(question.partNumber);
 
   return (
@@ -36,7 +46,11 @@ export function ExamQuestionContent({ question }: { question: ExamQuestion }) {
       ) : null}
 
       {question.tableContext ? (
-        <Part4Table table={question.tableContext} />
+        <Part4Table
+          landscapeActionDisabled={landscapeActionDisabled}
+          table={question.tableContext}
+          onRequestLandscape={question.partNumber === 4 ? onRequestLandscape : undefined}
+        />
       ) : null}
 
       {question.question && question.partNumber !== 4 ? (
