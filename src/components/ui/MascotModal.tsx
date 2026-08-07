@@ -29,6 +29,8 @@ interface MascotModalProps {
   children?: ReactNode;
 }
 
+const ignoreRequestClose = () => undefined;
+
 /**
  * 마스코트와 안내 박스를 가진 모달의 공용 껍데기.
  *
@@ -51,7 +53,7 @@ export function MascotModal({
   return (
     <Modal
       animationType="fade"
-      onRequestClose={onRequestClose}
+      onRequestClose={onRequestClose ?? ignoreRequestClose}
       statusBarTranslucent
       transparent
       visible={visible}
