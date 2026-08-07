@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { PortraitOnlyNotice } from "@/components/ui/PortraitOnlyNotice";
 import { useAuth } from "@/features/auth/auth-context";
 import { AuthProvider } from "@/features/auth/auth-provider";
 import { RootNavigator } from "@/navigation/RootNavigator";
@@ -34,6 +35,8 @@ function AppContent() {
         <RootNavigator state={state} />
       </NavigationContainer>
       <StatusBar style="auto" />
+      {/* NavigationContainer 바깥이라 웹뷰를 포함한 모든 화면 위에 뜬다. */}
+      <PortraitOnlyNotice />
     </View>
   );
 }
