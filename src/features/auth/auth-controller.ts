@@ -536,8 +536,12 @@ class AuthController {
     }
 
     // 서버 삭제가 실패하면 로컬을 하나도 건드리지 않는다. 여기서 로컬만 지우면 살아있는
-    // 계정의 학습 기록에 사용자가 다시 접근할 방법이 없어진다.
-    await logout(this.requireSession().refreshToken);
+    // 계정의 학습 기록에 사용자가 다시 접근할 방법이 없어진다. 토큰 회전은 성공했지만
+    // SecureStore 기록만 실패했다면 기존 refresh token은 이미 폐기됐을 수 있으므로,
+    // 메모리에 남겨 둔 새 세션을 우선 사용한다.
+    const refreshToken =
+      this.pendingRotationSession?.refreshToken ?? this.requireSession().refreshToken;
+    await logout(refreshToken);
     logAuthDebug("server logout completed");
 
     try {
