@@ -1,4 +1,9 @@
 import { getExamPartTimingByQuestionNumber } from "@/features/exam/part-meta";
+import {
+  ExamTableContextError,
+  mapExamTableContext,
+  reportExamTableContractIssues,
+} from "@/features/exam/map-exam-table-context";
 import type { ExamQuestionInfo, RawExamQuestionInfo } from "@/types/exam";
 
 /**
@@ -9,6 +14,21 @@ import type { ExamQuestionInfo, RawExamQuestionInfo } from "@/types/exam";
  */
 export function mapExamQuestionInfo(raw: RawExamQuestionInfo): ExamQuestionInfo {
   const timing = getExamPartTimingByQuestionNumber(raw.part, raw.questionNumber);
+  const tableMapping =
+    raw.tableContext === undefined ? undefined : mapExamTableContext(raw.tableContext);
+
+  if (tableMapping) {
+    reportExamTableContractIssues(
+      `question detail ${raw.questionNumber}`,
+      tableMapping.issues,
+    );
+  }
+  if (raw.part === 4 && (!tableMapping || !tableMapping.ok)) {
+    throw new ExamTableContextError(
+      `Part 4 question ${raw.questionNumber} is missing a displayable table context`,
+      tableMapping?.issues ?? [],
+    );
+  }
 
   return {
     partNumber: raw.part,
@@ -19,7 +39,7 @@ export function mapExamQuestionInfo(raw: RawExamQuestionInfo): ExamQuestionInfo 
     audioUrl: raw.audioUrl,
     guideAudioUrl: raw.guideAudioUrl,
     imageUrl: raw.imageUrl,
-    tableImageUrl: raw.tableImageUrl,
+    tableContext: tableMapping?.ok ? tableMapping.value : undefined,
     ...timing,
   };
 }

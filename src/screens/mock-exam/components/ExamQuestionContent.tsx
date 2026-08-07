@@ -1,8 +1,8 @@
 import { Image, View } from "react-native";
 
+import { Part4Table } from "@/components/exam/Part4Table";
 import { Text } from "@/components/ui/Text";
 import { getExamPartMeta } from "@/features/exam/part-meta";
-import { ExamInformationImage } from "@/screens/mock-exam/components/ExamInformationImage";
 import type { ExamQuestion } from "@/types/exam";
 
 export function ExamQuestionContent({ question }: { question: ExamQuestion }) {
@@ -35,8 +35,8 @@ export function ExamQuestionContent({ question }: { question: ExamQuestion }) {
         </View>
       ) : null}
 
-      {question.tableImageUrl ? (
-        <ExamInformationImage imageUrl={question.tableImageUrl} />
+      {question.tableContext ? (
+        <Part4Table table={question.tableContext} />
       ) : null}
 
       {question.question && question.partNumber !== 4 ? (

@@ -1,16 +1,16 @@
 import { ScrollView, View } from "react-native";
 
-import { ExamInformationImage } from "@/screens/mock-exam/components/ExamInformationImage";
+import { Part4Table } from "@/components/exam/Part4Table";
 import type { ExamPartReadingPrelude } from "@/types/exam";
 
 interface ExamInformationReadingProps {
   prelude: ExamPartReadingPrelude;
-  onImageLoad: () => void;
+  onTableReady: () => void;
 }
 
 export function ExamInformationReading({
   prelude,
-  onImageLoad,
+  onTableReady,
 }: ExamInformationReadingProps) {
   return (
     <ScrollView
@@ -20,7 +20,7 @@ export function ExamInformationReading({
       showsVerticalScrollIndicator={false}
     >
       <View className="mx-auto w-full max-w-3xl">
-        <ExamInformationImage imageUrl={prelude.tableImageUrl} onLoad={onImageLoad} />
+        <Part4Table table={prelude.tableContext} onReady={onTableReady} />
       </View>
     </ScrollView>
   );
