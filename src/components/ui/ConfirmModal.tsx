@@ -1,8 +1,8 @@
-import { Image, Modal, View } from "react-native";
+import { View } from "react-native";
 
+import { MascotModal } from "@/components/ui/MascotModal";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
-import { shadows } from "@/theme";
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
 // 마스코트를 prop으로 열지 않고 고정한 이유: 세 사용처(시험 나가기, 재답변 폐기,
@@ -34,6 +34,7 @@ interface ConfirmModalProps {
  * 되돌릴 수 없는 동작을 확인받는 공용 모달.
  *
  * 취소가 CTA(채움), 확인이 보조(외곽선)다. 파괴적인 쪽을 시각적 기본값으로 두지 않는다.
+ * 카드 골격은 `MascotModal`이 그리고 여기서는 에러 문구와 버튼만 얹는다.
  */
 export function ConfirmModal({
   visible,
@@ -55,67 +56,40 @@ export function ConfirmModal({
     confirmTone === "danger" ? "text-exam-danger" : "text-ink-muted";
 
   return (
-    <Modal
-      animationType="fade"
+    <MascotModal
+      mascot={shockedRabbit}
+      message={message}
       onRequestClose={pending ? undefined : onCancel}
-      statusBarTranslucent
-      transparent
+      title={title}
       visible={visible}
+      warningBadge={warningBadge}
     >
-      <View className="flex-1 items-center justify-center bg-ink/50 px-6">
-        <View
-          accessibilityViewIsModal
-          className="w-full max-w-md items-center rounded-3xl bg-surface px-6 pb-6 pt-3"
-          style={shadows.card}
+      {errorMessage ? (
+        <Text className="mt-3 w-full text-sm text-exam-danger">{errorMessage}</Text>
+      ) : null}
+
+      {/* Pressable이 자체 Animated opacity를 style 배열 끝에 덧붙여 className의
+          opacity-*를 덮어쓴다. 대기 중 흐림 처리는 바깥 View에서 해야 먹는다. */}
+      <View className={`w-full ${pending ? "opacity-50" : ""}`}>
+        <Pressable
+          accessibilityRole="button"
+          className="mt-6 w-full items-center rounded-full bg-brand-cta py-4"
+          disabled={pending}
+          onPress={onCancel}
         >
-          {/* 얼굴 전체는 유지하고 원본 하단의 불필요한 여백만 컨테이너 밖으로 숨긴다. */}
-          <View className="h-36 w-40 overflow-hidden">
-            <Image className="h-40 w-40" resizeMode="contain" source={shockedRabbit} />
-          </View>
+          <Text className="text-base text-white">{cancelLabel}</Text>
+        </Pressable>
 
-          {title ? <Text className="mt-4 text-lg text-exam-navy">{title}</Text> : null}
-
-          <View
-            className={`w-full flex-row items-center rounded-2xl border border-brand-200 bg-brand-50 px-4 py-4 ${
-              title ? "mt-3" : "mt-5"
-            }`}
-          >
-            {warningBadge ? (
-              <View className="mr-3 h-7 w-7 items-center justify-center rounded-full bg-brand-cta">
-                <Text className="text-sm text-white">!</Text>
-              </View>
-            ) : null}
-            <Text className="flex-1 text-sm leading-6 text-brand-900">{message}</Text>
-          </View>
-
-          {errorMessage ? (
-            <Text className="mt-3 w-full text-sm text-exam-danger">{errorMessage}</Text>
-          ) : null}
-
-          {/* Pressable이 자체 Animated opacity를 style 배열 끝에 덧붙여 className의
-              opacity-*를 덮어쓴다. 대기 중 흐림 처리는 바깥 View에서 해야 먹는다. */}
-          <View className={`w-full ${pending ? "opacity-50" : ""}`}>
-            <Pressable
-              accessibilityRole="button"
-              className="mt-6 w-full items-center rounded-full bg-brand-cta py-4"
-              disabled={pending}
-              onPress={onCancel}
-            >
-              <Text className="text-base text-white">{cancelLabel}</Text>
-            </Pressable>
-
-            <Pressable
-              accessibilityHint={confirmHint}
-              accessibilityRole="button"
-              className={`mt-3 w-full items-center rounded-full border bg-surface py-4 ${confirmBorderClassName}`}
-              disabled={pending}
-              onPress={onConfirm}
-            >
-              <Text className={`text-base ${confirmTextClassName}`}>{confirmLabel}</Text>
-            </Pressable>
-          </View>
-        </View>
+        <Pressable
+          accessibilityHint={confirmHint}
+          accessibilityRole="button"
+          className={`mt-3 w-full items-center rounded-full border bg-surface py-4 ${confirmBorderClassName}`}
+          disabled={pending}
+          onPress={onConfirm}
+        >
+          <Text className={`text-base ${confirmTextClassName}`}>{confirmLabel}</Text>
+        </Pressable>
       </View>
-    </Modal>
+    </MascotModal>
   );
 }
