@@ -56,7 +56,7 @@
 
 - [ ] **Step 1: 현재 상태 기록**
 
-```
+```bash
 grep -A8 "UISupportedInterfaceOrientations~ipad" ios/app/Info.plist
 ```
 
@@ -120,13 +120,13 @@ module.exports = function withIpadPortraitOnly(config) {
 
 `--clean`은 `ios/`를 지우고 다시 만든다. 이 디렉터리는 git에 없고 생성물이므로 안전하지만, **Xcode에서 수동으로 바꾼 설정이 있다면 함께 사라진다.** 없는지 먼저 확인한다.
 
-```
+```bash
 pnpm exec expo prebuild --platform ios --clean
 ```
 
 - [ ] **Step 5: 결과 확인**
 
-```
+```bash
 grep -A6 "UISupportedInterfaceOrientations~ipad" ios/app/Info.plist
 ```
 
@@ -134,7 +134,7 @@ Expected: `Portrait`와 `PortraitUpsideDown`만 남고 Landscape 두 항목이 �
 
 - [ ] **Step 6: iPad 시뮬레이터에서 확인**
 
-```
+```bash
 pnpm ios
 ```
 
@@ -168,7 +168,7 @@ ios/가 gitignore 대상이라 직접 수정은 prebuild에서 사라진다."
 
 `pnpm add`가 아니라 `pnpm expo install`을 쓴다. SDK 57과 호환되는 버전을 골라준다.
 
-```
+```bash
 pnpm expo install expo-sensors
 ```
 
@@ -176,7 +176,7 @@ pnpm expo install expo-sensors
 
 네이티브 모듈이므로 JS 리로드로는 반영되지 않는다.
 
-```
+```bash
 pnpm ios
 pnpm android
 ```
@@ -317,7 +317,7 @@ export function useLandscapeDetection(): boolean {
 
 - [ ] **Step 2: 타입·린트 검사**
 
-```
+```bash
 pnpm lint
 pnpm exec tsc --noEmit
 ```
@@ -541,7 +541,7 @@ export function ConfirmModal({
 
 - [ ] **Step 3: 타입·린트 검사**
 
-```
+```bash
 pnpm lint
 pnpm exec tsc --noEmit
 ```
@@ -550,7 +550,7 @@ Expected: 둘 다 통과. 호출부를 건드리지 않았으므로 타입 오�
 
 - [ ] **Step 4: 기존 세 사용처 회귀 확인**
 
-```
+```bash
 pnpm ios
 ```
 
@@ -648,7 +648,7 @@ import { PortraitOnlyNotice } from "@/components/ui/PortraitOnlyNotice";
 
 - [ ] **Step 3: 타입·린트 검사**
 
-```
+```bash
 pnpm lint
 pnpm exec tsc --noEmit
 ```
@@ -657,7 +657,7 @@ pnpm exec tsc --noEmit
 
 **이 단계가 센서 로직의 주 검증 지점이다.** iOS 시뮬레이터에서는 가속도계가 없어 아무것도 뜨지 않는다.
 
-```
+```bash
 pnpm android
 ```
 
@@ -696,7 +696,7 @@ Expected: 감지가 계속 동작한다. `AppState` 구독이 재구독에 실�
 
 - [ ] **Step 8: iOS 시뮬레이터 폴백 확인**
 
-```
+```bash
 pnpm ios
 ```
 
@@ -727,7 +727,7 @@ App.tsx의 NavigationContainer 형제로 두어 웹뷰를 포함한 모든 화�
 
 - [ ] **Step 1: 실기기에 설치**
 
-```
+```bash
 pnpm ios --device
 ```
 
@@ -754,7 +754,7 @@ Expected(둘 중 하나):
 
 다시 prebuild하고 재설치한다.
 
-```
+```bash
 pnpm exec expo prebuild --platform ios --clean
 pnpm ios --device
 ```

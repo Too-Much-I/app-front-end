@@ -100,7 +100,7 @@ const SUSTAIN_MS = 800;           // 이 시간 이상 유지돼야 상태를 �
 
 판정식:
 
-```
+```text
 isLandscape = Math.abs(x) > LANDSCAPE_X && Math.abs(z) < FLAT_Z
 ```
 
@@ -226,14 +226,14 @@ interface MascotModalProps {
 | 환경 | 센서 신호 | 치수 신호 |
 | --- | --- | --- |
 | iOS 시뮬레이터 (iPhone) | 없음 | 세로 고정 → **검증 불가** |
-| iOS 시뮬레이터 (iPad) | 없음 | 가로 허용되어 회전함 |
+| iOS 시뮬레이터 (iPad) | 없음 | 세로 고정 → 자세·치수 신호 검증 불가 |
 | Android 에뮬레이터 | Extended Controls → Virtual sensors | 세로 고정 |
 | 실기기 (iPhone / Android) | 사용 가능 | 세로 고정 |
 
 따라서 검증 순서를 고정한다.
 
 1. **Android 에뮬레이터**에서 Virtual sensors의 가속도계 슬라이더로 임계값(`LANDSCAPE_X`, `FLAT_Z`)과 `SUSTAIN_MS`를 튜닝한다. 센서 로직의 대부분을 여기서 완성한다.
-2. **iPad 시뮬레이터**에서 치수 신호 분기를 확인한다.
+2. **iPad 시뮬레이터**에서는 Task 1의 config plugin이 세로 잠금을 적용했는지만 별도로 확인한다. 센서와 치수 신호로 가로 자세를 검증할 수는 없다.
 3. **실기기**에서만 확인 가능한 항목: iOS 센서 동작, iOS 모션 권한 프롬프트 여부, 실제 손동작에서의 디바운스 체감.
 
 `isAvailableAsync()`가 false일 때 훅이 던지지 않고 치수 신호만으로 조용히 동작해야 한다는 요구사항은, iOS 시뮬레이터가 그 경로를 항상 타므로 자동으로 검증된다.

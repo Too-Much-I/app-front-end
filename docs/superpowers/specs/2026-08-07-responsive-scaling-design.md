@@ -83,7 +83,7 @@ iPad에서 iPhone 호환 모드로 실행되면 OS가 창을 확대하지만, `D
 ### 제외
 
 - **브레이크포인트 도입.** 이 설계는 비례 스케일링만 다룬다. 태블릿에서 2단 레이아웃으로 재배치하는 것은 별개 작업이다.
-- **`tokens.js`의 `tabBar` 치수.** react-navigation의 `tabBarStyle`에 넘기는 평범한 JS 숫자라 rem 시스템 밖에 있다. 5절에서 이유와 함께 남겨둔다.
+- **탭바 하단 safe-area inset.** 탭바 높이, 콘텐츠 padding, 아이콘과 라벨은 `useScaleValue()`로 명시적으로 스케일링한다. 기기에서 제공하는 하단 safe-area inset만 원래 값으로 더해 시스템 영역과의 경계를 유지한다.
 - **고정 px/숫자 치수 57곳의 일괄 전환.** 5절에서 판단 기준만 정하고, 실제 전환은 눈에 띄는 회귀가 확인된 곳만 개별 처리한다.
 - **태블릿 지원 여부 결정** (`app.json`의 `supportsTablet`, Play Console 기기 제외). 스토어 정책 판단이라 코드 설계와 분리한다.
 - **화면 회전 안내 팝업.** `2026-08-07-portrait-only-notice-design.md`로 분리했다.
