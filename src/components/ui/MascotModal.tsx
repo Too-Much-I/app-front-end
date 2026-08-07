@@ -8,6 +8,16 @@ interface MascotModalProps {
   visible: boolean;
   /** 카드 상단 마스코트. 상황에 맞는 표정을 사용처가 고른다. */
   mascot: ImageSourcePropType;
+  /**
+   * 마스코트 하단을 잘라 카드에 붙인다.
+   *
+   * 정사각 전신 이미지(shocked_rabbit 2048×2048)는 아래쪽이 원본 여백이라
+   * 잘라내야 제목과의 간격이 맞는다. 반대로 얼굴만 담긴 세로 이미지
+   * (rabbit_face 1278×1442)는 높이를 이미지가 다 쓰기 때문에 자르면 턱이 날아간다.
+   *
+   * 이미지마다 달라지는 값이라 껍데기가 아니라 사용처가 정한다.
+   */
+  cropMascotBottom?: boolean;
   /** 없으면 안내 박스가 곧바로 마스코트 아래에 온다. */
   title?: string;
   message: string;
@@ -31,6 +41,7 @@ interface MascotModalProps {
 export function MascotModal({
   visible,
   mascot,
+  cropMascotBottom = false,
   title,
   message,
   warningBadge = false,
@@ -51,8 +62,8 @@ export function MascotModal({
           className="w-full max-w-md items-center rounded-3xl bg-surface px-6 pb-6 pt-3"
           style={shadows.card}
         >
-          {/* 얼굴 전체는 유지하고 원본 하단의 불필요한 여백만 컨테이너 밖으로 숨긴다. */}
-          <View className="h-36 w-40 overflow-hidden">
+          {/* 크롭할 때만 컨테이너를 이미지보다 낮춰 하단을 숨긴다(160dp -> 144dp). */}
+          <View className={`w-40 overflow-hidden ${cropMascotBottom ? "h-36" : "h-40"}`}>
             <Image className="h-40 w-40" resizeMode="contain" source={mascot} />
           </View>
 

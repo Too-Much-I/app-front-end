@@ -57,6 +57,7 @@ export function ConfirmModal({
 
   return (
     <MascotModal
+      cropMascotBottom
       mascot={shockedRabbit}
       message={message}
       onRequestClose={pending ? undefined : onCancel}
