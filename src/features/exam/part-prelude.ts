@@ -1,8 +1,14 @@
 import type { AudioSource } from "expo-audio";
 
+import {
+  areExamTableContextsEqual,
+  mapExamTableContext,
+  reportExamTableContractIssues,
+} from "@/features/exam/map-exam-table-context";
 import type {
   ExamPartPrelude,
   ExamPartPreludeInvalidReason,
+  ExamTableContext,
   RawExamQuestion,
 } from "@/types/exam";
 
@@ -21,11 +27,6 @@ function trimNonEmpty(value: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-function normalizeRemoteImageUrl(value: unknown): string | undefined {
-  const url = trimNonEmpty(value);
-  return url && /^https?:\/\//i.test(url) ? url : undefined;
-}
-
 export function isSupportedExamPartIntroAudioUrl(audioUrl: string): boolean {
   return audioUrl in PART3_GUIDE_AUDIO_SOURCES || /^https?:\/\//i.test(audioUrl);
 }
@@ -38,7 +39,7 @@ export function getExamPartIntroAudioSource(audioUrl: string): AudioSource | und
 
 interface ExamPartPreludeNormalization {
   partPreludes: ExamPartPrelude[];
-  canonicalPart4ImageUrl?: string;
+  canonicalPart4TableContext?: ExamTableContext;
 }
 
 function invalidPrelude(
@@ -72,38 +73,48 @@ function normalizePart3Prelude(questions: RawExamQuestion[]): ExamPartPrelude {
 
 function normalizePart4Prelude(
   questions: RawExamQuestion[],
-): { prelude: ExamPartPrelude; canonicalImageUrl?: string } {
+): { prelude: ExamPartPrelude; canonicalTableContext?: ExamTableContext } {
   const firstQuestion = questions.find(
     (question) => question.questionNumber === PART4_FIRST_QUESTION_NUMBER,
   );
   const laterQuestions = questions.filter(
     (question) => question.questionNumber !== PART4_FIRST_QUESTION_NUMBER,
   );
-  const canonicalImageUrl = normalizeRemoteImageUrl(firstQuestion?.tableImageUrl);
 
-  if (!firstQuestion?.tableImageUrl) {
-    const hasLaterImage = laterQuestions.some(
-      (question) => question.tableImageUrl !== undefined,
+  if (firstQuestion?.tableContext === undefined) {
+    const hasLaterTable = laterQuestions.some(
+      (question) => question.tableContext !== undefined,
     );
     return {
       prelude: invalidPrelude(
         4,
-        hasLaterImage ? "misplaced-part4-image" : "missing-part4-image",
+        hasLaterTable ? "misplaced-part4-table" : "missing-part4-table",
       ),
     };
   }
-  if (!canonicalImageUrl) {
-    return { prelude: invalidPrelude(4, "invalid-part4-image") };
+
+  const firstMapping = mapExamTableContext(firstQuestion.tableContext);
+  reportExamTableContractIssues(
+    `question ${firstQuestion.questionNumber}`,
+    firstMapping.issues,
+  );
+  if (!firstMapping.ok) {
+    return { prelude: invalidPrelude(4, "invalid-part4-table") };
   }
+  const canonicalTableContext = firstMapping.value;
 
   for (const question of laterQuestions) {
-    if (question.tableImageUrl === undefined) continue;
-    const repeatedImageUrl = normalizeRemoteImageUrl(question.tableImageUrl);
-    if (!repeatedImageUrl) {
-      return { prelude: invalidPrelude(4, "invalid-part4-image") };
+    if (question.tableContext === undefined) continue;
+    const repeatedMapping = mapExamTableContext(question.tableContext);
+    reportExamTableContractIssues(
+      `question ${question.questionNumber}`,
+      repeatedMapping.issues,
+    );
+    if (!repeatedMapping.ok) {
+      return { prelude: invalidPrelude(4, "invalid-part4-table") };
     }
-    if (repeatedImageUrl !== canonicalImageUrl) {
-      return { prelude: invalidPrelude(4, "conflicting-part4-image") };
+    if (!areExamTableContextsEqual(repeatedMapping.value, canonicalTableContext)) {
+      return { prelude: invalidPrelude(4, "conflicting-part4-table") };
     }
   }
 
@@ -111,10 +122,10 @@ function normalizePart4Prelude(
     prelude: {
       kind: "part4-reading",
       partNumber: 4,
-      tableImageUrl: canonicalImageUrl,
+      tableContext: canonicalTableContext,
       durationSec: PART4_READING_DURATION_SEC,
     },
-    canonicalImageUrl,
+    canonicalTableContext,
   };
 }
 
@@ -134,8 +145,8 @@ export function normalizeExamPartPreludes(
   partPreludes.push(part4Normalization.prelude);
   return {
     partPreludes,
-    ...(part4Normalization.canonicalImageUrl
-      ? { canonicalPart4ImageUrl: part4Normalization.canonicalImageUrl }
+    ...(part4Normalization.canonicalTableContext
+      ? { canonicalPart4TableContext: part4Normalization.canonicalTableContext }
       : {}),
   };
 }

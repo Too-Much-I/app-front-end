@@ -56,7 +56,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     (session.questions[0]?.prepTimeSec ?? 0) * 1_000,
   );
   const [readingRemainingMs, setReadingRemainingMs] = useState(0);
-  const [isReadingImageLoaded, setIsReadingImageLoaded] = useState(false);
+  const [isReadingTableReady, setIsReadingTableReady] = useState(false);
   const [pendingFinalizedAnswer, setPendingFinalizedAnswer] =
     useState<FinalizedAnswer | null>(null);
   const phaseRef = useRef(phase);
@@ -67,6 +67,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     (session.questions[0]?.prepTimeSec ?? 0) * 1_000,
   );
   const readingRemainingMsRef = useRef(0);
+  const isReadingTableReadyRef = useRef(false);
   const completedPartPreludesRef = useRef(new Set<number>());
   const isExamActiveRef = useRef(isExamActive);
   const recorder = useAnswerRecorder();
@@ -270,7 +271,8 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
         const durationMs = partPrelude.durationSec * 1_000;
         readingRemainingMsRef.current = durationMs;
         setReadingRemainingMs(durationMs);
-        setIsReadingImageLoaded(false);
+        isReadingTableReadyRef.current = false;
+        setIsReadingTableReady(false);
         updatePhase("part4-reading");
         return;
       }
@@ -286,7 +288,13 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
   }, [enterQuestionStart, question]);
 
   const completePart4Reading = useCallback(() => {
-    if (phaseRef.current !== "part4-reading" || !question) return;
+    if (
+      phaseRef.current !== "part4-reading" ||
+      !isReadingTableReadyRef.current ||
+      !question
+    ) {
+      return;
+    }
     completedPartPreludesRef.current.add(question.partNumber);
     readingRemainingMsRef.current = 0;
     setReadingRemainingMs(0);
@@ -310,8 +318,10 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     void startResponseRecording();
   }, [startResponseRecording]);
 
-  const markPart4ImageLoaded = useCallback(() => {
-    if (phaseRef.current === "part4-reading") setIsReadingImageLoaded(true);
+  const markPart4TableReady = useCallback(() => {
+    if (phaseRef.current !== "part4-reading") return;
+    isReadingTableReadyRef.current = true;
+    setIsReadingTableReady(true);
   }, []);
 
   const retryRegistration = useCallback(() => {
@@ -345,7 +355,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
   }, [currentIndex, isExamActive, phase, question]);
 
   useEffect(() => {
-    if (phase !== "part4-reading" || !isReadingImageLoaded || !isExamActive) return;
+    if (phase !== "part4-reading" || !isReadingTableReady || !isExamActive) return;
 
     const deadline = Date.now() + readingRemainingMsRef.current;
     const tick = () => {
@@ -364,7 +374,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
         readingRemainingMsRef.current = Math.max(0, deadline - Date.now());
       }
     };
-  }, [completePart4Reading, isExamActive, isReadingImageLoaded, phase]);
+  }, [completePart4Reading, isExamActive, isReadingTableReady, phase]);
 
   useEffect(() => {
     // generation이 정리되면 remainingMs가 0으로 떨어지므로 녹음 중일 때만 만료로 본다.
@@ -403,6 +413,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     currentIndex,
     question,
     partPrelude,
+    isReadingTableReady,
     questionAudioUrl,
     phase,
     remainingSeconds,
@@ -414,7 +425,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     completeQuestionCue,
     completePreparationCue,
     completeResponseCue,
-    markPart4ImageLoaded,
+    markPart4TableReady,
     beginResponse,
     finishResponse,
     retryRecording,

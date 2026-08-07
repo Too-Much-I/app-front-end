@@ -1,10 +1,82 @@
+export type ExamTableScalar = string | number | boolean | null;
+
+export interface RawExamTableMetadata {
+  key: string;
+  label: string;
+  value: ExamTableScalar;
+}
+
+export interface RawExamTableColumn {
+  key: string;
+  label: string;
+  value_type: string;
+}
+
+export interface RawExamTableItem {
+  cells: Record<string, ExamTableScalar>;
+  status: string;
+  status_note: string | null;
+  strike_through: boolean;
+}
+
+export interface RawExamTableNote {
+  scope: string;
+  text: string;
+}
+
+/** Part 4 public wire contract. 내부 필드는 서버 규격의 snake_case를 그대로 적는다. */
+export interface RawExamTableContext {
+  table_type: string;
+  title: string;
+  subtitles: string[];
+  metadata: RawExamTableMetadata[];
+  columns: RawExamTableColumn[];
+  items: RawExamTableItem[];
+  notes: RawExamTableNote[];
+}
+
+export interface ExamTableMetadata {
+  key: string;
+  label: string;
+  value: ExamTableScalar;
+}
+
+export interface ExamTableColumn {
+  key: string;
+  label: string;
+  valueType: string;
+}
+
+export interface ExamTableItem {
+  cells: Record<string, ExamTableScalar>;
+  status: string;
+  statusNote: string | null;
+  strikeThrough: boolean;
+}
+
+export interface ExamTableNote {
+  scope: string;
+  text: string;
+}
+
+/** 화면이 소비하는 Part 4 표. 종류·상태·키는 확장 가능하므로 string으로 유지한다. */
+export interface ExamTableContext {
+  tableType: string;
+  title: string;
+  subtitles: string[];
+  metadata: ExamTableMetadata[];
+  columns: ExamTableColumn[];
+  items: ExamTableItem[];
+  notes: ExamTableNote[];
+}
+
 export interface RawExamQuestion {
   part: number;
   questionNumber: number;
   referenceText?: string;
   imageUrl?: string;
   text?: string;
-  tableImageUrl?: string;
+  tableContext?: RawExamTableContext;
   audioUrl?: string;
   /** Part 3 setup narration text ("Imagine a cooking magazine..."), read once before the part's first question. */
   partIntroText?: string;
@@ -25,7 +97,7 @@ export interface ExamQuestion {
   imageUrl?: string;
   question?: string;
   audioUrl?: string;
-  tableImageUrl?: string;
+  tableContext?: ExamTableContext;
   /** Part 3 setup narration text ("Imagine a cooking magazine..."), read once before the part's first question. */
   partIntroText?: string;
   /** Narrated audio for partIntroText. */
@@ -43,10 +115,10 @@ export type ExamPartPreludeInvalidReason =
   | "missing-part3-guide-audio"
   | "misplaced-part3-content"
   | "unsupported-part3-guide-audio"
-  | "missing-part4-image"
-  | "misplaced-part4-image"
-  | "conflicting-part4-image"
-  | "invalid-part4-image";
+  | "missing-part4-table"
+  | "misplaced-part4-table"
+  | "conflicting-part4-table"
+  | "invalid-part4-table";
 
 export interface ExamPartIntroPrelude {
   kind: "part3-intro";
@@ -58,7 +130,7 @@ export interface ExamPartIntroPrelude {
 export interface ExamPartReadingPrelude {
   kind: "part4-reading";
   partNumber: 4;
-  tableImageUrl: string;
+  tableContext: ExamTableContext;
   durationSec: 45;
 }
 
@@ -369,7 +441,7 @@ export interface RawExamQuestionInfo {
   audioUrl?: string;
   guideAudioUrl?: string;
   imageUrl?: string;
-  tableImageUrl?: string;
+  tableContext?: RawExamTableContext;
 }
 
 /** GET /api/v1/exams/{examId}/questions/{questionNumber} 의 result.question */
@@ -463,7 +535,7 @@ export interface ExamQuestionInfo {
   audioUrl?: string;
   guideAudioUrl?: string;
   imageUrl?: string;
-  tableImageUrl?: string;
+  tableContext?: ExamTableContext;
   prepTimeSec: number;
   speakTimeSec: number;
 }

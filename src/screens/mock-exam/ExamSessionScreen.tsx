@@ -46,6 +46,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     currentIndex,
     question,
     partPrelude,
+    isReadingTableReady,
     questionAudioUrl,
     phase,
     remainingSeconds,
@@ -57,7 +58,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     completeQuestionCue,
     completePreparationCue,
     completeResponseCue,
-    markPart4ImageLoaded,
+    markPart4TableReady,
     beginResponse,
     finishResponse,
     retryRecording,
@@ -180,16 +181,26 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
             <View className="flex-1 bg-surface">
               <ExamInformationReading
                 prelude={part4Prelude}
-                onImageLoad={markPart4ImageLoaded}
+                onTableReady={markPart4TableReady}
               />
               <View className="items-center gap-3 border-t border-line bg-surface px-5 pb-4 pt-4">
                 <ExamTimerCard mode="reading" remainingSeconds={remainingSeconds} />
                 <Pressable
+                  accessibilityState={{ disabled: !isReadingTableReady }}
                   accessibilityRole="button"
-                  className="rounded-full border border-brand-300 px-4 py-2"
+                  className={`rounded-full border px-4 py-2 ${
+                    isReadingTableReady
+                      ? "border-brand-300"
+                      : "border-line bg-surface-muted"
+                  }`}
+                  disabled={!isReadingTableReady}
                   onPress={completePart4Reading}
                 >
-                  <Text className="text-sm text-brand-text">
+                  <Text
+                    className={`text-sm ${
+                      isReadingTableReady ? "text-brand-text" : "text-ink-disabled"
+                    }`}
+                  >
                     준비 완료, 문제로 이동하기
                   </Text>
                 </Pressable>

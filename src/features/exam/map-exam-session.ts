@@ -20,14 +20,14 @@ export function mapExamSession(raw: RawExamSession): ExamSession {
         .map((question) => ({
           questionNumber: question.questionNumber,
           keys: Object.keys(question),
-          imageFields: Object.fromEntries(
-            Object.entries(question).filter(([key]) => /image|table/i.test(key)),
-          ),
+          hasTableContext: question.tableContext !== undefined,
         })),
     );
   }
 
-  const { partPreludes, canonicalPart4ImageUrl } = normalizeExamPartPreludes(raw.questions);
+  const { partPreludes, canonicalPart4TableContext } = normalizeExamPartPreludes(
+    raw.questions,
+  );
   const partGroups = new Map<number, RawExamQuestion[]>();
   for (const q of raw.questions) {
     const group = partGroups.get(q.part) ?? [];
@@ -49,7 +49,7 @@ export function mapExamSession(raw: RawExamSession): ExamSession {
       imageUrl: q.imageUrl,
       question: q.text,
       audioUrl: q.audioUrl,
-      tableImageUrl: q.part === 4 ? canonicalPart4ImageUrl : q.tableImageUrl,
+      tableContext: q.part === 4 ? canonicalPart4TableContext : undefined,
       partIntroText: q.partIntroText,
       guideAudioUrl: q.guideAudioUrl,
       isFirstInPart,

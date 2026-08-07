@@ -3,11 +3,11 @@ import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-au
 import { useCallback, useEffect, useMemo } from "react";
 import { Image, View } from "react-native";
 
+import { Part4Table } from "@/components/exam/Part4Table";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { PLAYBACK_AUDIO_MODE } from "@/features/exam/answer-audio";
 import { getQuestionAudioSource } from "@/features/exam/question-audio";
-import { ExamInformationImage } from "@/screens/mock-exam/components/ExamInformationImage";
 import { colors, shadows } from "@/theme";
 import type { ExamQuestionInfo } from "@/types/exam";
 
@@ -77,8 +77,8 @@ export function ReanswerQuestionCard({
           </View>
         ) : null}
 
-        {question.tableImageUrl ? (
-          <ExamInformationImage imageUrl={question.tableImageUrl} />
+        {question.tableContext ? (
+          <Part4Table table={question.tableContext} />
         ) : null}
 
         {question.text ? (
