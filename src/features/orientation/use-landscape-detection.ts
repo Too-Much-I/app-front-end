@@ -37,6 +37,7 @@ export function useLandscapeDetection(): boolean {
   const [sensorLandscape, setSensorLandscape] = useState(false);
 
   useEffect(() => {
+    let generation = 0;
     let subscription: { remove: () => void } | null = null;
     let timer: ReturnType<typeof setTimeout> | null = null;
     let candidate = false;
@@ -62,19 +63,30 @@ export function useLandscapeDetection(): boolean {
     };
 
     const start = async () => {
+      const startGeneration = generation;
       // AppState가 active로 여러 번 전이해도 구독이 중복되지 않게 한다.
       if (subscription !== null) return;
 
       const available = await Accelerometer.isAvailableAsync();
       // iOS 시뮬레이터에는 가속도계가 없다. 여기서 조용히 빠져나가면
       // 창 비율 신호만 남고 훅은 정상 동작한다.
-      if (cancelled || !available || subscription !== null) return;
+      if (
+        cancelled ||
+        startGeneration !== generation ||
+        AppState.currentState !== "active" ||
+        !available ||
+        subscription !== null
+      ) {
+        return;
+      }
 
       Accelerometer.setUpdateInterval(UPDATE_INTERVAL_MS);
       subscription = Accelerometer.addListener(handleReading);
     };
 
     const stop = () => {
+      // 아직 isAvailableAsync()를 기다리는 이전 start()도 함께 무효화한다.
+      generation += 1;
       subscription?.remove();
       subscription = null;
       clearTimer();
