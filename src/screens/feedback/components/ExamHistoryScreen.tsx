@@ -50,6 +50,7 @@ const PANEL_SLIDE_DISTANCE = 28;
 const chartIllustration = require("../../../../public/icons/chart.png");
 const greetingCat = require("../../../../public/mascots/greeting_cat.png");
 const graduateTurtle = require("../../../../public/mascots/graduate_turtle.png");
+const historyTrendBird = require("../../../../public/mascots/headset_bird.png");
 
 type HistoryTab = "reanswers" | "exams";
 
@@ -115,6 +116,30 @@ function scoreToY(score: number, maxScore: number): number {
   const boundedScore = Math.min(maxScore, Math.max(0, score));
   const ratio = maxScore > 0 ? boundedScore / maxScore : 0;
   return CHART_BOTTOM - ratio * (CHART_BOTTOM - CHART_TOP);
+}
+
+/** 기록이 하나뿐이라 아직 추이를 만들 수 없을 때 그래프 자리에 보여주는 안내. */
+function SingleExamTrendPrompt() {
+  return (
+    <View
+      accessible
+      accessibilityLabel="모의고사를 한 번 더 풀면 점수 변화를 그래프로 확인할 수 있어요"
+      className="mt-4 flex-row items-end justify-center gap-3"
+    >
+      <Image
+        accessible={false}
+        source={historyTrendBird}
+        className="h-24 w-24"
+        resizeMode="contain"
+      />
+      <View className="relative mb-4 min-w-0 flex-1 rounded-2xl border border-sky-line bg-sky-surface px-4 py-3">
+        <View className="absolute -left-2 top-1/2 h-4 w-4 rotate-45 border-b border-l border-sky-line bg-sky-surface" />
+        <Text className="text-sm leading-6 text-sky-text">
+          모의고사를 한 번 더 풀면 점수 변화를 그래프로 확인할 수 있어요!
+        </Text>
+      </View>
+    </View>
+  );
 }
 
 function ScoreTrendChart({ items }: { items: readonly ExamHistoryItem[] }) {
@@ -214,6 +239,9 @@ function ExamHistoryCard({
   onPress: () => void;
 }) {
   const badgeColor = badgeColors[item.tone];
+  // NM/NL처럼 한 등급에 코드가 둘인 경우 원 안에는 대표 코드 하나만 표시한다.
+  // 접근성 라벨에는 아래에서 원래 등급명을 그대로 읽어 정보 손실을 피한다.
+  const badgeLevel = item.level.split("/", 1)[0]?.trim() || item.level;
   const completedDate = formatCompletedDate(item.completedAt);
   const subtitle =
     item.retriedQuestionCount > 0
@@ -233,7 +261,7 @@ function ExamHistoryCard({
         style={{ backgroundColor: badgeColor.backgroundColor }}
       >
         <Text className="text-lg" style={{ color: badgeColor.color }}>
-          {item.level}
+          {badgeLevel}
         </Text>
       </View>
 
@@ -822,7 +850,11 @@ function ExamHistoryPanel({
             /{EXAM_TOTAL_MAX_SCORE}
           </Text>
         </View>
-        <ScoreTrendChart items={state.items} />
+        {state.items.length === 1 ? (
+          <SingleExamTrendPrompt />
+        ) : (
+          <ScoreTrendChart items={state.items} />
+        )}
       </View>
 
       <View className="mt-4 gap-3">
