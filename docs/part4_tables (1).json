@@ -1,0 +1,2304 @@
+[
+  {
+    "mock_exam_id": "mock_exam_001",
+    "title": "토선생 모의고사 1회",
+    "table_context": {
+      "table_type": "profile",
+      "title": "Maya Bennett",
+      "subtitles": [],
+      "metadata": [
+        {
+          "key": "email",
+          "label": "Email",
+          "value": "maya.bennett@northmail.com"
+        },
+        {
+          "key": "phone",
+          "label": "Phone",
+          "value": "(617) 555-2846"
+        }
+      ],
+      "columns": [
+        {
+          "key": "section",
+          "label": "Section",
+          "value_type": "text"
+        },
+        {
+          "key": "details",
+          "label": "Details",
+          "value_type": "text"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "section": "Desired Position",
+            "details": "Food Preparation Instructor"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "section": "Education",
+            "details": "Master's degree in Food Education, Westhaven University (2024)"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "section": "Education",
+            "details": "Bachelor's degree in Culinary Arts, North Coast University (2020)"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "section": "Work Experience",
+            "details": "Food Preparation Instructor, Juniper Community Kitchen, Brighton (2024-present)"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "section": "Work Experience",
+            "details": "Kitchen Assistant, Meadow House Learning Center, Bristol (2019-2021)"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "section": "Skills",
+            "details": "Skilled in batch cooking and knife safety"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "section": "Certificates",
+            "details": "Community Food Educator Certificate"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_002",
+    "title": "토선생 모의고사 2회",
+    "table_context": {
+      "table_type": "itinerary",
+      "title": "Itinerary for Emily Carter",
+      "subtitles": [],
+      "metadata": [
+        {
+          "key": "position",
+          "label": "Position",
+          "value": "Operations Coordinator at Harbor Learning Network"
+        }
+      ],
+      "columns": [
+        {
+          "key": "date",
+          "label": "Date",
+          "value_type": "date"
+        },
+        {
+          "key": "time",
+          "label": "Time",
+          "value_type": "time"
+        },
+        {
+          "key": "activity",
+          "label": "Activity",
+          "value_type": "text"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "date": "Monday, Nov 10",
+            "time": "8:10 A.M.",
+            "activity": "Depart Portland (Skyway Air, Flight #316)"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "Monday, Nov 10",
+            "time": "11:05 A.M.",
+            "activity": "Arrive Denver (Pickup: shuttle van)"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "Monday, Nov 10",
+            "time": "Noon",
+            "activity": "Lunch with Daniel Kim"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "Tuesday, Nov 11",
+            "time": "8:45 A.M.",
+            "activity": "Orientation breakfast"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "Tuesday, Nov 11",
+            "time": "10:30 A.M.",
+            "activity": "Workshop: Community Class Outreach"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "Tuesday, Nov 11",
+            "time": "1:30 P.M.",
+            "activity": "Lecture: Volunteer Mentor Training"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "Wednesday, Nov 12",
+            "time": "8:25 A.M.",
+            "activity": "Depart Denver (Skyway Air, Flight #319)"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "Wednesday, Nov 12",
+            "time": "11:10 A.M.",
+            "activity": "Arrive Portland"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_003",
+    "title": "토선생 모의고사 3회",
+    "table_context": {
+      "table_type": "schedule",
+      "title": "Downtown Community Arts Center Photography Workshop",
+      "subtitles": [],
+      "metadata": [
+        {
+          "key": "date",
+          "label": "Date",
+          "value": "September 12th"
+        },
+        {
+          "key": "location",
+          "label": "Location",
+          "value": "Downtown Community Arts Center, Room 204"
+        },
+        {
+          "key": "fee",
+          "label": "Fee",
+          "value": "$35"
+        }
+      ],
+      "columns": [
+        {
+          "key": "time",
+          "label": "Time",
+          "value_type": "time_range"
+        },
+        {
+          "key": "session_title",
+          "label": "Session Title",
+          "value_type": "text"
+        },
+        {
+          "key": "speaker",
+          "label": "Speaker",
+          "value_type": "person"
+        },
+        {
+          "key": "note",
+          "label": "Note",
+          "value_type": "text"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "time": "9:00–9:30 A.M.",
+            "session_title": "Registration",
+            "speaker": null,
+            "note": null
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "9:30–10:30 A.M.",
+            "session_title": "Introduction to Camera Settings",
+            "speaker": "Rachel Adams",
+            "note": null
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "10:30–11:30 A.M.",
+            "session_title": "Composition and Lighting Basics",
+            "speaker": "Tom Nguyen",
+            "note": null
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "11:30 A.M.–12:30 P.M.",
+            "session_title": "Lunch",
+            "speaker": null,
+            "note": "provided by Maple Street Café"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "12:30–1:30 P.M.",
+            "session_title": "Basic Photo Editing",
+            "speaker": "Grace Park",
+            "note": null
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "1:30–2:30 P.M.",
+            "session_title": "Advanced Editing Techniques",
+            "speaker": "Grace Park",
+            "note": null
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "2:30–4:00 P.M.",
+            "session_title": "Group Critique and Q&A",
+            "speaker": "Tom Nguyen",
+            "note": null
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_004",
+    "title": "토선생 모의고사 4회",
+    "table_context": {
+      "table_type": "schedule",
+      "title": "Customer Service Skills Conference",
+      "subtitles": [],
+      "metadata": [
+        {
+          "key": "date",
+          "label": "Date",
+          "value": "October 16, 2026"
+        },
+        {
+          "key": "location",
+          "label": "Location",
+          "value": "Riverside Conference Center"
+        },
+        {
+          "key": "fee",
+          "label": "Fee",
+          "value": "$85 per attendee"
+        }
+      ],
+      "columns": [
+        {
+          "key": "time",
+          "label": "Time",
+          "value_type": "time"
+        },
+        {
+          "key": "session_title",
+          "label": "Session Title",
+          "value_type": "text"
+        },
+        {
+          "key": "speaker",
+          "label": "Speaker",
+          "value_type": "person"
+        },
+        {
+          "key": "room",
+          "label": "Room",
+          "value_type": "text"
+        },
+        {
+          "key": "note",
+          "label": "Note",
+          "value_type": "text"
+        },
+        {
+          "key": "number_of_participants",
+          "label": "Number of Participants",
+          "value_type": "number"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "time": "9:00 AM",
+            "session_title": "Welcome and Service Trends",
+            "speaker": "Nora Patel",
+            "room": "Grand Hall",
+            "note": "Opening session",
+            "number_of_participants": null
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "9:45 AM",
+            "session_title": "Listening for Customer Needs",
+            "speaker": "Elena Brooks",
+            "room": "River Room",
+            "note": null,
+            "number_of_participants": 30
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "10:45 AM",
+            "session_title": "Handling Difficult Calls",
+            "speaker": "Marcus Lee",
+            "room": "Garden Room",
+            "note": "Bring a headset",
+            "number_of_participants": 24
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "11:45 AM",
+            "session_title": "Writing Helpful Email Replies",
+            "speaker": "Elena Brooks",
+            "room": "River Room",
+            "note": null,
+            "number_of_participants": 30
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "1:15 PM",
+            "session_title": "Resolving Billing Concerns",
+            "speaker": "Nora Patel",
+            "room": "Garden Room",
+            "note": null,
+            "number_of_participants": 24
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "2:15 PM",
+            "session_title": "Creating Service Recovery Plans",
+            "speaker": "Marcus Lee",
+            "room": "Grand Hall",
+            "note": "Case study provided",
+            "number_of_participants": 40
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "3:30 PM",
+            "session_title": "Building Long-Term Customer Loyalty",
+            "speaker": "Nora Patel",
+            "room": "River Room",
+            "note": "Final workshop",
+            "number_of_participants": 30
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_005",
+    "title": "토선생 모의고사 5회",
+    "table_context": {
+      "table_type": "reservation_form",
+      "title": "Harbor Auto Rental Reservation Confirmation",
+      "subtitles": [
+        "Confirmation issued October 20, 2026"
+      ],
+      "metadata": [
+        {
+          "key": "confirmation_number",
+          "label": "Confirmation Number",
+          "value": "HC-58241"
+        },
+        {
+          "key": "customer_name",
+          "label": "Customer",
+          "value": "Daniel Cho"
+        },
+        {
+          "key": "vehicle_class",
+          "label": "Vehicle Class",
+          "value": "Mid-size SUV"
+        },
+        {
+          "key": "minimum_driver_age",
+          "label": "Driver Age Requirement",
+          "value": "All drivers must be at least 25 years old"
+        }
+      ],
+      "columns": [
+        {
+          "key": "section",
+          "label": "Section",
+          "value_type": "text"
+        },
+        {
+          "key": "field_label",
+          "label": "Reservation Field",
+          "value_type": "text"
+        },
+        {
+          "key": "date",
+          "label": "Date",
+          "value_type": "date"
+        },
+        {
+          "key": "time",
+          "label": "Time",
+          "value_type": "time"
+        },
+        {
+          "key": "location",
+          "label": "Location",
+          "value_type": "location"
+        },
+        {
+          "key": "detail",
+          "label": "Details",
+          "value_type": "text"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "section": "Rental Schedule",
+            "field_label": "Pick-up",
+            "date": "November 6, 2026",
+            "time": "9:30 AM",
+            "location": "Harbor Central Station",
+            "detail": "Counter inside the main entrance"
+          },
+          "status": "reserved",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "section": "Rental Schedule",
+            "field_label": "Drop-off",
+            "date": "November 9, 2026",
+            "time": "4:00 PM",
+            "location": "Harbor Airport Terminal",
+            "detail": "Rental return lane on Level 1"
+          },
+          "status": "reserved",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "section": "Driver Information",
+            "field_label": "Primary Driver",
+            "date": null,
+            "time": null,
+            "location": null,
+            "detail": "Daniel Cho"
+          },
+          "status": "reserved",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "section": "Driver Information",
+            "field_label": "Additional Driver",
+            "date": null,
+            "time": null,
+            "location": null,
+            "detail": "Not yet added"
+          },
+          "status": "available",
+          "status_note": "Age requirement applies",
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "section": "Protection and Extras",
+            "field_label": "Coverage",
+            "date": null,
+            "time": null,
+            "location": null,
+            "detail": "Standard Protection"
+          },
+          "status": "reserved",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "section": "Protection and Extras",
+            "field_label": "GPS Navigation",
+            "date": null,
+            "time": null,
+            "location": null,
+            "detail": "Unavailable for this reservation"
+          },
+          "status": "unavailable",
+          "status_note": "No units are available for these dates",
+          "strike_through": false
+        }
+      ],
+      "notes": [
+        {
+          "scope": "metadata:meta_minimum_driver_age",
+          "text": "The minimum-age policy applies to both primary and additional drivers."
+        },
+        {
+          "scope": "table",
+          "text": "Please return the vehicle with a full tank of fuel."
+        }
+      ]
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_006",
+    "title": "토선생 모의고사 6회",
+    "table_context": {
+      "table_type": "schedule",
+      "title": "Harborview Learning Studio",
+      "subtitles": [
+        "May Workshop Schedule"
+      ],
+      "metadata": [
+        {
+          "key": "address",
+          "label": "Address",
+          "value": "240 Maple Street, Tacoma, Washington"
+        },
+        {
+          "key": "cost",
+          "label": "Cost",
+          "value": "$42 per workshop"
+        }
+      ],
+      "columns": [
+        {
+          "key": "date",
+          "label": "Date",
+          "value_type": "date"
+        },
+        {
+          "key": "topic",
+          "label": "Topic of Workshop",
+          "value_type": "text"
+        },
+        {
+          "key": "time",
+          "label": "Time",
+          "value_type": "time_range"
+        },
+        {
+          "key": "note",
+          "label": "Note",
+          "value_type": "text"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "date": "May 4",
+            "topic": "Planning Community Events",
+            "time": "2:30-4:30 PM",
+            "note": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "May 9",
+            "topic": "Writing Effective Newsletters",
+            "time": "4:00-6:00 PM",
+            "note": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "May 14",
+            "topic": "Creating Short Videos",
+            "time": "6:30-8:30 PM",
+            "note": "Bring a laptop and charging cable"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "May 20",
+            "topic": "Designing Volunteer Surveys",
+            "time": "1:30-3:30 PM",
+            "note": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "May 26",
+            "topic": "Managing Social Media Posts",
+            "time": "7:00-9:00 PM",
+            "note": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_007",
+    "title": "토선생 모의고사 7회",
+    "table_context": {
+      "table_type": "interview_schedule",
+      "title": "Northstar Creative Cooperative",
+      "subtitles": [
+        "People Operations — Applicant Interview Calendar"
+      ],
+      "metadata": [
+        {
+          "key": "date",
+          "label": "Date",
+          "value": "Tuesday, July 14"
+        },
+        {
+          "key": "location",
+          "label": "Location",
+          "value": "Conference Suite C"
+        }
+      ],
+      "columns": [
+        {
+          "key": "time",
+          "label": "Time",
+          "value_type": "time_range"
+        },
+        {
+          "key": "applicant",
+          "label": "Applicants",
+          "value_type": "person"
+        },
+        {
+          "key": "position",
+          "label": "Position",
+          "value_type": "text"
+        },
+        {
+          "key": "school",
+          "label": "School",
+          "value_type": "text"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "time": "9:15-9:45 AM",
+            "applicant": "Ava Collins",
+            "position": "Client Support Specialist",
+            "school": "Lakeside College"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "9:45-10:15 AM",
+            "applicant": "Noah Patel",
+            "position": "Communications Manager",
+            "school": "Hillcrest University"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "10:15-10:45 AM",
+            "applicant": "Ella Brooks",
+            "position": "Client Support Specialist",
+            "school": "Riverton College"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "10:45-11:15 AM",
+            "applicant": "Marcus Lee",
+            "position": "Operations Coordinator",
+            "school": "Central State University"
+          },
+          "status": "rescheduled",
+          "status_note": "Moved to Friday",
+          "strike_through": true
+        },
+        {
+          "cells": {
+            "time": "2:00-2:45 PM",
+            "applicant": "Grace Turner",
+            "position": "Communications Manager",
+            "school": "Cedar Grove College"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "4:00-4:45 PM",
+            "applicant": "Owen Clarke",
+            "position": "Product Researcher",
+            "school": "Northpoint Tech"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_008",
+    "title": "토선생 모의고사 8회",
+    "table_context": {
+      "table_type": "schedule",
+      "title": "Cedar Bridge Publishing",
+      "subtitles": [
+        "Summer Volunteer Orientation"
+      ],
+      "metadata": [
+        {
+          "key": "date",
+          "label": "Date",
+          "value": "Tuesday, August 18th"
+        },
+        {
+          "key": "location",
+          "label": "Location",
+          "value": "Training Room C"
+        }
+      ],
+      "columns": [
+        {
+          "key": "time",
+          "label": "Time",
+          "value_type": "time_range"
+        },
+        {
+          "key": "activity",
+          "label": "Activity",
+          "value_type": "text"
+        },
+        {
+          "key": "details",
+          "label": "Details",
+          "value_type": "text"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "time": "9:30-9:45 AM",
+            "activity": "Welcome Remarks",
+            "details": "Nora Ellis, Community Director"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "10:00-10:30 AM",
+            "activity": "Tour: Media Archive",
+            "details": ""
+          },
+          "status": "rescheduled",
+          "status_note": "Moved to Thursday",
+          "strike_through": true
+        },
+        {
+          "cells": {
+            "time": "10:30-11:15 AM",
+            "activity": "Presentation: Workplace Policies",
+            "details": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "11:15 AM-12:15 PM",
+            "activity": "Meeting with Department Heads",
+            "details": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "12:15-1:15 PM",
+            "activity": "Lunch",
+            "details": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "1:15-2:15 PM",
+            "activity": "Presentation: Visitor Communication",
+            "details": "Leo Grant, Training Editor"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "2:45-3:45 PM",
+            "activity": "Tour: Distribution Center",
+            "details": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_009",
+    "title": "토선생 모의고사 9회",
+    "table_context": {
+      "table_type": "reservation_schedule",
+      "title": "Cedar Grove Hotel",
+      "subtitles": [
+        "Private Room Reservations: October"
+      ],
+      "metadata": [],
+      "columns": [
+        {
+          "key": "date",
+          "label": "Date",
+          "value_type": "date"
+        },
+        {
+          "key": "time",
+          "label": "Time",
+          "value_type": "time_range"
+        },
+        {
+          "key": "occasion",
+          "label": "Occasion",
+          "value_type": "text"
+        },
+        {
+          "key": "notes",
+          "label": "Notes",
+          "value_type": "text"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "date": "October 3",
+            "time": "5-7 PM",
+            "occasion": "Neighborhood Club Dinner",
+            "notes": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "October 7",
+            "time": "3-5 PM",
+            "occasion": "Bridal Shower",
+            "notes": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "October 13",
+            "time": "7-10 PM",
+            "occasion": "Employee Achievement Dinner",
+            "notes": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "October 18",
+            "time": "6-9 PM",
+            "occasion": "Birthday Party",
+            "notes": "Chocolate cake requested"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "October 22",
+            "time": "1:30-4:30 PM",
+            "occasion": "Family Reunion",
+            "notes": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "October 27",
+            "time": "5-8 PM",
+            "occasion": "Retirement Reception",
+            "notes": "Prepare nut-free options"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "October 30",
+            "time": "6:30-10:00 PM",
+            "occasion": "Anniversary Dinner",
+            "notes": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_010",
+    "title": "토선생 모의고사 10회",
+    "table_context": {
+      "table_type": "tour_list",
+      "title": "Silver Ridge Outdoor Excursions",
+      "subtitles": [
+        "Fresh-air discoveries for every pace!"
+      ],
+      "metadata": [],
+      "columns": [
+        {
+          "key": "tour",
+          "label": "Tour",
+          "value_type": "text"
+        },
+        {
+          "key": "length",
+          "label": "Length",
+          "value_type": "text"
+        },
+        {
+          "key": "price_per_person",
+          "label": "Price per Person",
+          "value_type": "currency"
+        },
+        {
+          "key": "details",
+          "label": "Details",
+          "value_type": "text"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "tour": "Cedar Canyon Hike",
+            "length": "4 hours",
+            "price_per_person": "$55",
+            "details": "Trail shoes recommended"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "tour": "Orchard Picnic Lunch",
+            "length": "3 hours",
+            "price_per_person": "$60",
+            "details": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "tour": "Summit View Hike",
+            "length": "3 hours",
+            "price_per_person": "$45",
+            "details": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "tour": "River Meadow Picnic & Bird Walk",
+            "length": "3 hours",
+            "price_per_person": "$45",
+            "details": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "tour": "Guided Pony Trek",
+            "length": "3.5 hours",
+            "price_per_person": "$90",
+            "details": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": [
+        {
+          "scope": "table",
+          "text": "Group discounts are available for groups of 7 or more"
+        }
+      ]
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_011",
+    "title": "토선생 모의고사 11회",
+    "table_context": {
+      "table_type": "schedule",
+      "title": "11th Annual Seminar on Community Services",
+      "subtitles": [],
+      "metadata": [
+        {
+          "key": "date",
+          "label": "Date",
+          "value": "Thursday, September 24th"
+        },
+        {
+          "key": "location",
+          "label": "Location",
+          "value": "Community Room C"
+        },
+        {
+          "key": "registration_fee",
+          "label": "Registration Fee",
+          "value": "$25 ($30 after 15th)"
+        }
+      ],
+      "columns": [
+        {
+          "key": "time",
+          "label": "Time",
+          "value_type": "time_range"
+        },
+        {
+          "key": "event",
+          "label": "Event",
+          "value_type": "text"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "time": "9:15-10:00 AM",
+            "event": "Opening Remarks: Expanding Neighborhood Services"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "10:15-11:15 AM",
+            "event": "Workshop: Organizing a Community Food Drive"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "12:00-1:00 PM",
+            "event": "Lunch Buffet: Riverstone Cafe"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "1:30-2:30 PM",
+            "event": "Presentation: Safe Public Park Planning"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "2:30-3:15 PM",
+            "event": "Video: Creative Recreation Programs"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "3:30-4:30 PM",
+            "event": "Workshop: Coordinating Volunteer Trail Teams"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_012",
+    "title": "토선생 모의고사 12회",
+    "table_context": {
+      "table_type": "schedule",
+      "title": "Practical Skills Training Center",
+      "subtitles": [
+        "Autumn Skill-Building Schedule"
+      ],
+      "metadata": [],
+      "columns": [
+        {
+          "key": "date",
+          "label": "Date",
+          "value_type": "date"
+        },
+        {
+          "key": "time",
+          "label": "Time",
+          "value_type": "time_range"
+        },
+        {
+          "key": "event",
+          "label": "Event",
+          "value_type": "text"
+        },
+        {
+          "key": "details",
+          "label": "Details",
+          "value_type": "text"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "date": "September 3",
+            "time": "9:00-10:00 AM",
+            "event": "Presentation: Efficient Team Communication",
+            "details": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "September 6",
+            "time": "Noon-1:30 PM",
+            "event": "Lecture: Organizing Digital Files",
+            "details": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "September 11",
+            "time": "1:00-2:00 PM",
+            "event": "Workshop: Spreadsheet Shortcuts",
+            "details": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "September 14",
+            "time": "1:30-2:30 PM",
+            "event": "Practice Lab: Project Tracking",
+            "details": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "September 17",
+            "time": "10:15-11:45 AM",
+            "event": "Workplace Safety Quiz Challenge",
+            "details": "Register by September 15"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "September 22",
+            "time": "3:00-4:30 PM",
+            "event": "Workshop: Video Meeting Skills",
+            "details": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "September 28",
+            "time": "12:30-6:30 PM",
+            "event": "Career Skills Festival",
+            "details": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_013",
+    "title": "토선생 모의고사 13회",
+    "table_context": {
+      "table_type": "schedule",
+      "title": "Harbor Retail Service Conference",
+      "subtitles": [],
+      "metadata": [
+        {
+          "key": "advance_registration",
+          "label": "Advance Registration",
+          "value": "$85"
+        },
+        {
+          "key": "same_day_registration",
+          "label": "Same-day Registration",
+          "value": "$110"
+        }
+      ],
+      "columns": [
+        {
+          "key": "date",
+          "label": "Date",
+          "value_type": "date"
+        },
+        {
+          "key": "time",
+          "label": "Time",
+          "value_type": "time"
+        },
+        {
+          "key": "session",
+          "label": "Session",
+          "value_type": "text"
+        },
+        {
+          "key": "speaker",
+          "label": "Speaker",
+          "value_type": "person"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "date": "August 14",
+            "time": "9:15 AM",
+            "session": "Opening Remarks",
+            "speaker": "Ava Martin"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "August 14",
+            "time": "10:30 AM",
+            "session": "Lecture: Faster Returns at Local Shops",
+            "speaker": "Mia Rodriguez"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "August 14",
+            "time": "12:15 PM",
+            "session": "Lunch",
+            "speaker": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "August 14",
+            "time": "2:15 PM",
+            "session": "Lecture: Clear Signs for Travelers",
+            "speaker": "Sophia Nguyen"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "August 14",
+            "time": "3:45 PM",
+            "session": "Discussion: Convenient Pickup Counters",
+            "speaker": "Ethan Cole"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "August 15",
+            "time": "9:45 AM",
+            "session": "Lecture: Helpful Service in Small Stores",
+            "speaker": "Emily Davis"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "August 15",
+            "time": "11:15 AM",
+            "session": "Discussion: Maps for Shopping Districts",
+            "speaker": "Oliver Bennett"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "August 15",
+            "time": "12:45 PM",
+            "session": "Lunch",
+            "speaker": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "August 15",
+            "time": "2:15 PM",
+            "session": "Workshop: Designing Quick Checkout Areas",
+            "speaker": "Ethan Cole"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "date": "August 15",
+            "time": "3:45 PM",
+            "session": "Workshop: Partnering with Local Tour Guides",
+            "speaker": "Liam Spencer"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_014",
+    "title": "토선생 모의고사 14회",
+    "table_context": {
+      "table_type": "class_schedule",
+      "title": "Brookside Culinary School",
+      "subtitles": [],
+      "metadata": [
+        {
+          "key": "class_dates",
+          "label": "Class Dates",
+          "value": "July 14-September 19"
+        },
+        {
+          "key": "registration_deadline",
+          "label": "Registration Deadline",
+          "value": "June 27"
+        }
+      ],
+      "columns": [
+        {
+          "key": "class",
+          "label": "Class",
+          "value_type": "text"
+        },
+        {
+          "key": "day",
+          "label": "Day",
+          "value_type": "text"
+        },
+        {
+          "key": "time",
+          "label": "Time",
+          "value_type": "time_range"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "class": "Preparing Seasonal Soups",
+            "day": "Mondays",
+            "time": "10-11:30 AM"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "class": "Food Photography Basics",
+            "day": "Tuesdays",
+            "time": "10 AM-Noon"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "class": "Restoring Traditional Bread Recipes",
+            "day": "Wednesdays",
+            "time": "2:30-4:30 PM"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "class": "Nutrition and Menu Planning",
+            "day": "Fridays",
+            "time": "9-11 AM"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "class": "World Desserts (Intermediate)",
+            "day": "Thursdays",
+            "time": "3-5 PM"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "class": "Building a Neighborhood Bread Shop",
+            "day": "Fridays",
+            "time": "5:30-6:30 PM"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_015",
+    "title": "토선생 모의고사 15회",
+    "table_context": {
+      "table_type": "class_schedule",
+      "title": "Westport Creative Arts Center",
+      "subtitles": [],
+      "metadata": [
+        {
+          "key": "class_dates",
+          "label": "Class Dates",
+          "value": "July 8-September 12"
+        },
+        {
+          "key": "cost",
+          "label": "Cost",
+          "value": "$225/class ($275 for Saturday classes)"
+        },
+        {
+          "key": "deadline_for_registration",
+          "label": "Deadline for Registration",
+          "value": "June 25"
+        }
+      ],
+      "columns": [
+        {
+          "key": "class",
+          "label": "Class",
+          "value_type": "text"
+        },
+        {
+          "key": "day",
+          "label": "Date",
+          "value_type": "text"
+        },
+        {
+          "key": "time",
+          "label": "Time",
+          "value_type": "time_range"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "class": "Drawing Foundations",
+            "day": "Mondays",
+            "time": "1:00 PM-4:00 PM"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "class": "Documentary Photography (Intermediate)",
+            "day": "Tuesdays",
+            "time": "9:15 AM-11:15 AM"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "class": "Clay Sculpting Techniques",
+            "day": "Thursdays",
+            "time": "Noon-2:00 PM"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "class": "Acrylic Painting",
+            "day": "Fridays",
+            "time": "1:00 PM-4:00 PM"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "class": "Motion Graphics Basics",
+            "day": "Saturdays",
+            "time": "10:30 AM-Noon"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "class": "Portrait Painting",
+            "day": "Sundays",
+            "time": "Noon-3:00 PM"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_016",
+    "title": "토선생 모의고사 16회",
+    "table_context": {
+      "table_type": "class_schedule",
+      "title": "Riverside Wellness Center",
+      "subtitles": [
+        "October Group Exercise Schedule"
+      ],
+      "metadata": [
+        {
+          "key": "members",
+          "label": "Members",
+          "value": "FREE"
+        },
+        {
+          "key": "nonmembers",
+          "label": "Nonmembers",
+          "value": "$60 per class"
+        }
+      ],
+      "columns": [
+        {
+          "key": "class",
+          "label": "Class",
+          "value_type": "text"
+        },
+        {
+          "key": "day",
+          "label": "Day of the Week",
+          "value_type": "text"
+        },
+        {
+          "key": "time",
+          "label": "Time",
+          "value_type": "time_range"
+        },
+        {
+          "key": "instructor",
+          "label": "Instructor",
+          "value_type": "person"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "class": "Strength Circuit",
+            "day": "Mondays",
+            "time": "5:00 PM-6:00 PM",
+            "instructor": "Alex"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "class": "Cardio Blast",
+            "day": "Fridays",
+            "time": "6:30 PM-7:30 PM",
+            "instructor": "Emily"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "class": "Modern Dance",
+            "day": "Tuesdays",
+            "time": "7:45 AM-8:45 AM",
+            "instructor": "Lucia"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "class": "Interval Cycling",
+            "day": "Tuesdays",
+            "time": "7:00 PM-8:00 PM",
+            "instructor": "David"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "class": "Water Fitness",
+            "day": "Fridays",
+            "time": "6:00 AM-7:00 AM",
+            "instructor": "Sarah"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "class": "Urban Dance",
+            "day": "Saturdays",
+            "time": "2:00 PM-3:00 PM",
+            "instructor": "Ethan"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_017",
+    "title": "토선생 모의고사 17회",
+    "table_context": {
+      "table_type": "class_schedule",
+      "title": "Oakside Volunteer Activity Classes",
+      "subtitles": [],
+      "metadata": [
+        {
+          "key": "location",
+          "label": "Location",
+          "value": "Oakside Volunteer Center"
+        },
+        {
+          "key": "date",
+          "label": "Date",
+          "value": "March 8-May 24"
+        }
+      ],
+      "columns": [
+        {
+          "key": "time",
+          "label": "Time",
+          "value_type": "time"
+        },
+        {
+          "key": "class_title",
+          "label": "Class Title",
+          "value_type": "text"
+        },
+        {
+          "key": "ages",
+          "label": "Ages",
+          "value_type": "text"
+        },
+        {
+          "key": "instructor",
+          "label": "Instructor",
+          "value_type": "person"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "time": "9:15 AM",
+            "class_title": "Music and Movement Games",
+            "ages": "3-5 years old",
+            "instructor": "Nora Park"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "10:00 AM",
+            "class_title": "Fruit Art for Kids",
+            "ages": "4-6 years old",
+            "instructor": "Daniel Reed"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "11:45 AM",
+            "class_title": "Storytelling with Shadow Puppets",
+            "ages": "3-5 years old",
+            "instructor": "Leah Morris"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "12:45 PM",
+            "class_title": "Junior Computer Basics",
+            "ages": "5-7 years old",
+            "instructor": "Marcus Hill"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "1:30 PM",
+            "class_title": "Recycled Paper Crafts",
+            "ages": "4-6 years old",
+            "instructor": "Tara Wilson"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "3:45 PM",
+            "class_title": "Outdoor Storytelling Circle",
+            "ages": "5-7 years old",
+            "instructor": "Owen Clark"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_018",
+    "title": "토선생 모의고사 18회",
+    "table_context": {
+      "table_type": "interview_schedule",
+      "title": "Northgate University Media Lab",
+      "subtitles": [
+        "Interview Schedule, October 9"
+      ],
+      "metadata": [],
+      "columns": [
+        {
+          "key": "time",
+          "label": "Time",
+          "value_type": "time_range"
+        },
+        {
+          "key": "candidate",
+          "label": "Candidates",
+          "value_type": "person"
+        },
+        {
+          "key": "position",
+          "label": "Positions",
+          "value_type": "text"
+        },
+        {
+          "key": "current_employer",
+          "label": "Current Employer",
+          "value_type": "text"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "time": "9:15-9:45 AM",
+            "candidate": "Lena Ortiz",
+            "position": "Lead Game Designer",
+            "current_employer": "Cedar Interactive"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "1:30-2:00 PM",
+            "candidate": "Priya Shah",
+            "position": "Senior Programmer",
+            "current_employer": "CodeForge"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "2:15-2:45 PM",
+            "candidate": "Noah Bennett",
+            "position": "Visual Artist",
+            "current_employer": "Neon Pixel"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "3:00-3:30 PM",
+            "candidate": "Claire Wilson",
+            "position": "Sound Designer",
+            "current_employer": "Cedar Interactive"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "3:30-4:00 PM",
+            "candidate": "Derek Kim",
+            "position": "Senior Programmer",
+            "current_employer": "CodeForge"
+          },
+          "status": "canceled",
+          "status_note": "Canceled",
+          "strike_through": true
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_019",
+    "title": "토선생 모의고사 19회",
+    "table_context": {
+      "table_type": "interview_schedule",
+      "title": "Cedar Lane Community Market Staff Interviews",
+      "subtitles": [],
+      "metadata": [
+        {
+          "key": "date",
+          "label": "Date",
+          "value": "September 18"
+        },
+        {
+          "key": "time_range",
+          "label": "Time Range",
+          "value": "9:15 A.M.-12:45 P.M."
+        },
+        {
+          "key": "location",
+          "label": "Location",
+          "value": "Market Office"
+        }
+      ],
+      "columns": [
+        {
+          "key": "time",
+          "label": "Time",
+          "value_type": "time_range"
+        },
+        {
+          "key": "applicant",
+          "label": "Applicant",
+          "value_type": "person"
+        },
+        {
+          "key": "position",
+          "label": "Position",
+          "value_type": "text"
+        },
+        {
+          "key": "note",
+          "label": "Note",
+          "value_type": "text"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "time": "9:15 AM",
+            "applicant": "Lena Ortiz",
+            "position": "Claims Processor",
+            "note": "Completed cashier training"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "9:45 AM",
+            "applicant": "Evan Ross",
+            "position": "Underwriting Assistant",
+            "note": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "10:15 AM",
+            "applicant": "Mia Chen",
+            "position": "Inventory Coordinator",
+            "note": "Completed an inventory systems course"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "10:45 AM",
+            "applicant": "Sofia Grant",
+            "position": "Sales Representative",
+            "note": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "11:15 AM-12:15 PM",
+            "applicant": "",
+            "position": "Lunch Break",
+            "note": ""
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "time": "12:15 PM",
+            "applicant": "Owen Brooks",
+            "position": "Inventory Coordinator",
+            "note": "Available for early shifts"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": []
+    }
+  },
+  {
+    "mock_exam_id": "mock_exam_020",
+    "title": "토선생 모의고사 20회",
+    "table_context": {
+      "table_type": "profile",
+      "title": "Jordan Kim",
+      "subtitles": [],
+      "metadata": [
+        {
+          "key": "email",
+          "label": "Email",
+          "value": "jkim1840@tmail.com"
+        },
+        {
+          "key": "phone",
+          "label": "Phone",
+          "value": "(415) 555-2673"
+        },
+        {
+          "key": "applicant_name",
+          "label": "Applicant Name",
+          "value": "Jordan Kim"
+        }
+      ],
+      "columns": [
+        {
+          "key": "section",
+          "label": "Section",
+          "value_type": "text"
+        },
+        {
+          "key": "details",
+          "label": "Details",
+          "value_type": "text"
+        }
+      ],
+      "items": [
+        {
+          "cells": {
+            "section": "Position Desired",
+            "details": "Community Arts Program Coordinator"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "section": "Qualifications",
+            "details": "Skilled in workshop scheduling and volunteer coordination"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "section": "Qualifications",
+            "details": "Strong public speaking and partnership-building skills"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "section": "Education & Certifications",
+            "details": "Bachelor's degree in Fine Arts, Northview College (2018)"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "section": "Education & Certifications",
+            "details": "Community Arts Leadership Certificate, Lakeshore Institute (2022)"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "section": "Work Experience",
+            "details": "Program Assistant, Harbor Street Arts Center (2020-present)"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        },
+        {
+          "cells": {
+            "section": "Work Experience",
+            "details": "Weekend Workshop Facilitator, Cedar Room Studio (2018-2020)"
+          },
+          "status": "scheduled",
+          "status_note": null,
+          "strike_through": false
+        }
+      ],
+      "notes": []
+    }
+  }
+]
