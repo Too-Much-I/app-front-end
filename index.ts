@@ -1,6 +1,10 @@
 import { registerRootComponent } from 'expo';
 
+import { initializeClarity } from '@/lib/clarity';
+
 import App from './App';
+
+initializeClarity();
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);
 // It also ensures that whether you load the app in Expo Go or in a native build,
