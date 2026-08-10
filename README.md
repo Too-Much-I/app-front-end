@@ -18,3 +18,9 @@ pnpm start
 ## 환경 변수
 
 `EXPO_PUBLIC_` 접두사가 붙은 변수만 클라이언트 번들에 노출된다(`.env.local.example` 참고). Vite의 `VITE_` 접두사와 같은 역할.
+
+### Microsoft Clarity
+
+`EXPO_PUBLIC_ENABLE_CLARITY`가 문자열 `true`일 때만 Clarity 세션 수집을 초기화한다. 로컬과 스테이징에서는 `false` 또는 미설정 상태를 유지하고, 앱 심사용 production 빌드의 EAS 환경에서만 `true`로 설정한다.
+
+Clarity는 네이티브 SDK이므로 Expo Go에서는 동작하지 않는다. 패키지를 처음 추가하거나 버전을 변경한 뒤 검증하려면 새 development build 또는 production build가 필요하다. 기본 화면과 사용자 상호작용은 자동 수집하며, 별도의 커스텀 이벤트는 제품 분석 요구사항이 생길 때만 추가한다.
