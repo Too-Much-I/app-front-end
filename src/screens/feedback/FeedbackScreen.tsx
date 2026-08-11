@@ -16,6 +16,7 @@ import WebView, {
 } from "react-native-webview";
 
 import { Text } from "@/components/ui/Text";
+import { retryExamGrading } from "@/features/exam/api/exam-grading-retry";
 import { isFeedbackDataReadyMessage } from "@/features/exam/feedback-data-ready-message";
 import { isFeedbackHistoryRequestedMessage } from "@/features/exam/feedback-history-message";
 import { isGoHomeRequestedMessage } from "@/features/exam/go-home-message";
@@ -29,8 +30,18 @@ import {
   type NativeDataRequest,
 } from "@/features/exam/native-data-bridge";
 import { parseReanswerRequest } from "@/features/exam/reanswer-message";
+import {
+  buildSummaryFeedbackRetryResponseScript,
+  parseSummaryFeedbackRetryRequest,
+  type SummaryFeedbackRetryRequest,
+} from "@/features/exam/summary-feedback-retry-message";
+import {
+  pollSummaryFeedbackUntilComplete,
+  type SummaryFeedbackPollingResult,
+} from "@/features/exam/summary-feedback-retry-polling";
 import { useFeedbackDataRefresh } from "@/features/exam/use-feedback-data-refresh";
 import { WEB_BASE_URL, withRemScale } from "@/lib/web-base-url";
+import { reportSummaryFeedbackRetryFailure } from "@/lib/sentry";
 import type { MainTabParamList, RootStackParamList } from "@/navigation/types";
 import { FeedbackWebViewSkeleton } from "@/screens/feedback/components/FeedbackWebViewSkeleton";
 import { ExamHistoryScreen } from "@/screens/feedback/components/ExamHistoryScreen";
@@ -50,6 +61,12 @@ type FeedbackNavigationProp = CompositeNavigationProp<
  */
 const FEEDBACK_READY_TIMEOUT_MS = 10_000;
 const NATIVE_CAPABILITIES_SCRIPT = buildNativeCapabilitiesScript();
+
+type SummaryFeedbackRetryOperation = {
+  controller: AbortController;
+  accepted: Promise<boolean>;
+  polling: Promise<SummaryFeedbackPollingResult | null>;
+};
 
 function buildOverviewUrl(examId: string, scale: number): string | null {
   if (!WEB_BASE_URL) return null;
@@ -138,6 +155,9 @@ export function FeedbackScreen() {
   const scale = useScaleValue();
   // 같은 요청이 연달아 와도 녹음 화면을 두 번 열지 않는다.
   const hasOpenedReanswerRef = useRef(false);
+  const summaryRetryOperationsRef = useRef(
+    new Map<string, SummaryFeedbackRetryOperation>(),
+  );
   const webViewRef = useRef<WebView>(null);
   const initialFeedbackUrl = examId
     ? questionNumber !== undefined
@@ -156,6 +176,16 @@ export function FeedbackScreen() {
     useCallback(() => {
       hasOpenedReanswerRef.current = false;
     }, []),
+  );
+
+  useEffect(
+    () => () => {
+      for (const operation of summaryRetryOperationsRef.current.values()) {
+        operation.controller.abort();
+      }
+      summaryRetryOperationsRef.current.clear();
+    },
+    [examId],
   );
 
   /**
@@ -290,6 +320,96 @@ export function FeedbackScreen() {
     [markDataDelivered],
   );
 
+  /** 같은 시험의 재생성 API와 polling은 requestId가 달라도 하나의 작업을 공유한다. */
+  const deliverSummaryFeedbackRetry = useCallback(
+    async (request: SummaryFeedbackRetryRequest) => {
+      let operation = summaryRetryOperationsRef.current.get(request.examId);
+
+      if (!operation) {
+        const controller = new AbortController();
+        const accepted = retryExamGrading(request.examId, controller.signal)
+          .then(() => true)
+          .catch(() => {
+            if (!controller.signal.aborted) {
+              reportSummaryFeedbackRetryFailure(
+                request.requestId,
+                "retry-request",
+                "request-failed",
+              );
+            }
+            return false;
+          });
+        const polling = accepted.then(async (wasAccepted) => {
+          if (!wasAccepted || controller.signal.aborted) return null;
+          const result = await pollSummaryFeedbackUntilComplete(
+            request.examId,
+            controller.signal,
+          );
+          if (result.status === "failed" && result.reason !== "cancelled") {
+            reportSummaryFeedbackRetryFailure(
+              request.requestId,
+              "retry-polling",
+              result.reason,
+            );
+          }
+          return result;
+        });
+        operation = { controller, accepted, polling };
+        summaryRetryOperationsRef.current.set(request.examId, operation);
+      }
+
+      const wasAccepted = await operation.accepted;
+      if (!wasAccepted) {
+        webViewRef.current?.injectJavaScript(
+          buildSummaryFeedbackRetryResponseScript({
+            requestId: request.requestId,
+            ok: false,
+            status: "failed",
+            stage: "retry-request",
+            reason: "request-failed",
+          }),
+        );
+        return;
+      }
+
+      webViewRef.current?.injectJavaScript(
+        buildSummaryFeedbackRetryResponseScript({
+          requestId: request.requestId,
+          ok: true,
+          status: "accepted",
+        }),
+      );
+
+      const pollingResult = await operation.polling;
+      if (!pollingResult) return;
+
+      if (pollingResult.status === "completed") {
+        webViewRef.current?.injectJavaScript(
+          buildSummaryFeedbackRetryResponseScript({
+            requestId: request.requestId,
+            ok: true,
+            status: "completed",
+            result: pollingResult.result,
+          }),
+        );
+        return;
+      }
+
+      if (pollingResult.reason === "cancelled") return;
+
+      webViewRef.current?.injectJavaScript(
+        buildSummaryFeedbackRetryResponseScript({
+          requestId: request.requestId,
+          ok: false,
+          status: "failed",
+          stage: "retry-polling",
+          reason: pollingResult.reason,
+        }),
+      );
+    },
+    [],
+  );
+
   const handleWebViewMessage = useCallback(
     (event: WebViewMessageEvent) => {
       // examId 로딩 실패로 에러 폴백이 뜬 경우에도 동작해야 하므로 examId 가드보다 먼저 검사한다.
@@ -320,6 +440,15 @@ export function FeedbackScreen() {
         return;
       }
 
+      const summaryRetryRequest = parseSummaryFeedbackRetryRequest(
+        event.nativeEvent.data,
+        examId,
+      );
+      if (summaryRetryRequest) {
+        void deliverSummaryFeedbackRetry(summaryRetryRequest);
+        return;
+      }
+
       const request = parseReanswerRequest(event.nativeEvent.data, examId);
       // 계약에 맞지 않는 메시지는 조용히 무시하고 지금 화면을 그대로 둔다.
       if (!request) return;
@@ -332,7 +461,7 @@ export function FeedbackScreen() {
         nextRetryCount: request.nextRetryCount,
       });
     },
-    [deliverNativeData, examId, navigation],
+    [deliverNativeData, deliverSummaryFeedbackRetry, examId, navigation],
   );
 
   if (!examId) {

@@ -1,5 +1,6 @@
 import { getRawExamGradingSummary } from "@/features/exam/api/exam-grading-summary";
 import { getRawExamQuestionFeedback } from "@/features/exam/api/exam-question-feedback";
+import { SUMMARY_FEEDBACK_RETRY_VERSION } from "@/features/exam/summary-feedback-retry-message";
 
 /**
  * 웹 피드백 화면이 데이터를 요청할 때 쓰는 메시지.
@@ -41,6 +42,7 @@ export function buildNativeCapabilitiesScript(): string {
     feedbackBridgeVersion: FEEDBACK_BRIDGE_VERSION,
     // 이름 변경 전 웹 배포가 데이터 요청을 계속 사용할 수 있게 하는 전환용 별칭이다.
     nativeDataRequestVersion: FEEDBACK_BRIDGE_VERSION,
+    summaryFeedbackRetryVersion: SUMMARY_FEEDBACK_RETRY_VERSION,
   });
   return `window.__nativeCapabilities = ${capabilities}; true;`;
 }

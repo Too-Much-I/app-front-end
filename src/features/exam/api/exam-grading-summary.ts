@@ -28,9 +28,11 @@ export async function getExamGradingResult(
  */
 export async function getRawExamGradingSummary(
   examId: string,
+  signal?: AbortSignal,
 ): Promise<RawExamSummaryResult> {
   const { result } = await apiFetchWithAuthRetry<ApiEnvelope<RawExamSummaryResult>>(
     gradingSummaryPath(examId),
+    { signal },
   );
   return result;
 }
