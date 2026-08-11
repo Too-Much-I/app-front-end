@@ -9,7 +9,7 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": true,
-      "bundleIdentifier": "com.anonymous.app-front-end"
+      "bundleIdentifier": "com.toteacher.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -25,7 +25,7 @@
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ],
-      "package": "com.anonymous.appfrontend"
+      "package": "com.toteacher.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -58,6 +58,13 @@
         "expo-screen-orientation",
         {
           "initialOrientation": "PORTRAIT_UP"
+        }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "tmi-wh",
+          "project": "tosunsaeng-app"
         }
       ],
       "./plugins/with-ios-runtime-orientation-support"

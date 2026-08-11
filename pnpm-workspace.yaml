@@ -1,0 +1,4 @@
+# @sentry/cli의 postinstall은 소스맵·디버그 심볼 업로드에 쓰는 네이티브 바이너리를 내려받는다.
+# 차단하면 릴리스 빌드에서 업로드 단계가 실패한다.
+allowBuilds:
+  '@sentry/cli': true
