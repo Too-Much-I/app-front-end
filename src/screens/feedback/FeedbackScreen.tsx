@@ -40,8 +40,8 @@ import {
   type SummaryFeedbackPollingResult,
 } from "@/features/exam/summary-feedback-retry-polling";
 import { useFeedbackDataRefresh } from "@/features/exam/use-feedback-data-refresh";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 import { WEB_BASE_URL, withRemScale } from "@/lib/web-base-url";
-import { reportSummaryFeedbackRetryFailure } from "@/lib/sentry";
 import type { MainTabParamList, RootStackParamList } from "@/navigation/types";
 import { FeedbackWebViewSkeleton } from "@/screens/feedback/components/FeedbackWebViewSkeleton";
 import { ExamHistoryScreen } from "@/screens/feedback/components/ExamHistoryScreen";
@@ -158,6 +158,10 @@ export function FeedbackScreen() {
   const summaryRetryOperationsRef = useRef(
     new Map<string, SummaryFeedbackRetryOperation>(),
   );
+  const pageLoadAttemptRef = useRef(0);
+  const reportedPageLoadAttemptRef = useRef(-1);
+  const reportedDataRequestIdsRef = useRef(new Set<string>());
+  const isMountedRef = useRef(true);
   const webViewRef = useRef<WebView>(null);
   const initialFeedbackUrl = examId
     ? questionNumber !== undefined
@@ -186,6 +190,13 @@ export function FeedbackScreen() {
       summaryRetryOperationsRef.current.clear();
     },
     [examId],
+  );
+
+  useEffect(
+    () => () => {
+      isMountedRef.current = false;
+    },
+    [],
   );
 
   /**
@@ -219,6 +230,8 @@ export function FeedbackScreen() {
   });
 
   useEffect(() => {
+    pageLoadAttemptRef.current += 1;
+    reportedDataRequestIdsRef.current.clear();
     setIsContentReady(false);
     setHasLoadError(false);
     // 주소가 바뀌거나 리로드되면 웹이 들고 있던 데이터도 함께 사라진다.
@@ -230,6 +243,22 @@ export function FeedbackScreen() {
     );
     return () => clearTimeout(timeout);
   }, [feedbackUrl, reloadNonce, resetDataRefresh]);
+
+  const handlePageLoadFailure = useCallback(
+    (reason: "network" | "http") => {
+      const attempt = pageLoadAttemptRef.current;
+      if (reportedPageLoadAttemptRef.current !== attempt) {
+        reportedPageLoadAttemptRef.current = attempt;
+        reportOperationalError({
+          code: "FEEDBACK_PAGE_LOAD_FAILED",
+          reason,
+          attempt,
+        });
+      }
+      setHasLoadError(true);
+    },
+    [],
+  );
 
   // 시험이 바뀌면 route가 지정한 페이지를 열고, scale만 바뀌면 현재 WebView 위치를 유지한다.
   useEffect(() => {
@@ -294,6 +323,7 @@ export function FeedbackScreen() {
    */
   const deliverNativeData = useCallback(
     async (request: NativeDataRequest) => {
+      const pageLoadAttempt = pageLoadAttemptRef.current;
       try {
         const result = await resolveNativeDataRequest(request);
         webViewRef.current?.injectJavaScript(
@@ -308,6 +338,19 @@ export function FeedbackScreen() {
           markDataDelivered();
         }
       } catch (error) {
+        const isCurrentRequest =
+          isMountedRef.current && pageLoadAttemptRef.current === pageLoadAttempt;
+        if (
+          isCurrentRequest &&
+          !reportedDataRequestIdsRef.current.has(request.requestId)
+        ) {
+          reportedDataRequestIdsRef.current.add(request.requestId);
+          reportOperationalError({
+            code: "FEEDBACK_DATA_LOAD_FAILED",
+            resource: request.resource,
+            cause: error,
+          });
+        }
         webViewRef.current?.injectJavaScript(
           buildNativeDataScript({
             requestId: request.requestId,
@@ -331,11 +374,11 @@ export function FeedbackScreen() {
           .then(() => true)
           .catch(() => {
             if (!controller.signal.aborted) {
-              reportSummaryFeedbackRetryFailure(
-                request.requestId,
-                "retry-request",
-                "request-failed",
-              );
+              reportOperationalError({
+                code: "SUMMARY_FEEDBACK_RETRY_FAILED",
+                stage: "retry-request",
+                reason: "request-failed",
+              });
             }
             return false;
           });
@@ -346,11 +389,11 @@ export function FeedbackScreen() {
             controller.signal,
           );
           if (result.status === "failed" && result.reason !== "cancelled") {
-            reportSummaryFeedbackRetryFailure(
-              request.requestId,
-              "retry-polling",
-              result.reason,
-            );
+            reportOperationalError({
+              code: "SUMMARY_FEEDBACK_RETRY_FAILED",
+              stage: "retry-polling",
+              reason: result.reason,
+            });
           }
           return result;
         });
@@ -494,8 +537,8 @@ export function FeedbackScreen() {
           injectedJavaScriptBeforeContentLoaded={NATIVE_CAPABILITIES_SCRIPT}
           onNavigationStateChange={handleNavigationStateChange}
           onMessage={handleWebViewMessage}
-          onError={() => setHasLoadError(true)}
-          onHttpError={() => setHasLoadError(true)}
+          onError={() => handlePageLoadFailure("network")}
+          onHttpError={() => handlePageLoadFailure("http")}
           setSupportMultipleWindows={false}
           renderError={(_errorDomain, _errorCode, errorDescription) => (
             <View className="flex-1 items-center justify-center bg-surface-subtle px-6">

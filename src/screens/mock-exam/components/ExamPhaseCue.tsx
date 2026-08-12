@@ -12,10 +12,13 @@ import {
   type ExamCueKind,
 } from "@/features/exam/exam-cue";
 import { colors } from "@/theme";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 
 interface ExamPhaseCueProps {
   cueKind: ExamCueKind;
   isActive: boolean;
+  partNumber: number;
+  questionNumber: number;
   onComplete: () => void;
   onExit: () => void;
 }
@@ -39,6 +42,8 @@ function hasFinished(status: ReturnType<typeof useAudioPlayerStatus>): boolean {
 export function ExamPhaseCue({
   cueKind,
   isActive,
+  partNumber,
+  questionNumber,
   onComplete,
   onExit,
 }: ExamPhaseCueProps) {
@@ -53,9 +58,26 @@ export function ExamPhaseCue({
   const hasObservedPlayingRef = useRef(false);
   const shouldRestartRef = useRef(false);
   const isActiveRef = useRef(isActive);
+  const hasReportedPlaybackFailureRef = useRef(false);
   const hasCompleted = useCallback(() => stageRef.current === "completed", []);
 
+  const markPlaybackFailure = useCallback(
+    (reason: "playback" | "media-reset") => {
+      if (!isActiveRef.current || hasReportedPlaybackFailureRef.current) return;
+      hasReportedPlaybackFailureRef.current = true;
+      reportOperationalError({
+        code: "EXAM_REQUIRED_AUDIO_FAILED",
+        cueKind: "phase",
+        reason,
+        partNumber,
+        questionNumber,
+      });
+    },
+    [partNumber, questionNumber],
+  );
+
   const playFromStart = useCallback(async (reloadSources = false) => {
+    if (reloadSources) hasReportedPlaybackFailureRef.current = false;
     if (!isActiveRef.current || hasCompleted()) return;
 
     try {
@@ -78,9 +100,10 @@ export function ExamPhaseCue({
       beepPlayer.play();
     } catch (error) {
       console.error(`[ExamPhaseCue] ${cueKind} 안내 음성 재생 실패`, error);
+      markPlaybackFailure("playback");
       setHasPlaybackError(true);
     }
-  }, [beepPlayer, beepSource, cueKind, cuePlayer, cueSource, hasCompleted]);
+  }, [beepPlayer, beepSource, cueKind, cuePlayer, cueSource, hasCompleted, markPlaybackFailure]);
 
   useEffect(() => {
     isActiveRef.current = isActive;
@@ -117,8 +140,11 @@ export function ExamPhaseCue({
     beepPlayer.pause();
     hasObservedPlayingRef.current = false;
     shouldRestartRef.current = true;
+    markPlaybackFailure(
+      currentStatus.mediaServicesDidReset ? "media-reset" : "playback",
+    );
     setHasPlaybackError(true);
-  }, [beepPlayer, beepStatus, cuePlayer, cueStatus]);
+  }, [beepPlayer, beepStatus, cuePlayer, cueStatus, markPlaybackFailure]);
 
   useEffect(() => {
     if (
@@ -141,10 +167,11 @@ export function ExamPhaseCue({
         cuePlayer.play();
       } catch (error) {
         console.error(`[ExamPhaseCue] ${cueKind} 안내 음성 재생 실패`, error);
+        markPlaybackFailure("playback");
         setHasPlaybackError(true);
       }
     })();
-  }, [beepPlayer, beepStatus, cueKind, cuePlayer, hasPlaybackError, isActive]);
+  }, [beepPlayer, beepStatus, cueKind, cuePlayer, hasPlaybackError, isActive, markPlaybackFailure]);
 
   useEffect(() => {
     if (

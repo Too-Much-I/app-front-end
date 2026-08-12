@@ -7,6 +7,7 @@ import {
   useAnswerRecorder,
 } from "@/features/exam/use-answer-recorder";
 import { useAnswerSubmissions } from "@/features/exam/use-answer-submissions";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 import type {
   ExamPartPrelude,
   ExamQuestion,
@@ -70,6 +71,8 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
   const isReadingTableReadyRef = useRef(false);
   const completedPartPreludesRef = useRef(new Set<number>());
   const isExamActiveRef = useRef(isExamActive);
+  const recordingAttemptRef = useRef(0);
+  const reportedPreludesRef = useRef(new Set<number>());
   const recorder = useAnswerRecorder();
   const submissions = useAnswerSubmissions(session.questions.length);
   const question = session.questions[currentIndex];
@@ -141,6 +144,14 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
         const result = submissions.register(answer);
         if (!result.accepted) {
           if (result.reason === "invalid-file") {
+            reportOperationalError({
+              code: "ANSWER_RECORDING_FAILED",
+              surface: "live",
+              stage: "file-validation",
+              questionNumber: answer.key.questionNumber,
+              retryCount: answer.key.retryCount,
+              attempt: recordingAttemptRef.current,
+            });
             recorder.resetForRetry();
             setPendingFinalizedAnswer(null);
             updatePhase("recording-recovery");
@@ -181,6 +192,27 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
         })
         .catch((error: unknown) => {
           console.error("[ExamSession] 답변 확정 실패", error);
+          if (
+            !(error instanceof AnswerRecordingError) ||
+            (error.stage !== "interruption" && error.stage !== "permission")
+          ) {
+            const activeQuestion = session.questions[currentIndexRef.current];
+            if (activeQuestion) {
+              reportOperationalError({
+                code: "ANSWER_RECORDING_FAILED",
+                surface: "live",
+                stage:
+                  error instanceof AnswerRecordingError &&
+                  error.stage !== "permission" &&
+                  error.stage !== "interruption"
+                    ? error.stage
+                    : "stop",
+                questionNumber: activeQuestion.questionNumber,
+                retryCount: 0,
+                attempt: recordingAttemptRef.current,
+              });
+            }
+          }
           updatePhase(
             error instanceof AnswerRecordingError && error.stage === "interruption"
               ? "interrupted"
@@ -195,7 +227,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
       transitionPromiseRef.current = transitionPromise;
       return transitionPromise;
     },
-    [recorder, registerFinalizedAnswer, updatePhase],
+    [recorder, registerFinalizedAnswer, session.questions, updatePhase],
   );
 
   const startResponseRecording = useCallback(() => {
@@ -204,6 +236,8 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     if (!activeQuestion) return Promise.resolve();
 
     recorder.resetForRetry();
+    recordingAttemptRef.current += 1;
+    const recordingAttempt = recordingAttemptRef.current;
     updatePhase("starting-response");
     const transitionPromise = recorder
       .start({
@@ -220,10 +254,38 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
           return;
         }
         if (result.reason === "interrupted") updatePhase("interrupted");
-        else updatePhase("recording-recovery");
+        else {
+          if (result.reason === "error") {
+            reportOperationalError({
+              code: "ANSWER_RECORDING_FAILED",
+              surface: "live",
+              stage:
+                result.error?.stage === "stop" ||
+                result.error?.stage === "file-validation"
+                  ? result.error.stage
+                  : "prepare",
+              questionNumber: activeQuestion.questionNumber,
+              retryCount: 0,
+              attempt: recordingAttempt,
+            });
+          }
+          updatePhase("recording-recovery");
+        }
       })
       .catch((error: unknown) => {
         console.error("[ExamSession] 답변 녹음 시작 실패", error);
+        reportOperationalError({
+          code: "ANSWER_RECORDING_FAILED",
+          surface: "live",
+          stage:
+            error instanceof AnswerRecordingError &&
+            (error.stage === "stop" || error.stage === "file-validation")
+              ? error.stage
+              : "prepare",
+          questionNumber: activeQuestion.questionNumber,
+          retryCount: 0,
+          attempt: recordingAttempt,
+        });
         updatePhase("recording-recovery");
       })
       .finally(() => {
@@ -256,10 +318,26 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
 
     if (!completedPartPreludesRef.current.has(question.partNumber)) {
       if ((question.partNumber === 3 || question.partNumber === 4) && !partPrelude) {
+        if (!reportedPreludesRef.current.has(question.partNumber)) {
+          reportedPreludesRef.current.add(question.partNumber);
+          reportOperationalError({
+            code: "EXAM_PRELUDE_FAILED",
+            partNumber: question.partNumber,
+            reason: "missing-prelude",
+          });
+        }
         updatePhase("part-prelude-error");
         return;
       }
       if (partPrelude?.kind === "invalid") {
+        if (!reportedPreludesRef.current.has(partPrelude.partNumber)) {
+          reportedPreludesRef.current.add(partPrelude.partNumber);
+          reportOperationalError({
+            code: "EXAM_PRELUDE_FAILED",
+            partNumber: partPrelude.partNumber,
+            reason: partPrelude.reason,
+          });
+        }
         updatePhase("part-prelude-error");
         return;
       }

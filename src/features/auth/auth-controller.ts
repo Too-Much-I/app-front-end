@@ -35,6 +35,7 @@ import {
   type ConsentRecordV2,
 } from "@/features/consent/consent-storage";
 import { ApiError } from "@/lib/api/transport";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 
 const PROACTIVE_REFRESH_WINDOW_MS = 60_000;
 const RETRY_MESSAGE = "인증을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.";
@@ -76,6 +77,9 @@ class AuthController {
   private serverConsent: ServerConsentStatus | null = null;
   private installationId: string | null = null;
   private reissueSession: AuthSession | null = null;
+  private reportingAttempt = 0;
+  private reportingAttemptKind: "initial" | "retry" = "initial";
+  private lastReportedAttempt = -1;
 
   getState = (): AuthBootstrapState => this.state;
 
@@ -93,6 +97,16 @@ class AuthController {
   }
 
   private setRetry(source: BootstrapSource, retry: BootstrapRetry, run?: number): void {
+    if (run !== undefined && run !== this.runGeneration) return;
+    if (this.lastReportedAttempt !== this.reportingAttempt) {
+      this.lastReportedAttempt = this.reportingAttempt;
+      reportOperationalError({
+        code: "AUTH_BOOTSTRAP_FAILED",
+        source,
+        operation: retry.operation,
+        attempt: this.reportingAttemptKind,
+      });
+    }
     this.setState({ status: "RETRYABLE_ERROR", source, retry, message: RETRY_MESSAGE }, run);
   }
 
@@ -106,6 +120,8 @@ class AuthController {
       return this.bootstrapPromise;
     }
 
+    this.reportingAttempt += 1;
+    this.reportingAttemptKind = "initial";
     const run = ++this.runGeneration;
     this.setState({ status: "CHECKING_LOCAL" }, run);
     this.bootstrapPromise = this.runBootstrap(run);
@@ -185,6 +201,8 @@ class AuthController {
       return;
     }
 
+    this.reportingAttempt += 1;
+    this.reportingAttemptKind = "initial";
     const run = this.runGeneration;
     if (this.state.mode === "existing") {
       const request = this.buildUpdateConsentsRequest();
@@ -461,6 +479,8 @@ class AuthController {
     }
     const { retry, source } = this.state;
     const run = this.runGeneration;
+    this.reportingAttempt += 1;
+    this.reportingAttemptKind = "retry";
     logAuthDebug(`retry started: source=${source}, operation=${retry.operation}`);
     this.setState({ ...this.state, isRetrying: true }, run);
 

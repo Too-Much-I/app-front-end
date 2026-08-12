@@ -8,6 +8,7 @@ import { Text } from "@/components/ui/Text";
 import { PLAYBACK_AUDIO_MODE } from "@/features/exam/answer-audio";
 import { getExamPartIntroAudioSource } from "@/features/exam/part-prelude";
 import { colors } from "@/theme";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 import type { ExamPartIntroPrelude } from "@/types/exam";
 
 const REMOTE_AUDIO_LOAD_TIMEOUT_MS = 10_000;
@@ -41,11 +42,30 @@ export function ExamPartIntroContent({
   const shouldRestartRef = useRef(false);
   const hasObservedPlayingRef = useRef(false);
   const isActiveRef = useRef(isActive);
+  const hasReportedPlaybackFailureRef = useRef(false);
+
+  const markPlaybackFailure = useCallback(
+    (reason: "missing" | "playback" | "timeout" | "media-reset") => {
+      if (!isActiveRef.current || hasReportedPlaybackFailureRef.current) return;
+      hasReportedPlaybackFailureRef.current = true;
+      reportOperationalError({
+        code: "EXAM_REQUIRED_AUDIO_FAILED",
+        cueKind: "part-intro",
+        reason,
+        partNumber: 3,
+      });
+    },
+    [],
+  );
 
   const playFromStart = useCallback(
     async (reloadSource = false) => {
+      if (reloadSource) hasReportedPlaybackFailureRef.current = false;
       if (!audioSource || !isActiveRef.current || hasCompletedRef.current) {
-        if (!audioSource) setHasPlaybackError(true);
+        if (!audioSource) {
+          markPlaybackFailure("missing");
+          setHasPlaybackError(true);
+        }
         return;
       }
 
@@ -72,10 +92,11 @@ export function ExamPartIntroContent({
         hasStartedRef.current = true;
       } catch (error) {
         console.error("[ExamPartIntro] 안내 음성 재생 실패", error);
+        markPlaybackFailure("playback");
         setHasPlaybackError(true);
       }
     },
-    [audioSource, playbackStatus.isLoaded, player],
+    [audioSource, markPlaybackFailure, playbackStatus.isLoaded, player],
   );
 
   useEffect(() => {
@@ -124,11 +145,12 @@ export function ExamPartIntroContent({
       hasObservedPlayingRef.current = false;
       shouldRestartRef.current = true;
       console.error("[ExamPartIntro] 안내 음성 재생 시작 시간 초과");
+      markPlaybackFailure("timeout");
       setHasPlaybackError(true);
     }, REMOTE_AUDIO_LOAD_TIMEOUT_MS);
 
     return () => clearTimeout(timeoutId);
-  }, [hasPlaybackError, isActive, playbackStatus.playing, player, reloadRevision]);
+  }, [hasPlaybackError, isActive, markPlaybackFailure, playbackStatus.playing, player, reloadRevision]);
 
   useEffect(() => {
     if (playbackStatus.playing && isActive) {
@@ -142,8 +164,9 @@ export function ExamPartIntroContent({
     player.pause();
     hasObservedPlayingRef.current = false;
     shouldRestartRef.current = true;
+    markPlaybackFailure(playbackStatus.mediaServicesDidReset ? "media-reset" : "playback");
     setHasPlaybackError(true);
-  }, [playbackStatus.error, playbackStatus.mediaServicesDidReset, player]);
+  }, [markPlaybackFailure, playbackStatus.error, playbackStatus.mediaServicesDidReset, player]);
 
   const hasFinished =
     playbackStatus.didJustFinish ||

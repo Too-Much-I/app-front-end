@@ -11,6 +11,7 @@ import {
   type ExamPartDirections,
 } from "@/features/exam/part-directions";
 import { colors } from "@/theme";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 
 interface ExamPartDirectionsContentProps {
   directions: ExamPartDirections;
@@ -34,6 +35,7 @@ export function ExamPartDirectionsContent({
   const hasObservedPlayingRef = useRef(false);
   const shouldRestartRef = useRef(false);
   const isActiveRef = useRef(isActive);
+  const hasReportedPlaybackFailureRef = useRef(false);
   const hasFinished =
     playbackStatus.didJustFinish ||
     (playbackStatus.duration > 0 && playbackStatus.currentTime >= playbackStatus.duration);
@@ -47,8 +49,24 @@ export function ExamPartDirectionsContent({
     onComplete();
   }, [onComplete, player]);
 
-  const playDirections = useCallback(async () => {
+  const markPlaybackFailure = useCallback(
+    (reason: "missing" | "playback" | "media-reset") => {
+      if (!isActiveRef.current || hasReportedPlaybackFailureRef.current) return;
+      hasReportedPlaybackFailureRef.current = true;
+      reportOperationalError({
+        code: "EXAM_REQUIRED_AUDIO_FAILED",
+        cueKind: "part-directions",
+        reason,
+        partNumber,
+      });
+    },
+    [partNumber],
+  );
+
+  const playDirections = useCallback(async (isUserRetry = false) => {
+    if (isUserRetry) hasReportedPlaybackFailureRef.current = false;
     if (audioSource === undefined) {
+      markPlaybackFailure("missing");
       setHasPlaybackError(true);
       return;
     }
@@ -71,9 +89,10 @@ export function ExamPartDirectionsContent({
       shouldRestartRef.current = false;
     } catch (error) {
       console.error(`[ExamPartDirections] Part ${partNumber} 안내 음성 재생 실패`, error);
+      markPlaybackFailure("playback");
       setHasPlaybackError(true);
     }
-  }, [audioSource, partNumber, player]);
+  }, [audioSource, markPlaybackFailure, partNumber, player]);
 
   useEffect(() => {
     isActiveRef.current = isActive;
@@ -93,6 +112,11 @@ export function ExamPartDirectionsContent({
       void playDirections();
     }
   }, [isActive, playDirections, player]);
+
+  useEffect(() => {
+    if (playbackStatus.error === null && !playbackStatus.mediaServicesDidReset) return;
+    markPlaybackFailure(playbackStatus.mediaServicesDidReset ? "media-reset" : "playback");
+  }, [markPlaybackFailure, playbackStatus.error, playbackStatus.mediaServicesDidReset]);
 
   useEffect(() => {
     if (playbackStatus.playing && isActive) {
@@ -142,7 +166,7 @@ export function ExamPartDirectionsContent({
                 accessibilityRole="button"
                 className="flex-1 items-center justify-center rounded-2xl border border-brand-300 bg-surface py-3.5"
                 onPress={() => {
-                  void playDirections();
+                  void playDirections(true);
                 }}
               >
                 <Text className="text-base text-brand-text">다시 재생하기</Text>

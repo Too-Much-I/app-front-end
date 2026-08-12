@@ -36,6 +36,7 @@ import {
   type ReanswerQuestionItem,
 } from "@/features/exam/map-exam-retries";
 import { colors, shadows } from "@/theme";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 
 const CHART_HEIGHT = 112;
 const CHART_TOP = 28;
@@ -686,6 +687,12 @@ function ReanswerHistoryPanel({
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         console.error("[ReanswerHistory] 재답변 이력 조회 실패", error);
+        reportOperationalError({
+          code: "FEEDBACK_HISTORY_LOAD_FAILED",
+          surface: "reanswer-history",
+          attempt: reloadNonce + 1,
+          cause: error,
+        });
         setState({ status: "error", retryable: isRetryableFailure(error) });
       });
 
@@ -902,6 +909,12 @@ export function ExamHistoryScreen({ onOpenExam, onStartExam }: ExamHistoryScreen
         if (controller.signal.aborted) return;
         // 화면 문구만으로는 네트워크·서버·계약 중 무엇이었는지 알 수 없다.
         console.error("[ExamHistory] 모의고사 이력 조회 실패", error);
+        reportOperationalError({
+          code: "FEEDBACK_HISTORY_LOAD_FAILED",
+          surface: "exam-history",
+          attempt: reloadNonce + 1,
+          cause: error,
+        });
         setHistoryState({ status: "error", retryable: isRetryableFailure(error) });
       });
 

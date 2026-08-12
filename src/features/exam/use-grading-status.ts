@@ -4,6 +4,7 @@ import { AppState } from "react-native";
 import { retryExamGrading } from "@/features/exam/api/exam-grading-retry";
 import { getExamGradingStatus } from "@/features/exam/api/exam-grading-status";
 import type { ExamGradingLifecycleStatus } from "@/types/exam";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 
 /** 채점표에 올라가는 파트 수. 토익 스피킹 정규 구성과 같다. */
 export const GRADING_PART_COUNT = 5;
@@ -61,6 +62,7 @@ export function useGradingStatus(
   const phaseRef = useRef<GradingWaitPhase>("polling");
   const retryControllerRef = useRef<AbortController | null>(null);
   const retryLockedRef = useRef(false);
+  const hasReportedTerminalErrorRef = useRef(false);
 
   const updatePhase = useCallback((phase: GradingWaitPhase) => {
     phaseRef.current = phase;
@@ -147,9 +149,18 @@ export function useGradingStatus(
       advanceCheck();
     };
 
-    const fail = () => {
+    const fail = (reason: "server-failed" | "timeout") => {
       if (settled) return;
       stopAttempt();
+      if (attempt === 1 && !hasReportedTerminalErrorRef.current) {
+        hasReportedTerminalErrorRef.current = true;
+        reportOperationalError({
+          code: "EXAM_GRADING_FAILED",
+          stage: "polling",
+          reason,
+          attempt: "retry",
+        });
+      }
       updatePhase(attempt === 0 ? "retry-ready" : "terminal-error");
     };
 
@@ -216,14 +227,14 @@ export function useGradingStatus(
         return;
       }
       if (overallStatus === "FAILED") {
-        fail();
+        fail("server-failed");
         return;
       }
 
       const attemptExpired = Date.now() - startedAt >= ATTEMPT_TIMEOUT_MS;
       if (failAfterCurrentPoll || attemptExpired) {
         failAfterCurrentPoll = false;
-        fail();
+        fail("timeout");
         return;
       }
 
@@ -278,6 +289,16 @@ export function useGradingStatus(
       .catch((error: unknown) => {
         if (controller.signal.aborted || !mountedRef.current) return;
         console.error("[GradingWait] 채점 재요청을 접수하지 못했어요", error);
+        if (!hasReportedTerminalErrorRef.current) {
+          hasReportedTerminalErrorRef.current = true;
+          reportOperationalError({
+            code: "EXAM_GRADING_FAILED",
+            stage: "retry-request",
+            reason: "request-failed",
+            attempt: "retry",
+            cause: error,
+          });
+        }
         updatePhase("terminal-error");
       })
       .finally(() => {

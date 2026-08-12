@@ -2,6 +2,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useRef, useState } from "react";
 
 import { getExamHistory } from "@/features/exam/api/exam-history";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 import type { ExamHistoryItem } from "@/features/exam/map-exam-history";
 
 export type RecentFeedbackState =
@@ -14,11 +15,15 @@ export function useRecentFeedback() {
   const [state, setState] = useState<RecentFeedbackState>({ status: "loading" });
   const [reloadNonce, setReloadNonce] = useState(0);
   const requestVersionRef = useRef(0);
+  const hasReadyDataRef = useRef(false);
+  const reportingAttemptRef = useRef(0);
 
   useFocusEffect(
     useCallback(() => {
       const controller = new AbortController();
       const requestVersion = reloadNonce;
+      reportingAttemptRef.current += 1;
+      const reportingAttempt = reportingAttemptRef.current;
       requestVersionRef.current = requestVersion;
       // 이미 그린 카드가 있으면 포커스 재조회 중에도 유지해 홈 레이아웃이 깜빡이지 않게 한다.
       setState((current) => (current.status === "ready" ? current : { status: "loading" }));
@@ -26,11 +31,20 @@ export function useRecentFeedback() {
       getExamHistory(controller.signal)
         .then((items) => {
           if (controller.signal.aborted || requestVersionRef.current !== requestVersion) return;
+          hasReadyDataRef.current = true;
           setState({ status: "ready", item: items[0] ?? null });
         })
         .catch((error: unknown) => {
           if (controller.signal.aborted || requestVersionRef.current !== requestVersion) return;
           console.error("[Home] 최근 피드백 조회 실패", error);
+          if (!hasReadyDataRef.current) {
+            reportOperationalError({
+              code: "FEEDBACK_HISTORY_LOAD_FAILED",
+              surface: "home",
+              attempt: reportingAttempt,
+              cause: error,
+            });
+          }
           // 이전 성공 데이터가 있다면 일시적인 재조회 실패로 카드를 없애지 않는다.
           setState((current) => (current.status === "ready" ? current : { status: "error" }));
         });

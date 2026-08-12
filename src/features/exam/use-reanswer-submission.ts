@@ -4,6 +4,7 @@ import { notifyAnswerUploadComplete } from "@/features/exam/api/exam-answer-subm
 import { getAnswerUploadUrl } from "@/features/exam/api/exam-answer-upload-url";
 import { getExamQuestionStatus } from "@/features/exam/api/exam-question-status";
 import { AnswerAudioUploadError, uploadAnswerAudio } from "@/features/exam/upload-answer-audio";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 import type { AnswerKey } from "@/types/exam";
 
 export type ReanswerSubmissionStatus = "idle" | "submitting" | "grading" | "failed";
@@ -63,6 +64,7 @@ export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionIn
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onGradedRef = useRef(onGraded);
   const keyRef = useRef(key);
+  const hasReportedFailureRef = useRef(false);
 
   useEffect(() => {
     onGradedRef.current = onGraded;
@@ -84,12 +86,40 @@ export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionIn
     };
   }, [clearPollTimer]);
 
-  const fail = useCallback((stage: ReanswerFailureStage, message: string) => {
-    if (!mountedRef.current) return;
-    setStatus("failed");
-    setFailureStage(stage);
-    setErrorMessage(message);
-  }, []);
+  const fail = useCallback(
+    (
+      stage: ReanswerFailureStage,
+      message: string,
+      reason: "request-failed" | "server-processing" | "server-failed" | "timeout",
+      cause?: unknown,
+    ) => {
+      if (!mountedRef.current) return;
+      if (!hasReportedFailureRef.current) {
+        hasReportedFailureRef.current = true;
+        const activeKey = keyRef.current;
+        if (stage === "submit") {
+          reportOperationalError({
+            code: "REANSWER_SUBMISSION_FAILED",
+            reason: reason === "server-processing" ? reason : "request-failed",
+            questionNumber: activeKey.questionNumber,
+            retryCount: activeKey.retryCount,
+            cause,
+          });
+        } else {
+          reportOperationalError({
+            code: "REANSWER_GRADING_FAILED",
+            reason: reason === "timeout" ? "timeout" : "server-failed",
+            questionNumber: activeKey.questionNumber,
+            retryCount: activeKey.retryCount,
+          });
+        }
+      }
+      setStatus("failed");
+      setFailureStage(stage);
+      setErrorMessage(message);
+    },
+    [],
+  );
 
   const startPolling = useCallback(
     (signal: AbortSignal) => {
@@ -107,7 +137,7 @@ export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionIn
             return;
           }
           if (result.status === "FAILED") {
-            fail("grading", GRADING_FAILURE_MESSAGE);
+            fail("grading", GRADING_FAILURE_MESSAGE, "server-failed");
             return;
           }
         } catch (error) {
@@ -118,7 +148,7 @@ export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionIn
         }
 
         if (Date.now() >= deadline) {
-          fail("grading", GRADING_TIMEOUT_MESSAGE);
+          fail("grading", GRADING_TIMEOUT_MESSAGE, "timeout");
           return;
         }
 
@@ -139,6 +169,7 @@ export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionIn
       abortRef.current = controller;
 
       setStatus("submitting");
+      hasReportedFailureRef.current = false;
       setFailureStage(null);
       setErrorMessage(null);
 
@@ -155,7 +186,7 @@ export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionIn
           submitResult = await notifyAnswerUploadComplete(keyRef.current, controller.signal);
         }
         if (submitResult.status === "FAILED") {
-          fail("submit", SUBMIT_PROCESSING_FAILURE_MESSAGE);
+          fail("submit", SUBMIT_PROCESSING_FAILURE_MESSAGE, "server-processing");
           return;
         }
       } catch (error) {
@@ -164,6 +195,8 @@ export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionIn
         fail(
           "submit",
           error instanceof AnswerAudioUploadError ? error.message : SUBMIT_FAILURE_MESSAGE,
+          "request-failed",
+          error,
         );
         return;
       }
@@ -182,6 +215,7 @@ export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionIn
     abortRef.current = null;
     clearPollTimer();
     setStatus("idle");
+    hasReportedFailureRef.current = false;
     setFailureStage(null);
     setErrorMessage(null);
   }, [clearPollTimer]);
