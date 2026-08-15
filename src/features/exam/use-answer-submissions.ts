@@ -33,6 +33,7 @@ interface RegisterAnswerResult {
 }
 
 const NOTIFICATION_RETRY_DELAYS_MS = [1_000, 2_000, 4_000] as const;
+const INITIAL_REPORTING_ATTEMPT = 1;
 
 function serializeAnswerKey(key: AnswerKey): string {
   return JSON.stringify([key.examId, key.questionNumber, key.retryCount]);
@@ -139,7 +140,8 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
   const markFailed = useCallback(
     (id: string, lastError: AnswerSubmissionFailure, cause?: unknown) => {
       const job = registryRef.current[id];
-      const attempt = reportingAttemptsRef.current.get(id) ?? 0;
+      const attempt =
+        reportingAttemptsRef.current.get(id) ?? INITIAL_REPORTING_ATTEMPT;
       if (job && reportedFailureAttemptsRef.current.get(id) !== attempt) {
         reportedFailureAttemptsRef.current.set(id, attempt);
         reportOperationalError({
@@ -407,7 +409,7 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
         acceptedStatus: null,
       };
       applyAction({ type: "register", id, job });
-      reportingAttemptsRef.current.set(id, 0);
+      reportingAttemptsRef.current.set(id, INITIAL_REPORTING_ATTEMPT);
       queueMicrotask(() => startRunner(id));
       return { accepted: true };
     },
@@ -422,7 +424,7 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
       if (job.lastError && !job.lastError.retryable) return;
       reportingAttemptsRef.current.set(
         id,
-        (reportingAttemptsRef.current.get(id) ?? 0) + 1,
+        (reportingAttemptsRef.current.get(id) ?? INITIAL_REPORTING_ATTEMPT) + 1,
       );
       const nextStage = job.uploadCompleted ? "queued-notify" : "queued-upload";
       patchJob(id, {

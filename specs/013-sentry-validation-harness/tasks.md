@@ -119,3 +119,9 @@ bundle, Android Emulator와 실제 Sentry 수신 검증을 수행한다.
 - 실제 Sentry 합성 이벤트 15건 전송은 사용자가 2026-08-12에 승인했다.
 - 실제 feature API나 사용자 데이터를 고의로 실패시키지 않는다.
 - commit, push, Jira write, Sentry issue 수정·삭제는 포함하지 않는다.
+
+## Phase 7: Convergence
+
+- [x] T021 `src/lib/sentry.ts`에서 자동 exception value와 일반 event·breadcrumb message의 원문을 기본 제거하되 stable operational code, exception type과 stack frame은 유지한다 per FR-003, FR-006, SC-003 (partial)
+- [x] T022 `src/screens/diagnostics/SentryValidationScreen.tsx`에서 개별 capture 성공 상태를 전체 catalog 15/15 완료 상태와 분리한다 per FR-004, FR-005, US2/AC2 (partial)
+- [x] T023 `src/screens/diagnostics/SentryValidationScreen.tsx`에서 full run 시작 즉시 reset 전 재전송 guard를 설정해 실패·background 중단 뒤 합성 이벤트 중복 전송을 막는다 per FR-011, FR-014, SC-004 (contradicts)

@@ -131,3 +131,9 @@ description: "Sentry 운영 오류 보고 구현 작업"
 - 자동 test runner가 없어 별도 test file task는 만들지 않는다.
 - 실제 Sentry ingestion은 외부 event write이므로 이번 구현 검증에서 실행하지 않는다.
 - commit, push 또는 Jira write는 포함하지 않는다.
+
+## Phase 8: Convergence
+
+- [x] T025 `src/screens/feedback/FeedbackScreen.tsx`에서 실패한 summary feedback operation을 Map이 같은 operation을 가리킬 때만 제거해 동시 요청 공유는 유지하고 새 사용자 재시도는 새 API·polling을 시작하게 한다 per FR-005, FR-016, plan: summary feedback shared operation (contradicts)
+- [x] T026 `src/features/exam/use-answer-submissions.ts`에서 첫 answer submission attempt를 1로 시작하고 사용자 retry마다 증가시켜 Sentry metadata를 일관된 1-based 시도로 기록한다 per FR-007, SC-004, plan: answer attempt generation (partial)
+- [x] T027 `src/features/auth/auth-controller.ts`의 catch 경로에서 원인을 `setRetry`로 전달해 raw 원문 없이 `ApiError`의 안전한 HTTP status와 server code를 분류한다 per US3/AC1, plan: safe API failure classification (partial)

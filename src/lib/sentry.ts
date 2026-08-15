@@ -22,6 +22,7 @@ const SENSITIVE_EXACT_KEY_PATTERN =
   /^(id|authorization|cookie|set-cookie|access_?token|refresh_?token|token|url|uri|path|body|request|response|result|message|user|username|email|phone)$/i;
 const SENSITIVE_SUFFIX_KEY_PATTERN =
   /(?:id|ids|url|uri|path|token|tokens)$/i;
+const STABLE_OPERATIONAL_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,63}$/;
 
 function isSensitiveKey(key: string): boolean {
   return SENSITIVE_EXACT_KEY_PATTERN.test(key) || SENSITIVE_SUFFIX_KEY_PATTERN.test(key);
@@ -61,23 +62,42 @@ function scrubValue(value: unknown, seen = new WeakSet<object>()): unknown {
 function scrubBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb {
   return {
     ...breadcrumb,
-    message:
-      typeof breadcrumb.message === "string"
-        ? redactIdentifiers(breadcrumb.message)
-        : breadcrumb.message,
+    message: undefined,
     data: breadcrumb.data
       ? (scrubValue(breadcrumb.data) as Record<string, unknown>)
       : breadcrumb.data,
   };
 }
 
+function getStableOperationalMessage(event: ErrorEvent): string | undefined {
+  const errorCode = event.tags?.error_code;
+  return typeof event.message === "string" &&
+    typeof errorCode === "string" &&
+    event.message === errorCode &&
+    STABLE_OPERATIONAL_CODE_PATTERN.test(errorCode)
+    ? event.message
+    : undefined;
+}
+
+function scrubException(
+  exception: NonNullable<ErrorEvent["exception"]>,
+): NonNullable<ErrorEvent["exception"]> {
+  const scrubbed = scrubValue(
+    exception,
+  ) as NonNullable<ErrorEvent["exception"]>;
+  return {
+    ...scrubbed,
+    values: scrubbed.values?.map((value) => ({
+      ...value,
+      value: value.value === undefined ? undefined : FILTERED,
+    })),
+  };
+}
+
 function scrubEvent(event: ErrorEvent): ErrorEvent {
   return {
     ...event,
-    message:
-      typeof event.message === "string"
-        ? redactIdentifiers(event.message)
-        : event.message,
+    message: getStableOperationalMessage(event),
     transaction:
       typeof event.transaction === "string"
         ? redactIdentifiers(event.transaction)
@@ -104,9 +124,7 @@ function scrubEvent(event: ErrorEvent): ErrorEvent {
     extra: event.extra
       ? (scrubValue(event.extra) as Record<string, unknown>)
       : event.extra,
-    exception: event.exception
-      ? (scrubValue(event.exception) as ErrorEvent["exception"])
-      : event.exception,
+    exception: event.exception ? scrubException(event.exception) : event.exception,
   };
 }
 

@@ -401,8 +401,16 @@ export function FeedbackScreen() {
         summaryRetryOperationsRef.current.set(request.examId, operation);
       }
 
-      const wasAccepted = await operation.accepted;
+      const activeOperation = operation;
+      const removeFailedOperation = () => {
+        if (summaryRetryOperationsRef.current.get(request.examId) === activeOperation) {
+          summaryRetryOperationsRef.current.delete(request.examId);
+        }
+      };
+
+      const wasAccepted = await activeOperation.accepted;
       if (!wasAccepted) {
+        removeFailedOperation();
         webViewRef.current?.injectJavaScript(
           buildSummaryFeedbackRetryResponseScript({
             requestId: request.requestId,
@@ -423,7 +431,7 @@ export function FeedbackScreen() {
         }),
       );
 
-      const pollingResult = await operation.polling;
+      const pollingResult = await activeOperation.polling;
       if (!pollingResult) return;
 
       if (pollingResult.status === "completed") {
@@ -439,6 +447,7 @@ export function FeedbackScreen() {
       }
 
       if (pollingResult.reason === "cancelled") return;
+      removeFailedOperation();
 
       webViewRef.current?.injectJavaScript(
         buildSummaryFeedbackRetryResponseScript({

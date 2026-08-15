@@ -24,6 +24,7 @@ import {
 type RunStatus =
   | "idle"
   | "previewed"
+  | "single-captured"
   | "sending"
   | "flushing"
   | "completed"
@@ -50,6 +51,7 @@ function getStatusLabel(status: RunStatus): string {
   const labels: Record<RunStatus, string> = {
     idle: "대기",
     previewed: "로컬 미리보기 완료",
+    "single-captured": "개별 전송 완료",
     sending: "Sentry 전송 중",
     flushing: "Sentry flush 확인 중",
     completed: "15/15 전송 완료",
@@ -101,7 +103,7 @@ export function SentryValidationScreen() {
   const isMountedRef = useRef(true);
   const isAppActiveRef = useRef(AppState.currentState === "active");
   const runInFlightRef = useRef(false);
-  const hasCompletedFullRunRef = useRef(false);
+  const hasStartedFullRunRef = useRef(false);
 
   const resultValues = Object.values(results);
   const capturedCount = resultValues.filter((result) => result?.status === "captured").length;
@@ -165,7 +167,7 @@ export function SentryValidationScreen() {
         if (!isMountedRef.current || !isAppActiveRef.current) return;
         const succeeded = receipt.status === "captured" && flush.status === "flushed";
         setFlushSucceeded(succeeded);
-        setRunStatus(succeeded ? "completed" : "failed");
+        setRunStatus(succeeded ? "single-captured" : "failed");
       } finally {
         runInFlightRef.current = false;
         if (isMountedRef.current) setActiveCode(null);
@@ -177,13 +179,14 @@ export function SentryValidationScreen() {
   const captureAll = useCallback(async () => {
     if (
       runInFlightRef.current ||
-      hasCompletedFullRunRef.current ||
+      hasStartedFullRunRef.current ||
       !runtime.enabled ||
       !isSendArmed
     ) {
       return;
     }
 
+    hasStartedFullRunRef.current = true;
     runInFlightRef.current = true;
     setIsSendArmed(false);
     setStartedAt(new Date().toISOString());
@@ -205,7 +208,6 @@ export function SentryValidationScreen() {
       const succeeded = allCaptured && run.flush.status === "flushed";
       setFlushSucceeded(run.flush.status === "flushed");
       setRunStatus(succeeded ? "completed" : "failed");
-      hasCompletedFullRunRef.current = succeeded;
     } finally {
       runInFlightRef.current = false;
     }
@@ -213,7 +215,7 @@ export function SentryValidationScreen() {
 
   const reset = useCallback(() => {
     if (runInFlightRef.current) return;
-    hasCompletedFullRunRef.current = false;
+    hasStartedFullRunRef.current = false;
     setResults({});
     setRunStatus("idle");
     setStartedAt(null);
@@ -222,7 +224,7 @@ export function SentryValidationScreen() {
   }, []);
 
   const isBusy = runStatus === "sending" || runStatus === "flushing";
-  const canSend = runtime.enabled && !isBusy && !hasCompletedFullRunRef.current;
+  const canSend = runtime.enabled && !isBusy && !hasStartedFullRunRef.current;
 
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-surface-subtle">
