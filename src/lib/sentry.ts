@@ -25,6 +25,14 @@ const SENSITIVE_EXACT_KEY_PATTERN =
   /^(id|authorization|cookie|set-cookie|access_?token|refresh_?token|token|url|uri|path|body|request|response|result|message|user|username|email|phone)$/i;
 const SENSITIVE_SUFFIX_KEY_PATTERN =
   /(?:id|ids|url|uri|path|token|tokens)$/i;
+const SAFE_STACK_FILENAMES: ReadonlySet<string> = new Set([
+  "index.android.bundle",
+  "index.ios.bundle",
+  "index.bundle",
+  "main.jsbundle",
+]);
+const SENTRY_DEBUG_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type SentryTags = NonNullable<ErrorEvent["tags"]>;
 type SentryTagValue = SentryTags[string];
@@ -158,6 +166,18 @@ function scrubOptionalBoolean(value: unknown): boolean | undefined {
   return typeof value === "boolean" ? value : undefined;
 }
 
+function scrubStackFilename(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const filename = value.replaceAll("\\", "/").split("/").at(-1);
+  return filename && SAFE_STACK_FILENAMES.has(filename) ? filename : FILTERED;
+}
+
+function scrubSentryDebugId(value: unknown): string | undefined {
+  return typeof value === "string" && SENTRY_DEBUG_ID_PATTERN.test(value)
+    ? value
+    : undefined;
+}
+
 function scrubStringArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined;
   return value
@@ -195,13 +215,13 @@ function scrubStackFrame(value: unknown): SentryStackFrame | undefined {
   if (!isRecord(value)) return undefined;
 
   return {
-    filename: scrubOptionalString(value.filename),
+    filename: scrubStackFilename(value.filename),
     function: scrubOptionalString(value.function),
     module: scrubOptionalString(value.module),
     platform: scrubOptionalString(value.platform),
     lineno: scrubOptionalNumber(value.lineno),
     colno: scrubOptionalNumber(value.colno),
-    abs_path: value.abs_path === undefined ? undefined : FILTERED,
+    abs_path: undefined,
     context_line: scrubOptionalString(value.context_line),
     pre_context: scrubStringArray(value.pre_context),
     post_context: scrubStringArray(value.post_context),
@@ -209,7 +229,8 @@ function scrubStackFrame(value: unknown): SentryStackFrame | undefined {
     instruction_addr: scrubOptionalString(value.instruction_addr),
     addr_mode: scrubOptionalString(value.addr_mode),
     vars: scrubRecord(value.vars),
-    debug_id: value.debug_id === undefined ? undefined : FILTERED,
+    // Debug ID는 source map artifact 식별자이며 사용자 식별자가 아니다.
+    debug_id: scrubSentryDebugId(value.debug_id),
     module_metadata: scrubValue(value.module_metadata),
   };
 }
