@@ -4,7 +4,10 @@ import {
   type OperationalEventPayload,
 } from "@/lib/sentry";
 import { ApiError } from "@/lib/api/transport";
+import type { OperationalErrorCode } from "@/lib/operational-error-codes";
 import type { ExamPartPreludeInvalidReason } from "@/types/exam";
+
+export type { OperationalErrorCode } from "@/lib/operational-error-codes";
 
 type ReportAttempt = "initial" | "retry";
 type SafeCause = { cause?: unknown };
@@ -104,8 +107,6 @@ export type OperationalErrorInput =
       code: "LEARNING_RECORD_DELETE_FAILED";
       operation: "delete-learning-records";
     } & SafeCause);
-
-export type OperationalErrorCode = OperationalErrorInput["code"];
 
 type SafeValue = string | number | boolean;
 

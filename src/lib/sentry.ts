@@ -2,7 +2,10 @@ import * as Sentry from "@sentry/react-native";
 import type { Breadcrumb, ErrorEvent } from "@sentry/react-native";
 import type { ComponentType } from "react";
 
-import type { OperationalErrorCode } from "@/lib/operational-error-reporting";
+import {
+  isOperationalErrorCode,
+  type OperationalErrorCode,
+} from "@/lib/operational-error-codes";
 import {
   IS_SENTRY_VALIDATION_MODE,
   SENTRY_VALIDATION_ENVIRONMENT,
@@ -22,7 +25,23 @@ const SENSITIVE_EXACT_KEY_PATTERN =
   /^(id|authorization|cookie|set-cookie|access_?token|refresh_?token|token|url|uri|path|body|request|response|result|message|user|username|email|phone)$/i;
 const SENSITIVE_SUFFIX_KEY_PATTERN =
   /(?:id|ids|url|uri|path|token|tokens)$/i;
-const STABLE_OPERATIONAL_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,63}$/;
+const SAFE_STACK_FILENAMES: ReadonlySet<string> = new Set([
+  "index.android.bundle",
+  "index.ios.bundle",
+  "index.bundle",
+  "main.jsbundle",
+]);
+const SENTRY_DEBUG_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type SentryTags = NonNullable<ErrorEvent["tags"]>;
+type SentryTagValue = SentryTags[string];
+type SentryContexts = NonNullable<ErrorEvent["contexts"]>;
+type SentryException = NonNullable<ErrorEvent["exception"]>;
+type SentryExceptionValue = NonNullable<SentryException["values"]>[number];
+type SentryMechanism = NonNullable<SentryExceptionValue["mechanism"]>;
+type SentryStacktrace = NonNullable<SentryExceptionValue["stacktrace"]>;
+type SentryStackFrame = NonNullable<SentryStacktrace["frames"]>[number];
 
 function isSensitiveKey(key: string): boolean {
   return SENSITIVE_EXACT_KEY_PATTERN.test(key) || SENSITIVE_SUFFIX_KEY_PATTERN.test(key);
@@ -39,6 +58,10 @@ function redactIdentifiers(value: string): string {
     .replace(/(Bearer\s+)[A-Za-z0-9._~+/=-]+/gi, `$1${FILTERED}`);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function scrubValue(value: unknown, seen = new WeakSet<object>()): unknown {
   if (typeof value === "string") return redactIdentifiers(value);
   if (!value || typeof value !== "object") return value;
@@ -49,6 +72,14 @@ function scrubValue(value: unknown, seen = new WeakSet<object>()): unknown {
     return value.map((item) => scrubValue(item, seen));
   }
 
+  if (!isRecord(value)) return FILTERED;
+  return scrubRecordEntries(value, seen);
+}
+
+function scrubRecordEntries(
+  value: Record<string, unknown>,
+  seen: WeakSet<object>,
+): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(value).map(([key, nestedValue]) => [
       key,
@@ -59,39 +90,198 @@ function scrubValue(value: unknown, seen = new WeakSet<object>()): unknown {
   );
 }
 
+function scrubRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!isRecord(value)) return undefined;
+  const scrubbed = scrubValue(value);
+  return isRecord(scrubbed) ? scrubbed : undefined;
+}
+
+function isSentryTagValue(value: unknown): value is SentryTagValue {
+  return (
+    value === null ||
+    value === undefined ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint" ||
+    typeof value === "symbol"
+  );
+}
+
+function scrubTags(value: unknown): SentryTags | undefined {
+  if (!isRecord(value)) return undefined;
+  const tags: SentryTags = {};
+
+  for (const [key, tagValue] of Object.entries(value)) {
+    if (isSensitiveKey(key)) {
+      tags[key] = FILTERED;
+    } else if (typeof tagValue === "string") {
+      tags[key] = redactIdentifiers(tagValue);
+    } else if (isSentryTagValue(tagValue)) {
+      tags[key] = tagValue;
+    }
+  }
+
+  return tags;
+}
+
+function scrubContexts(value: unknown): SentryContexts | undefined {
+  const scrubbed = scrubRecord(value);
+  if (!scrubbed) return undefined;
+  const contexts: SentryContexts = {};
+
+  for (const [key, context] of Object.entries(scrubbed)) {
+    if (context === undefined || isRecord(context)) {
+      contexts[key] = context;
+    }
+  }
+
+  return contexts;
+}
+
 function scrubBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb {
   return {
     ...breadcrumb,
     message: undefined,
-    data: breadcrumb.data
-      ? (scrubValue(breadcrumb.data) as Record<string, unknown>)
-      : breadcrumb.data,
+    data: scrubRecord(breadcrumb.data),
   };
 }
 
 function getStableOperationalMessage(event: ErrorEvent): string | undefined {
   const errorCode = event.tags?.error_code;
-  return typeof event.message === "string" &&
-    typeof errorCode === "string" &&
-    event.message === errorCode &&
-    STABLE_OPERATIONAL_CODE_PATTERN.test(errorCode)
-    ? event.message
+  return isOperationalErrorCode(errorCode) && event.message === errorCode
+    ? errorCode
     : undefined;
 }
 
-function scrubException(
-  exception: NonNullable<ErrorEvent["exception"]>,
-): NonNullable<ErrorEvent["exception"]> {
-  const scrubbed = scrubValue(
-    exception,
-  ) as NonNullable<ErrorEvent["exception"]>;
+function scrubOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? redactIdentifiers(value) : undefined;
+}
+
+function scrubOptionalNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function scrubOptionalBoolean(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function scrubStackFilename(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const filename = value.replaceAll("\\", "/").split("/").at(-1);
+  return filename && SAFE_STACK_FILENAMES.has(filename) ? filename : FILTERED;
+}
+
+function scrubSentryDebugId(value: unknown): string | undefined {
+  return typeof value === "string" && SENTRY_DEBUG_ID_PATTERN.test(value)
+    ? value
+    : undefined;
+}
+
+function scrubStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map(redactIdentifiers);
+}
+
+function scrubMechanism(value: unknown): SentryMechanism | undefined {
+  if (!isRecord(value) || typeof value.type !== "string") return undefined;
+  const data: NonNullable<SentryMechanism["data"]> = {};
+
+  if (isRecord(value.data)) {
+    for (const [key, dataValue] of Object.entries(value.data)) {
+      if (isSensitiveKey(key)) {
+        data[key] = FILTERED;
+      } else if (typeof dataValue === "string") {
+        data[key] = redactIdentifiers(dataValue);
+      } else if (typeof dataValue === "boolean") {
+        data[key] = dataValue;
+      }
+    }
+  }
+
   return {
-    ...scrubbed,
-    values: scrubbed.values?.map((value) => ({
-      ...value,
-      value: value.value === undefined ? undefined : FILTERED,
-    })),
+    type: redactIdentifiers(value.type),
+    handled: scrubOptionalBoolean(value.handled),
+    data: Object.keys(data).length > 0 ? data : undefined,
+    synthetic: scrubOptionalBoolean(value.synthetic),
+    source: scrubOptionalString(value.source),
+    is_exception_group: scrubOptionalBoolean(value.is_exception_group),
   };
+}
+
+function scrubStackFrame(value: unknown): SentryStackFrame | undefined {
+  if (!isRecord(value)) return undefined;
+
+  return {
+    filename: scrubStackFilename(value.filename),
+    function: scrubOptionalString(value.function),
+    module: scrubOptionalString(value.module),
+    platform: scrubOptionalString(value.platform),
+    lineno: scrubOptionalNumber(value.lineno),
+    colno: scrubOptionalNumber(value.colno),
+    abs_path: undefined,
+    context_line: scrubOptionalString(value.context_line),
+    pre_context: scrubStringArray(value.pre_context),
+    post_context: scrubStringArray(value.post_context),
+    in_app: scrubOptionalBoolean(value.in_app),
+    instruction_addr: scrubOptionalString(value.instruction_addr),
+    addr_mode: scrubOptionalString(value.addr_mode),
+    vars: scrubRecord(value.vars),
+    // Debug ID는 source map artifact 식별자이며 사용자 식별자가 아니다.
+    debug_id: scrubSentryDebugId(value.debug_id),
+    module_metadata: scrubValue(value.module_metadata),
+  };
+}
+
+function scrubFramesOmitted(value: unknown): [number, number] | undefined {
+  if (!Array.isArray(value) || value.length !== 2) return undefined;
+  const [start, end] = value;
+  return typeof start === "number" && typeof end === "number"
+    ? [start, end]
+    : undefined;
+}
+
+function scrubStacktrace(value: unknown): SentryStacktrace | undefined {
+  if (!isRecord(value)) return undefined;
+  const frames = Array.isArray(value.frames)
+    ? value.frames
+        .map(scrubStackFrame)
+        .filter((frame): frame is SentryStackFrame => frame !== undefined)
+    : undefined;
+
+  return {
+    frames,
+    frames_omitted: scrubFramesOmitted(value.frames_omitted),
+  };
+}
+
+function scrubExceptionValue(value: unknown): SentryExceptionValue | undefined {
+  if (!isRecord(value)) return undefined;
+
+  return {
+    type: scrubOptionalString(value.type),
+    value: value.value === undefined ? undefined : FILTERED,
+    mechanism: scrubMechanism(value.mechanism),
+    module: scrubOptionalString(value.module),
+    thread_id: undefined,
+    stacktrace: scrubStacktrace(value.stacktrace),
+  };
+}
+
+function scrubException(value: unknown): SentryException | undefined {
+  if (!isRecord(value)) return undefined;
+  const values = Array.isArray(value.values)
+    ? value.values
+        .map(scrubExceptionValue)
+        .filter(
+          (exceptionValue): exceptionValue is SentryExceptionValue =>
+            exceptionValue !== undefined,
+        )
+    : undefined;
+
+  return { values };
 }
 
 function scrubEvent(event: ErrorEvent): ErrorEvent {
@@ -103,9 +293,7 @@ function scrubEvent(event: ErrorEvent): ErrorEvent {
         ? redactIdentifiers(event.transaction)
         : event.transaction,
     fingerprint: event.fingerprint?.map(redactIdentifiers),
-    tags: event.tags
-      ? (scrubValue(event.tags) as Record<string, string>)
-      : event.tags,
+    tags: scrubTags(event.tags),
     request: event.request
       ? {
           ...event.request,
@@ -118,13 +306,9 @@ function scrubEvent(event: ErrorEvent): ErrorEvent {
       : undefined,
     user: undefined,
     breadcrumbs: event.breadcrumbs?.map(scrubBreadcrumb),
-    contexts: event.contexts
-      ? (scrubValue(event.contexts) as ErrorEvent["contexts"])
-      : event.contexts,
-    extra: event.extra
-      ? (scrubValue(event.extra) as Record<string, unknown>)
-      : event.extra,
-    exception: event.exception ? scrubException(event.exception) : event.exception,
+    contexts: scrubContexts(event.contexts),
+    extra: scrubRecord(event.extra),
+    exception: scrubException(event.exception),
   };
 }
 
