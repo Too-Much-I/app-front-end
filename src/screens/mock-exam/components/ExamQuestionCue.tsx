@@ -9,10 +9,13 @@ import { PLAYBACK_AUDIO_MODE } from "@/features/exam/answer-audio";
 import { getExamListenAgainCueSource } from "@/features/exam/exam-cue";
 import { getQuestionAudioSource } from "@/features/exam/question-audio";
 import { colors } from "@/theme";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 
 interface ExamQuestionCueProps {
   audioUrl: string;
   isActive: boolean;
+  partNumber: number;
+  questionNumber: number;
   /** 재생 횟수. Part 4 마지막 문항만 2회다. */
   playCount: number;
   onComplete: () => void;
@@ -36,7 +39,9 @@ function hasFinished(status: ReturnType<typeof useAudioPlayerStatus>): boolean {
 export function ExamQuestionCue({
   audioUrl,
   isActive,
+  partNumber,
   playCount,
+  questionNumber,
   onComplete,
   onExit,
 }: ExamQuestionCueProps) {
@@ -57,15 +62,35 @@ export function ExamQuestionCue({
   // 단계 전환은 effect 안에서 즉시 읽어야 해서 ref로도 들고 있는다. 화면 문구는
   // state를 봐야 갱신되므로 둘을 항상 같이 바꾼다.
   const stageRef = useRef<QuestionCueStage>("question");
+  const hasReportedPlaybackFailureRef = useRef(false);
   const enterStage = useCallback((next: QuestionCueStage) => {
     stageRef.current = next;
     setStage(next);
   }, []);
 
+  const markPlaybackFailure = useCallback(
+    (reason: "missing" | "playback" | "media-reset") => {
+      if (!isActiveRef.current || hasReportedPlaybackFailureRef.current) return;
+      hasReportedPlaybackFailureRef.current = true;
+      reportOperationalError({
+        code: "EXAM_REQUIRED_AUDIO_FAILED",
+        cueKind: "question",
+        reason,
+        partNumber,
+        questionNumber,
+      });
+    },
+    [partNumber, questionNumber],
+  );
+
   const playFromStart = useCallback(
     async (reloadSource = false) => {
+      if (reloadSource) hasReportedPlaybackFailureRef.current = false;
       if (!audioSource || !isActiveRef.current || hasCompletedRef.current) {
-        if (!audioSource) setHasPlaybackError(true);
+        if (!audioSource) {
+          markPlaybackFailure("missing");
+          setHasPlaybackError(true);
+        }
         return;
       }
 
@@ -91,10 +116,11 @@ export function ExamQuestionCue({
         shouldRestartRef.current = false;
       } catch (error) {
         console.error("[ExamQuestionCue] 문제 음성 재생 실패", error);
+        markPlaybackFailure("playback");
         setHasPlaybackError(true);
       }
     },
-    [audioSource, enterStage, listenAgainPlayer, listenAgainSource, player],
+    [audioSource, enterStage, listenAgainPlayer, listenAgainSource, markPlaybackFailure, player],
   );
 
   useEffect(() => {
@@ -136,8 +162,13 @@ export function ExamQuestionCue({
     listenAgainPlayer.pause();
     hasObservedPlayingRef.current = false;
     shouldRestartRef.current = true;
+    markPlaybackFailure(
+      playbackStatus.mediaServicesDidReset || listenAgainStatus.mediaServicesDidReset
+        ? "media-reset"
+        : "playback",
+    );
     setHasPlaybackError(true);
-  }, [listenAgainPlayer, listenAgainStatus, playbackStatus, player]);
+  }, [listenAgainPlayer, listenAgainStatus, markPlaybackFailure, playbackStatus, player]);
 
   // 문제 음성 한 회차가 끝났다. 남은 회차가 있으면 "Now listen again." 안내를 거친다.
   useEffect(() => {
@@ -174,6 +205,7 @@ export function ExamQuestionCue({
         listenAgainPlayer.play();
       } catch (error) {
         console.error("[ExamQuestionCue] 다시 듣기 안내 재생 실패", error);
+        markPlaybackFailure("playback");
         setHasPlaybackError(true);
       }
     })();
@@ -187,6 +219,7 @@ export function ExamQuestionCue({
     playbackStatus,
     playedCount,
     player,
+    markPlaybackFailure,
   ]);
 
   // 안내가 끝났다. 문제 음성 다음 회차를 처음부터 다시 재생한다.
@@ -212,6 +245,7 @@ export function ExamQuestionCue({
         player.play();
       } catch (error) {
         console.error("[ExamQuestionCue] 문제 음성 반복 재생 실패", error);
+        markPlaybackFailure("playback");
         setHasPlaybackError(true);
       }
     })();
@@ -221,6 +255,7 @@ export function ExamQuestionCue({
     isActive,
     listenAgainPlayer,
     listenAgainStatus,
+    markPlaybackFailure,
     player,
   ]);
 

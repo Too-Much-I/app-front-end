@@ -35,6 +35,7 @@ import {
   type ConsentRecordV2,
 } from "@/features/consent/consent-storage";
 import { ApiError } from "@/lib/api/transport";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 
 const PROACTIVE_REFRESH_WINDOW_MS = 60_000;
 const RETRY_MESSAGE = "인증을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.";
@@ -76,6 +77,9 @@ class AuthController {
   private serverConsent: ServerConsentStatus | null = null;
   private installationId: string | null = null;
   private reissueSession: AuthSession | null = null;
+  private reportingAttempt = 0;
+  private reportingAttemptKind: "initial" | "retry" = "initial";
+  private lastReportedAttempt = -1;
 
   getState = (): AuthBootstrapState => this.state;
 
@@ -92,7 +96,23 @@ class AuthController {
     this.listeners.forEach((listener) => listener());
   }
 
-  private setRetry(source: BootstrapSource, retry: BootstrapRetry, run?: number): void {
+  private setRetry(
+    source: BootstrapSource,
+    retry: BootstrapRetry,
+    run?: number,
+    cause?: unknown,
+  ): void {
+    if (run !== undefined && run !== this.runGeneration) return;
+    if (this.lastReportedAttempt !== this.reportingAttempt) {
+      this.lastReportedAttempt = this.reportingAttempt;
+      reportOperationalError({
+        code: "AUTH_BOOTSTRAP_FAILED",
+        source,
+        operation: retry.operation,
+        attempt: this.reportingAttemptKind,
+        cause,
+      });
+    }
     this.setState({ status: "RETRYABLE_ERROR", source, retry, message: RETRY_MESSAGE }, run);
   }
 
@@ -106,6 +126,8 @@ class AuthController {
       return this.bootstrapPromise;
     }
 
+    this.reportingAttempt += 1;
+    this.reportingAttemptKind = "initial";
     const run = ++this.runGeneration;
     this.setState({ status: "CHECKING_LOCAL" }, run);
     this.bootstrapPromise = this.runBootstrap(run);
@@ -133,7 +155,7 @@ class AuthController {
       await this.prepareSessionlessBootstrap(run, preserveRetryUi);
     } catch (error) {
       logAuthDebug("bootstrap failed unexpectedly", error);
-      this.setRetry("startup", { operation: "read-local" }, run);
+      this.setRetry("startup", { operation: "read-local" }, run, error);
     }
   }
 
@@ -147,9 +169,10 @@ class AuthController {
           "startup",
           { operation: "persist-installation", installationId: error.pendingInstallationId },
           run,
+          error,
         );
       } else {
-        this.setRetry("startup", { operation: "read-local" }, run);
+        this.setRetry("startup", { operation: "read-local" }, run, error);
       }
       return;
     }
@@ -163,7 +186,7 @@ class AuthController {
       consent = await getStoredConsent();
     } catch (error) {
       logAuthDebug("stored consent read failed", error);
-      this.setRetry("startup", { operation: "read-local" }, run);
+      this.setRetry("startup", { operation: "read-local" }, run, error);
       return;
     }
 
@@ -185,6 +208,8 @@ class AuthController {
       return;
     }
 
+    this.reportingAttempt += 1;
+    this.reportingAttemptKind = "initial";
     const run = this.runGeneration;
     if (this.state.mode === "existing") {
       const request = this.buildUpdateConsentsRequest();
@@ -201,11 +226,12 @@ class AuthController {
     this.setState({ status: "GUEST_RECOVERING", source: "consent-submit" }, run);
     try {
       await persistConsent(consent);
-    } catch {
+    } catch (error) {
       this.setRetry(
         "consent-submit",
         { operation: "persist-consent", consent, continuation: "guest" },
         run,
+        error,
       );
       return;
     }
@@ -245,7 +271,7 @@ class AuthController {
       await this.persistAndCommit(session, source, continuation, run);
     } catch (error) {
       logAuthDebug("guest recovery failed", error);
-      this.setRetry(source, { operation: "guest" }, run);
+      this.setRetry(source, { operation: "guest" }, run, error);
     }
   }
 
@@ -263,7 +289,7 @@ class AuthController {
         await this.prepareSessionlessBootstrap(run, preserveRetryUi);
         return;
       }
-      this.setRetry("startup", { operation: "reissue" }, run);
+      this.setRetry("startup", { operation: "reissue" }, run, error);
     }
   }
 
@@ -281,6 +307,7 @@ class AuthController {
         source,
         { operation: "persist-session", session, continuation },
         run,
+        error,
       );
       return false;
     }
@@ -324,11 +351,12 @@ class AuthController {
       const consent = this.createSyncedConsentRecord(status);
       try {
         await persistConsent(consent);
-      } catch {
+      } catch (error) {
         this.setRetry(
           source,
           { operation: "persist-consent", consent, continuation: "authenticated" },
           run,
+          error,
         );
         return;
       }
@@ -345,7 +373,7 @@ class AuthController {
           // 아래의 동일 GET 재시도 상태로 수렴한다.
         }
       }
-      this.setRetry(source, { operation: "check-consent" }, run);
+      this.setRetry(source, { operation: "check-consent" }, run, error);
     }
   }
 
@@ -433,7 +461,12 @@ class AuthController {
           // 아래의 동일 PUT 재시도 상태로 수렴한다.
         }
       }
-      this.setRetry("consent-submit", { operation: "update-consent", request }, run);
+      this.setRetry(
+        "consent-submit",
+        { operation: "update-consent", request },
+        run,
+        error,
+      );
       return;
     }
 
@@ -443,11 +476,12 @@ class AuthController {
     );
     try {
       await persistConsent(consent);
-    } catch {
+    } catch (error) {
       this.setRetry(
         "consent-submit",
         { operation: "persist-consent", consent, continuation: "authenticated" },
         run,
+        error,
       );
       return;
     }
@@ -461,6 +495,8 @@ class AuthController {
     }
     const { retry, source } = this.state;
     const run = this.runGeneration;
+    this.reportingAttempt += 1;
+    this.reportingAttemptKind = "retry";
     logAuthDebug(`retry started: source=${source}, operation=${retry.operation}`);
     this.setState({ ...this.state, isRetrying: true }, run);
 
@@ -471,8 +507,8 @@ class AuthController {
     if (retry.operation === "persist-consent") {
       try {
         await persistConsent(retry.consent);
-      } catch {
-        this.setRetry(source, retry, run);
+      } catch (error) {
+        this.setRetry(source, retry, run, error);
         return;
       }
       this.consent = retry.consent;
@@ -486,8 +522,8 @@ class AuthController {
     if (retry.operation === "persist-installation") {
       try {
         this.installationId = await persistInstallationId(retry.installationId);
-      } catch {
-        this.setRetry(source, retry, run);
+      } catch (error) {
+        this.setRetry(source, retry, run, error);
         return;
       }
       await this.continueSessionlessBootstrap(run, true);

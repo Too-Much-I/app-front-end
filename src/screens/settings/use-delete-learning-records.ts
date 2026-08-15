@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 
 export type DeleteRecordsStatus = "idle" | "confirming" | "deleting" | "error";
 
@@ -41,6 +42,11 @@ export function useDeleteLearningRecords() {
       // 성공: 이 컴포넌트는 곧 언마운트된다. 여기서 상태를 만지지 않는다.
     } catch (error) {
       console.error("[Settings] 학습 기록 삭제 실패", error);
+      reportOperationalError({
+        code: "LEARNING_RECORD_DELETE_FAILED",
+        operation: "delete-learning-records",
+        cause: error,
+      });
       isDeletingRef.current = false;
       setStatus("error");
     }

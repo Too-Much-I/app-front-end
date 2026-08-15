@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { getExamQuestionInfo } from "@/features/exam/api/exam-question-info";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 import type { ExamQuestionInfo } from "@/types/exam";
 
 interface ReanswerQuestionState {
@@ -33,6 +34,11 @@ export function useReanswerQuestion(examId: string, questionNumber: number) {
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         console.error("[Reanswer] 문제 조회 실패", error);
+        reportOperationalError({
+          code: "REANSWER_QUESTION_LOAD_FAILED",
+          questionNumber,
+          cause: error,
+        });
         setState({ status: "failed", question: null });
       });
 

@@ -6,10 +6,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { ShardHeader } from "@/components/ui/ShardHeader";
-import { useAnswerRecorder } from "@/features/exam/use-answer-recorder";
+import {
+  AnswerRecordingError,
+  useAnswerRecorder,
+} from "@/features/exam/use-answer-recorder";
 import { useReanswerQuestion } from "@/features/exam/use-reanswer-question";
 import { useReanswerSubmission } from "@/features/exam/use-reanswer-submission";
 import type { RootStackParamList } from "@/navigation/types";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 import { ReanswerQuestionCard } from "@/screens/reanswer/components/ReanswerQuestionCard";
 import { ReanswerRecordPanel } from "@/screens/reanswer/components/ReanswerRecordPanel";
 import { ReanswerStatusPanel } from "@/screens/reanswer/components/ReanswerStatusPanel";
@@ -58,6 +62,7 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
   const lastElapsedSecondsRef = useRef(0);
   // 화면을 떠나기로 결정한 순간부터는 `beforeRemove` 확인을 건너뛴다.
   const leavingRef = useRef(false);
+  const recordingAttemptRef = useRef(0);
 
   const goToQuestionFeedback = useCallback(() => {
     leavingRef.current = true;
@@ -84,6 +89,8 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
     if (!question) return;
 
     recorder.resetForRetry();
+    recordingAttemptRef.current += 1;
+    const recordingAttempt = recordingAttemptRef.current;
     setFinalizedAudioUri(null);
     const result = await recorder.start({
       key: answerKey,
@@ -95,8 +102,21 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
       return;
     }
     if (result.reason === "interrupted") return;
+    if (result.reason === "error") {
+      reportOperationalError({
+        code: "ANSWER_RECORDING_FAILED",
+        surface: "reanswer",
+        stage:
+          result.error?.stage === "stop" || result.error?.stage === "file-validation"
+            ? result.error.stage
+            : "prepare",
+        questionNumber,
+        retryCount: nextRetryCount,
+        attempt: recordingAttempt,
+      });
+    }
     setPhase(result.reason === "permission-denied" ? "permission-denied" : "record-failed");
-  }, [answerKey, question, recorder]);
+  }, [answerKey, nextRetryCount, question, questionNumber, recorder]);
 
   // 녹음 중 마지막으로 관찰한 경과 시간. 확정 직후에는 recorder가 0으로 되돌린다.
   useEffect(() => {
@@ -119,12 +139,30 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
       setPhase("reviewing");
     } catch (error) {
       console.error("[Reanswer] 답변 확정 실패", error);
+      if (
+        !(error instanceof AnswerRecordingError) ||
+        (error.stage !== "interruption" && error.stage !== "permission")
+      ) {
+        reportOperationalError({
+          code: "ANSWER_RECORDING_FAILED",
+          surface: "reanswer",
+          stage:
+            error instanceof AnswerRecordingError &&
+            error.stage !== "permission" &&
+            error.stage !== "interruption"
+              ? error.stage
+              : "stop",
+          questionNumber,
+          retryCount: nextRetryCount,
+          attempt: recordingAttemptRef.current,
+        });
+      }
       setFinalizedAudioUri(null);
       setPhase("record-failed");
     } finally {
       finishingRef.current = false;
     }
-  }, [question, recorder]);
+  }, [nextRetryCount, question, questionNumber, recorder]);
 
   // 제한 시간에 닿으면 녹음을 자동으로 끝낸다. 제출은 여전히 사용자가 누른다 —
   // 시간이 끝나는 것과 답변을 확정하는 것은 다른 결정이다.

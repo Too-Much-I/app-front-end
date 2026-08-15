@@ -11,6 +11,7 @@ import {
   uploadAnswerAudio,
 } from "@/features/exam/upload-answer-audio";
 import { ApiError } from "@/lib/api/client";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 import type {
   AnswerKey,
   AnswerSubmissionFailure,
@@ -32,6 +33,7 @@ interface RegisterAnswerResult {
 }
 
 const NOTIFICATION_RETRY_DELAYS_MS = [1_000, 2_000, 4_000] as const;
+const INITIAL_REPORTING_ATTEMPT = 1;
 
 function serializeAnswerKey(key: AnswerKey): string {
   return JSON.stringify([key.examId, key.questionNumber, key.retryCount]);
@@ -100,6 +102,8 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
   const runnersRef = useRef(new Map<string, Promise<void>>());
   const runnerControllersRef = useRef(new Map<string, AbortController>());
   const startRunnerRef = useRef<(id: string) => void>(() => undefined);
+  const reportingAttemptsRef = useRef(new Map<string, number>());
+  const reportedFailureAttemptsRef = useRef(new Map<string, number>());
 
   const applyAction = useCallback((action: RegistryAction) => {
     registryRef.current = registryReducer(registryRef.current, action);
@@ -134,7 +138,23 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
   );
 
   const markFailed = useCallback(
-    (id: string, lastError: AnswerSubmissionFailure) => {
+    (id: string, lastError: AnswerSubmissionFailure, cause?: unknown) => {
+      const job = registryRef.current[id];
+      const attempt =
+        reportingAttemptsRef.current.get(id) ?? INITIAL_REPORTING_ATTEMPT;
+      if (job && reportedFailureAttemptsRef.current.get(id) !== attempt) {
+        reportedFailureAttemptsRef.current.set(id, attempt);
+        reportOperationalError({
+          code: "ANSWER_SUBMISSION_FAILED",
+          stage: lastError.stage,
+          reason: lastError.kind,
+          retryable: lastError.retryable,
+          questionNumber: job.key.questionNumber,
+          retryCount: job.key.retryCount,
+          attempt,
+          cause,
+        });
+      }
       patchJob(id, {
         stage: "failed",
         nextRetryAt: null,
@@ -177,6 +197,7 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
               "답변 업로드 정보를 준비하지 못했어요.",
               isRetryableRequestError(error),
             ),
+            error,
           );
           return;
         }
@@ -216,6 +237,7 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
                 : "답변 파일을 업로드하지 못했어요.",
               isRetryableRequestError(error),
             ),
+            error,
           );
           return;
         }
@@ -285,7 +307,7 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
           );
           const baseDelay = NOTIFICATION_RETRY_DELAYS_MS[attempt];
           if (!retryable || baseDelay === undefined) {
-            markFailed(id, notificationFailure);
+            markFailed(id, notificationFailure, error);
             return;
           }
 
@@ -333,6 +355,7 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
                 : "답변 파일을 업로드하지 못했어요.",
               true,
             ),
+            error,
           );
         })
         .finally(() => {
@@ -386,6 +409,7 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
         acceptedStatus: null,
       };
       applyAction({ type: "register", id, job });
+      reportingAttemptsRef.current.set(id, INITIAL_REPORTING_ATTEMPT);
       queueMicrotask(() => startRunner(id));
       return { accepted: true };
     },
@@ -398,6 +422,10 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
       const job = registryRef.current[id];
       if (!job || job.stage === "succeeded" || job.stage === "cancelled") return;
       if (job.lastError && !job.lastError.retryable) return;
+      reportingAttemptsRef.current.set(
+        id,
+        (reportingAttemptsRef.current.get(id) ?? INITIAL_REPORTING_ATTEMPT) + 1,
+      );
       const nextStage = job.uploadCompleted ? "queued-notify" : "queued-upload";
       patchJob(id, {
         stage: nextStage,

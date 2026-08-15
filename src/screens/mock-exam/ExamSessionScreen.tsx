@@ -333,10 +333,12 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
                 <ExamQuestionCue
                   audioUrl={questionAudioUrl}
                   isActive={isExamActive}
+                  partNumber={question.partNumber}
                   playCount={getQuestionAudioPlayCount(
                     question.partNumber,
                     question.isLastInPart,
                   )}
+                  questionNumber={question.questionNumber}
                   onComplete={completeQuestionCue}
                   onExit={handleExitExam}
                 />
@@ -346,6 +348,8 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
                 <ExamPhaseCue
                   cueKind={activeCueKind}
                   isActive={isExamActive}
+                  partNumber={question.partNumber}
+                  questionNumber={question.questionNumber}
                   onComplete={
                     phase === "preparation-cue"
                       ? completePreparationCue

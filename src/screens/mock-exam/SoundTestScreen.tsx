@@ -2,13 +2,14 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Image, View } from "react-native";
+import { ActivityIndicator, AppState, Image, View } from "react-native";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { PLAYBACK_AUDIO_MODE } from "@/features/exam/answer-audio";
 import { createExamSession } from "@/features/exam/api/exam-session-create";
 import { ExamQuestionAudioError } from "@/features/exam/question-audio";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 import type { MockExamStackParamList } from "@/navigation/types";
 import { DeviceTestLayout } from "@/screens/mock-exam/components/DeviceTestLayout";
 import { colors } from "@/theme";
@@ -25,6 +26,10 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
   const [isStartingExam, setIsStartingExam] = useState(false);
   const [startExamError, setStartExamError] = useState<string | null>(null);
   const createRequestRef = useRef<AbortController | null>(null);
+  const hasReportedPlaybackFailureRef = useRef(false);
+  const isAppActiveRef = useRef(AppState.currentState === "active");
+  const isMountedRef = useRef(true);
+  const startAttemptRef = useRef(0);
   const soundCheckPlayer = useAudioPlayer(soundCheckAudio, { updateInterval: 100 });
   const playbackStatus = useAudioPlayerStatus(soundCheckPlayer);
   const hasPlaybackFinished =
@@ -39,6 +44,7 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
       return;
     }
 
+    hasReportedPlaybackFailureRef.current = false;
     try {
       setHasPlaybackError(false);
       await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
@@ -51,6 +57,18 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
       setHasPlayed(true);
     } catch (error) {
       console.error("[SoundTest] 안내 음성 재생 실패", error);
+      if (
+        isMountedRef.current &&
+        isAppActiveRef.current &&
+        !hasReportedPlaybackFailureRef.current
+      ) {
+        hasReportedPlaybackFailureRef.current = true;
+        reportOperationalError({
+          code: "EXAM_REQUIRED_AUDIO_FAILED",
+          cueKind: "sound-test",
+          reason: "playback",
+        });
+      }
       setHasPlaybackError(true);
     }
   }, [hasPlaybackFinished, playbackStatus, soundCheckPlayer]);
@@ -66,6 +84,8 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
 
     soundCheckPlayer.pause();
     const controller = new AbortController();
+    startAttemptRef.current += 1;
+    const attempt = startAttemptRef.current === 1 ? "initial" : "retry";
     createRequestRef.current = controller;
     setIsStartingExam(true);
     setStartExamError(null);
@@ -80,10 +100,29 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
           examId: error.examId,
           issues: error.issues,
         });
+        const firstIssue = error.issues[0];
+        reportOperationalError({
+          code: "EXAM_REQUIRED_AUDIO_FAILED",
+          cueKind: "question",
+          reason: firstIssue?.reason ?? "missing",
+          ...(firstIssue
+            ? {
+                partNumber: firstIssue.partNumber,
+                questionNumber: firstIssue.questionNumber,
+              }
+            : {}),
+          issueCount: error.issues.length,
+        });
         setStartExamError("문제 음성이 준비되지 않은 시험이에요. 다시 시도해주세요.");
         return;
       }
       console.error("[SoundTest] 모의고사 세션 생성 실패", error);
+      reportOperationalError({
+        code: "EXAM_SESSION_CREATE_FAILED",
+        stage: "session-create",
+        attempt,
+        cause: error,
+      });
       setStartExamError("시험 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.");
     } finally {
       if (createRequestRef.current === controller) {
@@ -94,7 +133,31 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
   }, [navigation, soundCheckPlayer]);
 
   useEffect(() => {
-    return () => createRequestRef.current?.abort();
+    if (
+      playbackStatus.error === null ||
+      !isAppActiveRef.current ||
+      hasReportedPlaybackFailureRef.current
+    ) {
+      return;
+    }
+    hasReportedPlaybackFailureRef.current = true;
+    reportOperationalError({
+      code: "EXAM_REQUIRED_AUDIO_FAILED",
+      cueKind: "sound-test",
+      reason: playbackStatus.mediaServicesDidReset ? "media-reset" : "playback",
+    });
+  }, [playbackStatus.error, playbackStatus.mediaServicesDidReset]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      isAppActiveRef.current = state === "active";
+    });
+
+    return () => {
+      isMountedRef.current = false;
+      subscription.remove();
+      createRequestRef.current?.abort();
+    };
   }, []);
 
   return (

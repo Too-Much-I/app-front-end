@@ -11,6 +11,8 @@ import { AuthProvider } from "@/features/auth/auth-provider";
 import { OrientationProvider } from "@/features/orientation/OrientationProvider";
 import { useOrientation } from "@/features/orientation/orientation-context";
 import { RootNavigator } from "@/navigation/RootNavigator";
+import { IS_SENTRY_VALIDATION_MODE } from "@/lib/sentry-validation-mode";
+import { SentryValidationScreen } from "@/screens/diagnostics/SentryValidationScreen";
 import { useRemScale } from "@/theme/rem-scale";
 import { useAppFonts } from "@/theme/use-app-fonts";
 
@@ -44,14 +46,32 @@ function AppContent() {
   );
 }
 
+function SentryValidationAppContent() {
+  useRemScale();
+  const { ready: fontsReady, onLayoutRootView } = useAppFonts();
+
+  if (!fontsReady) return null;
+
+  return (
+    <View className="flex-1" onLayout={onLayoutRootView}>
+      <SentryValidationScreen />
+      <StatusBar style="dark" />
+    </View>
+  );
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
-      <OrientationProvider>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </OrientationProvider>
+      {IS_SENTRY_VALIDATION_MODE ? (
+        <SentryValidationAppContent />
+      ) : (
+        <OrientationProvider>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </OrientationProvider>
+      )}
     </SafeAreaProvider>
   );
 }

@@ -69,6 +69,7 @@ interface RecordingGeneration {
 interface StartAnswerRecordingResult {
   started: boolean;
   reason?: "permission-denied" | "interrupted" | "error";
+  error?: AnswerRecordingError;
 }
 
 const NATIVE_FINISH_TOLERANCE_MS = 300;
@@ -280,7 +281,7 @@ export function useAnswerRecorder() {
         const error = new AnswerRecordingError("prepare", "답변 제한 시간이 올바르지 않아요.");
         setLastError(error);
         updateStatus("error");
-        return { started: false, reason: "error" };
+        return { started: false, reason: "error", error };
       }
 
       const previousTerminal = terminalPromiseRef.current;
@@ -361,7 +362,7 @@ export function useAnswerRecorder() {
         );
         if (mountedRef.current) setLastError(recordingError);
         updateStatus("error");
-        return { started: false, reason: "error" };
+        return { started: false, reason: "error", error: recordingError };
       }
     },
     [discard, finish, recorder, runTerminal, updateStatus],
