@@ -125,3 +125,8 @@ bundle, Android Emulator와 실제 Sentry 수신 검증을 수행한다.
 - [x] T021 `src/lib/sentry.ts`에서 자동 exception value와 일반 event·breadcrumb message의 원문을 기본 제거하되 stable operational code, exception type과 stack frame은 유지한다 per FR-003, FR-006, SC-003 (partial)
 - [x] T022 `src/screens/diagnostics/SentryValidationScreen.tsx`에서 개별 capture 성공 상태를 전체 catalog 15/15 완료 상태와 분리한다 per FR-004, FR-005, US2/AC2 (partial)
 - [x] T023 `src/screens/diagnostics/SentryValidationScreen.tsx`에서 full run 시작 즉시 reset 전 재전송 guard를 설정해 실패·background 중단 뒤 합성 이벤트 중복 전송을 막는다 per FR-011, FR-014, SC-004 (contradicts)
+
+## Phase 8: Convergence
+
+- [x] T024 `src/lib/operational-error-codes.ts`, `src/lib/operational-error-reporting.ts`, `src/lib/sentry.ts`에서 15개 운영 오류 코드를 단일 runtime allowlist와 type guard로 정의하고 catalog code만 stable message로 보존한다 per FR-003, FR-006, SC-003 (partial)
+- [x] T025 `src/lib/sentry.ts`에서 `scrubValue` 결과의 직접 타입 단언을 제거하고 Sentry field별 객체·배열·원시값 shape를 검증하는 scrubber로 교체한다 per FR-003, FR-006, Constitution II, Constitution IV (partial)
