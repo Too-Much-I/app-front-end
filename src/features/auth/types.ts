@@ -6,6 +6,12 @@ export type GuestAuthRequest = {
   privacyConsentVersion: string;
   isTermConsented: true;
   termConsentVersion: string;
+  /**
+   * 필수 항목과 달리 `true` 리터럴이 아니라 `boolean`이다. 선택 항목은 "거부"도
+   * 서버가 기록해야 하는 상태라서 `false`를 보낼 수 있어야 한다.
+   */
+  isQualityReviewConsented: boolean;
+  qualityReviewConsentVersion: string;
 };
 
 export type ReissueRequest = {
@@ -19,9 +25,25 @@ export type ServerConsentItemStatus = {
   requiresConsent: boolean;
 };
 
+/**
+ * 선택 동의 항목의 서버 상태.
+ *
+ * 필수 항목(`ServerConsentItemStatus`)과 모양이 다르다. 아직 선택하지 않았거나
+ * 동의를 철회하면 서버가 `consentedVersion`과 `consentedAt`을 `null`로 되돌리므로
+ * 두 필드가 nullable이고, 동의 여부를 알려주는 `consented`가 따로 있다.
+ */
+export type ServerOptionalConsentItemStatus = {
+  currentVersion: string;
+  consented: boolean;
+  consentedVersion: string | null;
+  consentedAt: string | null;
+  requiresConsent: boolean;
+};
+
 export type ServerConsentStatus = {
   privacy: ServerConsentItemStatus;
   terms: ServerConsentItemStatus;
+  qualityReview: ServerOptionalConsentItemStatus;
 };
 
 export type ConsentRequirements = {
@@ -34,6 +56,9 @@ export type UpdateConsentsRequest = {
   privacyConsentVersion: string;
   isTermConsented: true;
   termConsentVersion: string;
+  /** 선택 항목이라 `false`도 유효한 값이며, `false` 전송이 곧 동의 철회다. */
+  isQualityReviewConsented: boolean;
+  qualityReviewConsentVersion: string;
 };
 
 export type RawTokenPair = {
