@@ -53,6 +53,11 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
   // `isSubmitting`은 acceptConsent가 setState를 부른 뒤에야 켜진다. 그전에 await가
   // 있어 연타가 통과하므로, 렌더를 기다리지 않는 동기 잠금이 따로 필요하다.
   const isSubmittingRef = useRef(false);
+  /**
+   * 제출이 실패하면 같은 버튼으로 다시 시도할 수 있어 `handleStart`가 여러 번 돈다.
+   * 선택 동의는 화면당 한 번의 결정이므로 첫 제출에서만 기록해야 동의율이 부풀지 않는다.
+   */
+  const hasTrackedConsentDecisionRef = useRef(false);
   const allChecked =
     (!requiredItems.privacy || checked.privacy) &&
     (!requiredItems.terms || checked.terms);
@@ -150,10 +155,13 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
     isSubmittingRef.current = true;
     try {
       // 선택 동의 문구가 얼마나 설득력이 있는지를 보는 지표다.
-      trackEvent({
-        name: "optional_consent_decided",
-        properties: { consented: qualityReviewChecked },
-      });
+      if (!hasTrackedConsentDecisionRef.current) {
+        hasTrackedConsentDecisionRef.current = true;
+        trackEvent({
+          name: "optional_consent_decided",
+          properties: { consented: qualityReviewChecked },
+        });
+      }
       // 저장소가 아니라 컨트롤러 메모리로 선택을 넘긴다. 저장이 실패해도 이번
       // 제출에는 화면에 보이던 선택이 그대로 실린다.
       setPendingQualityReviewConsent(qualityReviewChecked);

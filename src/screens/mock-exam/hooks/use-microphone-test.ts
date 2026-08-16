@@ -71,6 +71,12 @@ export function useMicrophoneTest() {
   const recordingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stopPromiseRef = useRef<Promise<AudioStopResult> | null>(null);
   const startAttemptRef = useRef(0);
+  /**
+   * `startAttemptRef`는 진행 중인 시작 시도를 무효화하는 카운터라 stopActiveAudio가
+   * 불릴 때마다 함께 올라간다. 정상 종료도 포함되므로 시도 횟수로 쓸 수 없다.
+   * 이용자가 테스트를 몇 번 눌렀는지만 세는 카운터를 따로 둔다.
+   */
+  const startCountRef = useRef(0);
   const isMountedRef = useRef(true);
   const isScreenFocusedRef = useRef(false);
   const isAppBackgroundedRef = useRef(AppState.currentState === "background");
@@ -267,7 +273,7 @@ export function useMicrophoneTest() {
       // 여러 번 시도한 끝에 통과했는지가 음성 판정 임계값 재조정의 근거가 된다.
       trackEvent({
         name: "mic_test_passed",
-        properties: { attemptCount: startAttemptRef.current },
+        properties: { attemptCount: startCountRef.current },
       });
       updateTestState("complete");
     } catch (error) {
@@ -293,6 +299,7 @@ export function useMicrophoneTest() {
 
     const attempt = startAttemptRef.current + 1;
     startAttemptRef.current = attempt;
+    startCountRef.current += 1;
     updateTestState("requesting");
     let failureOperation: MicrophoneTestFailureOperation = "playback-pause";
     let permissionGranted = false;

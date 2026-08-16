@@ -40,7 +40,10 @@ export type AnalyticsEvent =
       name: "mic_test_failed";
       properties: { operation: MicrophoneTestFailureStage };
     }
-  /** `attemptCount`가 1보다 크면 음성 판정 임계값을 다시 볼 근거가 된다. */
+  /**
+   * `attemptCount`는 통과할 때까지 테스트를 시작한 횟수다. 1보다 크면 음성 판정
+   * 임계값을 다시 볼 근거가 된다.
+   */
   | { name: "mic_test_passed"; properties: { attemptCount: number } }
 
   // 채점 대기

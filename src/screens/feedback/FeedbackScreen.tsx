@@ -259,6 +259,10 @@ export function FeedbackScreen() {
   }, []);
 
   useEffect(() => {
+    // 주소가 없으면 웹뷰 대신 응시 이력 화면이 뜬다. FEEDBACK_DATA_READY가 올 리
+    // 없으므로 타이머를 걸면 이력 화면을 보는 내내 느린 로딩으로 집계된다.
+    if (!feedbackUrl) return;
+
     pageLoadAttemptRef.current += 1;
     reportedDataRequestIdsRef.current.clear();
     loadStartedAtRef.current = Date.now();

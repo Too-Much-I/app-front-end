@@ -82,10 +82,17 @@ export function useGradingStatus(
       mountedRef.current = false;
       /**
        * 채점을 끝까지 기다리지 않고 나간 경우다. `elapsedMs`가 진행률 UI를 얼마나
-       * 버티게 만들어야 하는지의 근거가 된다. terminal-error는 이용자가 선택해서
-       * 나간 것이 아니므로 이탈로 세지 않는다.
+       * 버티게 만들어야 하는지의 근거가 된다.
+       *
+       * 두 phase는 제외한다. terminal-error는 이용자가 선택해서 나간 것이 아니고,
+       * completing은 채점이 이미 끝난 뒤의 연출 구간이라 didNavigateRef가 서기
+       * 전까지 짧지 않은 시간이 걸린다.
        */
-      if (!didNavigateRef.current && phaseRef.current !== "terminal-error") {
+      if (
+        !didNavigateRef.current &&
+        phaseRef.current !== "terminal-error" &&
+        phaseRef.current !== "completing"
+      ) {
         trackEvent({
           name: "grading_wait_abandoned",
           properties: {
@@ -180,8 +187,11 @@ export function useGradingStatus(
         });
       }
       // 첫 시도가 3분을 넘겨 재요청 안내로 넘어간 순간. 얼마나 흔한지가 대기 UI
-      // 문구와 타임아웃 값을 조정할 근거다.
-      if (attempt === 0) trackEvent({ name: "grading_wait_exceeded" });
+      // 문구와 타임아웃 값을 조정할 근거다. 서버가 곧바로 FAILED를 준 경우는
+      // 대기 초과가 아니므로 섞지 않는다.
+      if (attempt === 0 && reason === "timeout") {
+        trackEvent({ name: "grading_wait_exceeded" });
+      }
       updatePhase(attempt === 0 ? "retry-ready" : "terminal-error");
     };
 

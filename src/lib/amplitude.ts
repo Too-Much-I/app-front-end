@@ -49,8 +49,13 @@ export function initializeAmplitude(): void {
           elementInteractions: false,
           // 요청 URL에 examId 같은 식별자가 실린다.
           networkTracking: false,
-          // 라우트 이름을 직접 통제하려고 trackScreenView로 대신한다.
-          screenViews: false,
+          /**
+           * 자동 수집 스위치가 아니라 `trackScreenView`의 차단 스위치다. SDK는
+           * 이 값이 `false`면 수동 호출까지 조기 반환하고(react-native-client의
+           * trackScreenView), 화면 조회를 자동으로 잡는 경로는 따로 없다.
+           * 라우트 이름은 App.tsx가 직접 넘기므로 켜두어야 한다.
+           */
+          screenViews: true,
         },
         trackingOptions: {
           // 광고 식별자는 쓸 곳이 없다.
