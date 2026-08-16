@@ -7,6 +7,7 @@ import {
   useAnswerRecorder,
 } from "@/features/exam/use-answer-recorder";
 import { useAnswerSubmissions } from "@/features/exam/use-answer-submissions";
+import { trackEvent } from "@/lib/amplitude";
 import { reportOperationalError } from "@/lib/operational-error-reporting";
 import type {
   ExamPartPrelude,
@@ -73,6 +74,10 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
   const isExamActiveRef = useRef(isExamActive);
   const recordingAttemptRef = useRef(0);
   const reportedPreludesRef = useRef(new Set<number>());
+  const hasTrackedCompletionRef = useRef(false);
+  // 언마운트 cleanup은 첫 렌더의 props를 붙잡으므로 최신 문항 배열을 ref로 읽는다.
+  const questionsRef = useRef(session.questions);
+  questionsRef.current = session.questions;
   const recorder = useAnswerRecorder();
   const submissions = useAnswerSubmissions(session.questions.length);
   const question = session.questions[currentIndex];
@@ -481,8 +486,32 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     }
   }, [phase, recorder.status, updatePhase]);
 
+  /**
+   * 시험 시작과 이탈을 남긴다. 이탈은 어느 화면이 아니라 어느 `phase`에서 끊겼는지가
+   * 중요하다. 안내를 듣다 나간 것과 답변하다 나간 것은 대응이 전혀 다르기 때문이다.
+   */
+  useEffect(() => {
+    trackEvent({ name: "exam_started" });
+
+    return () => {
+      if (hasTrackedCompletionRef.current) return;
+
+      const abandonedQuestion = questionsRef.current[currentIndexRef.current];
+      trackEvent({
+        name: "exam_abandoned",
+        properties: {
+          partNumber: abandonedQuestion?.partNumber ?? 0,
+          questionNumber: abandonedQuestion?.questionNumber ?? 0,
+          phase: phaseRef.current,
+        },
+      });
+    };
+  }, []);
+
   useEffect(() => {
     if (phase === "submission-barrier" && submissions.summary.isComplete) {
+      hasTrackedCompletionRef.current = true;
+      trackEvent({ name: "exam_completed" });
       updatePhase("completed");
     }
   }, [phase, submissions.summary.isComplete, updatePhase]);

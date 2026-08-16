@@ -21,6 +21,8 @@ import {
   resolveRecordingPermissionAsync,
   type RecordingPermissionFailureOperation,
 } from "@/features/exam/recording-permission";
+import { trackEvent } from "@/lib/amplitude";
+import type { MicrophoneTestFailureStage } from "@/lib/analytics-events";
 import { reportOperationalError } from "@/lib/operational-error-reporting";
 
 export type MicrophoneTestState =
@@ -56,6 +58,10 @@ type MicrophoneTestFailureOperation =
   | "audio-mode"
   | "recorder-prepare"
   | "record-start";
+
+function trackMicrophoneTestFailure(operation: MicrophoneTestFailureStage): void {
+  trackEvent({ name: "mic_test_failed", properties: { operation } });
+}
 
 export function useMicrophoneTest() {
   const recorder = useAudioRecorder(ANSWER_RECORDING_OPTIONS);
@@ -250,6 +256,7 @@ export function useMicrophoneTest() {
     }
 
     if (hasError || audioUri === null) {
+      trackMicrophoneTestFailure("stop-recording");
       updateTestState("error");
       return;
     }
@@ -257,9 +264,15 @@ export function useMicrophoneTest() {
     try {
       recordingPlayer.replace(audioUri);
       setRecordingUri(audioUri);
+      // 여러 번 시도한 끝에 통과했는지가 음성 판정 임계값 재조정의 근거가 된다.
+      trackEvent({
+        name: "mic_test_passed",
+        properties: { attemptCount: startAttemptRef.current },
+      });
       updateTestState("complete");
     } catch (error) {
       console.error("[MicrophoneTest] 녹음 파일을 재생기에 연결하지 못했습니다.", error);
+      trackMicrophoneTestFailure("playback-attach");
       updateTestState("error");
     }
   }, [recordingPlayer, stopActiveAudio, updateTestState]);
@@ -302,6 +315,11 @@ export function useMicrophoneTest() {
       permissionGranted = permission.granted;
       setCanAskPermissionAgain(permission.canAskAgain);
       if (!permission.granted) {
+        // `canAskAgain`이 false면 앱 설정으로 보내는 안내가 필요한 영구 거부다.
+        trackEvent({
+          name: "mic_permission_denied",
+          properties: { canAskAgain: permission.canAskAgain },
+        });
         updateTestState("denied");
         return;
       }
@@ -337,6 +355,9 @@ export function useMicrophoneTest() {
       }
 
       console.error("[MicrophoneTest] 녹음 시작 실패", error);
+      trackMicrophoneTestFailure(
+        error instanceof RecordingPermissionError ? error.operation : failureOperation,
+      );
       reportOperationalError({
         code: "ANSWER_RECORDING_FAILED",
         surface: "microphone-test",
@@ -377,6 +398,12 @@ export function useMicrophoneTest() {
 
       setCanAskPermissionAgain(permission.canAskAgain);
       if (!permission.granted) {
+        // 백그라운드에 다녀오는 사이 권한이 회수된 경우다. 최초 거부와 시점이
+        // 다르므로 같은 이벤트로 남기고 세션으로 구분한다.
+        trackEvent({
+          name: "mic_permission_denied",
+          properties: { canAskAgain: permission.canAskAgain },
+        });
         updateTestState("denied");
         await stopActiveAudio("resume-error");
         return;
@@ -438,6 +465,7 @@ export function useMicrophoneTest() {
       if (permission.granted) updateTestState("idle");
     } catch (error) {
       console.error("[MicrophoneTest] 백그라운드 복귀 후 마이크 권한 확인 실패", error);
+      trackMicrophoneTestFailure("permission-recheck");
       updateTestState("error");
     }
   }, [updateTestState]);
@@ -549,6 +577,7 @@ export function useMicrophoneTest() {
       recordingPlayer.play();
     } catch (error) {
       console.error("[MicrophoneTest] 녹음 파일 재생 실패", error);
+      trackMicrophoneTestFailure("playback");
       updateTestState("error");
     }
   }, [playbackStatus, recordingPlayer, recordingUri, updateTestState]);
