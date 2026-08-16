@@ -1,6 +1,9 @@
+import { useEffect } from "react";
+
 import { MascotModal } from "@/components/ui/MascotModal";
 import { useLandscapeDetection } from "@/features/orientation/use-landscape-detection";
 import { useOrientation } from "@/features/orientation/orientation-context";
+import { getLastScreenName, trackEvent } from "@/lib/amplitude";
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
 const rabbitFace = require("../../../public/mascots/rabbit_face.png");
@@ -23,13 +26,24 @@ const rabbitFace = require("../../../public/mascots/rabbit_face.png");
 export function PortraitOnlyNotice() {
   const isLandscape = useLandscapeDetection();
   const { isLandscapeTableRequested } = useOrientation();
+  const isVisible = isLandscape && !isLandscapeTableRequested;
+
+  // 어느 화면에서 가로로 돌리려 하는지가 태블릿 가로 지원 판단의 근거가 된다.
+  useEffect(() => {
+    if (!isVisible) return;
+
+    trackEvent({
+      name: "portrait_notice_shown",
+      properties: { routeName: getLastScreenName() ?? "unknown" },
+    });
+  }, [isVisible]);
 
   return (
     <MascotModal
       mascot={rabbitFace}
       message="토선생은 세로 화면만 지원해요. 기기를 세로로 돌리면 계속 이용할 수 있어요."
       title="세로로 돌려주세요"
-      visible={isLandscape && !isLandscapeTableRequested}
+      visible={isVisible}
     />
   );
 }

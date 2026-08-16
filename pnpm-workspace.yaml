@@ -2,3 +2,9 @@
 # 차단하면 릴리스 빌드에서 업로드 단계가 실패한다.
 allowBuilds:
   '@sentry/cli': true
+
+# @amplitude/analytics-react-native는 async-storage를 peer가 아닌 dependency로 잡고
+# `^1.17.11`을 요구한다. 그대로 두면 1.x가 중첩 설치되어 같은 네이티브 모듈이 두 벌
+# autolinking되므로, Expo SDK 57이 검증한 단일 버전으로 고정한다.
+overrides:
+  '@react-native-async-storage/async-storage': '2.2.0'

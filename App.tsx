@@ -1,7 +1,11 @@
 import "./global.css";
 
-import { NavigationContainer } from "@react-navigation/native";
+import {
+  NavigationContainer,
+  useNavigationContainerRef,
+} from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
+import { useRef } from "react";
 import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -11,6 +15,8 @@ import { AuthProvider } from "@/features/auth/auth-provider";
 import { OrientationProvider } from "@/features/orientation/OrientationProvider";
 import { useOrientation } from "@/features/orientation/orientation-context";
 import { RootNavigator } from "@/navigation/RootNavigator";
+import type { RootStackParamList } from "@/navigation/types";
+import { trackScreenView } from "@/lib/amplitude";
 import { IS_SENTRY_VALIDATION_MODE } from "@/lib/sentry-validation-mode";
 import { SentryValidationScreen } from "@/screens/diagnostics/SentryValidationScreen";
 import { useRemScale } from "@/theme/rem-scale";
@@ -20,6 +26,9 @@ function AppContent() {
   const { isLandscapeTableRequested } = useOrientation();
   // early return보다 위에서 호출해야 훅 순서가 안정된다.
   useRemScale(isLandscapeTableRequested);
+
+  const navigationRef = useNavigationContainerRef<RootStackParamList>();
+  const previousRouteNameRef = useRef<string | undefined>(undefined);
 
   const { ready: fontsReady, onLayoutRootView } = useAppFonts();
   const { state } = useAuth();
@@ -36,7 +45,22 @@ function AppContent() {
 
   return (
     <View className="flex-1" onLayout={onLayoutRootView}>
-      <NavigationContainer>
+      <NavigationContainer
+        ref={navigationRef}
+        onReady={() => {
+          const routeName = navigationRef.getCurrentRoute()?.name;
+          previousRouteNameRef.current = routeName;
+          if (routeName) trackScreenView(routeName);
+        }}
+        onStateChange={() => {
+          const routeName = navigationRef.getCurrentRoute()?.name;
+          // 같은 화면에서 파라미터만 바뀐 경우까지 조회로 세지 않는다.
+          if (routeName && routeName !== previousRouteNameRef.current) {
+            trackScreenView(routeName);
+          }
+          previousRouteNameRef.current = routeName;
+        }}
+      >
         <RootNavigator state={state} />
       </NavigationContainer>
       <StatusBar style="auto" />

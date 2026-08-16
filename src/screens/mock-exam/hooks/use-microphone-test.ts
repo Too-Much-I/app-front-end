@@ -21,6 +21,8 @@ import {
   resolveRecordingPermissionAsync,
   type RecordingPermissionFailureOperation,
 } from "@/features/exam/recording-permission";
+import { trackEvent } from "@/lib/amplitude";
+import type { MicrophoneTestFailureStage } from "@/lib/analytics-events";
 import { reportOperationalError } from "@/lib/operational-error-reporting";
 
 export type MicrophoneTestState =
@@ -57,6 +59,10 @@ type MicrophoneTestFailureOperation =
   | "recorder-prepare"
   | "record-start";
 
+function trackMicrophoneTestFailure(operation: MicrophoneTestFailureStage): void {
+  trackEvent({ name: "mic_test_failed", properties: { operation } });
+}
+
 export function useMicrophoneTest() {
   const recorder = useAudioRecorder(ANSWER_RECORDING_OPTIONS);
   const recorderState = useAudioRecorderState(recorder, AUDIO_METER_UPDATE_INTERVAL_MS);
@@ -65,6 +71,12 @@ export function useMicrophoneTest() {
   const recordingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stopPromiseRef = useRef<Promise<AudioStopResult> | null>(null);
   const startAttemptRef = useRef(0);
+  /**
+   * `startAttemptRef`는 진행 중인 시작 시도를 무효화하는 카운터라 stopActiveAudio가
+   * 불릴 때마다 함께 올라간다. 정상 종료도 포함되므로 시도 횟수로 쓸 수 없다.
+   * 이용자가 테스트를 몇 번 눌렀는지만 세는 카운터를 따로 둔다.
+   */
+  const startCountRef = useRef(0);
   const isMountedRef = useRef(true);
   const isScreenFocusedRef = useRef(false);
   const isAppBackgroundedRef = useRef(AppState.currentState === "background");
@@ -250,6 +262,7 @@ export function useMicrophoneTest() {
     }
 
     if (hasError || audioUri === null) {
+      trackMicrophoneTestFailure("stop-recording");
       updateTestState("error");
       return;
     }
@@ -257,9 +270,15 @@ export function useMicrophoneTest() {
     try {
       recordingPlayer.replace(audioUri);
       setRecordingUri(audioUri);
+      // 여러 번 시도한 끝에 통과했는지가 음성 판정 임계값 재조정의 근거가 된다.
+      trackEvent({
+        name: "mic_test_passed",
+        properties: { attemptCount: startCountRef.current },
+      });
       updateTestState("complete");
     } catch (error) {
       console.error("[MicrophoneTest] 녹음 파일을 재생기에 연결하지 못했습니다.", error);
+      trackMicrophoneTestFailure("playback-attach");
       updateTestState("error");
     }
   }, [recordingPlayer, stopActiveAudio, updateTestState]);
@@ -280,6 +299,7 @@ export function useMicrophoneTest() {
 
     const attempt = startAttemptRef.current + 1;
     startAttemptRef.current = attempt;
+    startCountRef.current += 1;
     updateTestState("requesting");
     let failureOperation: MicrophoneTestFailureOperation = "playback-pause";
     let permissionGranted = false;
@@ -302,6 +322,11 @@ export function useMicrophoneTest() {
       permissionGranted = permission.granted;
       setCanAskPermissionAgain(permission.canAskAgain);
       if (!permission.granted) {
+        // `canAskAgain`이 false면 앱 설정으로 보내는 안내가 필요한 영구 거부다.
+        trackEvent({
+          name: "mic_permission_denied",
+          properties: { canAskAgain: permission.canAskAgain },
+        });
         updateTestState("denied");
         return;
       }
@@ -337,6 +362,9 @@ export function useMicrophoneTest() {
       }
 
       console.error("[MicrophoneTest] 녹음 시작 실패", error);
+      trackMicrophoneTestFailure(
+        error instanceof RecordingPermissionError ? error.operation : failureOperation,
+      );
       reportOperationalError({
         code: "ANSWER_RECORDING_FAILED",
         surface: "microphone-test",
@@ -377,6 +405,12 @@ export function useMicrophoneTest() {
 
       setCanAskPermissionAgain(permission.canAskAgain);
       if (!permission.granted) {
+        // 백그라운드에 다녀오는 사이 권한이 회수된 경우다. 최초 거부와 시점이
+        // 다르므로 같은 이벤트로 남기고 세션으로 구분한다.
+        trackEvent({
+          name: "mic_permission_denied",
+          properties: { canAskAgain: permission.canAskAgain },
+        });
         updateTestState("denied");
         await stopActiveAudio("resume-error");
         return;
@@ -438,6 +472,15 @@ export function useMicrophoneTest() {
       if (permission.granted) updateTestState("idle");
     } catch (error) {
       console.error("[MicrophoneTest] 백그라운드 복귀 후 마이크 권한 확인 실패", error);
+      // 권한 조회를 기다리는 사이 화면을 떠났거나 다시 백그라운드로 갔다면, 보고
+      // 있지도 않은 화면의 마찰로 집계된다. 성공 경로와 같은 기준으로 막는다.
+      if (
+        isMountedRef.current &&
+        isScreenFocusedRef.current &&
+        !isAppBackgroundedRef.current
+      ) {
+        trackMicrophoneTestFailure("permission-recheck");
+      }
       updateTestState("error");
     }
   }, [updateTestState]);
@@ -549,6 +592,7 @@ export function useMicrophoneTest() {
       recordingPlayer.play();
     } catch (error) {
       console.error("[MicrophoneTest] 녹음 파일 재생 실패", error);
+      trackMicrophoneTestFailure("playback");
       updateTestState("error");
     }
   }, [playbackStatus, recordingPlayer, recordingUri, updateTestState]);
