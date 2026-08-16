@@ -18,15 +18,18 @@
   },
   "build": {
     "development": {
+      "pnpm": "11.12.0",
       "developmentClient": true,
       "distribution": "internal",
       "environment": "development"
     },
     "preview": {
+      "pnpm": "11.12.0",
       "distribution": "internal",
       "environment": "preview"
     },
     "production": {
+      "pnpm": "11.12.0",
       "environment": "production",
       "autoIncrement": true
     }
@@ -36,6 +39,10 @@
   }
 }
 ```
+
+Expo/EAS 구성 검사에서는 양 플랫폼의 세 profile이 모두 스키마를 통과하고 각 profile의 `pnpm`이
+`11.12.0`인지 확인한다. development와 preview는 내부 배포, production은 store 배포 기본값을 사용하며
+각 profile의 `environment`와 production의 자동 증가 정책이 위 계약과 일치해야 한다.
 
 profile 내부에는 API 주소, Sentry token, Apple/Google credential을 직접 기록하지 않는다.
 

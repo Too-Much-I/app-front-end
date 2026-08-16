@@ -25,7 +25,7 @@
 | `EXAM_SESSION_CREATE_FAILED` | 모의고사 세션 또는 필수 시작 데이터 생성 실패 | 시험 시작이 차단되고 사용자에게 실패 안내가 표시될 때 | 시작 시도당 1회 |
 | `EXAM_REQUIRED_AUDIO_FAILED` | 필수 안내·문제 음성 누락 또는 재생 실패 | 진행이 차단되거나 필요한 음성 없이 진행된다는 사실이 확정될 때 | cue당 1회 |
 | `EXAM_PRELUDE_FAILED` | Part 3/4 사전 자료 누락·오배치·손상·충돌 | 사전 자료 오류 화면으로 전환될 때 | 시험 흐름당 1회 |
-| `ANSWER_RECORDING_FAILED` | 마이크 테스트 또는 답변의 녹음 준비·종료·완성 파일 검증 실패 | 녹음 오류 복구 상태로 확정될 때 | 녹음 시도당 1회 |
+| `ANSWER_RECORDING_FAILED` | 마이크 테스트 시작 준비 실패 또는 답변의 녹음 준비·종료·완성 파일 검증 실패 | 녹음 오류 복구 상태로 확정될 때 | 녹음 시도당 1회 |
 | `ANSWER_SUBMISSION_FAILED` | 업로드 준비·파일 업로드·서버 접수 최종 실패 | 내장 재시도가 끝나고 답변 작업이 실패로 확정될 때 | 답변 시도당 1회 |
 | `EXAM_GRADING_FAILED` | 서버 실패·최종 timeout·채점 재요청 접수 실패 | 최초 대기 실패가 아니라 사용자 재시도 후 terminal error가 확정될 때 | 시험 흐름당 1회 |
 | `FEEDBACK_PAGE_LOAD_FAILED` | 피드백 문서 네트워크·HTTP 로드 실패 | 실제 오류 UI가 표시될 때 | 문서 로드 시도당 1회 |

@@ -27,10 +27,22 @@ git diff -- app.json
 pnpm lint
 pnpm exec tsc --noEmit
 pnpm exec expo config --type public --json
+pnpm dlx eas-cli@latest config --platform android --profile development --json --non-interactive
+pnpm dlx eas-cli@latest config --platform android --profile preview --json --non-interactive
+pnpm dlx eas-cli@latest config --platform android --profile production --json --non-interactive
+pnpm dlx eas-cli@latest config --platform ios --profile development --json --non-interactive
+pnpm dlx eas-cli@latest config --platform ios --profile preview --json --non-interactive
+pnpm dlx eas-cli@latest config --platform ios --profile production --json --non-interactive
 git diff --check
 ```
 
-예상 결과: 모든 명령이 성공하고 Expo public config가 프로젝트 연결 및 기존 앱 식별자를 유지한다.
+예상 결과:
+
+- 모든 명령이 성공하고 Expo public config가 프로젝트 연결 및 기존 앱 식별자를 유지한다.
+- 모든 profile의 `pnpm`은 `11.12.0`이고 `environment`는 profile 이름과 같다.
+- development는 development client와 내부 배포, preview는 내부 배포를 사용한다.
+- production은 store 배포 기본값, 원격 앱 버전 소스와 자동 증가 정책을 사용한다.
+- JSON 출력은 로컬에서 구조만 확인하고 값이 포함된 원문을 PR이나 로그에 첨부하지 않는다.
 
 ## 3. Firebase 없는 양 플랫폼 export
 
@@ -56,17 +68,34 @@ pnpm exec node node_modules/@sentry/react-native/scripts/has-sourcemap-debugid.j
 
 ## 5. 범위 및 secret 감사
 
+PR 기준 브랜치가 `origin/main`인 경우 다음처럼 저장소 전체 변경을 검사한다. 출력되는 실제 비밀값이 없도록
+민감 패턴 검사는 일치한 파일 이름만 표시한다.
+
 ```sh
-git diff -- app.json eas.json metro.config.js .env.local.example docs/eas-build-handoff.md
 git status --short
+git diff --name-status origin/main...HEAD
+git diff --stat origin/main...HEAD
+git diff --check origin/main...HEAD
+git diff origin/main...HEAD -- package.json pnpm-lock.yaml
+git diff --name-only --diff-filter=A origin/main...HEAD
+git diff --name-only origin/main...HEAD | rg '(^|/)(google-services\.json|GoogleService-Info\.plist|.*\.(jks|keystore|p8|p12|mobileprovision))$'
+git diff --name-only --diff-filter=ACMR -z origin/main...HEAD | xargs -0 rg -l --no-messages \
+  -e 'BEGIN ([A-Z ]+)?PRIVATE KEY' \
+  -e 'SENTRY_AUTH_TOKEN[[:space:]]*=[[:space:]]*[^[:space:]#]+' \
+  -e 'gh[pousr]_[A-Za-z0-9_]{20,}' \
+  -e 'AKIA[0-9A-Z]{16}'
 ```
 
 확인 항목:
 
-- Firebase/Analytics dependency와 설정 파일이 추가되지 않았다.
-- `SENTRY_AUTH_TOKEN`은 이름과 설명만 있고 실제 값은 없다.
+- 전체 변경 파일과 신규 파일이 의도한 범위에 속하며 사용자 소유의 무관한 변경은 포함되지 않았다.
+- `package.json`과 `pnpm-lock.yaml`에는 검토한 빌드 의존성만 있고 Firebase/Analytics dependency가 없다.
+- Firebase 설정, 서명 키, 인증서와 provisioning profile 파일이 추가되지 않았다.
+- 민감 패턴 검사에서 출력된 파일은 값을 출력하지 않은 채 직접 확인하고, `SENTRY_AUTH_TOKEN`은 이름과
+  설명 또는 빈 placeholder만 있으며 실제 값은 없다.
+- 마지막 두 `rg` 검사는 일치 항목이 없으면 아무것도 출력하지 않고 종료 상태 `1`을 반환할 수 있으며,
+  수동 감사에서는 이를 "탐지 없음"으로 판정한다. 명령 실행 오류와 혼동하지 않도록 출력도 함께 확인한다.
 - Apple/Google credential이나 운영 secret이 없다.
-- 사용자 소유의 무관한 변경은 diff에 포함되지 않는다.
 
 ## 6. 원격 후속 작업
 

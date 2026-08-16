@@ -34,7 +34,7 @@ pnpm exec expo export --platform all --output-dir /tmp/app-front-end-sentry-repo
 | `EXAM_SESSION_CREATE_FAILED` | session create를 최종 실패시킴 | start block과 함께 1건 |
 | `EXAM_REQUIRED_AUDIO_FAILED` | sound test/cue asset load 또는 playback 실패 | 해당 cue generation에 1건 |
 | `EXAM_PRELUDE_FAILED` | Part 3/4 필수 context 누락·충돌 fixture | error phase에 1건 |
-| `ANSWER_RECORDING_FAILED` | 마이크 테스트/답변의 prepare/stop/file validation 실패 | surface와 start operation을 포함해 recording recovery에 시도당 1건 |
+| `ANSWER_RECORDING_FAILED` | 마이크 테스트의 prepare 실패 또는 답변의 prepare/stop/file validation 실패 | surface와 start operation을 포함해 recording recovery에 시도당 1건 |
 | `ANSWER_SUBMISSION_FAILED` | upload target/upload/notify 최종 실패 | 내장 retry 전 0건, job failed 뒤 1건 |
 | `EXAM_GRADING_FAILED` | first poll timeout 뒤 retry도 실패 | retry-ready에서 0건, terminal-error에서 1건 |
 | `FEEDBACK_PAGE_LOAD_FAILED` | WebView network/HTTP load failure | 여러 WebView callback에도 reload당 1건 |

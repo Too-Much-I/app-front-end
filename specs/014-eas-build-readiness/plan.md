@@ -25,8 +25,8 @@ EAS Environment와 원격 버전 관리를 사용한다. Metro의 기본 구성�
 
 **Storage**: N/A — 저장소 설정 파일과 Expo 원격 프로젝트 메타데이터만 사용
 
-**Testing**: `pnpm lint`, `pnpm exec tsc --noEmit`, Expo public config 검사, 양 플랫폼 Expo export와
-source map Debug ID 검사, diff/secret 감사
+**Testing**: `pnpm lint`, `pnpm exec tsc --noEmit`, Expo public config와 양 플랫폼·세 profile EAS config
+검사, 양 플랫폼 Expo export와 source map Debug ID 검사, 저장소 전체 diff/secret 감사
 
 **Target Platform**: Expo/EAS의 iOS 및 Android 앱 빌드
 

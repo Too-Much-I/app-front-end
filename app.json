@@ -15,10 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": true,
-      "bundleIdentifier": "com.toteacher.app",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+      "bundleIdentifier": "com.toteacher.app"
     },
     "android": {
       "adaptiveIcon": {

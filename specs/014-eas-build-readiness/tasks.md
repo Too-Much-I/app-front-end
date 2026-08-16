@@ -4,8 +4,9 @@
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md
 
-**Validation**: 테스트 러너가 없는 구성 변경이므로 lint, typecheck, Expo public config, 양 플랫폼 export,
-source map Debug ID와 secret/diff 감사를 수행한다.
+**Validation**: 테스트 러너가 없는 구성 변경이므로 lint, typecheck, Expo public config, 양 플랫폼의
+development/preview/production EAS config, 양 플랫폼 export, source map Debug ID와 저장소 전체
+secret/diff 감사를 수행한다.
 
 **Organization**: 태스크는 각 사용자 스토리가 독립적으로 검토 가능하도록 구성한다.
 
@@ -39,7 +40,7 @@ environment를 사용한다.
 production auto increment가 모두 존재하고 앱 식별자가 유지된다.
 
 - [x] T004 [US1] development, preview, production profile과 environment, remote version, production auto increment, submit 계약을 `eas.json`에 추가한다
-- [x] T005 [US1] `eas.json` 및 `app.json`을 Expo/EAS 구성 명령으로 해석해 profile 계약과 기존 앱 식별자를 검증한다
+- [x] T005 [US1] `eas.json` 및 `app.json`을 Expo/EAS 구성 명령으로 해석하고 양 플랫폼의 development, preview, production profile별 `pnpm`, environment, 배포 범위, 버전 정책과 기존 앱 식별자를 검증한다
 
 **Checkpoint**: Firebase 없이도 세 빌드 목적을 저장소 설정만 보고 구분할 수 있다.
 
@@ -55,7 +56,7 @@ production secret 값은 없다.
 
 - [x] T006 [P] [US2] EAS Environment에서 사용할 공개 변수와 `SENTRY_AUTH_TOKEN`의 비밀 경계를 `.env.local.example`에 명확히 설명한다
 - [x] T007 [P] [US2] 프로젝트 접근, 세 EAS Environment, Apple/Google credential과 첫 preview/production 빌드 순서를 `docs/eas-build-handoff.md`에 작성한다
-- [x] T008 [US2] `app.json`, `eas.json`, `.env.local.example`, `docs/eas-build-handoff.md`를 감사해 실제 비밀과 production-to-staging fallback 계약 위반이 없는지 확인한다
+- [x] T008 [US2] 저장소 전체 변경 파일·신규 파일·dependency·lockfile을 값 비노출 방식으로 감사해 Firebase 설정·의존성, 실제 비밀과 production-to-staging fallback 계약 위반이 없는지 확인한다
 
 **Checkpoint**: 계정 소유자가 값 자체를 문서에 남기지 않고 원격 후속 작업을 완료할 수 있다.
 
