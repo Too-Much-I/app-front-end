@@ -286,6 +286,65 @@ class AuthController {
     this.optionalConsentGranted = record?.qualityReview.consented ?? null;
   }
 
+  /** 마지막으로 알려진 선택 동의 값. 설정 화면의 스위치 초기값으로 쓴다. */
+  async readQualityReviewConsent(): Promise<boolean> {
+    await this.loadOptionalConsent();
+    return this.optionalConsentGranted ?? false;
+  }
+
+  /**
+   * 설정 화면에서 선택 동의를 켜거나 끈다(개인정보처리방침 제7조의 철회 경로).
+   *
+   * `acceptConsent` 계열과 달리 `setState`를 부르지 않는다. 부트스트랩 상태를
+   * 건드리면 `RootNavigator`의 `isConsentFlow`가 반응해 네비게이터를 온보딩
+   * 스택으로 갈아끼우고, 설정 화면이 스택에서 사라진다.
+   *
+   * 서버 반영에 실패하면 로컬도 바꾸지 않고 그대로 던진다. 한쪽만 바뀌면 다음
+   * 실행의 서버 동기화 때 이용자가 모르는 사이에 값이 되돌아간다.
+   */
+  async setQualityReviewConsent(consented: boolean): Promise<void> {
+    const request = this.buildQualityReviewUpdateRequest(consented);
+    const snapshot = await this.prepareRequest();
+    try {
+      await updateConsents(snapshot.accessToken, request);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        const retrySnapshot = await this.recoverUnauthorized(snapshot.generation);
+        await updateConsents(retrySnapshot.accessToken, request);
+      } else {
+        throw error;
+      }
+    }
+
+    await persistOptionalConsent(createOptionalConsentRecord(consented));
+    this.optionalConsentGranted = consented;
+  }
+
+  /**
+   * 선택 동의만 바꾸는 PUT 본문을 만든다.
+   *
+   * 필수 항목은 이용자가 이미 동의한 버전을 그대로 되돌려 보낸다. 설정 화면에서의
+   * 조작이 필수 동의 버전을 올려서는 안 되기 때문이다. 서버 동의 조회를 아직 타지
+   * 않은 최초 실행에서는 `serverConsent`가 비어 있으므로 로컬 동의 기록을 쓴다.
+   */
+  private buildQualityReviewUpdateRequest(consented: boolean): UpdateConsentsRequest {
+    const privacyVersion =
+      this.serverConsent?.privacy.consentedVersion ?? this.consent?.privacy.version;
+    const termVersion =
+      this.serverConsent?.terms.consentedVersion ?? this.consent?.term.version;
+    if (!privacyVersion || !termVersion) {
+      throw new Error("동의 정보가 준비되지 않았습니다.");
+    }
+    return {
+      isPrivacyConsented: true,
+      privacyConsentVersion: privacyVersion,
+      isTermConsented: true,
+      termConsentVersion: termVersion,
+      isQualityReviewConsented: consented,
+      qualityReviewConsentVersion: QUALITY_REVIEW_CONSENT_VERSION,
+    };
+  }
+
   /**
    * 서버가 알려준 선택 동의 상태를 기기에 반영한다.
    *

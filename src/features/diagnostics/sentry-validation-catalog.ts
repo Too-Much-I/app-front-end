@@ -172,6 +172,14 @@ const DEFINITIONS = {
       cause: SYNTHETIC_API_CAUSE,
     },
   },
+  QUALITY_REVIEW_CONSENT_UPDATE_FAILED: {
+    title: "채점 품질 개선 선택 동의 변경 실패",
+    input: {
+      code: "QUALITY_REVIEW_CONSENT_UPDATE_FAILED",
+      operation: "set-quality-review-consent",
+      cause: SYNTHETIC_API_CAUSE,
+    },
+  },
 } satisfies ValidationDefinitions;
 
 export interface SentryValidationCatalogItem {

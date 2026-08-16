@@ -18,6 +18,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       acceptConsent: () => authController.acceptConsent(),
       retry: () => authController.retry(),
       deleteGuestAccount: () => authController.deleteGuestAccount(),
+      readQualityReviewConsent: () => authController.readQualityReviewConsent(),
+      setQualityReviewConsent: (consented: boolean) =>
+        authController.setQualityReviewConsent(consented),
     }),
     [state],
   );
