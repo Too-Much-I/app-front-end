@@ -19,21 +19,10 @@ export function useQualityReviewConsent() {
   const [hasError, setHasError] = useState(false);
   // 상태 반영 전 한 프레임 동안의 연타를 막는다.
   const isUpdatingRef = useRef(false);
-  /**
-   * 초기 로드를 한 번으로 잠근다.
-   *
-   * `useAuth()`가 주는 함수는 인증 상태가 바뀔 때마다 새 참조로 만들어지므로,
-   * 그대로 의존성에 두면 이펙트가 다시 돈다. 서버 반영을 기다리는 사이에 다시
-   * 돌면 아직 갱신되지 않은 저장소 값을 읽어 스위치가 되돌아간다.
-   */
-  const hasLoadedRef = useRef(false);
 
+  // `readQualityReviewConsent`는 AuthProvider가 모듈 레벨에 고정해 둔 참조라
+  // 이 이펙트는 마운트 시 한 번만 돈다.
   useEffect(() => {
-    if (hasLoadedRef.current) {
-      return;
-    }
-    hasLoadedRef.current = true;
-
     let cancelled = false;
     readQualityReviewConsent()
       .then((value) => {
