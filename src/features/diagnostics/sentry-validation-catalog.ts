@@ -75,6 +75,8 @@ const DEFINITIONS = {
       code: "ANSWER_RECORDING_FAILED",
       surface: "live",
       stage: "prepare",
+      operation: "recorder-prepare",
+      permissionGranted: true,
       questionNumber: 1,
       retryCount: 0,
       attempt: 1,
