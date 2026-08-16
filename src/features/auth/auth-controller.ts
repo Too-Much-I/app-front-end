@@ -34,6 +34,12 @@ import {
   persistConsent,
   type ConsentRecordV2,
 } from "@/features/consent/consent-storage";
+import {
+  createOptionalConsentRecord,
+  getStoredOptionalConsent,
+  persistOptionalConsent,
+  QUALITY_REVIEW_CONSENT_VERSION,
+} from "@/features/consent/optional-consent-storage";
 import { ApiError } from "@/lib/api/transport";
 import { reportOperationalError } from "@/lib/operational-error-reporting";
 
@@ -74,6 +80,12 @@ class AuthController {
   private pendingRotationSession: AuthSession | null = null;
   private runGeneration = 0;
   private consent: ConsentRecordV2 | null = null;
+  /**
+   * 선택 동의(채점 품질 개선)의 마지막으로 알려진 값. 저장소에서 읽어 두었다가
+   * 게스트 생성·동의 갱신 요청에 실어 보낸다. 아직 읽지 못했거나 이용자가 한 번도
+   * 선택하지 않았으면 `null`이며, 요청에는 `false`로 나간다.
+   */
+  private optionalConsentGranted: boolean | null = null;
   private serverConsent: ServerConsentStatus | null = null;
   private installationId: string | null = null;
   private reissueSession: AuthSession | null = null;
@@ -190,6 +202,9 @@ class AuthController {
       return;
     }
 
+    // 게스트 생성 요청에 선택 동의를 실으려면 그 전에 읽어 두어야 한다.
+    await this.loadOptionalConsent();
+
     if (!consent || !isCurrentConsent(consent)) {
       this.consent = null;
       this.setState(
@@ -211,6 +226,9 @@ class AuthController {
     this.reportingAttempt += 1;
     this.reportingAttemptKind = "initial";
     const run = this.runGeneration;
+    // 동의 화면이 선택 동의를 먼저 저장한 뒤 이 메서드를 부른다. 아래 두 갈래
+    // (게스트 생성 / 동의 갱신) 모두 요청을 만들 때 이 값을 쓰므로 먼저 읽는다.
+    await this.loadOptionalConsent();
     if (this.state.mode === "existing") {
       const request = this.buildUpdateConsentsRequest();
       if (!request) {
@@ -248,7 +266,131 @@ class AuthController {
       privacyConsentVersion: this.consent.privacy.version,
       isTermConsented: true,
       termConsentVersion: this.consent.term.version,
+      isQualityReviewConsented: this.optionalConsentGranted ?? false,
+      qualityReviewConsentVersion: QUALITY_REVIEW_CONSENT_VERSION,
     };
+  }
+
+  /**
+   * 저장된 선택 동의를 컨트롤러 필드로 읽어 온다.
+   *
+   * 게스트 생성 요청을 만들기 전에 반드시 한 번 호출되어야 한다. 최초 동의 흐름은
+   * 서버 동의 조회(GET)를 타지 않으므로, 여기서 읽은 값이 `POST /auth/guest`에
+   * 실리지 않으면 이용자의 선택이 서버에 영영 도달하지 않는다.
+   *
+   * 읽기에 실패해도 부트스트랩을 멈추지 않는다. 선택 항목이라 없어도 서비스 이용에
+   * 지장이 없고, 값이 없으면 `false`로 나가 개인정보를 덜 쓰는 쪽으로 기운다.
+   *
+   * 이번 실행에서 이미 선택이 정해졌다면(`optionalConsentGranted`가 `null`이 아니면)
+   * 저장소로 덮어쓰지 않는다. 저장소 쓰기는 실패할 수 있고, 그러면 저장소에는
+   * 이용자가 방금 철회한 이전 값이 남아 있다. 그 값을 다시 읽어 요청에 실으면
+   * 철회한 동의가 서버로 되돌아간다.
+   */
+  private async loadOptionalConsent(): Promise<void> {
+    if (this.optionalConsentGranted !== null) {
+      return;
+    }
+    const record = await getStoredOptionalConsent();
+    this.optionalConsentGranted = record?.qualityReview.consented ?? null;
+  }
+
+  /**
+   * 동의 화면이 제출 직전에 이용자의 선택을 알린다.
+   *
+   * 화면이 저장소를 거쳐 값을 넘기면 쓰기 실패가 곧 선택 유실이 된다. 메모리에
+   * 먼저 박아 두면 `acceptConsent`와 `retry` 어느 쪽으로 흘러도 최신 선택이 실린다.
+   */
+  setPendingQualityReviewConsent(consented: boolean): void {
+    this.optionalConsentGranted = consented;
+  }
+
+  /** 마지막으로 알려진 선택 동의 값. 설정 화면의 스위치 초기값으로 쓴다. */
+  async readQualityReviewConsent(): Promise<boolean> {
+    await this.loadOptionalConsent();
+    return this.optionalConsentGranted ?? false;
+  }
+
+  /**
+   * 설정 화면에서 선택 동의를 켜거나 끈다(개인정보처리방침 제7조의 철회 경로).
+   *
+   * `acceptConsent` 계열과 달리 `setState`를 부르지 않는다. 부트스트랩 상태를
+   * 건드리면 `RootNavigator`의 `isConsentFlow`가 반응해 네비게이터를 온보딩
+   * 스택으로 갈아끼우고, 설정 화면이 스택에서 사라진다.
+   *
+   * 서버 반영에 실패하면 로컬도 바꾸지 않고 그대로 던진다. 한쪽만 바뀌면 다음
+   * 실행의 서버 동기화 때 이용자가 모르는 사이에 값이 되돌아간다.
+   *
+   * 반대로 서버 반영이 끝난 뒤의 저장소 실패는 던지지 않는다. 던지면
+   * `useQualityReviewConsent`가 스위치를 이전 값으로 되돌려, 서버는 바뀌었는데
+   * 화면만 그대로인 상태가 남는다.
+   */
+  async setQualityReviewConsent(consented: boolean): Promise<void> {
+    const request = this.buildQualityReviewUpdateRequest(consented);
+    const snapshot = await this.prepareRequest();
+    try {
+      await updateConsents(snapshot.accessToken, request);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        const retrySnapshot = await this.recoverUnauthorized(snapshot.generation);
+        await updateConsents(retrySnapshot.accessToken, request);
+      } else {
+        throw error;
+      }
+    }
+
+    // 서버 반영이 끝났으므로 이 시점의 진실은 `consented`다. 로컬은 캐시일 뿐이라
+    // 쓰기가 실패해도 기록만 남기고 성공으로 돌려준다.
+    this.optionalConsentGranted = consented;
+    try {
+      await persistOptionalConsent(createOptionalConsentRecord(consented));
+    } catch (error) {
+      logAuthDebug("optional consent persistence failed", error);
+    }
+  }
+
+  /**
+   * 선택 동의만 바꾸는 PUT 본문을 만든다.
+   *
+   * 필수 항목은 이용자가 이미 동의한 버전을 그대로 되돌려 보낸다. 설정 화면에서의
+   * 조작이 필수 동의 버전을 올려서는 안 되기 때문이다. 서버 동의 조회를 아직 타지
+   * 않은 최초 실행에서는 `serverConsent`가 비어 있으므로 로컬 동의 기록을 쓴다.
+   */
+  private buildQualityReviewUpdateRequest(consented: boolean): UpdateConsentsRequest {
+    const privacyVersion =
+      this.serverConsent?.privacy.consentedVersion ?? this.consent?.privacy.version;
+    const termVersion =
+      this.serverConsent?.terms.consentedVersion ?? this.consent?.term.version;
+    if (!privacyVersion || !termVersion) {
+      throw new Error("동의 정보가 준비되지 않았습니다.");
+    }
+    return {
+      isPrivacyConsented: true,
+      privacyConsentVersion: privacyVersion,
+      isTermConsented: true,
+      termConsentVersion: termVersion,
+      isQualityReviewConsented: consented,
+      qualityReviewConsentVersion: QUALITY_REVIEW_CONSENT_VERSION,
+    };
+  }
+
+  /**
+   * 서버가 알려준 선택 동의 상태를 기기에 반영한다.
+   *
+   * 기기를 바꾸거나 앱을 지웠다 깔면 로컬 기록만 사라지고 서버 기록은 남는다.
+   * 그 경우 서버 값이 진실이므로 내려받아 덮어쓴다.
+   */
+  private async syncOptionalConsent(status: ServerConsentStatus): Promise<void> {
+    this.optionalConsentGranted = status.qualityReview.consented;
+    try {
+      await persistOptionalConsent(
+        createOptionalConsentRecord(
+          status.qualityReview.consented,
+          status.qualityReview.consentedAt ?? undefined,
+        ),
+      );
+    } catch {
+      // 로컬 반영 실패는 다음 실행에서 다시 시도되므로 흐름을 멈추지 않는다.
+    }
   }
 
   private async recoverGuest(
@@ -339,6 +481,7 @@ class AuthController {
     try {
       const status = await getConsentStatus(this.requireSession().accessToken);
       this.serverConsent = status;
+      await this.syncOptionalConsent(status);
       const requiredItems = this.getConsentRequirements(status);
       if (requiredItems.privacy || requiredItems.terms) {
         this.setState(
@@ -377,6 +520,13 @@ class AuthController {
     }
   }
 
+  /**
+   * 동의 화면을 다시 띄워야 하는지 판단한다.
+   *
+   * `status.qualityReview.requiresConsent`는 의도적으로 보지 않는다. 필수 항목에서
+   * 이 값은 "동의해야 진행 가능"이지만 선택 항목에서는 "문구가 바뀌었으니 다시
+   * 물어볼 것"이라는 뜻이다. 여기에 넣으면 선택 항목 하나 때문에 앱 진입이 막힌다.
+   */
   private getConsentRequirements(status: ServerConsentStatus): ConsentRequirements {
     return {
       privacy: status.privacy.requiresConsent,
@@ -409,6 +559,8 @@ class AuthController {
       privacyConsentVersion: this.serverConsent.privacy.currentVersion,
       isTermConsented: true,
       termConsentVersion: this.serverConsent.terms.currentVersion,
+      isQualityReviewConsented: this.optionalConsentGranted ?? false,
+      qualityReviewConsentVersion: QUALITY_REVIEW_CONSENT_VERSION,
     };
   }
 
@@ -500,6 +652,11 @@ class AuthController {
     logAuthDebug(`retry started: source=${source}, operation=${retry.operation}`);
     this.setState({ ...this.state, isRetrying: true }, run);
 
+    // 동의 제출이 실패한 뒤 이용자가 선택 항목 체크를 바꾸고 다시 시도할 수 있다.
+    // 동의 화면은 재시도 전에 바뀐 값을 저장하므로, 여기서 다시 읽어야 최신 선택이
+    // 요청에 실린다.
+    await this.loadOptionalConsent();
+
     if (retry.operation === "read-local") {
       await this.runBootstrap(run, true);
       return;
@@ -549,7 +706,17 @@ class AuthController {
       await this.checkServerConsent(run, source, true);
       return;
     }
-    await this.updateExistingConsents(retry.request, run, true);
+    // 굳어진 요청에서 선택 항목만 최신 값으로 바꾼다. 필수 항목 버전은 재시도
+    // 시점에도 그대로여야 하므로 요청 전체를 다시 만들지는 않는다.
+    await this.updateExistingConsents(
+      {
+        ...retry.request,
+        isQualityReviewConsented: this.optionalConsentGranted ?? false,
+        qualityReviewConsentVersion: QUALITY_REVIEW_CONSENT_VERSION,
+      },
+      run,
+      true,
+    );
   }
 
   /**

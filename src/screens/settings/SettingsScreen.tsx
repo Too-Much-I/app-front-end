@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Application from "expo-application";
 import { useEffect, useState } from "react";
-import { Image, ScrollView, View } from "react-native";
+import { Image, ScrollView, Switch, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
@@ -13,6 +13,7 @@ import type { RootStackParamList } from "@/navigation/types";
 import { SettingsRow } from "@/screens/settings/components/SettingsRow";
 import { SettingsSection } from "@/screens/settings/components/SettingsSection";
 import { useDeleteLearningRecords } from "@/screens/settings/use-delete-learning-records";
+import { useQualityReviewConsent } from "@/screens/settings/use-quality-review-consent";
 import { colors, shadows } from "@/theme";
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
@@ -36,6 +37,7 @@ function formatApplicationVersion(version: string | null): string {
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [consentAgreedAt, setConsentAgreedAt] = useState<string | null>(null);
   const deletion = useDeleteLearningRecords();
+  const qualityReview = useQualityReviewConsent();
 
   useEffect(() => {
     getStoredConsent()
@@ -133,6 +135,33 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
                 <Text className="text-sm text-ink-muted">
                   {formatApplicationVersion(Application.nativeApplicationVersion)}
                 </Text>
+              }
+            />
+          </SettingsSection>
+
+          <SettingsSection title="개인정보">
+            <SettingsRow
+              description={
+                qualityReview.hasError
+                  ? "설정을 바꾸지 못했어요. 잠시 후 다시 시도해주세요."
+                  : "채점이 잘못됐을 때 담당자가 답변 음성을 확인해 원인을 찾아요. 꺼도 응시와 채점에는 영향이 없어요."
+              }
+              icon="shield"
+              showDivider={false}
+              title="채점 품질 개선을 위한 답변 검토"
+              trailing={
+                <Switch
+                  accessibilityLabel="채점 품질 개선을 위한 답변 검토 동의"
+                  disabled={!qualityReview.isLoaded}
+                  ios_backgroundColor={colors.line.DEFAULT}
+                  onValueChange={qualityReview.toggle}
+                  thumbColor={colors.surface.DEFAULT}
+                  trackColor={{
+                    false: colors.line.DEFAULT,
+                    true: colors.brand.DEFAULT,
+                  }}
+                  value={qualityReview.enabled}
+                />
               }
             />
           </SettingsSection>

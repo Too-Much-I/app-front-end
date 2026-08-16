@@ -123,6 +123,10 @@ export type OperationalErrorInput =
   | ({
       code: "LEARNING_RECORD_DELETE_FAILED";
       operation: "delete-learning-records";
+    } & SafeCause)
+  | ({
+      code: "QUALITY_REVIEW_CONSENT_UPDATE_FAILED";
+      operation: "set-quality-review-consent";
     } & SafeCause);
 
 type SafeValue = string | number | boolean;
@@ -143,6 +147,7 @@ const FEATURE_BY_CODE: Record<OperationalErrorCode, string> = {
   REANSWER_SUBMISSION_FAILED: "reanswer",
   REANSWER_GRADING_FAILED: "reanswer",
   LEARNING_RECORD_DELETE_FAILED: "settings",
+  QUALITY_REVIEW_CONSENT_UPDATE_FAILED: "settings",
 };
 
 const SAFE_SERVER_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,63}$/;

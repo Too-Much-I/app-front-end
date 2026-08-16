@@ -1,12 +1,17 @@
 import { Feather } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Image, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { useAuth } from "@/features/auth/auth-context";
+import {
+  createOptionalConsentRecord,
+  getStoredOptionalConsent,
+  persistOptionalConsent,
+} from "@/features/consent/optional-consent-storage";
 import type { RootStackParamList } from "@/navigation/types";
 import { colors, shadows } from "@/theme";
 
@@ -23,8 +28,12 @@ const COLLECTION_TABLE_ROWS: Array<{ label: string; value: string }> = [
   { label: "보유 기간", value: "앱 삭제 시까지 (사용자가 데이터 삭제 시 즉시 삭제)" },
 ];
 
+const QUALITY_REVIEW_LABEL = "채점 품질 개선을 위한 답변 검토";
+const QUALITY_REVIEW_DESCRIPTION =
+  "채점이 잘못되거나 오류가 났을 때 담당자가 해당 답변 음성과 전사문을 직접 확인해 원인을 찾습니다. 동의하지 않아도 모의고사 응시와 채점 결과 확인에는 제한이 없어요.";
+
 export function ConsentScreen({ navigation }: ConsentScreenProps) {
-  const { acceptConsent, retry, state } = useAuth();
+  const { acceptConsent, retry, setPendingQualityReviewConsent, state } = useAuth();
   const [mode] = useState(() =>
     state.status === "CONSENT_REQUIRED" ? state.mode : "new",
   );
@@ -37,9 +46,32 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
     privacy: !requiredItems.privacy,
     terms: !requiredItems.terms,
   });
+  const [qualityReviewChecked, setQualityReviewChecked] = useState(false);
+  // 저장값 로드가 늦게 도착해도 이용자가 이미 만진 선택을 덮지 않게 표시해 둔다.
+  const hasUserChosenQualityReview = useRef(false);
+  // `isSubmitting`은 acceptConsent가 setState를 부른 뒤에야 켜진다. 그전에 await가
+  // 있어 연타가 통과하므로, 렌더를 기다리지 않는 동기 잠금이 따로 필요하다.
+  const isSubmittingRef = useRef(false);
   const allChecked =
     (!requiredItems.privacy || checked.privacy) &&
     (!requiredItems.terms || checked.terms);
+  // 필수 항목만 만족해도 시작할 수 있다. 전체 동의 체크는 선택 항목까지 포함해야 켜진다.
+  const allAgreed = allChecked && qualityReviewChecked;
+
+  // 재동의(mode === "existing")로 다시 들어온 이용자가 이전에 선택 동의를 켜 뒀다면
+  // 그 선택을 유지한 채로 보여준다. 저장값이 없으면 기본값 false를 그대로 쓴다.
+  // 읽기가 끝나기 전에 이용자가 먼저 선택했다면 그쪽이 최신이므로 건드리지 않는다.
+  useEffect(() => {
+    let cancelled = false;
+    void getStoredOptionalConsent().then((record) => {
+      if (!cancelled && record && !hasUserChosenQualityReview.current) {
+        setQualityReviewChecked(record.qualityReview.consented);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const isSubmitting =
     state.status === "GUEST_RECOVERING" ||
     state.status === "CONSENT_UPDATING" ||
@@ -53,6 +85,29 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
 
   const toggle = (key: RequiredItemKey) => {
     setChecked((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  /** 선택 동의를 바꾸는 유일한 경로. 이용자가 직접 정했다는 사실을 함께 남긴다. */
+  const chooseQualityReview = (next: boolean) => {
+    hasUserChosenQualityReview.current = true;
+    setQualityReviewChecked(next);
+  };
+
+  /**
+   * 전체 동의는 선택 항목까지 함께 켜고 끈다.
+   *
+   * 개인정보 보호법 제22조는 동의 사항을 구분해 각각 동의받도록 하므로, 일괄 동의를
+   * 두더라도 개별 체크박스를 그대로 노출하고 라벨에 "선택 항목 포함"을 밝혀야 한다.
+   * 화면에 그려지지 않는 필수 항목(이미 동의가 끝나 requiredItems가 false인 항목)은
+   * 계속 true로 둔다. 끄면 시작 버튼이 영영 비활성화된다.
+   */
+  const toggleAll = () => {
+    const next = !allAgreed;
+    setChecked({
+      privacy: requiredItems.privacy ? next : true,
+      terms: requiredItems.terms ? next : true,
+    });
+    chooseQualityReview(next);
   };
 
   const openPrivacyPolicy = () => {
@@ -69,18 +124,48 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
     });
   };
 
-  const handleStart = async () => {
-    if (!allChecked || isSubmitting) {
-      return;
+  /**
+   * 선택 동의를 기기에 남긴다.
+   *
+   * 저장에 실패해도 서비스 진입을 막지 않는다. 선택 항목이라 없어도 이용에 지장이
+   * 없고, 반대로 진입을 막으면 필수도 아닌 항목 때문에 앱을 못 쓰게 된다.
+   *
+   * 이 저장은 다음 실행을 위한 캐시일 뿐, 이번 제출의 전달 통로가 아니다. 통로로
+   * 쓰면 쓰기 실패가 곧 선택 유실이 되어, 방금 철회한 이용자의 이전 동의가
+   * 저장소에 남아 있다가 그대로 서버로 나간다.
+   */
+  const persistQualityReviewChoice = async () => {
+    try {
+      await persistOptionalConsent(createOptionalConsentRecord(qualityReviewChecked));
+    } catch {
+      // 선택 동의 저장 실패는 이용자에게 알리지 않고 넘어간다.
     }
-    if (submitError) {
-      await retry();
-      return;
-    }
-    await acceptConsent();
   };
 
-  const idleButtonLabel = mode === "existing" ? "동의하고 계속하기" : "모두 동의하고 시작하기";
+  const handleStart = async () => {
+    if (!allChecked || isSubmitting || isSubmittingRef.current) {
+      return;
+    }
+    isSubmittingRef.current = true;
+    try {
+      // 저장소가 아니라 컨트롤러 메모리로 선택을 넘긴다. 저장이 실패해도 이번
+      // 제출에는 화면에 보이던 선택이 그대로 실린다.
+      setPendingQualityReviewConsent(qualityReviewChecked);
+      // acceptConsent()가 성공하면 화면이 곧바로 벗어나므로 그 전에 저장한다.
+      await persistQualityReviewChoice();
+      if (submitError) {
+        await retry();
+        return;
+      }
+      await acceptConsent();
+    } finally {
+      isSubmittingRef.current = false;
+    }
+  };
+
+  // 선택 항목을 끄고도 시작할 수 있으므로 "모두 동의하고"라고 쓰지 않는다.
+  // 일괄 동의는 위쪽 "약관 전체 동의" 행이 담당한다.
+  const idleButtonLabel = mode === "existing" ? "동의하고 계속하기" : "동의하고 시작하기";
   const busyButtonLabel = mode === "existing" ? "동의 반영 중..." : "시작하는 중...";
 
   return (
@@ -103,12 +188,38 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
           accessible={false}
         />
 
+        <Pressable
+          accessibilityLabel="약관 전체 동의 (선택 항목 포함)"
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: allAgreed }}
+          className="mt-14 flex-row items-center gap-3 rounded-3xl border px-4 py-4"
+          onPress={toggleAll}
+          style={{
+            backgroundColor: allAgreed ? colors.brand.subtle : colors.surface.DEFAULT,
+            borderColor: allAgreed ? colors.brand.DEFAULT : colors.line.DEFAULT,
+            ...shadows.card,
+          }}
+        >
+          <Feather
+            color={allAgreed ? colors.brand.DEFAULT : colors.ink.disabled}
+            name={allAgreed ? "check-circle" : "circle"}
+            size={26}
+          />
+          <View className="min-w-0 flex-1">
+            <Text className="text-lg">약관 전체 동의</Text>
+            <Text className="mt-0.5 text-xs text-ink-muted">
+              선택 항목까지 한 번에 동의합니다.
+            </Text>
+          </View>
+        </Pressable>
+
         <View
-          className="mt-14 overflow-hidden rounded-3xl border border-line bg-surface px-4"
+          className="mt-3 overflow-hidden rounded-3xl border border-line bg-surface px-4"
           style={shadows.card}
         >
           {requiredItems.privacy ? (
-            <View className={requiredItems.terms ? "border-b border-line py-4" : "py-4"}>
+            // 선택 항목 행이 항상 뒤따르므로 구분선은 조건 없이 그린다.
+            <View className="border-b border-line py-4">
               <RequiredRowHeader
                 checked={checked.privacy}
                 label="개인정보 수집 및 이용 동의"
@@ -138,8 +249,16 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
               label="서비스 이용약관 동의"
               onPressDetail={openTerms}
               onToggle={() => toggle("terms")}
+              showDivider
             />
           ) : null}
+
+          <OptionalRow
+            checked={qualityReviewChecked}
+            description={QUALITY_REVIEW_DESCRIPTION}
+            label={QUALITY_REVIEW_LABEL}
+            onToggle={() => chooseQualityReview(!qualityReviewChecked)}
+          />
         </View>
 
         <Pressable
@@ -165,6 +284,49 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
         ) : null}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+/**
+ * 선택 동의 항목 한 줄.
+ *
+ * 필수 항목과 달리 "자세히 보기"로 넘길 별도 문서가 없어 설명을 행 안에 직접 적는다.
+ * 이용자가 무엇에 동의하는지와 동의하지 않아도 불이익이 없다는 점을 같은 자리에서
+ * 읽을 수 있어야 하기 때문이다.
+ */
+function OptionalRow({
+  checked,
+  description,
+  label,
+  onToggle,
+}: {
+  checked: boolean;
+  description: string;
+  label: string;
+  onToggle: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityHint={description}
+      accessibilityLabel={`${label} (선택)`}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      className="py-4"
+      onPress={onToggle}
+    >
+      <View className="flex-row items-center gap-2">
+        <Feather
+          color={checked ? colors.brand.DEFAULT : colors.ink.disabled}
+          name={checked ? "check-circle" : "circle"}
+          size={20}
+        />
+        <View className="min-w-0 flex-1 flex-row items-center gap-1">
+          <Text className="min-w-0 flex-1 text-base">{label}</Text>
+          <Text className="text-xs text-ink-muted">(선택)</Text>
+        </View>
+      </View>
+      <Text className="mt-2 pl-7 text-xs leading-5 text-ink-muted">{description}</Text>
+    </Pressable>
   );
 }
 
