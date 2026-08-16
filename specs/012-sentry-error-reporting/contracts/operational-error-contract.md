@@ -13,7 +13,7 @@
 | `EXAM_SESSION_CREATE_FAILED` | mock-exam | stage, attempt, safe API class | start blocked |
 | `EXAM_REQUIRED_AUDIO_FAILED` | mock-exam | cue kind, part/question if applicable | required cue unavailable |
 | `EXAM_PRELUDE_FAILED` | mock-exam | part, prelude reason | prelude error phase |
-| `ANSWER_RECORDING_FAILED` | exam-answer | stage, question, attempt | recording recovery phase |
+| `ANSWER_RECORDING_FAILED` | exam-answer | surface, stage, start operation, permission result, question when applicable, attempt | recording recovery phase |
 | `ANSWER_SUBMISSION_FAILED` | exam-answer | stage, reason, retryable, question, attempt | job failed after built-in retry |
 | `EXAM_GRADING_FAILED` | grading | stage, reason, retry attempt | terminal-error after retry |
 | `FEEDBACK_PAGE_LOAD_FAILED` | feedback | reason, reload attempt | WebView error UI |

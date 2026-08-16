@@ -11,6 +11,13 @@ export type { OperationalErrorCode } from "@/lib/operational-error-codes";
 
 type ReportAttempt = "initial" | "retry";
 type SafeCause = { cause?: unknown };
+type RecordingStartOperation =
+  | "playback-pause"
+  | "permission-check"
+  | "permission-request"
+  | "audio-mode"
+  | "recorder-prepare"
+  | "record-start";
 
 export type OperationalErrorInput =
   | ({
@@ -47,8 +54,18 @@ export type OperationalErrorInput =
     }
   | {
       code: "ANSWER_RECORDING_FAILED";
+      surface: "microphone-test";
+      stage: "prepare";
+      operation: RecordingStartOperation;
+      permissionGranted: boolean;
+      attempt: number;
+    }
+  | {
+      code: "ANSWER_RECORDING_FAILED";
       surface: "live" | "reanswer";
       stage: "prepare" | "stop" | "file-validation";
+      operation?: Exclude<RecordingStartOperation, "playback-pause">;
+      permissionGranted?: boolean;
       questionNumber: number;
       retryCount: number;
       attempt: number;

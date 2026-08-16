@@ -1,5 +1,4 @@
 import {
-  requestRecordingPermissionsAsync,
   setAudioModeAsync,
   useAudioRecorder,
   useAudioRecorderState,
@@ -13,6 +12,11 @@ import {
   PLAYBACK_AUDIO_MODE,
   RECORDING_AUDIO_MODE,
 } from "@/features/exam/answer-audio";
+import {
+  RecordingPermissionError,
+  resolveRecordingPermissionAsync,
+  type RecordingPermissionFailureOperation,
+} from "@/features/exam/recording-permission";
 import {
   deleteAnswerAudioFile,
   getValidAnswerAudioFile,
@@ -35,14 +39,30 @@ export type AnswerRecordingFailureStage =
   | "file-validation"
   | "interruption";
 
+export type AnswerRecordingStartOperation =
+  | RecordingPermissionFailureOperation
+  | "audio-mode"
+  | "recorder-prepare"
+  | "record-start";
+
+interface AnswerRecordingErrorOptions extends ErrorOptions {
+  operation?: AnswerRecordingStartOperation;
+  permissionGranted?: boolean;
+}
+
 export class AnswerRecordingError extends Error {
+  public readonly operation?: AnswerRecordingStartOperation;
+  public readonly permissionGranted?: boolean;
+
   constructor(
     public readonly stage: AnswerRecordingFailureStage,
     message: string,
-    options?: ErrorOptions,
+    options?: AnswerRecordingErrorOptions,
   ) {
     super(message, options);
     this.name = "AnswerRecordingError";
+    this.operation = options?.operation;
+    this.permissionGranted = options?.permissionGranted;
   }
 }
 
@@ -98,6 +118,7 @@ export function useAnswerRecorder() {
   const terminalPromiseRef = useRef<Promise<FinalizedAnswer | null> | null>(null);
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ownedFinalizedUriRef = useRef<string | null>(null);
+  const isPermissionRequestInFlightRef = useRef(false);
   const disposeRef = useRef<() => void>(() => undefined);
 
   const updateStatus = useCallback((nextStatus: AnswerRecordingStatus) => {
@@ -309,12 +330,22 @@ export function useAnswerRecorder() {
       activeGenerationRef.current = generation;
       if (mountedRef.current) setLastError(null);
       updateStatus("preparing");
+      let failureOperation: AnswerRecordingStartOperation = "permission-check";
+      let permissionGranted = false;
 
       try {
-        const permission = await requestRecordingPermissionsAsync();
+        const permission = await resolveRecordingPermissionAsync({
+          onRequestStart: () => {
+            isPermissionRequestInFlightRef.current = true;
+          },
+          onRequestEnd: () => {
+            isPermissionRequestInFlightRef.current = false;
+          },
+        });
         if (activeGenerationRef.current?.id !== generation.id || generation.terminalIntent) {
           return { started: false, reason: "interrupted" };
         }
+        permissionGranted = permission.granted;
         setCanAskPermissionAgain(permission.canAskAgain);
         if (!permission.granted) {
           activeGenerationRef.current = null;
@@ -322,6 +353,7 @@ export function useAnswerRecorder() {
           return { started: false, reason: "permission-denied" };
         }
 
+        failureOperation = "audio-mode";
         generation.ownsAudioMode = true;
         await setAudioModeAsync(RECORDING_AUDIO_MODE);
         if (activeGenerationRef.current?.id !== generation.id || generation.terminalIntent) {
@@ -333,12 +365,14 @@ export function useAnswerRecorder() {
           return { started: false, reason: "interrupted" };
         }
 
+        failureOperation = "recorder-prepare";
         await recorder.prepareToRecordAsync();
         if (activeGenerationRef.current?.id !== generation.id || generation.terminalIntent) {
           await discard("app-state");
           return { started: false, reason: "interrupted" };
         }
 
+        failureOperation = "record-start";
         recorder.record({ forDuration: maxDurationMs / 1_000 });
         generation.hasOpenRecording = true;
         generation.startedAtMs = Date.now();
@@ -358,7 +392,14 @@ export function useAnswerRecorder() {
         const recordingError = new AnswerRecordingError(
           "prepare",
           "마이크를 준비하지 못했어요.",
-          { cause: error },
+          {
+            cause: error,
+            operation:
+              error instanceof RecordingPermissionError
+                ? error.operation
+                : failureOperation,
+            permissionGranted,
+          },
         );
         if (mountedRef.current) setLastError(recordingError);
         updateStatus("error");
@@ -392,6 +433,7 @@ export function useAnswerRecorder() {
 
   const dispose = useCallback(() => {
     mountedRef.current = false;
+    isPermissionRequestInFlightRef.current = false;
     void discard("dispose").catch(() => undefined);
     const ownedUri = ownedFinalizedUriRef.current;
     ownedFinalizedUriRef.current = null;
@@ -410,7 +452,9 @@ export function useAnswerRecorder() {
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
-      if (nextState !== "active") void discard("app-state").catch(() => undefined);
+      if (nextState !== "active" && !isPermissionRequestInFlightRef.current) {
+        void discard("app-state").catch(() => undefined);
+      }
     });
     return () => subscription.remove();
   }, [discard]);

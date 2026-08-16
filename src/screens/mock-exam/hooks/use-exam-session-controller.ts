@@ -264,6 +264,10 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
                 result.error?.stage === "file-validation"
                   ? result.error.stage
                   : "prepare",
+              ...(result.error?.operation ? { operation: result.error.operation } : {}),
+              ...(typeof result.error?.permissionGranted === "boolean"
+                ? { permissionGranted: result.error.permissionGranted }
+                : {}),
               questionNumber: activeQuestion.questionNumber,
               retryCount: 0,
               attempt: recordingAttempt,
@@ -282,6 +286,13 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
             (error.stage === "stop" || error.stage === "file-validation")
               ? error.stage
               : "prepare",
+          ...(error instanceof AnswerRecordingError && error.operation
+            ? { operation: error.operation }
+            : {}),
+          ...(error instanceof AnswerRecordingError &&
+          typeof error.permissionGranted === "boolean"
+            ? { permissionGranted: error.permissionGranted }
+            : {}),
           questionNumber: activeQuestion.questionNumber,
           retryCount: 0,
           attempt: recordingAttempt,

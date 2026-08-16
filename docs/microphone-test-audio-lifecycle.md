@@ -45,7 +45,16 @@ foreground 복귀
 
 벽시계 기준 `setTimeout(3000)`을 그대로 두면 1초 녹음 후 5초간 백그라운드에 있었을 때 실제 오디오는 1초인데 타이머만 만료된다. 복귀 시 `recorder.getStatus().durationMillis`를 사용해 `3000 - 실제 녹음 시간`만 다시 예약한다.
 
-권한 요청·recorder 준비 단계인 `requesting`에는 이어갈 오디오 파일이 아직 없으므로 background 전환 시 기존처럼 시작 시도를 취소하고 `interrupted`로 보낸다. 설정 앱에서 돌아온 `denied` 상태는 `getRecordingPermissionsAsync()`로 다시 읽고, 허용됐다면 `idle`로 복구한다.
+권한 확인·recorder 준비 단계인 `requesting`에는 이어갈 오디오 파일이 아직 없으므로 일반적인 background 전환 시 시작 시도를 취소하고 `interrupted`로 보낸다. 단, Android 시스템 권한 팝업이 만드는 일시적인 Activity pause는 사용자 이탈이 아니므로 권한 요청이 진행 중인 동안에는 background 정리를 실행하지 않는다. 설정 앱에서 돌아온 `denied` 상태는 `getRecordingPermissionsAsync()`로 다시 읽고, 허용됐다면 `idle`로 복구한다.
+
+Android 16에서는 이미 허용된 마이크 권한에 `requestRecordingPermissionsAsync()`를 다시 호출했을 때 Promise가 완료되지 않는 사례가 보고됐다. 마이크 테스트와 실제 답변 녹음은 공통으로 현재 권한을 먼저 조회하고, 권한이 없고 다시 요청할 수 있을 때만 시스템 요청을 연다.
+
+```text
+getRecordingPermissionsAsync()
+├─ granted: 시스템 팝업 없이 녹음 준비로 진행
+├─ denied + canAskAgain: requestRecordingPermissionsAsync()
+└─ denied + !canAskAgain: 설정 안내 상태로 전환
+```
 
 복귀 시 권한이 없거나 `canRecord`가 거짓이거나 `mediaServicesDidReset`이 발생했다면 부분 녹음을 정상 결과로 사용하지 않고 `interrupted`로 전환한다. 완료된 테스트 음성 재생은 foreground 복귀 시 사용자 입력 없이 자동 재생되지 않도록 다시 pause한다.
 
@@ -104,7 +113,8 @@ Cannot use shared object that was already released
 mount 여부 확인은 이미 네이티브에 전달된 Promise를 취소하지 않는다. 다음처럼 오디오 모드 전환이나 recorder 준비가 진행 중인 상태에서 화면이 제거될 수 있다.
 
 ```text
-requestRecordingPermissionsAsync()
+getRecordingPermissionsAsync()
+→ 필요한 경우에만 requestRecordingPermissionsAsync()
 → setAudioModeAsync(RECORDING_AUDIO_MODE)
 → prepareToRecordAsync()
 → record()
@@ -162,6 +172,15 @@ requestRecordingPermissionsAsync()
 - 로컬 녹음 재생 실패
 
 OS 설정 화면 열기 실패도 화면 호출부에서 별도로 잡아 기록한다.
+
+사용자 흐름을 `error`로 확정하는 녹음 시작 실패는 `ANSWER_RECORDING_FAILED`로 Sentry에 한 번 보고한다. 원본 오류 message, 오디오 URI와 답변 데이터는 보내지 않고 다음 낮은 cardinality 값만 남긴다.
+
+- `surface`: `microphone-test`, `live`, `reanswer`
+- `operation`: `playback-pause`, `permission-check`, `permission-request`, `audio-mode`, `recorder-prepare`, `record-start`
+- `permissionGranted`: 실패 전에 권한 허용을 확인했는지 여부
+- `attempt`: 해당 화면 또는 문항의 녹음 시작 시도 번호
+
+권한 거부, 시스템 권한 팝업, 화면 이탈과 background 중단은 예상 가능한 사용자·OS 흐름이므로 Sentry 오류로 보고하지 않는다.
 
 ## 실제 모의고사 녹음으로 확장할 때
 

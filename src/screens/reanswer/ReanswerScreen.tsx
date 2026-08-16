@@ -110,6 +110,10 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
           result.error?.stage === "stop" || result.error?.stage === "file-validation"
             ? result.error.stage
             : "prepare",
+        ...(result.error?.operation ? { operation: result.error.operation } : {}),
+        ...(typeof result.error?.permissionGranted === "boolean"
+          ? { permissionGranted: result.error.permissionGranted }
+          : {}),
         questionNumber,
         retryCount: nextRetryCount,
         attempt: recordingAttempt,

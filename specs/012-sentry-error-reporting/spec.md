@@ -59,7 +59,7 @@ Spec Kit의 사용자 시나리오와 수용 기준 형식으로 추적한다.
 | `EXAM_SESSION_CREATE_FAILED` | 모의고사 세션 또는 필수 시작 데이터 생성 실패 | 사용자가 시험 시작을 시도했고 시작 차단 안내가 표시될 때 시도당 1회 |
 | `EXAM_REQUIRED_AUDIO_FAILED` | 시험 진행에 필요한 안내·문제 음성이 없거나 재생되지 않음 | 해당 음성을 제공할 수 없다는 사실이 확정되어 진행이 차단되거나 음성 없이 진행될 때 cue당 1회 |
 | `EXAM_PRELUDE_FAILED` | Part 3/4 필수 사전 자료가 누락·오배치·손상·충돌함 | 사전 자료 오류 화면으로 전환될 때 시험 흐름당 1회 |
-| `ANSWER_RECORDING_FAILED` | 녹음 준비, 종료 또는 완성 파일 검증의 실제 실패 | 녹음이 오류 복구 상태로 확정될 때 녹음 시도당 1회 |
+| `ANSWER_RECORDING_FAILED` | 마이크 테스트 또는 답변의 녹음 준비, 종료, 완성 파일 검증의 실제 실패 | 녹음이 오류 복구 상태로 확정될 때 녹음 시도당 1회 |
 | `ANSWER_SUBMISSION_FAILED` | 업로드 준비·파일 업로드·서버 접수의 최종 실패 | 내장 재시도 뒤 답변 작업이 `failed`로 확정될 때 답변 시도당 1회 |
 | `EXAM_GRADING_FAILED` | 서버 실패, 최종 timeout 또는 채점 재요청 접수 실패 | 최초 대기 실패가 아니라 재시도 후 terminal error가 확정될 때 시험 흐름당 1회 |
 | `FEEDBACK_PAGE_LOAD_FAILED` | 피드백 문서의 네트워크 또는 HTTP 로드 실패 | 실제 오류 UI가 표시될 때 문서 로드 시도당 1회 |

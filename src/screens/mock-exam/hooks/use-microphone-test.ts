@@ -1,7 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import {
   getRecordingPermissionsAsync,
-  requestRecordingPermissionsAsync,
   setAudioModeAsync,
   useAudioPlayer,
   useAudioPlayerStatus,
@@ -17,6 +16,12 @@ import {
   PLAYBACK_AUDIO_MODE,
   RECORDING_AUDIO_MODE,
 } from "@/features/exam/answer-audio";
+import {
+  RecordingPermissionError,
+  resolveRecordingPermissionAsync,
+  type RecordingPermissionFailureOperation,
+} from "@/features/exam/recording-permission";
+import { reportOperationalError } from "@/lib/operational-error-reporting";
 
 export type MicrophoneTestState =
   | "idle"
@@ -45,6 +50,13 @@ interface AudioStopResult {
 
 const TEST_DURATION_SECONDS = 3;
 const TEST_DURATION_MS = TEST_DURATION_SECONDS * 1_000;
+type MicrophoneTestFailureOperation =
+  | RecordingPermissionFailureOperation
+  | "playback-pause"
+  | "audio-mode"
+  | "recorder-prepare"
+  | "record-start";
+
 export function useMicrophoneTest() {
   const recorder = useAudioRecorder(ANSWER_RECORDING_OPTIONS);
   const recorderState = useAudioRecorderState(recorder, AUDIO_METER_UPDATE_INTERVAL_MS);
@@ -56,6 +68,7 @@ export function useMicrophoneTest() {
   const isMountedRef = useRef(true);
   const isScreenFocusedRef = useRef(false);
   const isAppBackgroundedRef = useRef(AppState.currentState === "background");
+  const isPermissionRequestInFlightRef = useRef(false);
   const ownsRecordingAudioModeRef = useRef(false);
   const hasOpenRecordingRef = useRef(false);
   const testStateRef = useRef<MicrophoneTestState>("idle");
@@ -268,20 +281,32 @@ export function useMicrophoneTest() {
     const attempt = startAttemptRef.current + 1;
     startAttemptRef.current = attempt;
     updateTestState("requesting");
+    let failureOperation: MicrophoneTestFailureOperation = "playback-pause";
+    let permissionGranted = false;
 
     try {
       recordingPlayer.pause();
       setRecordingUri(null);
 
-      const permission = await requestRecordingPermissionsAsync();
+      failureOperation = "permission-check";
+      const permission = await resolveRecordingPermissionAsync({
+        onRequestStart: () => {
+          isPermissionRequestInFlightRef.current = true;
+        },
+        onRequestEnd: () => {
+          isPermissionRequestInFlightRef.current = false;
+        },
+      });
       if (!isStartAttemptActive(attempt)) return;
 
+      permissionGranted = permission.granted;
       setCanAskPermissionAgain(permission.canAskAgain);
       if (!permission.granted) {
         updateTestState("denied");
         return;
       }
 
+      failureOperation = "audio-mode";
       ownsRecordingAudioModeRef.current = true;
       await setAudioModeAsync(RECORDING_AUDIO_MODE);
       // setAudioModeAsync를 기다리는 사이 cleanup이 먼저 복원했을 수 있으므로 소유권을 재확인한다.
@@ -291,12 +316,14 @@ export function useMicrophoneTest() {
         return;
       }
 
+      failureOperation = "recorder-prepare";
       await recorder.prepareToRecordAsync();
       if (!isStartAttemptActive(attempt)) {
         void cleanupCancelledStart();
         return;
       }
 
+      failureOperation = "record-start";
       recorder.record();
       hasOpenRecordingRef.current = true;
       updateTestState("recording");
@@ -310,6 +337,17 @@ export function useMicrophoneTest() {
       }
 
       console.error("[MicrophoneTest] 녹음 시작 실패", error);
+      reportOperationalError({
+        code: "ANSWER_RECORDING_FAILED",
+        surface: "microphone-test",
+        stage: "prepare",
+        operation:
+          error instanceof RecordingPermissionError
+            ? error.operation
+            : failureOperation,
+        permissionGranted,
+        attempt,
+      });
       updateTestState("error");
       void stopActiveAudio("start-error");
     }
@@ -418,6 +456,8 @@ export function useMicrophoneTest() {
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
       if (nextState === "background") {
+        // Android 권한 팝업은 Activity를 잠시 pause할 수 있지만 사용자 이탈은 아니다.
+        if (isPermissionRequestInFlightRef.current) return;
         isAppBackgroundedRef.current = true;
         if (!isScreenFocusedRef.current) return;
 
@@ -483,6 +523,7 @@ export function useMicrophoneTest() {
     return () => {
       isMountedRef.current = false;
       isScreenFocusedRef.current = false;
+      isPermissionRequestInFlightRef.current = false;
       startAttemptRef.current += 1;
       clearRecordingTimer();
     };
