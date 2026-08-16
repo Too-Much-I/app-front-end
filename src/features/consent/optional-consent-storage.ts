@@ -12,9 +12,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  * 2. 선택 동의는 생명주기가 다르다. 언제든 철회할 수 있어야 하고(개인정보처리방침
  *    제7조), 동의하지 않아도 서비스 이용이 막히지 않는다.
  *
- * 현재 백엔드 동의 API(`/api/v1/users/me/consents`)는 privacy/terms 두 항목만
- * 받으므로 이 값은 기기에만 남는다. 서버 필드가 추가되면 이 모듈이 읽어 주는 값을
- * 인증 요청에 실어 보내면 된다.
+ * 이 값은 기기와 서버 양쪽에 남는다. 게스트 생성과 동의 갱신 요청이
+ * `isQualityReviewConsented`/`qualityReviewConsentVersion`을 함께 싣고, 서버 동의
+ * 조회 결과는 `auth-controller`의 `syncOptionalConsent`가 여기로 되반영한다.
+ * 즉 이 저장소는 서버 왕복 전에 읽는 캐시이지 진실의 원천이 아니다. 이번 실행에서
+ * 이용자가 정한 선택은 `auth-controller`가 메모리에 들고 있고 그쪽이 우선한다.
  */
 export const QUALITY_REVIEW_CONSENT_VERSION = "quality-review-v1";
 

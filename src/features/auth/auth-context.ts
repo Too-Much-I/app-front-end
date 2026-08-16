@@ -9,6 +9,7 @@ export type AuthContextValue = {
   deleteGuestAccount: () => Promise<void>;
   readQualityReviewConsent: () => Promise<boolean>;
   setQualityReviewConsent: (consented: boolean) => Promise<void>;
+  setPendingQualityReviewConsent: (consented: boolean) => void;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

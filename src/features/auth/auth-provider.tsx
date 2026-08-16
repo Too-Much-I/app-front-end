@@ -19,6 +19,8 @@ const AUTH_ACTIONS = {
   readQualityReviewConsent: () => authController.readQualityReviewConsent(),
   setQualityReviewConsent: (consented: boolean) =>
     authController.setQualityReviewConsent(consented),
+  setPendingQualityReviewConsent: (consented: boolean) =>
+    authController.setPendingQualityReviewConsent(consented),
 } as const satisfies Omit<AuthContextValue, "state">;
 
 export function AuthProvider({ children }: { children: ReactNode }) {

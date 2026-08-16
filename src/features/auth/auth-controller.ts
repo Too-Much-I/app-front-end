@@ -280,10 +280,28 @@ class AuthController {
    *
    * 읽기에 실패해도 부트스트랩을 멈추지 않는다. 선택 항목이라 없어도 서비스 이용에
    * 지장이 없고, 값이 없으면 `false`로 나가 개인정보를 덜 쓰는 쪽으로 기운다.
+   *
+   * 이번 실행에서 이미 선택이 정해졌다면(`optionalConsentGranted`가 `null`이 아니면)
+   * 저장소로 덮어쓰지 않는다. 저장소 쓰기는 실패할 수 있고, 그러면 저장소에는
+   * 이용자가 방금 철회한 이전 값이 남아 있다. 그 값을 다시 읽어 요청에 실으면
+   * 철회한 동의가 서버로 되돌아간다.
    */
   private async loadOptionalConsent(): Promise<void> {
+    if (this.optionalConsentGranted !== null) {
+      return;
+    }
     const record = await getStoredOptionalConsent();
     this.optionalConsentGranted = record?.qualityReview.consented ?? null;
+  }
+
+  /**
+   * 동의 화면이 제출 직전에 이용자의 선택을 알린다.
+   *
+   * 화면이 저장소를 거쳐 값을 넘기면 쓰기 실패가 곧 선택 유실이 된다. 메모리에
+   * 먼저 박아 두면 `acceptConsent`와 `retry` 어느 쪽으로 흘러도 최신 선택이 실린다.
+   */
+  setPendingQualityReviewConsent(consented: boolean): void {
+    this.optionalConsentGranted = consented;
   }
 
   /** 마지막으로 알려진 선택 동의 값. 설정 화면의 스위치 초기값으로 쓴다. */
@@ -301,6 +319,10 @@ class AuthController {
    *
    * 서버 반영에 실패하면 로컬도 바꾸지 않고 그대로 던진다. 한쪽만 바뀌면 다음
    * 실행의 서버 동기화 때 이용자가 모르는 사이에 값이 되돌아간다.
+   *
+   * 반대로 서버 반영이 끝난 뒤의 저장소 실패는 던지지 않는다. 던지면
+   * `useQualityReviewConsent`가 스위치를 이전 값으로 되돌려, 서버는 바뀌었는데
+   * 화면만 그대로인 상태가 남는다.
    */
   async setQualityReviewConsent(consented: boolean): Promise<void> {
     const request = this.buildQualityReviewUpdateRequest(consented);
@@ -316,8 +338,14 @@ class AuthController {
       }
     }
 
-    await persistOptionalConsent(createOptionalConsentRecord(consented));
+    // 서버 반영이 끝났으므로 이 시점의 진실은 `consented`다. 로컬은 캐시일 뿐이라
+    // 쓰기가 실패해도 기록만 남기고 성공으로 돌려준다.
     this.optionalConsentGranted = consented;
+    try {
+      await persistOptionalConsent(createOptionalConsentRecord(consented));
+    } catch (error) {
+      logAuthDebug("optional consent persistence failed", error);
+    }
   }
 
   /**

@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Image, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -33,7 +33,7 @@ const QUALITY_REVIEW_DESCRIPTION =
   "채점이 잘못되거나 오류가 났을 때 담당자가 해당 답변 음성과 전사문을 직접 확인해 원인을 찾습니다. 동의하지 않아도 모의고사 응시와 채점 결과 확인에는 제한이 없어요.";
 
 export function ConsentScreen({ navigation }: ConsentScreenProps) {
-  const { acceptConsent, retry, state } = useAuth();
+  const { acceptConsent, retry, setPendingQualityReviewConsent, state } = useAuth();
   const [mode] = useState(() =>
     state.status === "CONSENT_REQUIRED" ? state.mode : "new",
   );
@@ -47,6 +47,11 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
     terms: !requiredItems.terms,
   });
   const [qualityReviewChecked, setQualityReviewChecked] = useState(false);
+  // 저장값 로드가 늦게 도착해도 이용자가 이미 만진 선택을 덮지 않게 표시해 둔다.
+  const hasUserChosenQualityReview = useRef(false);
+  // `isSubmitting`은 acceptConsent가 setState를 부른 뒤에야 켜진다. 그전에 await가
+  // 있어 연타가 통과하므로, 렌더를 기다리지 않는 동기 잠금이 따로 필요하다.
+  const isSubmittingRef = useRef(false);
   const allChecked =
     (!requiredItems.privacy || checked.privacy) &&
     (!requiredItems.terms || checked.terms);
@@ -55,10 +60,11 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
 
   // 재동의(mode === "existing")로 다시 들어온 이용자가 이전에 선택 동의를 켜 뒀다면
   // 그 선택을 유지한 채로 보여준다. 저장값이 없으면 기본값 false를 그대로 쓴다.
+  // 읽기가 끝나기 전에 이용자가 먼저 선택했다면 그쪽이 최신이므로 건드리지 않는다.
   useEffect(() => {
     let cancelled = false;
     void getStoredOptionalConsent().then((record) => {
-      if (!cancelled && record) {
+      if (!cancelled && record && !hasUserChosenQualityReview.current) {
         setQualityReviewChecked(record.qualityReview.consented);
       }
     });
@@ -81,6 +87,12 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
     setChecked((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  /** 선택 동의를 바꾸는 유일한 경로. 이용자가 직접 정했다는 사실을 함께 남긴다. */
+  const chooseQualityReview = (next: boolean) => {
+    hasUserChosenQualityReview.current = true;
+    setQualityReviewChecked(next);
+  };
+
   /**
    * 전체 동의는 선택 항목까지 함께 켜고 끈다.
    *
@@ -95,7 +107,7 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
       privacy: requiredItems.privacy ? next : true,
       terms: requiredItems.terms ? next : true,
     });
-    setQualityReviewChecked(next);
+    chooseQualityReview(next);
   };
 
   const openPrivacyPolicy = () => {
@@ -116,8 +128,11 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
    * 선택 동의를 기기에 남긴다.
    *
    * 저장에 실패해도 서비스 진입을 막지 않는다. 선택 항목이라 없어도 이용에 지장이
-   * 없고, 저장이 안 된 상태는 "동의하지 않음"으로 읽혀 개인정보를 덜 쓰는 쪽으로
-   * 기운다. 반대로 진입을 막으면 필수도 아닌 항목 때문에 앱을 못 쓰게 된다.
+   * 없고, 반대로 진입을 막으면 필수도 아닌 항목 때문에 앱을 못 쓰게 된다.
+   *
+   * 이 저장은 다음 실행을 위한 캐시일 뿐, 이번 제출의 전달 통로가 아니다. 통로로
+   * 쓰면 쓰기 실패가 곧 선택 유실이 되어, 방금 철회한 이용자의 이전 동의가
+   * 저장소에 남아 있다가 그대로 서버로 나간다.
    */
   const persistQualityReviewChoice = async () => {
     try {
@@ -128,16 +143,24 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
   };
 
   const handleStart = async () => {
-    if (!allChecked || isSubmitting) {
+    if (!allChecked || isSubmitting || isSubmittingRef.current) {
       return;
     }
-    // acceptConsent()가 성공하면 화면이 곧바로 벗어나므로 그 전에 저장한다.
-    await persistQualityReviewChoice();
-    if (submitError) {
-      await retry();
-      return;
+    isSubmittingRef.current = true;
+    try {
+      // 저장소가 아니라 컨트롤러 메모리로 선택을 넘긴다. 저장이 실패해도 이번
+      // 제출에는 화면에 보이던 선택이 그대로 실린다.
+      setPendingQualityReviewConsent(qualityReviewChecked);
+      // acceptConsent()가 성공하면 화면이 곧바로 벗어나므로 그 전에 저장한다.
+      await persistQualityReviewChoice();
+      if (submitError) {
+        await retry();
+        return;
+      }
+      await acceptConsent();
+    } finally {
+      isSubmittingRef.current = false;
     }
-    await acceptConsent();
   };
 
   // 선택 항목을 끄고도 시작할 수 있으므로 "모두 동의하고"라고 쓰지 않는다.
@@ -234,7 +257,7 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
             checked={qualityReviewChecked}
             description={QUALITY_REVIEW_DESCRIPTION}
             label={QUALITY_REVIEW_LABEL}
-            onToggle={() => setQualityReviewChecked((prev) => !prev)}
+            onToggle={() => chooseQualityReview(!qualityReviewChecked)}
           />
         </View>
 
