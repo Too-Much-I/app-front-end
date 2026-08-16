@@ -13,6 +13,7 @@ import {
 import { useReanswerQuestion } from "@/features/exam/use-reanswer-question";
 import { useReanswerSubmission } from "@/features/exam/use-reanswer-submission";
 import type { RootStackParamList } from "@/navigation/types";
+import { trackEvent } from "@/lib/amplitude";
 import { reportOperationalError } from "@/lib/operational-error-reporting";
 import { ReanswerQuestionCard } from "@/screens/reanswer/components/ReanswerQuestionCard";
 import { ReanswerRecordPanel } from "@/screens/reanswer/components/ReanswerRecordPanel";
@@ -63,6 +64,7 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
   // 화면을 떠나기로 결정한 순간부터는 `beforeRemove` 확인을 건너뛴다.
   const leavingRef = useRef(false);
   const recordingAttemptRef = useRef(0);
+  const hasSubmittedRef = useRef(false);
 
   const goToQuestionFeedback = useCallback(() => {
     leavingRef.current = true;
@@ -192,8 +194,32 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
 
   const submitAnswer = useCallback(() => {
     if (!finalizedAudioUri) return;
+    hasSubmittedRef.current = true;
+    trackEvent({
+      name: "reanswer_submitted",
+      properties: { retryCount: nextRetryCount },
+    });
     submission.submit(finalizedAudioUri);
-  }, [finalizedAudioUri, submission]);
+  }, [finalizedAudioUri, nextRetryCount, submission]);
+
+  /**
+   * 재답변은 핵심 학습 루프인데 완주율을 볼 방법이 없었다. 화면 진입을 시도로 보고,
+   * 제출 없이 나가면 이탈로 센다.
+   */
+  useEffect(() => {
+    trackEvent({
+      name: "reanswer_started",
+      properties: { retryCount: nextRetryCount },
+    });
+
+    return () => {
+      if (hasSubmittedRef.current) return;
+      trackEvent({
+        name: "reanswer_abandoned",
+        properties: { retryCount: nextRetryCount },
+      });
+    };
+  }, [nextRetryCount]);
 
   const leaveScreen = useCallback(() => {
     leavingRef.current = true;

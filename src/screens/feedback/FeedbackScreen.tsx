@@ -40,6 +40,7 @@ import {
   type SummaryFeedbackPollingResult,
 } from "@/features/exam/summary-feedback-retry-polling";
 import { useFeedbackDataRefresh } from "@/features/exam/use-feedback-data-refresh";
+import { trackEvent } from "@/lib/amplitude";
 import { reportOperationalError } from "@/lib/operational-error-reporting";
 import { WEB_BASE_URL, withRemScale } from "@/lib/web-base-url";
 import type { MainTabParamList, RootStackParamList } from "@/navigation/types";
@@ -60,6 +61,8 @@ type FeedbackNavigationProp = CompositeNavigationProp<
  * 이게 없으면 스켈레톤이 영원히 안 사라져 화면이 아예 안 뜨는 것처럼 보인다.
  */
 const FEEDBACK_READY_TIMEOUT_MS = 10_000;
+/** 이 시간을 넘겨 준비된 경우에만 느린 로딩으로 남긴다. 정상 로딩까지 세면 노이즈가 된다. */
+const FEEDBACK_SLOW_LOAD_MS = 3_000;
 const NATIVE_CAPABILITIES_SCRIPT = buildNativeCapabilitiesScript();
 
 type SummaryFeedbackRetryOperation = {
@@ -160,6 +163,8 @@ export function FeedbackScreen() {
   );
   const pageLoadAttemptRef = useRef(0);
   const reportedPageLoadAttemptRef = useRef(-1);
+  const loadStartedAtRef = useRef(Date.now());
+  const hasTrackedSlowLoadRef = useRef(false);
   const reportedDataRequestIdsRef = useRef(new Set<string>());
   const isMountedRef = useRef(true);
   const webViewRef = useRef<WebView>(null);
@@ -229,20 +234,46 @@ export function FeedbackScreen() {
     onRefresh: requestWebDataRefresh,
   });
 
+  // 종합 피드백과 문제별 피드백은 진입 경로와 이어지는 행동이 달라 나눠 센다.
+  useEffect(() => {
+    if (!examId) return;
+
+    trackEvent({
+      name: "feedback_opened",
+      properties: { scope: questionNumber === undefined ? "summary" : "question" },
+    });
+  }, [examId, questionNumber]);
+
+  /**
+   * 준비될 때까지 걸린 시간을 한 번만 남긴다. 웹뷰 체감 속도는 UX의 큰 부분인데
+   * 스켈레톤 뒤에 가려져 오류로도 잡히지 않는다.
+   */
+  const trackSlowFeedbackLoad = useCallback(() => {
+    if (hasTrackedSlowLoadRef.current) return;
+
+    const elapsedMs = Date.now() - loadStartedAtRef.current;
+    if (elapsedMs < FEEDBACK_SLOW_LOAD_MS) return;
+
+    hasTrackedSlowLoadRef.current = true;
+    trackEvent({ name: "feedback_load_slow", properties: { elapsedMs } });
+  }, []);
+
   useEffect(() => {
     pageLoadAttemptRef.current += 1;
     reportedDataRequestIdsRef.current.clear();
+    loadStartedAtRef.current = Date.now();
+    hasTrackedSlowLoadRef.current = false;
     setIsContentReady(false);
     setHasLoadError(false);
     // 주소가 바뀌거나 리로드되면 웹이 들고 있던 데이터도 함께 사라진다.
     resetDataRefresh();
 
-    const timeout = setTimeout(
-      () => setIsContentReady(true),
-      FEEDBACK_READY_TIMEOUT_MS,
-    );
+    const timeout = setTimeout(() => {
+      trackSlowFeedbackLoad();
+      setIsContentReady(true);
+    }, FEEDBACK_READY_TIMEOUT_MS);
     return () => clearTimeout(timeout);
-  }, [feedbackUrl, reloadNonce, resetDataRefresh]);
+  }, [feedbackUrl, reloadNonce, resetDataRefresh, trackSlowFeedbackLoad]);
 
   const handlePageLoadFailure = useCallback(
     (reason: "network" | "http") => {
@@ -480,6 +511,7 @@ export function FeedbackScreen() {
       }
 
       if (isFeedbackDataReadyMessage(event.nativeEvent.data)) {
+        trackSlowFeedbackLoad();
         setIsContentReady(true);
         return;
       }
@@ -513,7 +545,13 @@ export function FeedbackScreen() {
         nextRetryCount: request.nextRetryCount,
       });
     },
-    [deliverNativeData, deliverSummaryFeedbackRetry, examId, navigation],
+    [
+      deliverNativeData,
+      deliverSummaryFeedbackRetry,
+      examId,
+      navigation,
+      trackSlowFeedbackLoad,
+    ],
   );
 
   if (!examId) {

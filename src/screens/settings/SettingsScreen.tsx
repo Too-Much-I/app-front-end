@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Application from "expo-application";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Image, ScrollView, Switch, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -9,6 +9,7 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { getStoredConsent } from "@/features/consent/consent-storage";
+import { trackEvent } from "@/lib/amplitude";
 import type { RootStackParamList } from "@/navigation/types";
 import { SettingsRow } from "@/screens/settings/components/SettingsRow";
 import { SettingsSection } from "@/screens/settings/components/SettingsSection";
@@ -38,6 +39,15 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [consentAgreedAt, setConsentAgreedAt] = useState<string | null>(null);
   const deletion = useDeleteLearningRecords();
   const qualityReview = useQualityReviewConsent();
+
+  /**
+   * 이탈을 가장 강하게 예고하는 행동이라 삭제 성공이 아니라 요청 시점에 남긴다.
+   * 확인 모달에서 취소하더라도 "지우고 싶다"는 의사는 이미 드러난 것이기 때문이다.
+   */
+  const requestDeletion = useCallback(() => {
+    trackEvent({ name: "learning_record_delete_requested" });
+    deletion.request();
+  }, [deletion]);
 
   useEffect(() => {
     getStoredConsent()
@@ -171,7 +181,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               description="삭제 후 복구할 수 없으니 신중히 선택해주세요."
               destructive
               icon="trash-2"
-              onPress={deletion.request}
+              onPress={requestDeletion}
               showDivider={false}
               title="모든 학습 기록 삭제"
             />

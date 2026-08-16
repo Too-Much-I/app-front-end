@@ -12,6 +12,7 @@ import {
   getStoredOptionalConsent,
   persistOptionalConsent,
 } from "@/features/consent/optional-consent-storage";
+import { trackEvent } from "@/lib/amplitude";
 import type { RootStackParamList } from "@/navigation/types";
 import { colors, shadows } from "@/theme";
 
@@ -148,6 +149,11 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
     }
     isSubmittingRef.current = true;
     try {
+      // 선택 동의 문구가 얼마나 설득력이 있는지를 보는 지표다.
+      trackEvent({
+        name: "optional_consent_decided",
+        properties: { consented: qualityReviewChecked },
+      });
       // 저장소가 아니라 컨트롤러 메모리로 선택을 넘긴다. 저장이 실패해도 이번
       // 제출에는 화면에 보이던 선택이 그대로 실린다.
       setPendingQualityReviewConsent(qualityReviewChecked);
