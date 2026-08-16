@@ -98,7 +98,7 @@ export function HomeScreen() {
           {/* 인사 섹션 — 페이지 배경 전체가 이 옅은 브랜드 톤이라 별도 박스 없이 바로 얹는다 */}
           <View className="relative flex-row items-center justify-center gap-2 px-4 py-6">
             <Text className="mr-4 text-lg leading-8">
-              안녕하세요!{"\n"}오늘도 토익스피킹{"\n"}공부해볼까요? 😊
+              지금은 응시 한 번에{"\n"}약점 리포트가{"\n"}전부 열려요 😊
             </Text>
             <Image source={greetingMascot} className="h-56 w-40" resizeMode="contain" />
             {/* 반짝임은 토끼 그림보다 나중에 그려야 겹치는 자리에서도 가려지지 않는다. */}
