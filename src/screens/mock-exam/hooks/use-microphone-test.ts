@@ -472,7 +472,15 @@ export function useMicrophoneTest() {
       if (permission.granted) updateTestState("idle");
     } catch (error) {
       console.error("[MicrophoneTest] 백그라운드 복귀 후 마이크 권한 확인 실패", error);
-      trackMicrophoneTestFailure("permission-recheck");
+      // 권한 조회를 기다리는 사이 화면을 떠났거나 다시 백그라운드로 갔다면, 보고
+      // 있지도 않은 화면의 마찰로 집계된다. 성공 경로와 같은 기준으로 막는다.
+      if (
+        isMountedRef.current &&
+        isScreenFocusedRef.current &&
+        !isAppBackgroundedRef.current
+      ) {
+        trackMicrophoneTestFailure("permission-recheck");
+      }
       updateTestState("error");
     }
   }, [updateTestState]);

@@ -165,6 +165,7 @@ export function FeedbackScreen() {
   const reportedPageLoadAttemptRef = useRef(-1);
   const loadStartedAtRef = useRef(Date.now());
   const hasTrackedSlowLoadRef = useRef(false);
+  const trackedFeedbackOpenRef = useRef<string | null>(null);
   const reportedDataRequestIdsRef = useRef(new Set<string>());
   const isMountedRef = useRef(true);
   const webViewRef = useRef<WebView>(null);
@@ -234,15 +235,27 @@ export function FeedbackScreen() {
     onRefresh: requestWebDataRefresh,
   });
 
-  // 종합 피드백과 문제별 피드백은 진입 경로와 이어지는 행동이 달라 나눠 센다.
+  /**
+   * 종합 피드백과 문제별 피드백은 진입 경로와 이어지는 행동이 달라 나눠 센다.
+   *
+   * 라우트 파라미터가 아니라 실제로 연 주소에서 판단한다. 복귀 파라미터는 쓰자마자
+   * 지우는데(아래 참고) 그때 화면은 그대로 문제별 피드백이라, 파라미터로 세면 문제별
+   * 진입 한 번마다 종합 조회가 한 번씩 딸려 붙는다.
+   *
+   * scale만 바뀌어 주소가 갱신되는 경우도 새 진입이 아니므로, 회차와 페이지 종류가
+   * 실제로 달라졌을 때만 남긴다.
+   */
   useEffect(() => {
     if (!examId) return;
 
-    trackEvent({
-      name: "feedback_opened",
-      properties: { scope: questionNumber === undefined ? "summary" : "question" },
-    });
-  }, [examId, questionNumber]);
+    const scope =
+      parseFeedbackLocation(feedbackUrl)?.page === "question" ? "question" : "summary";
+    const openKey = `${examId}:${scope}`;
+    if (trackedFeedbackOpenRef.current === openKey) return;
+    trackedFeedbackOpenRef.current = openKey;
+
+    trackEvent({ name: "feedback_opened", properties: { scope } });
+  }, [examId, feedbackUrl]);
 
   /**
    * 준비될 때까지 걸린 시간을 한 번만 남긴다. 웹뷰 체감 속도는 UX의 큰 부분인데
