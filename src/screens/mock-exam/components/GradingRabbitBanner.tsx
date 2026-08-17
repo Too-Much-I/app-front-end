@@ -1,6 +1,6 @@
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect, useState } from "react";
-import { Image, View } from "react-native";
+import { AppState, Image, View } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -96,6 +96,28 @@ export function GradingRabbitBanner() {
     instance.muted = true;
     instance.play();
   });
+
+  /**
+   * 앱이 돌아오면 직접 다시 튼다.
+   *
+   * expo-video는 백그라운드로 갈 때 재생을 멈추지만(`staysActiveInBackground` 기본값
+   * false), 돌아왔을 때 되돌려주지는 않는다. 재개 로직이 전체화면·PiP 경로에만 있어서
+   * 인라인으로 놓인 이 배너는 멈춘 프레임 그대로 굳는다.
+   *
+   * 위 `useVideoPlayer` 콜백은 플레이어를 만들 때 한 번만 돌고, 백그라운드 전환으로는
+   * 컴포넌트가 언마운트되지 않으므로 그 `play()`도 다시 불리지 않는다.
+   *
+   * 채점은 몇 분씩 걸려 그동안 다른 앱을 보는 흐름이 흔한데, 돌아왔을 때 멈춰 있는
+   * 화면은 하필 제일 불안한 순간에 "앱이 죽었나"로 읽힌다.
+   */
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        player.play();
+      }
+    });
+    return () => subscription.remove();
+  }, [player]);
 
   return (
     <View
