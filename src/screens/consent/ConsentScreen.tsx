@@ -212,9 +212,8 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
           className="mt-14 flex-row items-center gap-3 rounded-3xl border px-4 py-4"
           onPress={toggleAll}
           style={{
-            // 켜짐 배경은 반드시 불투명색이어야 한다. `brand.subtle`처럼 알파가 있는 색을
-            // 쓰면 Android에서 elevation 그림자가 배경을 뚫고 올라와 박스가 흙탕물색이 된다.
-            // brand[100]은 그 반투명색을 흰 배경에 미리 합성한 값(#FEE8DB)과 거의 같다.
+            // 켜짐 배경은 반드시 불투명색이어야 한다. 알파가 있는 색을 쓰면 아래
+            // `shadows.card`의 elevation 그림자가 배경을 뚫고 올라와 박스가 흙탕물색이 된다.
             backgroundColor: allAgreed ? colors.brand[100] : colors.surface.DEFAULT,
             borderColor: allAgreed ? colors.brand.DEFAULT : colors.line.DEFAULT,
             ...shadows.card,
