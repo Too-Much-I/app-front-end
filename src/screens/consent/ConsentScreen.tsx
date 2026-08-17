@@ -291,32 +291,42 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
         `raisedBottom`이 `elevation: 8`을 걸어서 반투명색을 쓰면 Android에서 그림자가
         배경을 뚫고 올라온다(전체 동의 박스에서 겪은 것과 같은 문제).
       */}
+      {/*
+        여백을 두 겹으로 나눈다. 바깥은 제스처 바 인셋만, 안쪽은 상하 대칭 여백만 맡는다.
+
+        인셋은 홈 인디케이터가 차지하는 물리적 영역이라 글자 크기와 무관하게 늘 같아야
+        하고, 반대로 상하 여백은 화면과 같이 커져야 한다. 한 View에서 `paddingBottom`
+        하나로 둘을 더해버리면 NativeWind의 rem 스케일을 타지 못해 여백만 고정된다.
+        (`MainTabNavigator`가 탭바 치수에서 같은 이유로 둘을 분리한다.)
+      */}
       <View
-        className="bg-surface-subtle px-5 pt-3"
-        style={{ paddingBottom: insets.bottom + 12, ...shadows.raisedBottom }}
+        className="bg-surface-subtle"
+        style={{ paddingBottom: insets.bottom, ...shadows.raisedBottom }}
       >
-        {/* 버튼 위에 둔다. 아래에 두면 에러가 뜰 때 버튼이 위로 밀려 누르던 자리가 바뀐다. */}
-        {submitError ? (
-          <Text accessibilityRole="alert" className="mb-3 text-center text-sm text-ink-muted">
-            {submitError}
-          </Text>
-        ) : null}
-        <Pressable
-          accessibilityLabel={idleButtonLabel}
-          accessibilityState={{ busy: isSubmitting, disabled: !allChecked || isSubmitting }}
-          className="min-h-14 flex-row items-center justify-center gap-2 rounded-full py-4"
-          disabled={!allChecked || isSubmitting}
-          onPress={handleStart}
-          style={{ backgroundColor: allChecked ? colors.brand.DEFAULT : colors.line.DEFAULT }}
-        >
-          {isSubmitting ? <ActivityIndicator color={colors.surface.DEFAULT} /> : null}
-          <Text
-            className="text-base"
-            style={{ color: allChecked ? colors.surface.DEFAULT : colors.ink.disabled }}
+        <View className="px-5 pb-3 pt-3">
+          {/* 버튼 위에 둔다. 아래에 두면 에러가 뜰 때 버튼이 위로 밀려 누르던 자리가 바뀐다. */}
+          {submitError ? (
+            <Text accessibilityRole="alert" className="mb-3 text-center text-sm text-ink-muted">
+              {submitError}
+            </Text>
+          ) : null}
+          <Pressable
+            accessibilityLabel={idleButtonLabel}
+            accessibilityState={{ busy: isSubmitting, disabled: !allChecked || isSubmitting }}
+            className="min-h-14 flex-row items-center justify-center gap-2 rounded-full py-4"
+            disabled={!allChecked || isSubmitting}
+            onPress={handleStart}
+            style={{ backgroundColor: allChecked ? colors.brand.DEFAULT : colors.line.DEFAULT }}
           >
-            {isSubmitting ? busyButtonLabel : submitError ? "다시 시도하기" : idleButtonLabel}
-          </Text>
-        </Pressable>
+            {isSubmitting ? <ActivityIndicator color={colors.surface.DEFAULT} /> : null}
+            <Text
+              className="text-base"
+              style={{ color: allChecked ? colors.surface.DEFAULT : colors.ink.disabled }}
+            >
+              {isSubmitting ? busyButtonLabel : submitError ? "다시 시도하기" : idleButtonLabel}
+            </Text>
+          </Pressable>
+        </View>
       </View>
     </SafeAreaView>
   );
