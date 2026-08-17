@@ -212,9 +212,19 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
           className="mt-14 flex-row items-center gap-3 rounded-3xl border px-4 py-4"
           onPress={toggleAll}
           style={{
-            // 켜짐 배경은 반드시 불투명색이어야 한다. 알파가 있는 색을 쓰면 아래
-            // `shadows.card`의 elevation 그림자가 배경을 뚫고 올라와 박스가 흙탕물색이 된다.
-            backgroundColor: allAgreed ? colors.brand[100] : colors.surface.DEFAULT,
+            /*
+             * 배경은 켜든 끄든 흰색이다. 켜졌다고 색을 채우면 일괄 동의 행만 개별 항목보다
+             * 시각적으로 훨씬 무거워지는데, 그건 위 `toggleAll` 주석이 적어둔 개인정보
+             * 보호법 제22조의 "구분해 각각 동의" 취지를 위계로 깎아먹는다. 구조상 개별
+             * 체크박스를 남겨두고도 화면이 "다 켜기"를 권하는 꼴이 된다.
+             *
+             * 덤으로 브랜드 주황이 CTA에만 남는다. `tokens.js`가 정해둔 "화면 전체에서
+             * 유일하게 강한 주황" 규칙대로다.
+             *
+             * 배경을 다시 칠하게 되거든 반드시 불투명색을 쓸 것. 알파가 있는 색은 아래
+             * `shadows.card`의 elevation 그림자가 뚫고 올라와 박스가 흙탕물색이 된다.
+             */
+            backgroundColor: colors.surface.DEFAULT,
             borderColor: allAgreed ? colors.brand.DEFAULT : colors.line.DEFAULT,
             ...shadows.card,
           }}
