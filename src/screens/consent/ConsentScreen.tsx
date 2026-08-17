@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Image, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
@@ -35,6 +35,8 @@ const QUALITY_REVIEW_DESCRIPTION =
 
 export function ConsentScreen({ navigation }: ConsentScreenProps) {
   const { acceptConsent, retry, setPendingQualityReviewConsent, state } = useAuth();
+  // 하단 고정 영역이 SafeAreaView 밖에 있으므로 제스처 바 여백을 직접 먹는다.
+  const insets = useSafeAreaInsets();
   const [mode] = useState(() =>
     state.status === "CONSENT_REQUIRED" ? state.mode : "new",
   );
@@ -183,7 +185,8 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
   const busyButtonLabel = mode === "existing" ? "동의 반영 중..." : "시작하는 중...";
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-surface-subtle">
+    // bottom edge는 SafeAreaView가 아니라 아래 고정 영역이 직접 처리한다.
+    <SafeAreaView edges={["top"]} className="flex-1 bg-surface-subtle">
       <ScrollView className="flex-1" contentContainerClassName="px-5 pb-6 pt-8">
         <Text className="text-center text-lg">토선생과 함께하는</Text>
         <Text className="text-center text-3xl" style={{ color: colors.brand.text }}>
@@ -209,9 +212,8 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
           className="mt-14 flex-row items-center gap-3 rounded-3xl border px-4 py-4"
           onPress={toggleAll}
           style={{
-            // 켜짐 배경은 반드시 불투명색이어야 한다. `brand.subtle`처럼 알파가 있는 색을
-            // 쓰면 Android에서 elevation 그림자가 배경을 뚫고 올라와 박스가 흙탕물색이 된다.
-            // brand[100]은 그 반투명색을 흰 배경에 미리 합성한 값(#FEE8DB)과 거의 같다.
+            // 켜짐 배경은 반드시 불투명색이어야 한다. 알파가 있는 색을 쓰면 아래
+            // `shadows.card`의 elevation 그림자가 배경을 뚫고 올라와 박스가 흙탕물색이 된다.
             backgroundColor: allAgreed ? colors.brand[100] : colors.surface.DEFAULT,
             borderColor: allAgreed ? colors.brand.DEFAULT : colors.line.DEFAULT,
             ...shadows.card,
@@ -278,28 +280,53 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
           />
         </View>
 
-        <Pressable
-          accessibilityLabel={idleButtonLabel}
-          accessibilityState={{ busy: isSubmitting, disabled: !allChecked || isSubmitting }}
-          className="mt-6 min-h-14 flex-row items-center justify-center gap-2 rounded-full py-4"
-          disabled={!allChecked || isSubmitting}
-          onPress={handleStart}
-          style={{ backgroundColor: allChecked ? colors.brand.DEFAULT : colors.line.DEFAULT }}
-        >
-          {isSubmitting ? <ActivityIndicator color={colors.surface.DEFAULT} /> : null}
-          <Text
-            className="text-base"
-            style={{ color: allChecked ? colors.surface.DEFAULT : colors.ink.disabled }}
-          >
-            {isSubmitting ? busyButtonLabel : submitError ? "다시 시도하기" : idleButtonLabel}
-          </Text>
-        </Pressable>
-        {submitError ? (
-          <Text accessibilityRole="alert" className="mt-3 text-center text-sm text-ink-muted">
-            {submitError}
-          </Text>
-        ) : null}
       </ScrollView>
+
+      {/*
+        시작 버튼은 스크롤에서 빼내 화면 아래에 고정한다. 동의를 다 켜고도 버튼을 찾아
+        스크롤해야 했기 때문이다.
+
+        배경은 반드시 불투명색이어야 한다. 스크롤 내용이 이 영역 뒤로 지나가기도 하고,
+        `raisedBottom`이 `elevation: 8`을 걸어서 반투명색을 쓰면 Android에서 그림자가
+        배경을 뚫고 올라온다(전체 동의 박스에서 겪은 것과 같은 문제).
+      */}
+      {/*
+        여백을 두 겹으로 나눈다. 바깥은 제스처 바 인셋만, 안쪽은 상하 대칭 여백만 맡는다.
+
+        인셋은 홈 인디케이터가 차지하는 물리적 영역이라 글자 크기와 무관하게 늘 같아야
+        하고, 반대로 상하 여백은 화면과 같이 커져야 한다. 한 View에서 `paddingBottom`
+        하나로 둘을 더해버리면 NativeWind의 rem 스케일을 타지 못해 여백만 고정된다.
+        (`MainTabNavigator`가 탭바 치수에서 같은 이유로 둘을 분리한다.)
+      */}
+      <View
+        className="bg-surface-subtle"
+        style={{ paddingBottom: insets.bottom, ...shadows.raisedBottom }}
+      >
+        <View className="px-5 pb-3 pt-3">
+          {/* 버튼 위에 둔다. 아래에 두면 에러가 뜰 때 버튼이 위로 밀려 누르던 자리가 바뀐다. */}
+          {submitError ? (
+            <Text accessibilityRole="alert" className="mb-3 text-center text-sm text-ink-muted">
+              {submitError}
+            </Text>
+          ) : null}
+          <Pressable
+            accessibilityLabel={idleButtonLabel}
+            accessibilityState={{ busy: isSubmitting, disabled: !allChecked || isSubmitting }}
+            className="min-h-14 flex-row items-center justify-center gap-2 rounded-full py-4"
+            disabled={!allChecked || isSubmitting}
+            onPress={handleStart}
+            style={{ backgroundColor: allChecked ? colors.brand.DEFAULT : colors.line.DEFAULT }}
+          >
+            {isSubmitting ? <ActivityIndicator color={colors.surface.DEFAULT} /> : null}
+            <Text
+              className="text-base"
+              style={{ color: allChecked ? colors.surface.DEFAULT : colors.ink.disabled }}
+            >
+              {isSubmitting ? busyButtonLabel : submitError ? "다시 시도하기" : idleButtonLabel}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
