@@ -45,6 +45,15 @@ No automated test runner is configured yet. For code changes, run `pnpm lint` an
 - Do not add dependencies unless the task genuinely requires one. Prefer Expo-compatible packages and verify compatibility with the installed Expo SDK.
 - Never expose secrets in client code. Only `EXPO_PUBLIC_*` variables are intended to be bundled, and those values must be treated as public.
 
+Code quality follows the four [Frontend Fundamentals](https://frontend-fundamentals.com/code-quality/) criteria:
+
+- **Readability**: Reduce context (split code that never runs together, abstract implementation details), name things (complex conditions, magic numbers), and let the file read top to bottom so the reader's eye moves less.
+- **Predictability**: Avoid overlapping names, return the same type from functions of the same kind, and surface hidden logic rather than burying side effects.
+- **Cohesion**: Keep files that change together in the same directory, and eliminate magic numbers.
+- **Coupling**: One responsibility per unit, allow duplication when removing it would couple unrelated code, and eliminate props drilling.
+
+These four criteria conflict with each other. Removing duplication raises coupling; abstracting to reduce context adds indirection. Where they conflict, ask the user instead of resolving it unilaterally.
+
 ## UI and styling
 
 - Use NativeWind `className` utilities for ordinary React Native styling.
@@ -64,14 +73,22 @@ No automated test runner is configured yet. For code changes, run `pnpm lint` an
 - Keep one endpoint per file under `src/features/exam/api/` and document non-obvious backend quirks close to their raw types or mappers.
 - `src/features/exam/use-answer-recorder.ts` is Expo-native and owns answer recording lifecycle only. Grading progress is polled by `use-grading-status.ts`; the browser-only `use-grading-progress.ts` carried over from the web app has been deleted, so do not resurrect it.
 
-## Spec-driven development
+## How we work
 
-- Follow `docs/spec-driven-development.md` for the human approval gates, artifact flow, and Spec Kit commands used by this repository.
-- Treat Jira issues and user requests as requirements input, not direct implementation commands. Separate confirmed facts, assumptions, ambiguities, scope, and acceptance criteria before planning.
-- Use the repository's Spec Kit workflow for medium or larger feature work: specify, clarify when needed, plan, checklist, tasks, analyze, implement, and converge.
-- Do not move from specification to planning, or from planning to tasks or implementation, until the user has approved the current artifact.
+See `docs/how-we-work.md` for the full description. Medium or larger work follows five steps:
+
+1. **The agent presents the current state and options.** Current code flow with `file:line` references, two or three options, and the tradeoff of each. Do not pick for the user.
+2. **The user decides.**
+3. **The user writes skeleton code.** State definitions, branch conditions, state transitions, error paths, and which UI corresponds to each state. Imports, type declarations, mappers, styling, and API signature accuracy are intentionally omitted, and it does not need to run.
+4. **The agent implements it.** Report every point where the implementation diverged from the skeleton and why. When the code-quality criteria below conflict, ask instead of deciding unilaterally.
+5. **The user confirms and explains the flow back.** The agent points out gaps in that explanation.
+
+Only steps 1, 2, and 5 produce documents, and all of them are written *after* the work. There is no artifact to read and approve before implementation.
+
+- Record decisions in `docs/decisions/YYYY-MM-DD-<topic>.md`, one per feature, targeting 80 lines or fewer. `docs/how-we-work.md` holds the section format.
+- Treat Jira issues and user requests as requirements input, not direct implementation commands. Separate confirmed facts, assumptions, ambiguities, scope, and acceptance criteria before deciding.
 - Keep Jira reads separate from Jira writes. Do not change issue status, comments, assignees, or other external state unless the user explicitly requests it.
-- Keep feature artifacts traceable to their Jira issue or equivalent work identifier, and report the current data flow, alternatives, tradeoffs, failure paths, and validation plan before implementation.
+- `specs/` is a frozen archive. Several `plan.md` files there still contain `/speckit-*` directives for a workflow that no longer exists in this repository; do not follow them and do not add new documents there.
 
 ## Change discipline
 
