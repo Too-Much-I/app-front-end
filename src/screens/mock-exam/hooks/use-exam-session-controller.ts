@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getExamPartDirections } from "@/features/exam/part-directions";
+import { decidePartPrelude } from "@/features/exam/part-prelude";
 import { getPlayableQuestionAudioUrl } from "@/features/exam/question-audio";
 import {
   AnswerRecordingError,
@@ -70,10 +71,8 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
   );
   const readingRemainingMsRef = useRef(0);
   const isReadingTableReadyRef = useRef(false);
-  const completedPartPreludesRef = useRef(new Set<number>());
   const isExamActiveRef = useRef(isExamActive);
   const recordingAttemptRef = useRef(0);
-  const reportedPreludesRef = useRef(new Set<number>());
   const hasTrackedCompletionRef = useRef(false);
   // 언마운트 cleanup은 첫 렌더의 props를 붙잡으므로 최신 문항 배열을 ref로 읽는다.
   const questionsRef = useRef(session.questions);
@@ -332,52 +331,44 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
   const completeDirections = useCallback(() => {
     if (phaseRef.current !== "directions" || !question) return;
 
-    if (!completedPartPreludesRef.current.has(question.partNumber)) {
-      if ((question.partNumber === 3 || question.partNumber === 4) && !partPrelude) {
-        if (!reportedPreludesRef.current.has(question.partNumber)) {
-          reportedPreludesRef.current.add(question.partNumber);
-          reportOperationalError({
-            code: "EXAM_PRELUDE_FAILED",
-            partNumber: question.partNumber,
-            reason: "missing-prelude",
-          });
-        }
-        updatePhase("part-prelude-error");
+    const decision = decidePartPrelude(question.partNumber, partPrelude);
+    switch (decision.kind) {
+      case "none":
+        enterQuestionStart(question);
         return;
-      }
-      if (partPrelude?.kind === "invalid") {
-        if (!reportedPreludesRef.current.has(partPrelude.partNumber)) {
-          reportedPreludesRef.current.add(partPrelude.partNumber);
-          reportOperationalError({
-            code: "EXAM_PRELUDE_FAILED",
-            partNumber: partPrelude.partNumber,
-            reason: partPrelude.reason,
-          });
-        }
-        updatePhase("part-prelude-error");
-        return;
-      }
-      if (partPrelude?.kind === "part3-intro") {
+      case "part3-intro":
         updatePhase("part3-intro");
         return;
-      }
-      if (partPrelude?.kind === "part4-reading") {
-        const durationMs = partPrelude.durationSec * 1_000;
-        readingRemainingMsRef.current = durationMs;
-        setReadingRemainingMs(durationMs);
+      case "part4-reading":
+        readingRemainingMsRef.current = decision.durationMs;
+        setReadingRemainingMs(decision.durationMs);
         isReadingTableReadyRef.current = false;
         setIsReadingTableReady(false);
         updatePhase("part4-reading");
         return;
+      case "failed":
+        reportOperationalError({
+          code: "EXAM_PRELUDE_FAILED",
+          partNumber: decision.partNumber,
+          reason: decision.reason,
+        });
+        updatePhase("part-prelude-error");
+        return;
+      default: {
+        // 전수 검사. 판정 변형이 늘면 이 대입이 깨져 타입체크가 막는다.
+        const unhandled: never = decision;
+        // 코드 동기화 누락이지 이용자가 겪은 장애가 아니므로 리포트하지 않는다.
+        // 다만 타입체크를 강제하는 CI가 없어 도달 가능성이 0은 아니라서,
+        // 조용히 멈추는 대신 나갈 길이 있는 화면으로 보낸다.
+        console.error("[ExamSession] 처리되지 않은 서두 판정", unhandled);
+        updatePhase("part-prelude-error");
+        return;
       }
     }
-
-    enterQuestionStart(question);
   }, [enterQuestionStart, partPrelude, question, updatePhase]);
 
   const completePart3Intro = useCallback(() => {
     if (phaseRef.current !== "part3-intro" || !question) return;
-    completedPartPreludesRef.current.add(question.partNumber);
     enterQuestionStart(question);
   }, [enterQuestionStart, question]);
 
@@ -389,7 +380,6 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     ) {
       return;
     }
-    completedPartPreludesRef.current.add(question.partNumber);
     readingRemainingMsRef.current = 0;
     setReadingRemainingMs(0);
     enterQuestionStart(question);
