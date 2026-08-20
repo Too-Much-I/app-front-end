@@ -147,6 +147,7 @@ Flutter가 나아 보이는 건 두 곳(raw PCM 스트림, 플랫폼별 오디�
 이 문서의 결정은 **포맷/변환 위치**만 정리한 것이다. 녹음 재구현 자체에는 다음이 남아있고, 영향이 큰 순서다.
 
 1. **iOS 오디오 세션 모드 전환** — 시험 흐름이 "문항 오디오 재생 → 답변 녹음"의 반복인데 iOS는 둘이 같은 `AVAudioSession`을 공유한다. `setAudioModeAsync({ allowsRecording: true })`를 끄지 않고 재생으로 넘어가면 세션이 `playAndRecord`에 남아 **문항 오디오가 작게 나오거나 수화기로 라우팅된다.** Android에는 없는 현상이라 안드로이드만 테스트하면 못 잡는다. 화면마다 흩지 말고 모드 전환 래퍼 하나로 관리한다. `playsInSilentMode`도 함께.
+   Expo iOS player의 종료 후 100ms 지연 비활성화와 recorder 시작이 충돌하는 별도 레이스 및 시험 화면 단위 active 상태 관리는 [iOS 시험 오디오 세션 생명주기](decisions/2026-08-21-ios-시험-오디오-세션.md)에 기록했다.
 2. **FFT 상실** — `AnalyserNode`가 없고 `expo-audio`는 `metering` 스칼라 하나(dB)만 준다.
    답변 녹음 화면은 dB를 정규화한 24개 진폭 막대로 표시한다. 파형은 표시 전용이며 무음
    판정이나 파일 유효성 판정에는 사용하지 않는다.

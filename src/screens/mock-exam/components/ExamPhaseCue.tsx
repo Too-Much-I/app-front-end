@@ -59,8 +59,14 @@ export function ExamPhaseCue({
 }: ExamPhaseCueProps) {
   const cueSource = useMemo(() => getExamCueAudioSource(cueKind), [cueKind]);
   const beepSource = useMemo(() => getExamCueBeepSource(), []);
-  const cuePlayer = useAudioPlayer(cueSource, { updateInterval: 50 });
-  const beepPlayer = useAudioPlayer(beepSource, { updateInterval: 50 });
+  const cuePlayer = useAudioPlayer(cueSource, {
+    updateInterval: 50,
+    keepAudioSessionActive: true,
+  });
+  const beepPlayer = useAudioPlayer(beepSource, {
+    updateInterval: 50,
+    keepAudioSessionActive: true,
+  });
   const cueStatus = useAudioPlayerStatus(cuePlayer);
   const beepStatus = useAudioPlayerStatus(beepPlayer);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);

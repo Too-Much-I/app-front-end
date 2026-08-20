@@ -53,8 +53,14 @@ export function ExamQuestionCue({
 }: ExamQuestionCueProps) {
   const audioSource = useMemo(() => getQuestionAudioSource(audioUrl), [audioUrl]);
   const listenAgainSource = useMemo(() => getExamListenAgainCueSource(), []);
-  const player = useAudioPlayer(audioSource ?? null, { updateInterval: 100 });
-  const listenAgainPlayer = useAudioPlayer(listenAgainSource, { updateInterval: 50 });
+  const player = useAudioPlayer(audioSource ?? null, {
+    updateInterval: 100,
+    keepAudioSessionActive: true,
+  });
+  const listenAgainPlayer = useAudioPlayer(listenAgainSource, {
+    updateInterval: 50,
+    keepAudioSessionActive: true,
+  });
   const playbackStatus = useAudioPlayerStatus(player);
   const listenAgainStatus = useAudioPlayerStatus(listenAgainPlayer);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);

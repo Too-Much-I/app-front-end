@@ -27,7 +27,10 @@ export function ExamPartDirectionsContent({
   onComplete,
 }: ExamPartDirectionsContentProps) {
   const audioSource = getExamPartDirectionAudioSource(partNumber);
-  const player = useAudioPlayer(audioSource ?? null, { updateInterval: 100 });
+  const player = useAudioPlayer(audioSource ?? null, {
+    updateInterval: 100,
+    keepAudioSessionActive: true,
+  });
   const playbackStatus = useAudioPlayerStatus(player);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);
   const hasCompletedRef = useRef(false);

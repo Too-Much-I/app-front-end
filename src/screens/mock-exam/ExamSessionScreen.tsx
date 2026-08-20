@@ -30,6 +30,7 @@ import {
   type ExamTimerMode,
 } from "@/screens/mock-exam/components/ExamTimerCard";
 import { Part4TableLandscapeModal } from "@/screens/mock-exam/components/Part4TableLandscapeModal";
+import { useExamAudioSession } from "@/screens/mock-exam/hooks/use-exam-audio-session";
 import {
   type ExamSessionPhase,
   useExamSessionController,
@@ -106,6 +107,10 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     retryRecording,
     retryRegistration,
   } = controller;
+  useExamAudioSession({
+    isExamActive,
+    suspendRecording: () => recorder.discard("exam-inactive"),
+  });
   const activePart4Table = getActivePart4Table(question, partPrelude, phase);
   const timerMode: ExamTimerMode =
     phase === "response-cue" ||

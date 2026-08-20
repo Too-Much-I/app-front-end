@@ -33,6 +33,7 @@ export function ExamPartIntroContent({
   const player = useAudioPlayer(audioSource ?? null, {
     updateInterval: 100,
     downloadFirst: true,
+    keepAudioSessionActive: true,
   });
   const playbackStatus = useAudioPlayerStatus(player);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);

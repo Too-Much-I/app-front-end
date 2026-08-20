@@ -284,11 +284,22 @@ export function useAnswerRecorder() {
   );
 
   const discard = useCallback(
-    async (_reason: "app-state" | "media-reset" | "unexpected-stop" | "dispose") => {
+    async (
+      _reason: "app-state" | "exam-inactive" | "media-reset" | "unexpected-stop" | "dispose",
+    ) => {
       const generation = activeGenerationRef.current;
-      if (!generation) return;
+      if (!generation) {
+        await terminalPromiseRef.current?.catch(() => null);
+        return;
+      }
       if (generation.terminalIntent === null) generation.terminalIntent = "discard";
-      if (generation.terminalIntent === "discard") await runTerminal(generation);
+      if (generation.terminalIntent === "discard") {
+        await runTerminal(generation);
+        return;
+      }
+
+      // 먼저 기록된 finalize가 이기되, 오디오 세션을 끄기 전에 stop·파일 확정을 기다린다.
+      await terminalPromiseRef.current?.catch(() => null);
     },
     [runTerminal],
   );
