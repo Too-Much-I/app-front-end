@@ -29,6 +29,12 @@ interface ExamQuestionCueProps {
  */
 type QuestionCueStage = "question" | "listen-again";
 
+/**
+ * 문제 음성이 재생 중이 아닌 채로 이만큼 머무르면 멈춘 것으로 본다.
+ * 판단 근거는 `ExamPhaseCue`의 같은 상수에 적어 두었다.
+ */
+const CUE_STALL_TIMEOUT_MS = 10_000;
+
 function hasFinished(status: ReturnType<typeof useAudioPlayerStatus>): boolean {
   return (
     status.didJustFinish ||
@@ -69,7 +75,7 @@ export function ExamQuestionCue({
   }, []);
 
   const markPlaybackFailure = useCallback(
-    (reason: "missing" | "playback" | "media-reset") => {
+    (reason: "missing" | "playback" | "timeout" | "media-reset") => {
       if (!isActiveRef.current || hasReportedPlaybackFailureRef.current) return;
       hasReportedPlaybackFailureRef.current = true;
       reportOperationalError({
@@ -150,6 +156,36 @@ export function ExamQuestionCue({
       hasObservedPlayingRef.current = true;
     }
   }, [isActive, listenAgainStatus.playing, playbackStatus.playing]);
+
+  // 재생 중이 아닌 동안에만 시한을 건다. 재생이 진행되면 status 갱신마다 이 effect가
+  // 다시 돌며 시한이 걷힌다. 완료에 닿지 못한 채 시한이 끝나면 멈춘 것이다.
+  useEffect(() => {
+    if (!isActive || hasPlaybackError || hasCompletedRef.current) return;
+    const isCurrentPlayerPlaying =
+      stageRef.current === "listen-again" ? listenAgainStatus.playing : playbackStatus.playing;
+    if (isCurrentPlayerPlaying) return;
+
+    const timeoutId = setTimeout(() => {
+      if (!isActiveRef.current || hasCompletedRef.current) return;
+      player.pause();
+      listenAgainPlayer.pause();
+      hasObservedPlayingRef.current = false;
+      shouldRestartRef.current = true;
+      console.error("[ExamQuestionCue] 문제 음성이 시간 안에 끝나지 않음");
+      markPlaybackFailure("timeout");
+      setHasPlaybackError(true);
+    }, CUE_STALL_TIMEOUT_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    hasPlaybackError,
+    isActive,
+    listenAgainPlayer,
+    listenAgainStatus.playing,
+    markPlaybackFailure,
+    playbackStatus.playing,
+    player,
+  ]);
 
   // 두 플레이어를 단계와 무관하게 함께 본다. 안내 오디오가 문제 음성 재생 중에
   // 깨지면 그 시점엔 `listen-again` 단계가 아니라, 단계로 필터링하면 오류를 놓친

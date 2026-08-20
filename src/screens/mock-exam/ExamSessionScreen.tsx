@@ -345,7 +345,10 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
               ) : null}
 
               {activeCueKind ? (
+                // 준비 큐와 응답 큐가 같은 자리를 공유하므로 key로 인스턴스를 갈라 둔다.
+                // 없으면 재생 단계 ref가 `completed`인 채로 넘어가 다음 큐가 재생되지 않는다.
                 <ExamPhaseCue
+                  key={activeCueKind}
                   cueKind={activeCueKind}
                   isActive={isExamActive}
                   partNumber={question.partNumber}

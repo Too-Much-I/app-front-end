@@ -25,6 +25,16 @@ interface ExamPhaseCueProps {
 
 type CuePlaybackStage = "idle" | "cue" | "beep" | "completed";
 
+/**
+ * 안내 음성이 재생 중이 아닌 채로 이만큼 머무르면 멈춘 것으로 본다.
+ *
+ * 완료 판정은 `hasObservedPlayingRef`(재생을 봤다)와 status의 종료 신호가 함께
+ * 성립해야 하는데, 둘 중 하나를 놓치면 status 갱신이 끊겨 effect가 다시 실행되지
+ * 않는다. 그때 화면은 준비 단계로 넘어가지 못하고 타이머가 멈춘 것처럼 보이면서도
+ * 예외가 없어 아무것도 보고되지 않는다. 이 워치독이 그 침묵을 깬다.
+ */
+const CUE_STALL_TIMEOUT_MS = 10_000;
+
 const CUE_LABELS: Record<ExamCueKind, string> = {
   preparing: "준비 시작 안내를 재생하고 있어요",
   "reading-aloud": "읽기 시작 안내를 재생하고 있어요",
@@ -62,7 +72,7 @@ export function ExamPhaseCue({
   const hasCompleted = useCallback(() => stageRef.current === "completed", []);
 
   const markPlaybackFailure = useCallback(
-    (reason: "playback" | "media-reset") => {
+    (reason: "playback" | "timeout" | "media-reset") => {
       if (!isActiveRef.current || hasReportedPlaybackFailureRef.current) return;
       hasReportedPlaybackFailureRef.current = true;
       reportOperationalError({
@@ -131,6 +141,39 @@ export function ExamPhaseCue({
       (stageRef.current === "beep" && beepStatus.playing);
     if (isCurrentPlayerPlaying && isActive) hasObservedPlayingRef.current = true;
   }, [beepStatus.playing, cueStatus.playing, isActive]);
+
+  // 재생 중이 아닌 동안에만 시한을 건다. 재생이 진행되면 status 갱신마다 이 effect가
+  // 다시 돌며 시한이 걷힌다. `completed`에 닿지 못한 채 시한이 끝나면 멈춘 것이다.
+  useEffect(() => {
+    if (!isActive || hasPlaybackError || hasCompleted()) return;
+    const isCurrentPlayerPlaying =
+      (stageRef.current === "cue" && cueStatus.playing) ||
+      (stageRef.current === "beep" && beepStatus.playing);
+    if (isCurrentPlayerPlaying) return;
+
+    const timeoutId = setTimeout(() => {
+      if (!isActiveRef.current || hasCompleted()) return;
+      cuePlayer.pause();
+      beepPlayer.pause();
+      hasObservedPlayingRef.current = false;
+      shouldRestartRef.current = true;
+      console.error(`[ExamPhaseCue] ${cueKind} 안내 음성이 시간 안에 끝나지 않음`);
+      markPlaybackFailure("timeout");
+      setHasPlaybackError(true);
+    }, CUE_STALL_TIMEOUT_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    beepPlayer,
+    beepStatus.playing,
+    cueKind,
+    cuePlayer,
+    cueStatus.playing,
+    hasCompleted,
+    hasPlaybackError,
+    isActive,
+    markPlaybackFailure,
+  ]);
 
   useEffect(() => {
     const currentStatus = stageRef.current === "beep" ? beepStatus : cueStatus;
