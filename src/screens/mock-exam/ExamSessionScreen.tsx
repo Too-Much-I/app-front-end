@@ -114,6 +114,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     suspendRecording: () => recorder.discard("exam-inactive"),
   });
   const activePart4Table = getActivePart4Table(question, partPrelude, phase);
+  const isSubmissionState = phase === "submission-barrier" || phase === "completed";
   const timerMode: ExamTimerMode =
     phase === "response-cue" ||
     phase === "response" ||
@@ -146,7 +147,6 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
   }, []);
 
   usePreventRemove(pendingNavigation === null, () => {
-    if (phase === "submission-barrier" || phase === "completed") return;
     if (phase === "part-prelude-error") {
       setPendingNavigation("exit-exam");
       return;
@@ -202,14 +202,14 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
   // 시간만 잠깐 두고 넘어간다. `replace`인 이유: 응시 화면은 돌아갈 곳이 아니고,
   // 언마운트되면서 녹음·업로드 리소스가 정리되어야 한다.
   useEffect(() => {
-    if (phase !== "completed") return;
+    if (phase !== "completed" || isExitConfirmationVisible) return;
 
     const timeoutId = setTimeout(() => {
       setPendingNavigation("grading");
     }, COMPLETED_HANDOFF_MS);
 
     return () => clearTimeout(timeoutId);
-  }, [phase]);
+  }, [isExitConfirmationVisible, phase]);
 
   if (!question) return null;
 
@@ -217,7 +217,6 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
   const part3Prelude = partPrelude?.kind === "part3-intro" ? partPrelude : undefined;
   const part4Prelude = partPrelude?.kind === "part4-reading" ? partPrelude : undefined;
   const invalidPrelude = partPrelude?.kind === "invalid" ? partPrelude : undefined;
-  const isSubmissionState = phase === "submission-barrier" || phase === "completed";
   const showTimer = [
     "preparation-cue",
     "preparation",
@@ -240,9 +239,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
       <ExamSessionHeader
         partNumber={question.partNumber}
         onExit={
-          phase === "submission-barrier" || phase === "completed"
-            ? undefined
-            : handleRequestExitExam
+          phase === "part-prelude-error" ? handleExitExam : handleRequestExitExam
         }
       />
 
@@ -446,11 +443,19 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
       ) : null}
 
       <ConfirmModal
-        cancelLabel="계속 응시하기"
-        confirmHint="진행 중인 시험을 종료하고 모의고사 첫 화면으로 이동합니다"
+        cancelLabel={isSubmissionState ? "채점 계속하기" : "계속 응시하기"}
+        confirmHint={
+          isSubmissionState
+            ? "채점을 진행하지 않고 모의고사 첫 화면으로 이동합니다"
+            : "진행 중인 시험을 종료하고 모의고사 첫 화면으로 이동합니다"
+        }
         confirmLabel="시험 나가기"
         confirmTone="danger"
-        message="지금 나가면 이번 시험은 제출되지 않고 채점 결과도 받을 수 없어요."
+        message={
+          isSubmissionState
+            ? "이제 답변 채점을 시작하려고 해요. 지금 나가면 채점이 진행되지 않아요."
+            : "지금 나가면 이번 시험은 제출되지 않고 채점 결과도 받을 수 없어요."
+        }
         onCancel={handleCancelExitExam}
         onConfirm={handleConfirmExitExam}
         visible={isExitConfirmationVisible}
