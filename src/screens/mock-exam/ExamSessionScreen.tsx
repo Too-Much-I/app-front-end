@@ -1,4 +1,4 @@
-import { useIsFocused } from "@react-navigation/native";
+import { useIsFocused, usePreventRemove } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
@@ -42,6 +42,7 @@ import type {
 } from "@/types/exam";
 
 type ExamSessionScreenProps = NativeStackScreenProps<MockExamStackParamList, "ExamSession">;
+type PendingNavigation = "exit-exam" | "go-home" | "grading";
 
 /** 제출 완료 안내를 읽을 시간. 이 뒤에 채점 대기 화면으로 넘어간다. */
 const COMPLETED_HANDOFF_MS = 1_600;
@@ -77,6 +78,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
   const isFocused = useIsFocused();
   const [isAppActive, setIsAppActive] = useState(AppState.currentState === "active");
   const [isExitConfirmationVisible, setIsExitConfirmationVisible] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<PendingNavigation | null>(null);
   const {
     mode: orientationMode,
     isLandscapeTableRequested,
@@ -112,6 +114,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     suspendRecording: () => recorder.discard("exam-inactive"),
   });
   const activePart4Table = getActivePart4Table(question, partPrelude, phase);
+  const isSubmissionState = phase === "submission-barrier" || phase === "completed";
   const timerMode: ExamTimerMode =
     phase === "response-cue" ||
     phase === "response" ||
@@ -123,9 +126,8 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
         : "preparation";
 
   const handleExitExam = useCallback(() => {
-    submissions.dispose();
-    navigation.popToTop();
-  }, [navigation, submissions]);
+    setPendingNavigation("exit-exam");
+  }, []);
 
   const handleRequestExitExam = useCallback(() => {
     setIsExitConfirmationVisible(true);
@@ -141,11 +143,16 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
   }, [handleExitExam]);
 
   const handleGoHome = useCallback(() => {
-    const tabNavigation = navigation.getParent<BottomTabNavigationProp<MainTabParamList>>();
-    submissions.dispose();
-    navigation.popToTop();
-    tabNavigation?.navigate("Home");
-  }, [navigation, submissions]);
+    setPendingNavigation("go-home");
+  }, []);
+
+  usePreventRemove(pendingNavigation === null, () => {
+    if (phase === "part-prelude-error") {
+      setPendingNavigation("exit-exam");
+      return;
+    }
+    setIsExitConfirmationVisible(true);
+  });
 
   const handleRequestTableLandscape = useCallback(() => {
     void requestTableLandscape();
@@ -173,18 +180,36 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     [restorePortrait],
   );
 
+  // 먼저 preventRemove를 false로 렌더한 뒤 이동한다. 상태 변경과 같은 tick에 dispatch하면
+  // native-stack이 아직 제거 방지 상태라 의도한 이동까지 다시 가로챌 수 있다.
+  useEffect(() => {
+    if (pendingNavigation === null) return;
+
+    if (pendingNavigation === "grading") {
+      navigation.replace("GradingWait", { examId: session.examId });
+      return;
+    }
+
+    submissions.dispose();
+    navigation.popToTop();
+    if (pendingNavigation === "go-home") {
+      const tabNavigation = navigation.getParent<BottomTabNavigationProp<MainTabParamList>>();
+      tabNavigation?.navigate("Home");
+    }
+  }, [navigation, pendingNavigation, session.examId, submissions]);
+
   // 제출이 끝나면 채점 대기 화면으로 넘긴다. "모든 답변을 제출했어요"를 읽을
   // 시간만 잠깐 두고 넘어간다. `replace`인 이유: 응시 화면은 돌아갈 곳이 아니고,
   // 언마운트되면서 녹음·업로드 리소스가 정리되어야 한다.
   useEffect(() => {
-    if (phase !== "completed") return;
+    if (phase !== "completed" || isExitConfirmationVisible) return;
 
     const timeoutId = setTimeout(() => {
-      navigation.replace("GradingWait", { examId: session.examId });
+      setPendingNavigation("grading");
     }, COMPLETED_HANDOFF_MS);
 
     return () => clearTimeout(timeoutId);
-  }, [navigation, phase, session.examId]);
+  }, [isExitConfirmationVisible, phase]);
 
   if (!question) return null;
 
@@ -192,7 +217,6 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
   const part3Prelude = partPrelude?.kind === "part3-intro" ? partPrelude : undefined;
   const part4Prelude = partPrelude?.kind === "part4-reading" ? partPrelude : undefined;
   const invalidPrelude = partPrelude?.kind === "invalid" ? partPrelude : undefined;
-  const isSubmissionState = phase === "submission-barrier" || phase === "completed";
   const showTimer = [
     "preparation-cue",
     "preparation",
@@ -215,9 +239,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
       <ExamSessionHeader
         partNumber={question.partNumber}
         onExit={
-          phase === "submission-barrier" || phase === "completed"
-            ? undefined
-            : handleRequestExitExam
+          phase === "part-prelude-error" ? handleExitExam : handleRequestExitExam
         }
       />
 
@@ -421,11 +443,19 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
       ) : null}
 
       <ConfirmModal
-        cancelLabel="계속 응시하기"
-        confirmHint="진행 중인 시험을 종료하고 모의고사 첫 화면으로 이동합니다"
+        cancelLabel={isSubmissionState ? "채점 계속하기" : "계속 응시하기"}
+        confirmHint={
+          isSubmissionState
+            ? "채점을 진행하지 않고 모의고사 첫 화면으로 이동합니다"
+            : "진행 중인 시험을 종료하고 모의고사 첫 화면으로 이동합니다"
+        }
         confirmLabel="시험 나가기"
         confirmTone="danger"
-        message="지금 나가면 이번 시험은 제출되지 않고 채점 결과도 받을 수 없어요."
+        message={
+          isSubmissionState
+            ? "이제 답변 채점을 시작하려고 해요. 지금 나가면 채점이 진행되지 않아요."
+            : "지금 나가면 이번 시험은 제출되지 않고 채점 결과도 받을 수 없어요."
+        }
         onCancel={handleCancelExitExam}
         onConfirm={handleConfirmExitExam}
         visible={isExitConfirmationVisible}
