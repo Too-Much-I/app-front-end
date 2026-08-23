@@ -17,6 +17,10 @@
       "bundleIdentifier": "com.toteacher.app",
       "config": {
         "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "ko",
+        "CFBundleLocalizations": ["ko"]
       }
     },
     "android": {
