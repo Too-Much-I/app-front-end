@@ -1,15 +1,16 @@
 {
   "name": "app-front-end",
   "private": true,
-  "version": "0.0.0",
-  "packageManager": "pnpm@11.12.0",
+  "version": "1.0.0",
+  "packageManager": "pnpm@11.23.0",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "oxlint"
+    "lint": "oxlint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@amplitude/analytics-react-native": "^1.6.9",

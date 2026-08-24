@@ -3,7 +3,6 @@
     "name": "토선생",
     "owner": "to-teacher",
     "slug": "to-teacher-app",
-    "version": "1.0.0",
     "extra": {
       "eas": {
         "projectId": "d98fc341-a7a1-467f-8d21-00d0c60e4711"

@@ -4,18 +4,18 @@
   },
   "build": {
     "development": {
-      "pnpm": "11.12.0",
+      "pnpm": "11.23.0",
       "developmentClient": true,
       "distribution": "internal",
       "environment": "development"
     },
     "preview": {
-      "pnpm": "11.12.0",
+      "pnpm": "11.23.0",
       "distribution": "internal",
       "environment": "preview"
     },
     "production": {
-      "pnpm": "11.12.0",
+      "pnpm": "11.23.0",
       "environment": "production",
       "autoIncrement": true
     }
