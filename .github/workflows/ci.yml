@@ -10,12 +10,20 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# 코드를 읽기만 한다. 토큰이 새어도 할 수 있는 일을 남기지 않는다.
+permissions:
+  contents: read
+
 jobs:
   verify:
     name: lint + typecheck
     runs-on: ubuntu-latest
     steps:
+      # push를 하지 않으므로 토큰을 .git/config에 남기지 않는다.
+      # 뒤이어 도는 pnpm install이 의존성 스크립트를 실행하는 지점이다.
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       # package.json의 packageManager 필드에서 pnpm 버전을 읽는다.
       - uses: pnpm/action-setup@v6
