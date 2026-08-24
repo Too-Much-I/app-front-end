@@ -129,6 +129,55 @@ function normalizePart4Prelude(
   };
 }
 
+/**
+ * 파트 안내를 마친 뒤 무엇을 해야 하는지에 대한 판정 결과.
+ *
+ * `failed`는 서두가 아예 없는 경우와 정규화 단계에서 invalid로 판정된 경우를
+ * 함께 담는다. 둘 다 화면 대응(`part-prelude-error`)과 리포트 코드가 같고
+ * `reason`만 다르기 때문이다.
+ */
+export type PartPreludeDecision =
+  | { kind: "none" }
+  | { kind: "part3-intro" }
+  | { kind: "part4-reading"; durationMs: number }
+  | {
+      kind: "failed";
+      partNumber: 3 | 4;
+      reason: ExamPartPreludeInvalidReason | "missing-prelude";
+    };
+
+/**
+ * 파트 번호와 해당 파트의 서두로 다음 동작을 정한다.
+ *
+ * 부수효과 없이 값만 돌려주므로 호출부는 판정과 전이를 따로 읽을 수 있다.
+ * Part 1·2는 서두가 없는 것이 정상이라 `none`이지만, Part 3·4에서 서두가
+ * 비어 있으면 문항 데이터가 깨진 것이므로 `failed`로 구분한다.
+ */
+export function decidePartPrelude(
+  partNumber: number,
+  partPrelude: ExamPartPrelude | undefined,
+): PartPreludeDecision {
+  if (partPrelude === undefined) {
+    if (partNumber === 3 || partNumber === 4) {
+      return { kind: "failed", partNumber, reason: "missing-prelude" };
+    }
+    return { kind: "none" };
+  }
+
+  switch (partPrelude.kind) {
+    case "invalid":
+      return {
+        kind: "failed",
+        partNumber: partPrelude.partNumber,
+        reason: partPrelude.reason,
+      };
+    case "part3-intro":
+      return { kind: "part3-intro" };
+    case "part4-reading":
+      return { kind: "part4-reading", durationMs: partPrelude.durationSec * 1_000 };
+  }
+}
+
 export function normalizeExamPartPreludes(
   rawQuestions: RawExamQuestion[],
 ): ExamPartPreludeNormalization {
