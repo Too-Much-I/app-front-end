@@ -2,7 +2,7 @@
   "name": "app-front-end",
   "private": true,
   "version": "1.0.0",
-  "packageManager": "pnpm@11.12.0",
+  "packageManager": "pnpm@11.23.0",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
