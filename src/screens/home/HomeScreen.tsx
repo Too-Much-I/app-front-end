@@ -142,17 +142,16 @@ export function HomeScreen() {
             여기서는 마스코트 대신 반짝임을 카드 전체에 고르게 흩뿌리고, 시계 배지만 남긴다.
           */}
           <Pressable
-            accessibilityLabel="10초 챌린지, 커밍 순"
-            accessibilityState={{ disabled: true }}
+            accessibilityLabel="10초 챌린지 시작"
             className="relative mt-3 flex-row items-center gap-3 rounded-3xl border border-sky-line bg-sky-surface p-5"
-            disabled
+            onPress={() => navigation.navigate("TenSecondChallenge", { questionNumber: 1 })}
             style={shadows.card}
           >
             <View className="flex-1">
               <Text className="text-base">10초 챌린지</Text>
               <Text className="mt-0.5 text-xs text-sky-text">매일 10초, 영작 감각을 깨워요</Text>
               <View className="mt-3 self-start rounded-full bg-surface px-3 py-1.5">
-                <Text className="text-xs text-sky-text">Coming Soon</Text>
+                <Text className="text-xs text-sky-text">시작하기</Text>
               </View>
             </View>
             <TickingClock size={56} />

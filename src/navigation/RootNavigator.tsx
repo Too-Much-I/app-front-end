@@ -9,6 +9,8 @@ import { NotificationsScreen } from "@/screens/notifications/NotificationsScreen
 import { ReanswerScreen } from "@/screens/reanswer/ReanswerScreen";
 import { SettingsScreen } from "@/screens/settings/SettingsScreen";
 import { SettingsWebViewScreen } from "@/screens/settings/SettingsWebViewScreen";
+import { ChallengeResultScreen } from "@/screens/ten-second-challenge/ChallengeResultScreen";
+import { TenSecondChallengeScreen } from "@/screens/ten-second-challenge/TenSecondChallengeScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -51,6 +53,13 @@ export function RootNavigator({ state }: { state: AuthBootstrapState }) {
         component={ReanswerScreen}
         options={{ gestureEnabled: false }}
       />
+      {/* 녹음 중 스와이프로 빠져나가면 확인 없이 파일이 사라지므로 제스처를 막는다. */}
+      <Stack.Screen
+        name="TenSecondChallenge"
+        component={TenSecondChallengeScreen}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen name="ChallengeResult" component={ChallengeResultScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="SettingsWebView" component={SettingsWebViewScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
