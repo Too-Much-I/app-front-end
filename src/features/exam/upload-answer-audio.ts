@@ -1,4 +1,9 @@
-import { File, UploadType } from "expo-file-system";
+import { UploadType, type File } from "expo-file-system";
+
+import {
+  deleteRecordingFile,
+  getValidRecordingFile,
+} from "@/features/audio/recording-file";
 
 const ANSWER_AUDIO_CONTENT_TYPE = "audio/mp4";
 const PUT_TIMEOUT_MS = 15_000;
@@ -76,11 +81,13 @@ function createAttemptSignal(signal?: AbortSignal): {
 }
 
 export function getValidAnswerAudioFile(audioFileUri: string): File {
-  const file = new File(audioFileUri);
-  if (!file.exists || file.size <= 0) {
-    throw new AnswerAudioUploadError("유효한 답변 파일을 찾지 못했어요.", false);
+  try {
+    return getValidRecordingFile(audioFileUri);
+  } catch (error) {
+    throw new AnswerAudioUploadError("유효한 답변 파일을 찾지 못했어요.", false, null, {
+      cause: error,
+    });
   }
-  return file;
 }
 
 async function putAnswerAudio(
@@ -160,6 +167,5 @@ export async function uploadAnswerAudio(
 }
 
 export function deleteAnswerAudioFile(audioFileUri: string): void {
-  const file = new File(audioFileUri);
-  if (file.exists) file.delete();
+  deleteRecordingFile(audioFileUri);
 }
