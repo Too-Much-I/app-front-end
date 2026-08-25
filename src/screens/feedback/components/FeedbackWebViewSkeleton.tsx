@@ -1,19 +1,9 @@
-import { useEffect } from "react";
 import { View } from "react-native";
-import Animated, {
-  cancelAnimation,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 
+import { SkeletonBlock } from "@/components/ui/Skeleton";
+import { useSkeletonPulseStyle } from "@/components/ui/use-skeleton-pulse";
 import { colors, shadows } from "@/theme";
-
-function SkeletonBlock({ className }: { className: string }) {
-  return <View className={`rounded-full bg-surface-muted ${className}`} />;
-}
 
 function InsightSkeleton() {
   return (
@@ -55,16 +45,7 @@ function PartCardSkeleton() {
 }
 
 export function FeedbackWebViewSkeleton() {
-  const reduceMotion = useReducedMotion();
-  const opacity = useSharedValue(reduceMotion ? 1 : 0.55);
-
-  useEffect(() => {
-    if (reduceMotion) return;
-    opacity.value = withRepeat(withTiming(1, { duration: 850 }), -1, true);
-    return () => cancelAnimation(opacity);
-  }, [opacity, reduceMotion]);
-
-  const pulseStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  const pulseStyle = useSkeletonPulseStyle();
 
   return (
     <View
