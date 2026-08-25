@@ -34,34 +34,36 @@ type AnswerRecordingDiscardReason =
  */
 export function useAnswerRecorder() {
   const recorder = useTimedAudioRecorder<AnswerKey>();
+  // 아래에서 정의하는 `start`/`finish`/`discard`와 겹치지 않게 원본을 이름으로 구분한다.
+  // "timed"는 이 어댑터가 감싸고 있는 공용 훅(`useTimedAudioRecorder`)을 가리킨다.
   const {
-    discard: discardRecording,
-    finish: finishRecording,
-    start: startRecording,
+    discard: discardTimedRecording,
+    finish: finishTimedRecording,
+    start: startTimedRecording,
   } = recorder;
 
   const start = useCallback(
     ({ key, maxDurationMs }: StartAnswerRecordingInput): Promise<StartAudioRecordingResult> =>
-      startRecording({ context: { ...key }, maxDurationMs }),
-    [startRecording],
+      startTimedRecording({ context: { ...key }, maxDurationMs }),
+    [startTimedRecording],
   );
 
   const finish = useCallback(
     async (reason: AudioRecordingFinishReason): Promise<FinalizedAnswer> => {
-      const finalizedRecording = await finishRecording(reason);
+      const finalizedRecording = await finishTimedRecording(reason);
       return {
         key: { ...finalizedRecording.context },
         generationId: finalizedRecording.generationId,
         audioFileUri: finalizedRecording.audioFileUri,
       };
     },
-    [finishRecording],
+    [finishTimedRecording],
   );
 
   const discard = useCallback(
     (reason: AnswerRecordingDiscardReason): Promise<void> =>
-      discardRecording(reason === "exam-inactive" ? "owner-inactive" : reason),
-    [discardRecording],
+      discardTimedRecording(reason === "exam-inactive" ? "owner-inactive" : reason),
+    [discardTimedRecording],
   );
 
   return useMemo(

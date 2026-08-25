@@ -5,7 +5,8 @@ import {
   getValidRecordingFile,
 } from "@/features/audio/recording-file";
 
-const ANSWER_AUDIO_CONTENT_TYPE = "audio/mp4";
+/** 앱이 녹음하는 형식. 서버가 다른 `Content-Type`을 지정하면 호출부가 그것을 넘긴다. */
+export const ANSWER_AUDIO_CONTENT_TYPE = "audio/mp4";
 const PUT_TIMEOUT_MS = 15_000;
 const PUT_RETRY_DELAYS_MS = [1_000, 2_000, 4_000, 8_000, 16_000] as const;
 
@@ -93,6 +94,7 @@ export function getValidAnswerAudioFile(audioFileUri: string): File {
 async function putAnswerAudio(
   file: File,
   uploadUrl: string,
+  contentType: string,
   signal?: AbortSignal,
 ): Promise<void> {
   const attempt = createAttemptSignal(signal);
@@ -100,8 +102,8 @@ async function putAnswerAudio(
     const result = await file.upload(uploadUrl, {
       httpMethod: "PUT",
       uploadType: UploadType.BINARY_CONTENT,
-      headers: { "Content-Type": ANSWER_AUDIO_CONTENT_TYPE },
-      mimeType: ANSWER_AUDIO_CONTENT_TYPE,
+      headers: { "Content-Type": contentType },
+      mimeType: contentType,
       sessionType: "foreground",
       signal: attempt.signal,
     });
@@ -134,6 +136,8 @@ export async function uploadAnswerAudio(
   audioFileUri: string,
   expiresAt: number,
   signal?: AbortSignal,
+  /** presigned URL이 서명한 `Content-Type`. 정확히 일치해야 S3가 받는다. */
+  contentType: string = ANSWER_AUDIO_CONTENT_TYPE,
 ): Promise<void> {
   const file = getValidAnswerAudioFile(audioFileUri);
 
@@ -143,7 +147,7 @@ export async function uploadAnswerAudio(
     }
 
     try {
-      await putAnswerAudio(file, uploadUrl, signal);
+      await putAnswerAudio(file, uploadUrl, contentType, signal);
       return;
     } catch (error) {
       if (signal?.aborted) throw error;

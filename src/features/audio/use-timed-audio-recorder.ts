@@ -131,6 +131,12 @@ export function useTimedAudioRecorder<TContext>() {
   const terminalPromiseRef = useRef<Promise<FinalizedAudioRecording<TContext> | null> | null>(null);
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ownedFinalizedUriRef = useRef<string | null>(null);
+  /**
+   * 마지막으로 확정된 녹음. 훅이 제한 시간에 스스로 확정을 끝냈는데 소비자가 그보다 늦게
+   * `finish()`를 부르는 경우가 있어서, 종료 약속이 정리된 뒤에도 결과를 돌려줄 수 있게
+   * 들고 있는다. 파일 소유권이 넘어가거나 다음 녹음이 시작되면 함께 버린다.
+   */
+  const lastFinalizedRef = useRef<FinalizedAudioRecording<TContext> | null>(null);
   const isPermissionRequestInFlightRef = useRef(false);
   const disposeRef = useRef<() => void>(() => undefined);
 
@@ -254,6 +260,7 @@ export function useTimedAudioRecorder<TContext>() {
             audioFileUri,
           };
           ownedFinalizedUriRef.current = audioFileUri;
+          lastFinalizedRef.current = finalizedRecording;
           return finalizedRecording;
         } catch (error) {
           const recordingError =
@@ -289,6 +296,12 @@ export function useTimedAudioRecorder<TContext>() {
         if (terminalPromise) {
           const finalizedRecording = await terminalPromise;
           if (finalizedRecording) return finalizedRecording;
+        }
+        // 훅이 먼저 끝냈고 종료 약속까지 정리된 뒤에 물어본 경우다. 아직 넘기지 않은
+        // 녹음이 남아 있으면 그대로 돌려준다 — 늦게 물었다는 이유로 잃을 파일이 아니다.
+        const lastFinalized = lastFinalizedRef.current;
+        if (lastFinalized && ownedFinalizedUriRef.current === lastFinalized.audioFileUri) {
+          return lastFinalized;
         }
         throw new AudioRecordingError("stop", "종료할 녹음이 없어요.");
       }
@@ -346,6 +359,7 @@ export function useTimedAudioRecorder<TContext>() {
         }
         ownedFinalizedUriRef.current = null;
       }
+      lastFinalizedRef.current = null;
 
       const generation: RecordingGeneration<TContext> = {
         id: generationSequenceRef.current + 1,
@@ -442,6 +456,7 @@ export function useTimedAudioRecorder<TContext>() {
   const transferOwnership = useCallback((audioFileUri: string) => {
     if (ownedFinalizedUriRef.current !== audioFileUri) return false;
     ownedFinalizedUriRef.current = null;
+    lastFinalizedRef.current = null;
     updateStatus("idle");
     return true;
   }, [updateStatus]);
@@ -456,6 +471,7 @@ export function useTimedAudioRecorder<TContext>() {
       }
       ownedFinalizedUriRef.current = null;
     }
+    lastFinalizedRef.current = null;
     setLastError(null);
     updateStatus("idle");
     return true;
@@ -467,6 +483,7 @@ export function useTimedAudioRecorder<TContext>() {
     void discard("dispose").catch(() => undefined);
     const ownedUri = ownedFinalizedUriRef.current;
     ownedFinalizedUriRef.current = null;
+    lastFinalizedRef.current = null;
     if (ownedUri) {
       try {
         deleteRecordingFile(ownedUri);
