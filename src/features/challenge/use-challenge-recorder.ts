@@ -24,10 +24,22 @@ export const CHALLENGE_RECORDING_DURATION_MS = 10_000;
 
 /** 서버 기준 날짜와 문제 번호를 녹음 파일에 결합하는 10초 챌린지 어댑터. */
 export function useChallengeRecorder() {
-  const recorder = useTimedAudioRecorder<ChallengeQuestionKey>();
+  const {
+    status,
+    elapsedMs,
+    remainingMs,
+    meteringDb,
+    canAskPermissionAgain,
+    lastError,
+    start: startTimedRecording,
+    finish: finishTimedRecording,
+    discard,
+    resetForRetry,
+    transferOwnership,
+    dispose,
+  } = useTimedAudioRecorder<ChallengeQuestionKey>();
   // 아래에서 정의하는 `start`/`finish`와 겹치지 않게 원본을 이름으로 구분한다.
   // "timed"는 이 어댑터가 감싸고 있는 공용 훅(`useTimedAudioRecorder`)을 가리킨다.
-  const { finish: finishTimedRecording, start: startTimedRecording } = recorder;
 
   const start = useCallback(
     (key: ChallengeQuestionKey): Promise<StartAudioRecordingResult> =>
@@ -52,5 +64,37 @@ export function useChallengeRecorder() {
     [finishTimedRecording],
   );
 
-  return useMemo(() => ({ ...recorder, start, finish }), [finish, recorder, start]);
+  const snapshot = useMemo(
+    () => ({
+      status,
+      elapsedMs,
+      remainingMs,
+      meteringDb,
+      canAskPermissionAgain,
+      lastError,
+    }),
+    [
+      canAskPermissionAgain,
+      elapsedMs,
+      lastError,
+      meteringDb,
+      remainingMs,
+      status,
+    ],
+  );
+
+  // 상태 폴링으로 snapshot이 바뀌어도 명령 묶음은 같은 참조를 유지한다.
+  const actions = useMemo(
+    () => ({
+      start,
+      finish,
+      discard,
+      resetForRetry,
+      transferOwnership,
+      dispose,
+    }),
+    [discard, dispose, finish, resetForRetry, start, transferOwnership],
+  );
+
+  return useMemo(() => ({ snapshot, actions }), [actions, snapshot]);
 }

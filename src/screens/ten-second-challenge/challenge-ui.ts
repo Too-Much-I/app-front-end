@@ -1,3 +1,16 @@
+import type { AudioRecordingStatus } from "@/features/audio/use-timed-audio-recorder";
+import { CHALLENGE_RECORDING_DURATION_MS } from "@/features/challenge/use-challenge-recorder";
+
+export const CHALLENGE_RECORDING_SECONDS = CHALLENGE_RECORDING_DURATION_MS / 1_000;
+
+/** 녹음 진행에 따라 화면이 직접 관리하는 단계. 문제 조회 상태는 훅이 따로 들고 있다. */
+export type RecordingPhase =
+  | "preparing"
+  | "recording"
+  | "reviewing"
+  | "record-failed"
+  | "permission-denied";
+
 /**
  * 10초 챌린지 문제 화면이 그리는 상태.
  *
@@ -39,6 +52,71 @@ export function hasUnsavedRecording(status: ChallengeUiStatus): boolean {
  */
 export function isSubmissionLocked(status: ChallengeUiStatus): boolean {
   return status === "submitting";
+}
+
+/**
+ * 리코더 상태에서 녹음 단계를 읽는다.
+ *
+ * `finalizing`을 `recording`으로 두는 이유는 확정이 오가는 찰나에 화면이 깜빡이지 않게
+ * 하려는 것이다. 확정이 성공하면 곧바로 `reviewing`으로, 실패하면 리코더가 `error`나
+ * `interrupted`로 넘어가 `record-failed`가 된다.
+ */
+export function resolveRecordingPhase(
+  status: AudioRecordingStatus,
+  hasFinalizedRecording: boolean,
+): RecordingPhase {
+  if (hasFinalizedRecording) return "reviewing";
+
+  switch (status) {
+    case "permission-denied":
+      return "permission-denied";
+    case "error":
+    case "interrupted":
+      return "record-failed";
+    case "recording":
+    case "finalizing":
+      return "recording";
+    case "idle":
+    case "preparing":
+      return "preparing";
+  }
+}
+
+/**
+ * 조회·녹음·제출 세 갈래를 화면 상태 하나로 합친다.
+ *
+ * 제출이 시작되면 그쪽이 화면을 독점한다 — 업로드 중에 노트나 녹음 버튼을 다시 보여줄
+ * 이유가 없고, 그 사이 들어온 조회 실패로 진행 중인 제출을 가릴 수도 없다.
+ */
+export function resolveChallengeUiStatus({
+  phase,
+  questionStatus,
+  submissionStatus,
+}: {
+  phase: RecordingPhase;
+  questionStatus: "loading" | "ready" | "failed";
+  submissionStatus: "idle" | "submitting" | "failed";
+}): ChallengeUiStatus {
+  if (submissionStatus === "submitting") return "submitting";
+  if (submissionStatus === "failed") return "submit-failed";
+  if (questionStatus === "loading") return "loading";
+  if (questionStatus === "failed") return "question-failed";
+  return phase;
+}
+
+/**
+ * 배지에 띄울 남은 시간.
+ *
+ * 녹음이 시작되기 전에는 recorder가 아직 0을 들고 있어서 제한 시간을 그대로 보여주고,
+ * 확정된 뒤에는 셀 시간이 없으므로 배지 자체를 지운다.
+ */
+export function getChallengeRemainingSeconds(
+  status: ChallengeUiStatus,
+  remainingMs: number,
+): number | null {
+  if (status === "preparing") return CHALLENGE_RECORDING_SECONDS;
+  if (status === "recording") return remainingMs / 1_000;
+  return null;
 }
 
 /** 남은 시간이 이 값 아래로 내려가면 타이머를 경고색으로 바꾼다. */
