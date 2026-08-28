@@ -61,6 +61,17 @@ export function useChallengeQuestion(
   return { ...state, retry };
 }
 
+/**
+ * 넘겨받은 날짜가 없으면 오늘 진행도에서 알아 온다.
+ *
+ * 지금은 `challengeDate`가 항상 `undefined`다 — 유일한 진입점인 홈 배너가 문제 번호만
+ * 넘긴다. 그래서 재조회 때마다 서버 날짜를 새로 받아 오고, 자정을 넘긴 화면도 재시도
+ * 한 번으로 회복한다.
+ *
+ * 스테이지 화면이 날짜를 넘기기 시작하면 이 성질이 사라진다. 고정된 `challengeDate`로
+ * 계속 조회하므로 `CHALLENGE_DATE_CHANGED`가 나면 재시도가 같은 실패를 반복한다.
+ * 그때는 이 오류를 따로 받아 상위에 진행도 갱신을 요청해야 한다.
+ */
 async function resolveQuestion(
   challengeDate: string | undefined,
   questionNumber: number,
