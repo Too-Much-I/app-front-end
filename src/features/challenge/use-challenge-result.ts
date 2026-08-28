@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getChallengeDayResult } from "@/features/challenge/api/challenge-day-result";
-import type { ChallengeQuestionResult, ChallengeResultSeed } from "@/types/challenge";
+import {
+  createDevMockDayResult,
+  withDevMockFallback,
+} from "@/features/challenge/dev-mock-challenge";
+import type {
+  ChallengeDayResult,
+  ChallengeQuestionResult,
+  ChallengeResultSeed,
+} from "@/types/challenge";
 
 /** 명세 8절 권장 주기 — 2초에서 시작해 5초까지 늘린다. 이후에는 5초를 유지한다. */
 const POLL_INTERVALS_MS = [2_000, 2_500, 3_000, 3_500, 4_000, 4_500, 5_000] as const;
@@ -85,7 +93,7 @@ export function useChallengeResult(
       if (controller.signal.aborted) return;
 
       try {
-        const dayResult = await getChallengeDayResult(
+        const dayResult = await loadDayResult(
           challengeDate,
           questionNumber,
           controller.signal,
@@ -147,4 +155,21 @@ export function useChallengeResult(
   const retry = useCallback(() => setAttempt((count) => count + 1), []);
 
   return { ...state, retry };
+}
+
+/**
+ * 임시: 백엔드가 붙기 전까지 응답이 없으면 목 데이터로 대신한다.
+ * 서버가 준비되면 `__DEV__` 분기와 `dev-mock-challenge`를 함께 지운다.
+ */
+function loadDayResult(
+  challengeDate: string,
+  questionNumber: number,
+  signal: AbortSignal,
+): Promise<ChallengeDayResult> {
+  const load = () => getChallengeDayResult(challengeDate, questionNumber, signal);
+  if (!__DEV__) return load();
+
+  return withDevMockFallback(load, () =>
+    createDevMockDayResult(challengeDate, questionNumber),
+  );
 }

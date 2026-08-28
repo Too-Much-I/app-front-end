@@ -4,6 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { submitChallengeAnswer } from "@/features/challenge/api/challenge-answer";
 import { createChallengeAttempt } from "@/features/challenge/api/challenge-attempt";
 import {
+  createDevMockAccepted,
+  DEV_SUBMIT_DELAY_MS,
+} from "@/features/challenge/dev-mock-challenge";
+import {
   getChallengeErrorCode,
   isAttemptAlreadyTerminal,
   isProgressRefreshRequired,
@@ -88,6 +92,20 @@ export function useChallengeSubmission({
 
       setStatus("submitting");
       setErrorMessage(null);
+
+      /*
+       * 임시: 백엔드가 붙기 전까지 실제로 올리지 않고 접수된 것처럼 넘어간다.
+       * attempt 발급과 S3 PUT이 모두 실패하는 동안에는 결과 화면에 닿을 수 없다.
+       * 서버가 준비되면 이 분기와 `dev-mock-challenge`를 함께 지운다.
+       */
+      if (__DEV__) {
+        await new Promise((resolve) => setTimeout(resolve, DEV_SUBMIT_DELAY_MS));
+        if (controller.signal.aborted || !mountedRef.current) return;
+        setStatus("idle");
+        inputRef.current.onSubmitted(createDevMockAccepted(date, target));
+        return;
+      }
+
       idempotencyKeyRef.current ??= Crypto.randomUUID();
       let accepted: ChallengeAnswerAccepted | null = null;
 

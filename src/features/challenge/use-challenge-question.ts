@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { getChallengeToday } from "@/features/challenge/api/challenge-today";
+import { DEV_MOCK_CHALLENGE_QUESTION } from "@/features/challenge/dev-mock-challenge";
 import { getChallengeTodayQuestion } from "@/features/challenge/api/challenge-today-question";
 import type { ChallengeQuestion } from "@/types/challenge";
 
@@ -8,15 +9,6 @@ interface ChallengeQuestionState {
   status: "loading" | "ready" | "failed";
   question: ChallengeQuestion | null;
 }
-
-const DEV_MOCK_CHALLENGE_QUESTION: ChallengeQuestion = {
-  date: "2026-08-25",
-  questionNumber: 1,
-  totalQuestionCount: 3,
-  promptKo: "나는 매일 아침 일어나자마자 물 한 잔을 마셔.",
-  attemptStatus: "not_started",
-  gradingStatus: "not_requested",
-};
 
 /**
  * 오늘의 챌린지 문제를 한 번 조회하고, 실패하면 같은 자리에서 다시 시도하게 한다.
