@@ -28,6 +28,20 @@ export function ChallengeReviewPanel({
   const status = useAudioPlayerStatus(player);
   const isPlaying = status.playing;
 
+  /**
+   * 남는 시간은 파일이 스스로 말하는 길이가 아니라 녹음하며 잰 길이에서 뺀다.
+   *
+   * `status.duration`은 아직 확정되지 않았으면 0을 준다. 방금 만든 녹음 파일은 컨테이너에
+   * 총 길이가 확정적으로 기록되지 않는 경우가 있어서, 재생 직후 몇 프레임 동안 0이 잡히면
+   * 남은 시간이 음수로 튄다. `recordedSeconds`는 이미 확정된 값이라 그런 구간이 없다.
+   *
+   * 멈춰 있을 때 전체 길이로 되돌리는 이유는 `togglePlayback`이 다시 누를 때 항상 0으로
+   * seek하기 때문이다 — 다음 재생이 처음부터 시작하니 표시도 처음 값이어야 한다.
+   */
+  const displaySeconds = isPlaying
+    ? Math.max(0, recordedSeconds - status.currentTime)
+    : recordedSeconds;
+
   const togglePlayback = useCallback(async () => {
     try {
       // 녹음이 끝나며 재생 모드로 돌아오지만, 다른 화면이 모드를 바꿔둔 뒤 돌아오는
@@ -63,7 +77,7 @@ export function ChallengeReviewPanel({
       <View className="flex-1">
         <Text className="text-sm text-ink">내 녹음</Text>
         <Text className="text-xs tabular-nums text-ink-muted">
-          {formatCountdown(recordedSeconds)}
+          {formatCountdown(displaySeconds)}
         </Text>
       </View>
     </View>
