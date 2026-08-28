@@ -2,7 +2,7 @@ import * as Crypto from "expo-crypto";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { submitChallengeAnswer } from "@/features/challenge/api/challenge-answer";
-import { createChallengeAttempt } from "@/features/challenge/api/challenge-attempt";
+import { issueChallengeUploadUrl } from "@/features/challenge/api/challenge-upload-url";
 import {
   createDevMockAccepted,
   DEV_SUBMIT_DELAY_MS,
@@ -18,7 +18,11 @@ import {
   getValidAnswerAudioFile,
   uploadAnswerAudio,
 } from "@/features/exam/upload-answer-audio";
-import type { ChallengeAnswerAccepted, ChallengeAttempt } from "@/types/challenge";
+import type {
+  ChallengeAnswerAccepted,
+  ChallengeAttempt,
+  ChallengeUploadUrl,
+} from "@/types/challenge";
 
 export type ChallengeSubmissionStatus = "idle" | "submitting" | "failed";
 
@@ -27,8 +31,13 @@ const AUDIO_TOO_LARGE_MESSAGE = "녹음 파일이 너무 커서 올릴 수 없�
 const DEADLINE_PASSED_MESSAGE = "제출 가능한 시간이 지났어요.";
 
 interface UseChallengeSubmissionInput {
-  challengeDate: string;
-  questionNumber: number;
+  /**
+   * 녹음 시작 전에 발급받아 둔 attempt. 아직 없으면 제출을 시작할 수 없다.
+   *
+   * 여기에 날짜와 문제 번호가 이미 들어 있어 제출 경로는 날짜를 따로 받지 않는다.
+   * 자정이 지나도 이 attempt가 정한 날짜로 처리되는 것이 이 설계의 요점이다.
+   */
+  attempt: ChallengeAttempt | null;
   /**
    * 서버가 답변을 접수했다. 화면은 녹음 파일을 정리하고 결과 화면으로 넘어간다.
    *
@@ -36,24 +45,27 @@ interface UseChallengeSubmissionInput {
    * 다만 이미 끝난 응시로 판명돼 넘어가는 경로에는 응답이 없으므로 `null`이 온다.
    */
   onSubmitted: (accepted: ChallengeAnswerAccepted | null) => void;
-  /** 날짜가 바뀌었거나 순서가 어긋났다. 오늘 진행도부터 다시 읽어야 한다. */
+  /** 순서가 어긋났거나 attempt를 찾을 수 없다. 오늘 진행도부터 다시 읽어야 한다. */
   onProgressStale: () => void;
 }
 
 /**
- * 챌린지 답변 한 건의 attempt 발급 → S3 PUT → 접수 통지.
+ * 녹음 한 건의 업로드 URL 발급 → S3 PUT → 접수 통지.
+ *
+ * attempt는 여기서 만들지 않는다. 녹음을 시작하기 전에 이미 발급돼 있어야 하고, 이 훅은
+ * 그 `attemptId`를 받아 쓰기만 한다. 그래서 이 경로 전체가 날짜를 보내지 않으며 사용자가
+ * 녹음을 들어보다 자정을 넘겨도 제출이 막히지 않는다.
  *
  * 채점 대기는 여기 없다. 통지가 성공하면 로컬 파일로 할 수 있는 일이 끝나고, 그 뒤의
  * 실패(AI 지연·실패)는 녹음본을 다시 올려서 고칠 수 있는 문제가 아니다. 그래서 대기와
  * 재확인은 날짜·문제 번호만으로 서버에 다시 물을 수 있는 결과 화면이 가져간다.
  *
- * 재시도할 때 새 응시를 소비하지 않게 하는 장치가 둘이다. attempt는 서버가 제출 전
- * attempt를 복구해 주므로 몇 번을 불러도 같은 `attemptId`고, 접수 통지는 같은
- * `Idempotency-Key`를 성공할 때까지 붙들고 있다가 그대로 다시 보낸다.
+ * 재시도할 때 새 응시를 소비하지 않게 하는 장치가 둘이다. URL 재발급은 attempt에 고정된
+ * 같은 S3 key로만 이뤄지고, 접수 통지는 같은 `Idempotency-Key`를 성공할 때까지 붙들고
+ * 있다가 그대로 다시 보낸다.
  */
 export function useChallengeSubmission({
-  challengeDate,
-  questionNumber,
+  attempt,
   onSubmitted,
   onProgressStale,
 }: UseChallengeSubmissionInput) {
@@ -61,12 +73,12 @@ export function useChallengeSubmission({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const mountedRef = useRef(true);
   const abortRef = useRef<AbortController | null>(null);
-  const inputRef = useRef({ challengeDate, questionNumber, onSubmitted, onProgressStale });
+  const inputRef = useRef({ attempt, onSubmitted, onProgressStale });
   /** 이 녹음 한 건의 멱등 키. 접수에 성공하거나 다시 녹음할 때만 새로 만든다. */
   const idempotencyKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    inputRef.current = { challengeDate, questionNumber, onSubmitted, onProgressStale };
+    inputRef.current = { attempt, onSubmitted, onProgressStale };
   });
 
   useEffect(() => {
@@ -85,24 +97,32 @@ export function useChallengeSubmission({
 
   const run = useCallback(
     async (audioFileUri: string) => {
+      const { attempt: target } = inputRef.current;
+      // 화면이 attempt 없이는 제출 버튼을 띄우지 않는다. 여기 오면 순서가 어긋난 것이다.
+      if (!target) {
+        fail(SUBMIT_FAILURE_MESSAGE);
+        return;
+      }
+
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
-      const { challengeDate: date, questionNumber: target } = inputRef.current;
 
       setStatus("submitting");
       setErrorMessage(null);
 
       /*
        * 임시: 백엔드가 붙기 전까지 실제로 올리지 않고 접수된 것처럼 넘어간다.
-       * attempt 발급과 S3 PUT이 모두 실패하는 동안에는 결과 화면에 닿을 수 없다.
+       * URL 발급과 S3 PUT이 모두 실패하는 동안에는 결과 화면에 닿을 수 없다.
        * 서버가 준비되면 이 분기와 `dev-mock-challenge`를 함께 지운다.
        */
       if (__DEV__) {
         await new Promise((resolve) => setTimeout(resolve, DEV_SUBMIT_DELAY_MS));
         if (controller.signal.aborted || !mountedRef.current) return;
         setStatus("idle");
-        inputRef.current.onSubmitted(createDevMockAccepted(date, target));
+        inputRef.current.onSubmitted(
+          createDevMockAccepted(target.date, target.questionNumber),
+        );
         return;
       }
 
@@ -110,21 +130,21 @@ export function useChallengeSubmission({
       let accepted: ChallengeAnswerAccepted | null = null;
 
       try {
-        let attempt = await createChallengeAttempt(date, target, controller.signal);
-        assertUploadableSize(audioFileUri, attempt);
+        let upload = await issueChallengeUploadUrl(target.attemptId, controller.signal);
+        assertUploadableSize(audioFileUri, upload);
 
         try {
-          await putRecording(audioFileUri, attempt, controller.signal);
+          await putRecording(audioFileUri, upload, controller.signal);
         } catch (error) {
           if (controller.signal.aborted || !isExpiredUploadUrl(error)) throw error;
-          // 만료된 건 URL뿐이다. attempt를 다시 부르면 같은 응시에 새 URL이 붙어 온다.
-          attempt = await createChallengeAttempt(date, target, controller.signal);
-          await putRecording(audioFileUri, attempt, controller.signal);
+          // 만료된 건 URL뿐이다. 다시 발급받아도 같은 attempt의 같은 S3 key를 가리킨다.
+          upload = await issueChallengeUploadUrl(target.attemptId, controller.signal);
+          await putRecording(audioFileUri, upload, controller.signal);
         }
 
         accepted = await submitChallengeAnswer(
-          target,
-          attempt.attemptId,
+          target.questionNumber,
+          target.attemptId,
           idempotencyKeyRef.current,
           controller.signal,
         );
@@ -171,42 +191,43 @@ export function useChallengeSubmission({
   return { status, errorMessage, submit, reset };
 }
 
-function assertUploadableSize(audioFileUri: string, attempt: ChallengeAttempt): void {
+function assertUploadableSize(audioFileUri: string, upload: ChallengeUploadUrl): void {
   const file = getValidAnswerAudioFile(audioFileUri);
-  if (attempt.upload.maxBytes > 0 && file.size > attempt.upload.maxBytes) {
+  if (upload.maxBytes > 0 && file.size > upload.maxBytes) {
     throw new AnswerAudioUploadError(AUDIO_TOO_LARGE_MESSAGE, false, 413);
   }
 }
 
 function putRecording(
   audioFileUri: string,
-  attempt: ChallengeAttempt,
+  upload: ChallengeUploadUrl,
   signal: AbortSignal,
 ): Promise<void> {
-  if (attempt.upload.contentType !== ANSWER_AUDIO_CONTENT_TYPE) {
+  if (upload.contentType !== ANSWER_AUDIO_CONTENT_TYPE) {
     // 녹음 형식과 presigned URL이 서명한 형식이 다르면 S3가 415로 거절한다.
-    // 최종 audio 계약(명세 9절)이 동결되기 전까지는 눈에 띄게 남겨둔다.
+    // 명세는 `audio/mp4` 고정이므로 어긋나면 계약이 바뀐 것이다.
     console.warn(
-      `[Challenge] 서버가 요구한 Content-Type(${attempt.upload.contentType})이 녹음 형식(${ANSWER_AUDIO_CONTENT_TYPE})과 다릅니다.`,
+      `[Challenge] 서버가 요구한 Content-Type(${upload.contentType})이 녹음 형식(${ANSWER_AUDIO_CONTENT_TYPE})과 다릅니다.`,
     );
   }
 
-  // 업로드 예산은 URL 만료와 제출 유효시간 중 먼저 오는 쪽까지다.
-  const deadlineMs = Math.min(attempt.upload.expiresAtMs, attempt.submissionDeadlineAtMs);
+  // 업로드 예산은 URL 만료와 제출 유효시간 중 먼저 오는 쪽까지다. 명세상 URL 만료가
+  // 항상 더 이르지만, 둘 다 서버가 주는 값이라 앱은 어느 쪽이든 먼저 오는 것을 따른다.
+  const deadlineMs = Math.min(upload.expiresAtMs, upload.submissionDeadlineAtMs);
   if (deadlineMs <= Date.now()) {
     throw new AnswerAudioUploadError(DEADLINE_PASSED_MESSAGE, false, 403);
   }
 
   return uploadAnswerAudio(
-    attempt.upload.url,
+    upload.url,
     audioFileUri,
     deadlineMs,
     signal,
-    attempt.upload.contentType,
+    upload.contentType,
   );
 }
 
-/** presigned URL이 만료돼 실패했는가 — attempt를 다시 부르면 회복되는 유일한 경우. */
+/** presigned URL이 만료돼 실패했는가 — 다시 발급받으면 회복되는 유일한 경우. */
 function isExpiredUploadUrl(error: unknown): boolean {
   return (
     error instanceof AnswerAudioUploadError && !error.retryable && error.status === 403

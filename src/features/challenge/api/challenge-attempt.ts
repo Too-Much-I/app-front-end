@@ -4,11 +4,19 @@ import type { ApiEnvelope } from "@/types/api";
 import type { ChallengeAttempt, RawChallengeAttempt } from "@/types/challenge";
 
 /**
- * attempt를 만들고 S3 Presigned PUT URL을 받는다.
+ * 녹음을 시작하기 전에 attempt를 만든다(명세 6.3).
+ *
+ * 이 응답에는 업로드 URL이 없다. presigned URL은 수명이 짧아서 리뷰하는 동안 시계를
+ * 태우기 때문에, 녹음이 끝난 뒤 `issueChallengeUploadUrl`로 따로 받는다.
+ *
+ * 날짜 검사는 여기 한 번뿐이다. `X-Challenge-Date`가 서버의 현재 날짜와 다르면
+ * `CHALLENGE_DATE_CHANGED`가 오고 attempt가 만들어지지 않는다. 반대로 한 번 만들어지면
+ * 그 뒤의 요청은 `attemptId`만 쓰므로 자정을 넘겨도 `submissionDeadlineAt`까지는
+ * 원래 날짜의 제출로 처리된다.
  *
  * 같은 문제에서 다시 호출해도 새 attempt를 만들지 않는다 — 제출 전 attempt가 남아 있으면
- * 서버가 같은 `attemptId`에 새 URL만 붙여 돌려준다. 그래서 업로드 URL이 만료됐을 때
- * 앱이 할 일은 "새 attempt 만들기"가 아니라 이 API를 다시 부르는 것이다.
+ * 서버가 같은 `attemptId`와 같은 `submissionDeadlineAt`을 돌려준다. 그래서 화면이
+ * 다시 마운트되거나 네트워크 재시도가 걸려도 응시를 두 번 소비하지 않는다.
  */
 export async function createChallengeAttempt(
   challengeDate: string,

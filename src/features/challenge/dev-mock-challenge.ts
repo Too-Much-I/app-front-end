@@ -1,5 +1,6 @@
 import type {
   ChallengeAnswerAccepted,
+  ChallengeAttempt,
   ChallengeDayResult,
   ChallengeQuestion,
 } from "@/types/challenge";
@@ -11,6 +12,7 @@ import type {
  * 함께 지우면 원래 흐름으로 돌아온다.
  *
  * - `use-challenge-question.ts`   문제 조회 — 목으로 바로 대체
+ * - `use-challenge-attempt.ts`    attempt 발급 — 목으로 바로 대체
  * - `use-challenge-submission.ts` 제출 접수 — 올리지 않고 접수된 것처럼 넘어감
  * - `use-challenge-result.ts`     결과 조회 — 응답이 없으면 목으로 대체
  */
@@ -35,6 +37,19 @@ export const DEV_MOCK_CHALLENGE_QUESTION: ChallengeQuestion = {
   attemptStatus: "not_started",
   gradingStatus: "not_requested",
 };
+
+/** attempt 발급 응답. 제출 유효시간은 명세대로 생성 시각 + 1시간이다. */
+export function createDevMockAttempt(
+  date: string,
+  questionNumber: number,
+): ChallengeAttempt {
+  return {
+    attemptId: `dev-attempt-${date}-${questionNumber}`,
+    date,
+    questionNumber,
+    submissionDeadlineAtMs: Date.now() + 60 * 60 * 1_000,
+  };
+}
 
 /**
  * 제출 접수 응답.

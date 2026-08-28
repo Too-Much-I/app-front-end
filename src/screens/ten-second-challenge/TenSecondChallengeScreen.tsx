@@ -7,6 +7,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Text } from "@/components/ui/Text";
 import { deleteRecordingFile } from "@/features/audio/recording-file";
+import {
+  isAttemptAlreadyTerminal,
+  isProgressRefreshRequired,
+} from "@/features/challenge/challenge-error-codes";
+import { useChallengeAttempt } from "@/features/challenge/use-challenge-attempt";
 import { useChallengeQuestion } from "@/features/challenge/use-challenge-question";
 import { useChallengeRecorder } from "@/features/challenge/use-challenge-recorder";
 import { useChallengeSubmission } from "@/features/challenge/use-challenge-submission";
@@ -81,6 +86,16 @@ export function TenSecondChallengeScreen({
   const { challengeDate, questionNumber } = route.params;
   const { status: questionStatus, question, retry: retryQuestion } =
     useChallengeQuestion(challengeDate, questionNumber);
+  /**
+   * 문제가 오면 곧바로 attempt를 발급받는다. 녹음은 이게 끝난 뒤에 시작한다(명세 6.3).
+   * 업로드 URL은 여기 없다 — 제출을 누른 뒤 제출 훅이 따로 받아 온다.
+   */
+  const {
+    status: attemptStatus,
+    attempt,
+    errorCode: attemptErrorCode,
+    retry: retryAttempt,
+  } = useChallengeAttempt(question);
   const {
     snapshot: {
       status: recordingStatus,
@@ -99,7 +114,7 @@ export function TenSecondChallengeScreen({
    * 서버가 확인해 준 날짜가 언제나 우선이다. route로 받은 값은 첫 조회의 힌트일 뿐이고,
    * 그마저 없으면 문제 조회가 오늘 진행도에서 날짜를 알아 온다.
    */
-  const resolvedDate = question?.date ?? challengeDate ?? "";
+  const resolvedDate = attempt?.date ?? question?.date ?? challengeDate ?? "";
 
   const [{ finalizedAudioUri, recordedSeconds }, dispatchRecordingReview] = useReducer(
     recordingReviewReducer,
@@ -169,8 +184,7 @@ export function TenSecondChallengeScreen({
     submit: submitChallengeRecording,
     reset: resetSubmission,
   } = useChallengeSubmission({
-    challengeDate: resolvedDate,
-    questionNumber,
+    attempt,
     onSubmitted: goToResult,
     onProgressStale: goToStage,
   });
@@ -185,6 +199,7 @@ export function TenSecondChallengeScreen({
   const uiStatus = resolveChallengeUiStatus({
     phase,
     questionStatus,
+    attemptStatus,
     submissionStatus,
   });
   const remainingSeconds = getChallengeRemainingSeconds(uiStatus, remainingMs);
@@ -227,11 +242,43 @@ export function TenSecondChallengeScreen({
       return;
     }
 
+    // 명세 6.3 — attempt 발급이 성공한 뒤에만 녹음을 시작한다. 발급 전에 켜면 사용자가
+    // 올릴 곳 없는 답을 만들게 되고, 자정을 넘긴 경우가 정확히 그 상황이다.
+    if (attemptStatus !== "ready") return;
+
     const questionKey = `${question.date}#${question.questionNumber}`;
     if (autoStartedKeyRef.current === questionKey) return;
     autoStartedKeyRef.current = questionKey;
     void startRecording(question);
-  }, [navigation, question, startRecording]);
+  }, [attemptStatus, navigation, question, startRecording]);
+
+  /**
+   * attempt를 못 만든 이유가 이 화면의 전제를 부정하는 경우다.
+   *
+   * 이미 끝난 응시면 결과로, 순서가 어긋났거나 날짜가 바뀐 경우면 스테이지로 보낸다.
+   * 그 밖의 실패는 화면에 남아 다시 시도할 수 있게 둔다 — 여기서 떠나보내면 하루 한 번의
+   * 짧은 루프에 왕복이 붙는다.
+   */
+  useEffect(() => {
+    if (attemptStatus !== "failed" || attemptErrorCode === null) return;
+
+    if (isAttemptAlreadyTerminal(attemptErrorCode)) {
+      leavingRef.current = true;
+      navigation.replace("ChallengeResult", {
+        challengeDate: resolvedDate,
+        questionNumber,
+      });
+      return;
+    }
+    if (isProgressRefreshRequired(attemptErrorCode)) goToStage();
+  }, [
+    attemptErrorCode,
+    attemptStatus,
+    goToStage,
+    navigation,
+    questionNumber,
+    resolvedDate,
+  ]);
 
   // 녹음 중 마지막으로 관찰한 경과 시간. 확정 직후에는 recorder가 0으로 되돌린다.
   useEffect(() => {
@@ -280,6 +327,18 @@ export function TenSecondChallengeScreen({
     resetSubmission();
     void startRecording(question);
   }, [question, resetSubmission, startRecording]);
+
+  /**
+   * `question-failed` 화면의 "다시 시도". 조회와 attempt 발급 둘 다 이 상태로 모이므로
+   * 실패한 쪽을 다시 부른다. 조회가 실패했다면 attempt는 아직 시작도 안 했다.
+   */
+  const retryPreparation = useCallback(() => {
+    if (questionStatus === "failed") {
+      retryQuestion();
+      return;
+    }
+    retryAttempt();
+  }, [questionStatus, retryAttempt, retryQuestion]);
 
   const submitRecording = useCallback(() => {
     if (!finalizedAudioUri) return;
@@ -333,7 +392,7 @@ export function TenSecondChallengeScreen({
             errorMessage={submissionErrorMessage}
             onLeave={leaveScreen}
             onOpenSettings={() => void Linking.openSettings()}
-            onRetryQuestion={retryQuestion}
+            onRetryQuestion={retryPreparation}
             onRetryRecording={retakeRecording}
             onRetrySubmit={submitRecording}
             status={uiStatus}

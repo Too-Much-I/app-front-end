@@ -86,13 +86,41 @@ export interface ChallengeQuestion {
   gradingStatus: ChallengeGradingStatus;
 }
 
-/** `POST /api/v1/challenges/today/questions/{questionNumber}/attempt` 의 result. */
+/**
+ * `POST /api/v1/challenges/today/questions/{questionNumber}/attempt` 의 result.
+ *
+ * 명세 6.3. 업로드 URL은 여기 없다 — 녹음이 끝난 뒤 6.4에서 따로 받는다.
+ */
 export interface RawChallengeAttempt {
   attemptId: string;
   challengeDate: string;
   questionNumber: number;
   attemptStatus: ChallengeAttemptStatus;
-  /** attempt 생성 시각 + 5분. 업로드·재시도·응답 유실을 수습하는 제출 유효시간이다. */
+  /**
+   * attempt 생성 시각 + 1시간.
+   *
+   * 자정을 지나도 이때까지는 attempt가 속한 원래 `challengeDate`의 제출로 처리된다.
+   * 앱이 녹음을 들어보고 다시 녹음하는 동안 날짜가 넘어가도 제출이 막히지 않는 근거다.
+   */
+  submissionDeadlineAt: string;
+}
+
+export interface ChallengeAttempt {
+  attemptId: string;
+  date: string;
+  questionNumber: number;
+  /** ISO 문자열을 앱 시계 기준 ms로 옮긴 값. */
+  submissionDeadlineAtMs: number;
+}
+
+/**
+ * `POST /api/v1/challenges/attempts/{attemptId}/upload-url` 의 result.
+ *
+ * 명세 6.4. 녹음이 끝난 뒤 같은 attempt에 연결된 presigned PUT URL을 받는다. 재발급해도
+ * 새 응시로 계산되지 않고 attempt에 고정된 같은 S3 object key로만 발급된다.
+ */
+export interface RawChallengeUploadUrl {
+  attemptId: string;
   submissionDeadlineAt: string;
   upload: {
     method: string;
@@ -103,19 +131,19 @@ export interface RawChallengeAttempt {
   };
 }
 
-export interface ChallengeAttempt {
-  attemptId: string;
-  date: string;
-  questionNumber: number;
-  /** ISO 문자열을 앱 시계 기준 ms로 옮긴 값. 업로드 재시도 예산 계산에 쓴다. */
+export interface ChallengeUploadUrl {
+  url: string;
+  expiresAtMs: number;
+  /** S3 PUT의 `Content-Type`. 서버가 지정한 값을 그대로 보내야 한다. */
+  contentType: string;
+  maxBytes: number;
+  /**
+   * 발급 시점에 서버가 다시 알려준 제출 유효시각.
+   *
+   * attempt 생성 응답에도 같은 값이 있지만 이쪽이 최신이라 업로드 예산은 이 값으로 잰다.
+   * 명세상 `upload.expiresAt`은 이 시각을 넘지 않는다.
+   */
   submissionDeadlineAtMs: number;
-  upload: {
-    url: string;
-    expiresAtMs: number;
-    /** S3 PUT의 `Content-Type`. 서버가 지정한 값을 그대로 보내야 한다. */
-    contentType: string;
-    maxBytes: number;
-  };
 }
 
 /** `POST /api/v1/challenges/today/questions/{questionNumber}/answer` 의 result. */

@@ -83,7 +83,7 @@ export function resolveRecordingPhase(
 }
 
 /**
- * 조회·녹음·제출 세 갈래를 화면 상태 하나로 합친다.
+ * 조회·attempt 발급·녹음·제출 네 갈래를 화면 상태 하나로 합친다.
  *
  * 제출이 시작되면 그쪽이 화면을 독점한다 — 업로드 중에 노트나 녹음 버튼을 다시 보여줄
  * 이유가 없고, 그 사이 들어온 조회 실패로 진행 중인 제출을 가릴 수도 없다.
@@ -91,16 +91,26 @@ export function resolveRecordingPhase(
 export function resolveChallengeUiStatus({
   phase,
   questionStatus,
+  attemptStatus,
   submissionStatus,
 }: {
   phase: RecordingPhase;
   questionStatus: "loading" | "ready" | "failed";
+  attemptStatus: "idle" | "creating" | "ready" | "failed";
   submissionStatus: "idle" | "submitting" | "failed";
 }): ChallengeUiStatus {
   if (submissionStatus === "submitting") return "submitting";
   if (submissionStatus === "failed") return "submit-failed";
   if (questionStatus === "loading") return "loading";
   if (questionStatus === "failed") return "question-failed";
+  /*
+   * attempt 발급 실패도 사용자에게는 "화면을 준비하지 못했다"는 같은 사실이라 조회 실패와
+   * 같은 화면을 쓴다. 다시 시도 버튼이 무엇을 다시 부를지는 화면이 정한다.
+   *
+   * 발급 중에는 `phase`가 아직 `preparing`이라 그대로 둔다 — 녹음은 발급이 끝난 뒤에
+   * 시작하므로 그동안 보이는 "마이크를 준비하고 있어요"가 사실과 어긋나지 않는다.
+   */
+  if (attemptStatus === "failed") return "question-failed";
   return phase;
 }
 
