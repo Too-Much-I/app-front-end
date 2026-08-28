@@ -9,12 +9,18 @@ import { colors, shadows } from "@/theme";
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
 const paintingCat = require("../../../../public/mascots/painting_cat.png");
 
-/** 왼쪽 가장자리에 뚫린 펀치 구멍 수. */
-const PUNCH_HOLE_COUNT = 9;
+/**
+ * 왼쪽 가장자리에 뚫린 펀치 구멍 수.
+ *
+ * `justify-between`으로 벌리므로 속지가 길어지면 구멍 간격도 같이 벌어진다. 카드가
+ * 화면 높이를 채우게 된 뒤로는 9개면 구멍 사이가 너무 성겨서, 기존 간격(약 13px)이
+ * 유지되는 수로 올렸다.
+ */
+const PUNCH_HOLE_COUNT = 16;
 /** 아래쪽 뜯긴 가장자리를 만드는 물결 수. */
 const TORN_EDGE_BUMP_COUNT = 14;
 /** 속지 괘선 수와 간격(px). 속지보다 길게 그려두고 넘치는 줄은 잘라낸다. */
-const RULE_LINE_COUNT = 12;
+const RULE_LINE_COUNT = 20;
 const RULE_LINE_GAP = 30;
 const TAPE_DOT_COLUMNS = 5;
 
@@ -43,6 +49,11 @@ interface ChallengeNoteCardProps {
  * 길이가 줄어드는 막대는 문장을 보는 채로 주변시에 들어오고, 매초 바뀌는 숫자와 달리
  * 연속적으로 변해서 주의를 반복해 끌어당기지 않는다. 정확한 숫자는 위 배지에 그대로 있다.
  *
+ * 카드는 내용 높이가 아니라 화면의 남는 높이를 먹는다. 대지 → 속지 → 내용 래퍼까지
+ * `grow`를 이어 붙여야 그 높이가 안쪽까지 전달된다. `flex-1`이 아니라 `grow`인 이유는
+ * flex-basis 때문이다 — `flex-1`은 basis를 0으로 만들어서 긴 문장이 들어왔을 때 카드가
+ * 내용보다 작게 눌린다. `grow`는 내용 높이를 하한으로 두고 남는 만큼만 늘어난다.
+ *
  * 패딩이 있는 View를 절대배치의 기준으로 삼지 않는다 — RN에서 `top: 0`이 패딩 바깥이
  * 아니라 안쪽부터 잡히면 가장자리에 붙이려던 것이 내용 위로 올라탄다. 그래서 대지와 속지
  * 모두 패딩 없는 껍데기를 두고, 여백은 내용 전용 래퍼가 갖는다.
@@ -54,38 +65,31 @@ export function ChallengeNoteCard({
   children,
 }: ChallengeNoteCardProps) {
   return (
-    <View className="relative">
-      <View className="rounded-3xl bg-challenge-mat p-3" style={shadows.card}>
+    <View className="relative grow">
+      <View className="grow rounded-3xl bg-challenge-mat p-3" style={shadows.card}>
         <View
-          className="relative overflow-hidden rounded-2xl bg-surface"
+          className="relative grow overflow-hidden rounded-2xl bg-surface"
           style={{ transform: [{ rotate: "-0.8deg" }] }}
         >
           <NoteRuleLines />
           <NotePunchHoles />
 
-          <View className="items-center gap-4 pb-10 pl-9 pr-5 pt-5">
-            <View className="flex-row items-center gap-1.5 rounded-lg bg-challenge-label px-3 py-1">
-              <Feather color={colors.brand.cta} name="star" size={12} />
-              <Text className="text-xs">오늘의 문장</Text>
+          <View className="grow items-center justify-center gap-4 pb-20 pl-9 pr-5 pt-5">
+            <View className="flex-row items-center gap-1.5 rounded-lg bg-challenge-label px-3 py-1.5">
+              <Feather color={colors.brand.cta} name="star" size={14} />
+              <Text className="text-sm">오늘의 문장</Text>
             </View>
 
-            <Text className="text-center text-xl leading-9">{promptKo}</Text>
+            {/*
+              * 행간만 토큰 스케일 밖의 값이다. `text-3xl`이 들고 오는 38px은 제목용이라
+              * 두 줄 이상 감기는 문장에서 답답하고, Tailwind의 `leading-10`(35px)은 더
+              * 좁다. px가 아니라 rem으로 적어 런타임 rem 스케일링에서 빠지지 않게 한다.
+              */}
+            <Text className="text-center text-3xl leading-[3.375rem]">{promptKo}</Text>
 
             <DashedRule colorClassName="border-sky" />
 
-            <View className="flex-row items-center gap-1.5 self-end">
-              <View className="border-b-2 border-sky-line pb-0.5">
-                <Text className="text-xs text-ink-muted">완벽하지 않아도 괜찮아요!</Text>
-              </View>
-              <Feather color={colors.sky.DEFAULT} name="star" size={13} />
-            </View>
-
-            {/* 답변 칸으로 눈을 끌어내리는 손그림 화살표. */}
-            <View className="w-full">
-              <Feather color={colors.brand.cta} name="corner-left-down" size={18} />
-            </View>
-
-            <View className="min-h-20 w-full justify-center rounded-2xl border border-line bg-surface px-4 py-3">
+            <View className="min-h-28 w-full justify-center rounded-2xl border border-line bg-surface px-4 py-3">
               {children}
               <View className="mt-3">
                 <DashedRule colorClassName="border-line" />
@@ -99,9 +103,13 @@ export function ChallengeNoteCard({
 
       <WashiTape />
 
+      {/*
+        마스코트는 대지보다 나중에 그려서 카드 위로 올라온다. 그래서 키울 때는 속지의
+        `pb`를 같이 늘려야 한다 — 안 그러면 답변 칸 왼쪽의 재생 버튼을 덮는다.
+      */}
       <Image
         accessibilityElementsHidden
-        className="absolute -bottom-3 -left-2 h-24 w-24"
+        className="absolute -bottom-4 -left-3 h-32 w-32"
         resizeMode="contain"
         source={paintingCat}
       />

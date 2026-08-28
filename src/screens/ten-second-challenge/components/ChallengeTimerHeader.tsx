@@ -16,7 +16,7 @@ interface ChallengeTimerHeaderProps {
 }
 
 /**
- * 화면 맨 위의 제목 · 오늘 진행 점 · 남은 시간 배지.
+ * 화면 맨 위의 오늘 진행 점 · 남은 시간 배지.
  *
  * 진행 점은 스테이지 화면의 당근밭과 같은 사실(오늘 몇 번째 문장인지)을 보여주지만
  * 여기서는 눌러서 이동할 수 없는 표시일 뿐이라 같은 그림을 다시 그리지 않는다.
@@ -30,10 +30,6 @@ export function ChallengeTimerHeader({
 
   return (
     <View className="items-center gap-3">
-      <Text accessibilityRole="header" className="text-2xl">
-        오늘의 10초
-      </Text>
-
       <View
         accessibilityLabel={`오늘 ${totalQuestionCount}문장 중 ${questionNumber}번째`}
         className="flex-row items-center gap-1.5"
