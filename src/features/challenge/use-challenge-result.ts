@@ -46,6 +46,10 @@ function toInitialState(initialResult?: ChallengeInitialResult): ChallengeResult
       // 접수 시점에는 아직 없는 값들이다. 폴링이 끝나면 조회 결과가 덮는다.
       audioUrl: null,
       hasAiResult: false,
+      transcript: null,
+      feedbackSummary: null,
+      corrections: [],
+      correctedAnswer: null,
     },
   };
 }

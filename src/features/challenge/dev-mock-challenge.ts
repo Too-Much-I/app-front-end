@@ -1,6 +1,7 @@
 import type {
   ChallengeAnswerAccepted,
   ChallengeAttempt,
+  ChallengeCorrectionItem,
   ChallengeDayResult,
   ChallengeQuestion,
 } from "@/types/challenge";
@@ -26,14 +27,45 @@ export const DEV_API_TIMEOUT_MS = 2_500;
  */
 export const DEV_SUBMIT_DELAY_MS = 1_200;
 
-const DEV_MOCK_REFERENCE_ANSWER =
-  "I drink a glass of water as soon as I wake up every morning.";
+/**
+ * 목 문장 한 세트.
+ *
+ * 문제·발화·첨삭이 서로 맞아야 밑줄이 실제로 그어지는 화면을 볼 수 있어서, 백엔드가 준
+ * 예시 응답(D005Q01 / beginner)을 그대로 옮겼다. `transcript` 안에 `original`이 그대로
+ * 들어 있어야 `findCorrectionSpans`가 자리를 찾는다.
+ */
+const DEV_MOCK_PROMPT_KO = "그녀는 검은색 신발을 신고 있어요.";
+const DEV_MOCK_REFERENCE_ANSWER = "She's wearing black shoes.";
+const DEV_MOCK_TRANSCRIPT = "She wear black shoe.";
+const DEV_MOCK_FEEDBACK_SUMMARY = "현재진행형과 복수형을 사용하면 문장이 자연스러워져요.";
+const DEV_MOCK_CORRECTED_ANSWER = "She is wearing black shoes.";
+
+const DEV_MOCK_CORRECTIONS: ChallengeCorrectionItem[] = [
+  {
+    type: "GRAMMAR",
+    original: "wear",
+    issue: "현재진행형이 필요해요",
+    explanation:
+      "지금 입고 있는 상태를 말하므로 주어 She 뒤에 is를 쓰고 동사에 -ing를 붙여야 해요.",
+    suggested: "is wearing",
+    severity: "high",
+  },
+  {
+    type: "GRAMMAR",
+    original: "shoe",
+    issue: "복수형이 필요해요",
+    explanation:
+      "한국어의 ‘신발’은 여기서 한 켤레를 뜻하므로 shoes처럼 복수형으로 표현해요.",
+    suggested: "shoes",
+    severity: "medium",
+  },
+];
 
 export const DEV_MOCK_CHALLENGE_QUESTION: ChallengeQuestion = {
   date: "2026-08-25",
   questionNumber: 1,
   totalQuestionCount: 3,
-  promptKo: "나는 매일 아침 일어나자마자 물 한 잔을 마셔.",
+  promptKo: DEV_MOCK_PROMPT_KO,
   attemptStatus: "not_started",
   gradingStatus: "not_requested",
 };
@@ -81,12 +113,16 @@ export function createDevMockDayResult(
     solvedQuestionCount: questionNumber,
     question: {
       questionNumber,
-      promptKo: DEV_MOCK_CHALLENGE_QUESTION.promptKo,
+      promptKo: DEV_MOCK_PROMPT_KO,
       gradingStatus: "completed",
       referenceAnswer: DEV_MOCK_REFERENCE_ANSWER,
       // 로컬 파일은 제출과 함께 지워지므로 재생할 원본이 없다.
       audioUrl: null,
       hasAiResult: true,
+      transcript: DEV_MOCK_TRANSCRIPT,
+      feedbackSummary: DEV_MOCK_FEEDBACK_SUMMARY,
+      corrections: DEV_MOCK_CORRECTIONS,
+      correctedAnswer: DEV_MOCK_CORRECTED_ANSWER,
     },
   };
 }

@@ -181,6 +181,53 @@ export interface ChallengeInitialResult {
   referenceAnswer: string;
 }
 
+/**
+ * 첨삭 항목 하나 — 내가 말한 문장에서 고칠 부분 하나에 대응한다.
+ *
+ * 서버는 같은 값을 camelCase와 snake_case로 **둘 다** 내려준다(`correctionItems`와
+ * `correction_items`). 앱은 camelCase만 정본으로 읽고 스네이크 쪽은 선언하지 않는다 —
+ * 매퍼가 모르는 키는 버려지므로 여기 없는 것으로 충분하다.
+ */
+export interface RawChallengeCorrectionItem {
+  /** `GRAMMAR` / `EXPRESSION` / `VOCABULARY` / `CONTENT` 등. 대문자로 온다. */
+  type: string;
+  /** 문장에서 고칠 부분. 문자 위치는 주지 않으므로 앱이 transcript에서 찾아야 한다. */
+  original: string;
+  issue: string;
+  explanation: string;
+  suggested: string;
+  /** AI 채점이라 어휘가 고정돼 있지 않다(시험 도메인에서 `major`/`minor`도 실측됐다).
+   * 문자열 그대로 두고 화면 직전에 정규화한다 — `normalizeCorrectionSeverity`. */
+  severity: string;
+}
+
+/**
+ * 도메인 쪽 첨삭 항목. 필드가 Raw와 같은 이유는 이 응답에 정규화할 것이 없기 때문이다 —
+ * `severity`와 `type`의 흔들림은 값의 문제라 타입이 아니라 화면 직전에 흡수한다.
+ */
+export type ChallengeCorrectionItem = RawChallengeCorrectionItem;
+
+/**
+ * `aiResult` 안에서 확인된 모양.
+ *
+ * 명세 9절이 형태를 동결하지 않아 `aiResult`는 `unknown`으로 받고, 매퍼가 런타임에
+ * 하나씩 확인해 이 모양으로 좁힌다. 그래서 여기 필드는 전부 선택값이다 —
+ * 타입 선언은 "이렇게 오면 읽는다"는 뜻이지 보장이 아니다.
+ *
+ * 서버가 같은 값을 스네이크(`correction_items`)로도 함께 주지만 선언하지 않는다.
+ */
+export interface RawChallengeAiResult {
+  /** STT가 옮긴 내 발화. */
+  transcript?: string | null;
+  feedback?: {
+    /** 화면의 "토선생의 한마디". */
+    summary?: string | null;
+    correctionItems?: unknown;
+    /** 지적이 없으면 `null`이 아니라 빈 문자열로 온다. 매퍼가 `null`로 좁힌다. */
+    correctedAnswer?: string | null;
+  } | null;
+}
+
 /** `GET /api/v1/challenges/{challengeDate}/results?questionNumber={n}` 의 result. */
 export interface RawChallengeQuestionResult {
   questionNumber: number;
@@ -192,8 +239,13 @@ export interface RawChallengeQuestionResult {
   audioUrl: string | null;
   referenceAnswer: string | null;
   /**
+   * `aiResult` 안에 있는 것이 확인됐지만, 형제 필드로도 오는지가 아직 확정되지 않았다.
+   * 매퍼가 양쪽을 다 보므로 어느 쪽으로 와도 화면은 같다.
+   */
+  transcript?: string | null;
+  /**
    * AI 개인화 피드백. 최종 필드가 아직 동결되지 않아(명세 9절) 형태를 확정하지 않는다.
-   * 화면은 지금 "있다/없다"만 쓰므로 매퍼가 `hasAiResult`로 좁힌다.
+   * 매퍼가 `RawChallengeAiResult`로 좁힌다.
    */
   aiResult: unknown;
 }
@@ -213,6 +265,17 @@ export interface ChallengeQuestionResult {
   referenceAnswer: string | null;
   audioUrl: string | null;
   hasAiResult: boolean;
+  /**
+   * STT가 옮긴 내 발화. 무음으로 제출됐거나 인식하지 못하면 `null`이다 —
+   * 그때는 밑줄을 그을 문장 자체가 없다.
+   */
+  transcript: string | null;
+  /** 화면 맨 위 "토선생의 한마디". */
+  feedbackSummary: string | null;
+  /** 지적할 것이 없으면 빈 배열이다. 그때는 첨삭 영역 자체를 그리지 않는다. */
+  corrections: ChallengeCorrectionItem[];
+  /** 내 문장을 고친 결과. 서버가 주는 빈 문자열은 매퍼가 `null`로 좁힌다. */
+  correctedAnswer: string | null;
 }
 
 export interface ChallengeDayResult {
