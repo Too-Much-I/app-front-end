@@ -9,6 +9,8 @@ import { colors } from "@/theme";
 interface ChallengeHeaderProps {
   /** 없으면 닫기 버튼을 숨긴다 — 제출 중처럼 화면을 벗어날 수 없는 동안. */
   onClose?: () => void;
+  /** 화면 이름. 결과 화면처럼 다른 이름을 다는 곳만 넘긴다. */
+  title?: string;
 }
 
 /**
@@ -18,7 +20,7 @@ interface ChallengeHeaderProps {
  * 시작됐다는 신호이고, 챌린지는 크림 배경 위에서 노트 한 장만 보이는 화면이라
  * 위쪽에 강한 색면이 들어오면 노트가 주인공 자리를 뺏긴다.
  */
-export function ChallengeHeader({ onClose }: ChallengeHeaderProps) {
+export function ChallengeHeader({ onClose, title = "10초 챌린지" }: ChallengeHeaderProps) {
   const { top: topInset } = useSafeAreaInsets();
 
   return (
@@ -37,7 +39,7 @@ export function ChallengeHeader({ onClose }: ChallengeHeaderProps) {
         ) : null}
 
         <Text accessibilityRole="header" className="text-lg">
-          10초 챌린지
+          {title}
         </Text>
       </View>
     </View>

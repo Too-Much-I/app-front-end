@@ -1,5 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
 import { Image, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -11,9 +12,15 @@ import {
 } from "@/features/challenge/use-challenge-result";
 import type { RootStackParamList } from "@/navigation/types";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
+import { findCorrectionSpans } from "@/screens/ten-second-challenge/challenge-ui";
+import { ChallengeCelebration } from "@/screens/ten-second-challenge/components/ChallengeCelebration";
+import { ChallengeCorrectionSheet } from "@/screens/ten-second-challenge/components/ChallengeCorrectionSheet";
+import { ChallengeSentenceCard } from "@/screens/ten-second-challenge/components/ChallengeSentenceCard";
+import { ChallengeVerdictCard } from "@/screens/ten-second-challenge/components/ChallengeVerdictCard";
+import { Tape } from "@/screens/ten-second-challenge/components/paper/Tape";
+import { ChallengeMarkedTranscript } from "@/screens/ten-second-challenge/components/ChallengeMarkedTranscript";
 import { ChallengeHeader } from "@/screens/ten-second-challenge/components/ChallengeHeader";
 import { ChallengeResultSkeleton } from "@/screens/ten-second-challenge/components/ChallengeResultSkeleton";
-import { shadows } from "@/theme";
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
 const graduateTurtle = require("../../../public/mascots/graduate_turtle.png");
@@ -48,6 +55,34 @@ export function ChallengeResultScreen({
   );
   const goToStage = () => navigation.goBack();
 
+  /*
+   * 첨삭 시트가 열려 있는 항목. 여는 쪽(밑줄·목록)과 넘기는 쪽(시트 하단)이 같은 값을
+   * 봐야 해서 시트가 아니라 화면이 들고 있다.
+   */
+  const [openedCorrection, setOpenedCorrection] = useState<number | null>(null);
+
+  const corrections = question?.corrections ?? [];
+
+  /*
+   * 밑줄 자리와, 밑줄을 얻지 못한 항목.
+   *
+   * 항목이 많아야 서너 개라 매 렌더 다시 계산한다. 두 값이 같은 배열에서 나와야
+   * 시트의 인덱스와 밑줄이 어긋나지 않으므로 한자리에서 함께 만든다.
+   */
+  const spans = findCorrectionSpans(question?.transcript ?? "", corrections);
+  const markedIndexes = new Set(spans.map((span) => span.index));
+  const unmarkedIndexes = corrections
+    .map((_, index) => index)
+    .filter((index) => !markedIndexes.has(index));
+
+  /*
+   * 채점은 끝났는데 옮겨 적을 발화가 없다 — 무음으로 제출됐거나 인식하지 못한 경우다.
+   *
+   * 이때는 피드백도 첨삭도 같이 비어 있는 게 보통이라, "한마디"와 "내가 말한 문장"이
+   * 둘 다 "없다"만 말하는 카드 두 장이 된다. 그래서 문장 카드 한 장으로 합친다.
+   */
+  const missedSpeech = (question?.hasAiResult ?? false) && question?.transcript == null;
+
   if (status === "loading") {
     return (
       <View className="flex-1 bg-surface-subtle">
@@ -63,7 +98,7 @@ export function ChallengeResultScreen({
   return (
     <View className="flex-1 bg-surface-subtle">
       <StatusBar style="dark" />
-      <ChallengeHeader onClose={goToStage} />
+      <ChallengeHeader onClose={goToStage} title="토선생의 한마디" />
 
       <SafeAreaView className="flex-1" edges={["bottom"]}>
         <ScrollView
@@ -71,57 +106,131 @@ export function ChallengeResultScreen({
           contentContainerClassName="flex-grow gap-4 px-5 pb-4 pt-4"
           showsVerticalScrollIndicator={false}
         >
-          <View className="items-center gap-2">
-            <Image
-              accessibilityElementsHidden
-              className="h-32 w-32"
-              resizeMode="contain"
-              source={notice.mascot}
-            />
-            <Text accessibilityRole="header" className="text-xl text-brand-text">
-              {notice.title}
-            </Text>
-            <Text className="text-center text-sm leading-6 text-ink-muted">
-              {notice.description}
-            </Text>
-          </View>
+          {/*
+            채점이 끝난 화면만 축하한다. 기다리는 중이거나 실패한 화면은 마스코트와
+            안내 문구가 상황을 설명해야 해서 색종이가 낄 자리가 아니다.
+          */}
+          {status === "completed" ? (
+            /*
+              잘린 하반신이 판정 카드 윗변에 맞물려야 "카드 뒤에 서 있는" 것으로 보인다.
+              `-mb-4`는 스크롤 컨테이너의 `gap-4`를 상쇄해 둘 사이를 0으로 만든다.
+            */
+            <View className="-mb-4">
+              <ChallengeCelebration />
+            </View>
+          ) : (
+            <View className="items-center gap-2">
+              <Image
+                accessibilityElementsHidden
+                className="h-32 w-32"
+                resizeMode="contain"
+                source={notice.mascot}
+              />
+              <Text accessibilityRole="header" className="text-xl text-brand-text">
+                {notice.title}
+              </Text>
+              <Text className="text-center text-sm leading-6 text-ink-muted">
+                {notice.description}
+              </Text>
+            </View>
+          )}
 
           {question ? (
             <>
-              <View className="rounded-3xl bg-surface p-5" style={shadows.card}>
-                <Text className="text-xs text-ink-muted">오늘의 문장</Text>
-                <Text className="mt-2 text-lg leading-8">{question.promptKo}</Text>
-              </View>
-
-              {question.referenceAnswer ? (
-                <View
-                  className="rounded-3xl border border-sky-line bg-sky-surface p-5"
-                  style={shadows.card}
+              {missedSpeech ? null : (
+                <ChallengeVerdictCard
+                  decoration={<Tape side="right" tone="mint" />}
+                  message={
+                    question.feedbackSummary ??
+                    getFeedbackNotice(status, question.hasAiResult)
+                  }
                 >
-                  <Text className="text-xs text-sky-text">이렇게 말할 수 있어요</Text>
-                  <Text className="mt-2 text-lg leading-8 text-sky-text">
-                    {question.referenceAnswer}
+                  {/* 채점 중에는 곧 채워질 본문의 자리를 잡아둔다. */}
+                  {status === "grading" ? (
+                    <View className="gap-2">
+                      <SkeletonBlock className="h-4 w-full" />
+                      <SkeletonBlock className="h-4 w-4/5" />
+                    </View>
+                  ) : null}
+                </ChallengeVerdictCard>
+              )}
+
+              {question.transcript ? (
+                <ChallengeSentenceCard
+                  hint={spans.length > 0 ? "밑줄을 누르면 설명이 나와요" : undefined}
+                  label="내 문장"
+                  tone="mint"
+                >
+                  <ChallengeMarkedTranscript
+                    corrections={question.corrections}
+                    onSelect={setOpenedCorrection}
+                    spans={spans}
+                    transcript={question.transcript}
+                  />
+
+                  {/*
+                    밑줄을 그을 수 없었던 항목만 모으는 줄.
+
+                    `original`을 문장에서 못 찾으면 밑줄이 생기지 않는데, 이 줄이 없으면
+                    그 지적은 화면에서 통째로 사라진다. 시트는 전체 목록을 넘겨받으므로
+                    여기서 연 뒤에도 하단 이동으로 다른 지적까지 갈 수 있다.
+                  */}
+                  {unmarkedIndexes.length > 0 ? (
+                    <Pressable
+                      accessibilityHint="첨삭 설명을 엽니다"
+                      accessibilityLabel={`그 외 지적 ${unmarkedIndexes.length}개`}
+                      accessibilityRole="button"
+                      className="mt-3 flex-row items-center border-t border-challenge-mint-label pt-3"
+                      onPress={() => setOpenedCorrection(unmarkedIndexes[0] ?? 0)}
+                    >
+                      <Text className="flex-1 text-xs text-challenge-mint-text">
+                        그 외 지적 {unmarkedIndexes.length}개
+                      </Text>
+                      <Text className="text-xs text-challenge-mint-text">›</Text>
+                    </Pressable>
+                  ) : null}
+                </ChallengeSentenceCard>
+              ) : missedSpeech ? (
+                <ChallengeSentenceCard label="내 문장" tone="mint">
+                  <Text className="text-base leading-7">
+                    이번에는 말한 내용을 알아듣지 못했어요.
                   </Text>
-                </View>
+                  <Text className="text-sm leading-6 text-challenge-mint-text">
+                    아래 모범 답안을 보고 내일 다시 도전해 보세요.
+                  </Text>
+
+                  {/*
+                    문장이 없으면 첨삭도 전부 밑줄을 얻지 못한다. 드물지만 서버가 지적을
+                    함께 준다면 이 줄이 유일한 입구다 — 없으면 그대로 묻힌다.
+                  */}
+                  {corrections.length > 0 ? (
+                    <Pressable
+                      accessibilityHint="첨삭 설명을 엽니다"
+                      accessibilityLabel={`지적 ${corrections.length}개 보기`}
+                      accessibilityRole="button"
+                      className="mt-3 flex-row items-center border-t border-challenge-mint-label pt-3"
+                      onPress={() => setOpenedCorrection(0)}
+                    >
+                      <Text className="flex-1 text-xs text-challenge-mint-text">
+                        지적 {corrections.length}개 보기
+                      </Text>
+                      <Text className="text-xs text-challenge-mint-text">›</Text>
+                    </Pressable>
+                  ) : null}
+                </ChallengeSentenceCard>
               ) : null}
 
-              {/*
-                AI 개인화 피드백. 응답 필드가 아직 동결되지 않아(명세 9절 `aiResult`)
-                지금은 준비 상태만 말한다. 필드가 정해지면 이 자리에 본문이 들어간다.
-              */}
-              <View className="rounded-3xl bg-surface p-5" style={shadows.card}>
-                <Text className="text-xs text-ink-muted">토선생의 한마디</Text>
-                <Text className="mt-2 text-sm leading-6 text-ink-muted">
-                  {getFeedbackNotice(status, question.hasAiResult)}
-                </Text>
-                {/* 채점 중에는 곧 채워질 본문의 자리를 잡아둔다. */}
-                {status === "grading" ? (
-                  <View className="mt-3 gap-2">
-                    <SkeletonBlock className="h-4 w-full" />
-                    <SkeletonBlock className="h-4 w-4/5" />
-                  </View>
-                ) : null}
-              </View>
+              {question.referenceAnswer ? (
+                <ChallengeSentenceCard
+                  decoration={<Tape side="right" tone="sky" />}
+                  label="추천 표현"
+                  tone="sky"
+                >
+                  <Text className="text-lg leading-8 text-sky-text">
+                    {question.referenceAnswer}
+                  </Text>
+                </ChallengeSentenceCard>
+              ) : null}
             </>
           ) : null}
         </ScrollView>
@@ -150,6 +259,13 @@ export function ChallengeResultScreen({
           </Pressable>
         </View>
       </SafeAreaView>
+
+      <ChallengeCorrectionSheet
+        index={openedCorrection}
+        items={corrections}
+        onClose={() => setOpenedCorrection(null)}
+        onIndexChange={setOpenedCorrection}
+      />
     </View>
   );
 }
