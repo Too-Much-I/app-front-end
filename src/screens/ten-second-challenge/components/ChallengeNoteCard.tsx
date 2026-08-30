@@ -4,25 +4,18 @@ import { Image, View } from "react-native";
 
 import { Text } from "@/components/ui/Text";
 import { isUrgentRemaining } from "@/screens/ten-second-challenge/challenge-ui";
+import { PunchHoles } from "@/screens/ten-second-challenge/components/paper/PunchHoles";
+import { Tape } from "@/screens/ten-second-challenge/components/paper/Tape";
 import { colors, shadows } from "@/theme";
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
 const paintingCat = require("../../../../public/mascots/painting_cat.png");
 
-/**
- * 왼쪽 가장자리에 뚫린 펀치 구멍 수.
- *
- * `justify-between`으로 벌리므로 속지가 길어지면 구멍 간격도 같이 벌어진다. 카드가
- * 화면 높이를 채우게 된 뒤로는 9개면 구멍 사이가 너무 성겨서, 기존 간격(약 13px)이
- * 유지되는 수로 올렸다.
- */
-const PUNCH_HOLE_COUNT = 16;
 /** 아래쪽 뜯긴 가장자리를 만드는 물결 수. */
 const TORN_EDGE_BUMP_COUNT = 14;
 /** 속지 괘선 수와 간격(px). 속지보다 길게 그려두고 넘치는 줄은 잘라낸다. */
 const RULE_LINE_COUNT = 20;
 const RULE_LINE_GAP = 30;
-const TAPE_DOT_COLUMNS = 5;
 
 interface ChallengeNoteCardProps {
   promptKo: string;
@@ -72,7 +65,7 @@ export function ChallengeNoteCard({
           style={{ transform: [{ rotate: "-0.8deg" }] }}
         >
           <NoteRuleLines />
-          <NotePunchHoles />
+          <PunchHoles carvedFrom={colors.challenge.mat} fit="note" />
 
           <View className="grow items-center justify-center gap-4 pb-20 pl-9 pr-5 pt-5">
             <View className="flex-row items-center gap-1.5 rounded-lg bg-challenge-label px-3 py-1.5">
@@ -101,7 +94,7 @@ export function ChallengeNoteCard({
         </View>
       </View>
 
-      <WashiTape />
+      <Tape side="right" tone="sky" />
 
       {/*
         마스코트는 대지보다 나중에 그려서 카드 위로 올라온다. 그래서 키울 때는 속지의
@@ -174,23 +167,6 @@ function NoteRuleLines() {
   );
 }
 
-function NotePunchHoles() {
-  return (
-    <View
-      accessibilityElementsHidden
-      className="absolute bottom-6 left-2 top-5 z-10 justify-between"
-      pointerEvents="none"
-    >
-      {Array.from({ length: PUNCH_HOLE_COUNT }, (_, index) => index).map((index) => (
-        <View
-          className="h-3.5 w-2.5 rounded-full border border-challenge-holeEdge bg-challenge-mat"
-          key={index}
-        />
-      ))}
-    </View>
-  );
-}
-
 function NoteTornEdge() {
   return (
     <View
@@ -200,31 +176,6 @@ function NoteTornEdge() {
     >
       {Array.from({ length: TORN_EDGE_BUMP_COUNT }, (_, index) => index).map((index) => (
         <View className="-mx-0.5 h-3 flex-1 rounded-full bg-challenge-mat" key={index} />
-      ))}
-    </View>
-  );
-}
-
-/**
- * 속지 오른쪽 위를 눌러 붙인 워시 테이프.
- *
- * 기울이지 않는다. 기울이면 들린 끝이 카드 위 가장자리의 남은 시간 바를 가로지르는데,
- * 그걸 피하려고 아래로 밀면 이번엔 테이프가 종이 한가운데로 내려온다. 반듯하게 붙이면
- * `top` 값이 그대로 윗변이라 바 아래에서 시작하는 위치를 눈으로 정할 수 있다.
- */
-function WashiTape() {
-  return (
-    <View
-      accessibilityElementsHidden
-      className="absolute -right-1 top-4 h-8 w-28 justify-center gap-1 rounded-sm bg-sky/90 px-2"
-      pointerEvents="none"
-    >
-      {[0, 1].map((row) => (
-        <View className="flex-row justify-between" key={row}>
-          {Array.from({ length: TAPE_DOT_COLUMNS }, (_, index) => index).map((index) => (
-            <View className="h-1.5 w-1.5 rounded-full bg-white/80" key={index} />
-          ))}
-        </View>
       ))}
     </View>
   );
