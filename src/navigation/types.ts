@@ -1,6 +1,6 @@
 import type { NavigatorScreenParams } from "@react-navigation/native";
 
-import type { ChallengeResultSeed } from "@/types/challenge";
+import type { ChallengeInitialResult } from "@/types/challenge";
 import type { ExamSession } from "@/types/exam";
 
 export type MainTabParamList = {
@@ -62,7 +62,7 @@ export type RootStackParamList = {
      * 제출 접수 응답에서 바로 받은 값. 있으면 결과 화면이 첫 조회를 기다리지 않고
      * 참고 답안까지 그린다. 스테이지에서 들어올 때는 없고, 그때는 결과 조회가 채운다.
      */
-    seed?: ChallengeResultSeed;
+    initialResult?: ChallengeInitialResult;
   };
   /** 설정 화면. 탭이 아니라 홈 화면 헤더 아이콘으로 진입하는 루트 스택 push 화면이다. */
   Settings: undefined;

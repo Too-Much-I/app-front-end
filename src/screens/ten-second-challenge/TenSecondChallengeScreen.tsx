@@ -149,7 +149,7 @@ export function TenSecondChallengeScreen({
         // 접수 응답이 참고 답안까지 줬다면 결과 화면이 스피너부터 보여줄 이유가 없다.
         ...(accepted && question
           ? {
-              seed: {
+              initialResult: {
                 questionNumber: accepted.questionNumber,
                 promptKo: question.promptKo,
                 gradingStatus: accepted.gradingStatus,

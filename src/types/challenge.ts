@@ -169,12 +169,12 @@ export interface ChallengeAnswerAccepted {
 }
 
 /**
- * 결과 화면이 첫 조회를 기다리지 않고 바로 그릴 수 있는 씨앗 값.
+ * 결과 화면이 첫 조회를 기다리지 않고 바로 그릴 수 있는 초기 결과.
  *
  * 제출 직후 진입에만 있다. 스테이지에서 들어오면 없고, 그때는 결과 조회가 채운다.
  * 어디까지나 첫 프레임을 위한 값이라 폴링 결과가 오면 그쪽으로 덮인다.
  */
-export interface ChallengeResultSeed {
+export interface ChallengeInitialResult {
   questionNumber: number;
   promptKo: string;
   gradingStatus: ChallengeGradingStatus;

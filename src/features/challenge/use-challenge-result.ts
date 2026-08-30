@@ -8,7 +8,7 @@ import {
 import type {
   ChallengeDayResult,
   ChallengeQuestionResult,
-  ChallengeResultSeed,
+  ChallengeInitialResult,
 } from "@/types/challenge";
 
 /** 명세 8절 권장 주기 — 2초에서 시작해 5초까지 늘린다. 이후에는 5초를 유지한다. */
@@ -33,16 +33,16 @@ interface ChallengeResultState {
   question: ChallengeQuestionResult | null;
 }
 
-function toSeededState(seed?: ChallengeResultSeed): ChallengeResultState {
-  if (!seed) return { status: "loading", question: null };
+function toInitialState(initialResult?: ChallengeInitialResult): ChallengeResultState {
+  if (!initialResult) return { status: "loading", question: null };
 
   return {
-    status: resolveSeedStatus(seed.gradingStatus),
+    status: resolveInitialStatus(initialResult.gradingStatus),
     question: {
-      questionNumber: seed.questionNumber,
-      promptKo: seed.promptKo,
-      gradingStatus: seed.gradingStatus,
-      referenceAnswer: seed.referenceAnswer,
+      questionNumber: initialResult.questionNumber,
+      promptKo: initialResult.promptKo,
+      gradingStatus: initialResult.gradingStatus,
+      referenceAnswer: initialResult.referenceAnswer,
       // 접수 시점에는 아직 없는 값들이다. 폴링이 끝나면 조회 결과가 덮는다.
       audioUrl: null,
       hasAiResult: false,
@@ -50,8 +50,8 @@ function toSeededState(seed?: ChallengeResultSeed): ChallengeResultState {
   };
 }
 
-function resolveSeedStatus(
-  gradingStatus: ChallengeResultSeed["gradingStatus"],
+function resolveInitialStatus(
+  gradingStatus: ChallengeInitialResult["gradingStatus"],
 ): ChallengeResultStatus {
   if (gradingStatus === "completed") return "completed";
   if (gradingStatus === "failed") return "grading-failed";
@@ -73,9 +73,11 @@ export function useChallengeResult(
   challengeDate: string,
   questionNumber: number,
   /** 제출 접수 응답이 준 값. 있으면 첫 조회를 기다리지 않고 그 상태로 시작한다. */
-  seed?: ChallengeResultSeed,
+  initialResult?: ChallengeInitialResult,
 ) {
-  const [state, setState] = useState<ChallengeResultState>(() => toSeededState(seed));
+  const [state, setState] = useState<ChallengeResultState>(() =>
+    toInitialState(initialResult),
+  );
   const [attempt, setAttempt] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -84,7 +86,7 @@ export function useChallengeResult(
     const deadline = Date.now() + POLL_BUDGET_MS;
     let round = 0;
     let hasLoadedOnce = false;
-    // 이미 그릴 것이 있으면(씨앗 값이나 직전 조회 결과) 스피너로 되돌리지 않는다.
+    // 이미 그릴 것이 있으면(초기 결과나 직전 조회 결과) 스피너로 되돌리지 않는다.
     setState((current) =>
       current.question ? current : { status: "loading", question: null },
     );

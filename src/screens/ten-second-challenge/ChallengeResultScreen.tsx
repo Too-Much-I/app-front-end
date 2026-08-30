@@ -40,8 +40,12 @@ export function ChallengeResultScreen({
   navigation,
   route,
 }: ChallengeResultScreenProps) {
-  const { challengeDate, questionNumber, seed } = route.params;
-  const { status, question, retry } = useChallengeResult(challengeDate, questionNumber, seed);
+  const { challengeDate, questionNumber, initialResult } = route.params;
+  const { status, question, retry } = useChallengeResult(
+    challengeDate,
+    questionNumber,
+    initialResult,
+  );
   const goToStage = () => navigation.goBack();
 
   if (status === "loading") {
