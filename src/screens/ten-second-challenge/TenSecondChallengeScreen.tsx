@@ -146,6 +146,7 @@ export function TenSecondChallengeScreen({
       navigation.replace("ChallengeResult", {
         challengeDate: accepted?.date ?? resolvedDate,
         questionNumber,
+        totalQuestionCount: question?.totalQuestionCount,
         // 접수 응답이 참고 답안까지 줬다면 결과 화면이 스피너부터 보여줄 이유가 없다.
         ...(accepted && question
           ? {

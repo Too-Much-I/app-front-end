@@ -47,13 +47,34 @@ export function ChallengeResultScreen({
   navigation,
   route,
 }: ChallengeResultScreenProps) {
-  const { challengeDate, questionNumber, initialResult } = route.params;
+  const { challengeDate, questionNumber, initialResult, totalQuestionCount } = route.params;
   const { status, question, retry } = useChallengeResult(
     challengeDate,
     questionNumber,
     initialResult,
   );
   const goToStage = () => navigation.goBack();
+
+  /*
+   * 다음 문장으로 바로 넘어갈 수 있는가.
+   *
+   * 챌린지는 순서대로만 진행하고 서버가 순서 밖 요청을 막으므로 다음 번호는 +1이다.
+   * 다만 마지막 문장에서 없는 번호로 보내지 않으려면 총 문항 수가 필요한데, 결과 조회
+   * 응답에는 없어서 문제 화면이 넘겨준 값에 기댄다. 스테이지에서 들어오면 그 값이 없고,
+   * 그때는 이 버튼 대신 진행도로 돌아가는 버튼만 남는다.
+   */
+  const nextQuestionNumber =
+    totalQuestionCount !== undefined && questionNumber < totalQuestionCount
+      ? questionNumber + 1
+      : null;
+
+  const goToNextQuestion = () => {
+    if (nextQuestionNumber === null) return;
+    navigation.replace("TenSecondChallenge", {
+      challengeDate,
+      questionNumber: nextQuestionNumber,
+    });
+  };
 
   /*
    * 첨삭 시트가 열려 있는 항목. 여는 쪽(밑줄·목록)과 넘기는 쪽(시트 하단)이 같은 값을
@@ -236,6 +257,18 @@ export function ChallengeResultScreen({
         </ScrollView>
 
         <View className="gap-2 px-5 pb-3">
+          {nextQuestionNumber !== null ? (
+            <Pressable
+              accessibilityHint={`${nextQuestionNumber}번째 문장으로 넘어갑니다`}
+              accessibilityLabel="한 문장 더"
+              accessibilityRole="button"
+              className="w-full items-center rounded-full bg-brand-cta py-4"
+              onPress={goToNextQuestion}
+            >
+              <Text className="text-base text-white">한 문장 더</Text>
+            </Pressable>
+          ) : null}
+
           {notice.canRetry ? (
             <Pressable
               accessibilityHint="채점 상태를 서버에 다시 물어봅니다"
