@@ -1,5 +1,6 @@
 import type { NavigatorScreenParams } from "@react-navigation/native";
 
+import type { ChallengeInitialResult } from "@/types/challenge";
 import type { ExamSession } from "@/types/exam";
 
 export type MainTabParamList = {
@@ -42,6 +43,34 @@ export type RootStackParamList = {
     examId: string;
     questionNumber: number;
     nextRetryCount: number;
+  };
+  /**
+   * 10초 챌린지 문제 화면. 오늘의 진행도(스테이지) 화면이 자기가 받은 `challengeDate`와
+   * 진행할 문제 번호를 넘긴다. 날짜는 앱이 계산한 값이 아니라 서버가 준 값이어야 한다 —
+   * 이후 요청의 `X-Challenge-Date`가 되어 자정을 넘긴 화면을 서버가 걸러낸다.
+   */
+  TenSecondChallenge: { challengeDate?: string; questionNumber: number };
+  /**
+   * 10초 챌린지 결과 화면. 제출 직후 문제 화면을 replace하며 들어오거나, 스테이지에서
+   * 이미 푼 문장을 눌러 들어온다. 두 경로가 같은 화면이라 넘기는 값은 날짜와 문제 번호뿐이고
+   * 참고 답안·채점 상태는 전부 결과 조회 API에서 다시 읽는다.
+   */
+  ChallengeResult: {
+    challengeDate: string;
+    questionNumber: number;
+    /**
+     * 제출 접수 응답에서 바로 받은 값. 있으면 결과 화면이 첫 조회를 기다리지 않고
+     * 참고 답안까지 그린다. 스테이지에서 들어올 때는 없고, 그때는 결과 조회가 채운다.
+     */
+    initialResult?: ChallengeInitialResult;
+    /**
+     * 오늘의 총 문항 수. 문제 화면이 조회 응답에서 알고 있어 그대로 실어 보낸다.
+     *
+     * "한 문장 더" 버튼이 마지막 문장에서 없는 번호로 보내지 않으려면 이 값이 필요한데,
+     * 결과 조회 응답에는 없다. 스테이지에서 들어올 때는 없고, 그때는 버튼도 내지 않는다 —
+     * 다음 문장을 고르는 일은 어차피 스테이지의 몫이다.
+     */
+    totalQuestionCount?: number;
   };
   /** 설정 화면. 탭이 아니라 홈 화면 헤더 아이콘으로 진입하는 루트 스택 push 화면이다. */
   Settings: undefined;
