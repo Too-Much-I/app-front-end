@@ -5,7 +5,7 @@ import { ScrollView, View } from "react-native";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
-import { PLAYBACK_AUDIO_MODE } from "@/features/exam/answer-audio";
+import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
 import { getExamPartIntroAudioSource } from "@/features/exam/part-prelude";
 import { colors } from "@/theme";
 import { reportOperationalError } from "@/lib/operational-error-reporting";

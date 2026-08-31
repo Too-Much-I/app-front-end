@@ -2,7 +2,7 @@ import { View } from "react-native";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
-import type { ChallengeNoteStatus } from "@/screens/ten-second-challenge/challenge-ui";
+import type { ChallengeNoteStatus } from "@/screens/challenge/challenge-ui";
 
 interface ChallengeActionBarProps {
   status: ChallengeNoteStatus;

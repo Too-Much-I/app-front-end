@@ -3,9 +3,9 @@ import type { ReactNode } from "react";
 import { Image, View } from "react-native";
 
 import { Text } from "@/components/ui/Text";
-import { isUrgentRemaining } from "@/screens/ten-second-challenge/challenge-ui";
-import { PunchHoles } from "@/screens/ten-second-challenge/components/paper/PunchHoles";
-import { Tape } from "@/screens/ten-second-challenge/components/paper/Tape";
+import { isUrgentRemaining } from "@/screens/challenge/challenge-ui";
+import { PunchHoles } from "@/screens/challenge/components/paper/PunchHoles";
+import { Tape } from "@/screens/challenge/components/paper/Tape";
 import { colors, shadows } from "@/theme";
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.

@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, Linking, View } from "react-native";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
-import type { AnswerRecordingStatus } from "@/features/exam/use-answer-recorder";
+import type { AudioRecordingStatus } from "@/features/audio/use-timed-audio-recorder";
 import type { ExamSessionPhase } from "@/screens/mock-exam/hooks/use-exam-session-controller";
 import { colors } from "@/theme";
 import type {
@@ -17,7 +17,7 @@ const scoringMascot = require("../../../../public/mascots/scoring.png");
 
 interface ExamAnswerStatusProps {
   phase: ExamSessionPhase;
-  recordingStatus: AnswerRecordingStatus;
+  recordingStatus: AudioRecordingStatus;
   canAskPermissionAgain: boolean;
   recordingErrorMessage?: string;
   jobs: AnswerSubmissionJob[];

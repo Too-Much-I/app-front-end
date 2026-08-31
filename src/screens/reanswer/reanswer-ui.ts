@@ -26,17 +26,17 @@ export type ReanswerRecordStatus = Extract<
 /** 문제 카드 대신 안내 화면 한 장만 그리는 상태. */
 export type ReanswerStatusOnly = Exclude<ReanswerUiStatus, ReanswerRecordStatus>;
 
-export function isStatusOnly(status: ReanswerUiStatus): status is ReanswerStatusOnly {
+export function isReanswerStatusOnly(status: ReanswerUiStatus): status is ReanswerStatusOnly {
   return status !== "idle" && status !== "recording" && status !== "reviewing";
 }
 
 /** 나가기를 막고 확인을 받아야 하는 상태 — 녹음 중이거나 제출하지 않은 녹음본이 있다. */
-export function hasUnsavedRecording(status: ReanswerUiStatus): boolean {
+export function hasUnsavedReanswerRecording(status: ReanswerUiStatus): boolean {
   return status === "recording" || status === "reviewing";
 }
 
 /** 제출이 진행 중이라 화면을 벗어날 수 없는 상태. */
-export function isSubmissionLocked(status: ReanswerUiStatus): boolean {
+export function isReanswerSubmissionLocked(status: ReanswerUiStatus): boolean {
   return status === "submitting" || status === "grading";
 }
 

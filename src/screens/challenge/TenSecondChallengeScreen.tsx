@@ -13,26 +13,28 @@ import {
 } from "@/features/challenge/challenge-error-codes";
 import { useChallengeAttempt } from "@/features/challenge/use-challenge-attempt";
 import { useChallengeQuestion } from "@/features/challenge/use-challenge-question";
-import { useChallengeRecorder } from "@/features/challenge/use-challenge-recorder";
+import {
+  CHALLENGE_RECORDING_DURATION_SEC,
+  useChallengeRecorder,
+} from "@/features/challenge/use-challenge-recorder";
 import { useChallengeSubmission } from "@/features/challenge/use-challenge-submission";
 import type { RootStackParamList } from "@/navigation/types";
 import { AudioWaveform } from "@/screens/mock-exam/components/AudioWaveform";
 import {
-  CHALLENGE_RECORDING_SECONDS,
   getChallengeRemainingSeconds,
-  hasUnsavedRecording,
-  isStatusOnly,
-  isSubmissionLocked,
+  hasUnsavedChallengeRecording,
+  isChallengeStatusOnly,
+  isChallengeSubmissionLocked,
   resolveChallengeUiStatus,
   resolveRecordingPhase,
-} from "@/screens/ten-second-challenge/challenge-ui";
-import { ChallengeActionBar } from "@/screens/ten-second-challenge/components/ChallengeActionBar";
-import { ChallengeHeader } from "@/screens/ten-second-challenge/components/ChallengeHeader";
-import { ChallengeNoteCard } from "@/screens/ten-second-challenge/components/ChallengeNoteCard";
-import { ChallengeNoteSkeleton } from "@/screens/ten-second-challenge/components/ChallengeNoteSkeleton";
-import { ChallengeReviewPanel } from "@/screens/ten-second-challenge/components/ChallengeReviewPanel";
-import { ChallengeStatusPanel } from "@/screens/ten-second-challenge/components/ChallengeStatusPanel";
-import { ChallengeTimerHeader } from "@/screens/ten-second-challenge/components/ChallengeTimerHeader";
+} from "@/screens/challenge/challenge-ui";
+import { ChallengeActionBar } from "@/screens/challenge/components/ChallengeActionBar";
+import { ChallengeHeader } from "@/screens/challenge/components/ChallengeHeader";
+import { ChallengeNoteCard } from "@/screens/challenge/components/ChallengeNoteCard";
+import { ChallengeNoteSkeleton } from "@/screens/challenge/components/ChallengeNoteSkeleton";
+import { ChallengeReviewPanel } from "@/screens/challenge/components/ChallengeReviewPanel";
+import { ChallengeStatusPanel } from "@/screens/challenge/components/ChallengeStatusPanel";
+import { ChallengeTimerHeader } from "@/screens/challenge/components/ChallengeTimerHeader";
 import type { ChallengeAnswerAccepted, ChallengeQuestion } from "@/types/challenge";
 
 type TenSecondChallengeScreenProps = NativeStackScreenProps<
@@ -298,7 +300,7 @@ export function TenSecondChallengeScreen({
         audioFileUri: recording.audioFileUri,
         recordedSeconds: Math.min(
           lastElapsedSecondsRef.current,
-          CHALLENGE_RECORDING_SECONDS,
+          CHALLENGE_RECORDING_DURATION_SEC,
         ),
       });
     } catch (error) {
@@ -353,8 +355,8 @@ export function TenSecondChallengeScreen({
   }, [navigation]);
 
   const requestClose = useCallback(() => {
-    if (isSubmissionLocked(uiStatus)) return;
-    if (hasUnsavedRecording(uiStatus)) {
+    if (isChallengeSubmissionLocked(uiStatus)) return;
+    if (hasUnsavedChallengeRecording(uiStatus)) {
       setIsDiscardVisible(true);
       return;
     }
@@ -365,11 +367,11 @@ export function TenSecondChallengeScreen({
   useEffect(() => {
     const unsubscribe = navigation.addListener("beforeRemove", (event) => {
       if (leavingRef.current) return;
-      if (isSubmissionLocked(uiStatus)) {
+      if (isChallengeSubmissionLocked(uiStatus)) {
         event.preventDefault();
         return;
       }
-      if (!hasUnsavedRecording(uiStatus)) return;
+      if (!hasUnsavedChallengeRecording(uiStatus)) return;
 
       event.preventDefault();
       setIsDiscardVisible(true);
@@ -382,13 +384,13 @@ export function TenSecondChallengeScreen({
     <View className="flex-1 bg-surface-subtle">
       <StatusBar style="dark" />
       <ChallengeHeader
-        onClose={isSubmissionLocked(uiStatus) ? undefined : requestClose}
+        onClose={isChallengeSubmissionLocked(uiStatus) ? undefined : requestClose}
       />
 
       <SafeAreaView className="flex-1" edges={["bottom"]}>
         {uiStatus === "loading" || !question ? (
           <ChallengeNoteSkeleton />
-        ) : isStatusOnly(uiStatus) ? (
+        ) : isChallengeStatusOnly(uiStatus) ? (
           <ChallengeStatusPanel
             errorMessage={submissionErrorMessage}
             onLeave={leaveScreen}
@@ -414,7 +416,7 @@ export function TenSecondChallengeScreen({
               <ChallengeNoteCard
                 promptKo={question.promptKo}
                 remainingSeconds={remainingSeconds}
-                totalSeconds={CHALLENGE_RECORDING_SECONDS}
+                totalSeconds={CHALLENGE_RECORDING_DURATION_SEC}
               >
                 {uiStatus === "preparing" ? (
                   <Text className="text-center text-sm text-ink-muted">

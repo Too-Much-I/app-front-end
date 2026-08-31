@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 
-import { normalizeMeteringDb } from "@/features/exam/answer-audio";
+import { normalizeMeteringDb } from "@/features/audio/audio-session";
 
 const VISUAL_SMOOTHING = 0.35;
 

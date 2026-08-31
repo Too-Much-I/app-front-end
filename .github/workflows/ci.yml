@@ -16,7 +16,9 @@ permissions:
 
 jobs:
   verify:
-    name: lint + typecheck
+    # 이 이름이 GitHub에 뜨는 체크 이름이고, main 룰셋의 required status check로 지정하는 값이다.
+    # 검사를 추가할 때마다 바뀌지 않도록 무엇을 도는지는 이름에 넣지 않는다 — 아래 step이 보여준다.
+    name: verify
     runs-on: ubuntu-latest
     steps:
       # push를 하지 않으므로 토큰을 .git/config에 남기지 않는다.
@@ -38,7 +40,13 @@ jobs:
       - name: pnpm lint
         run: pnpm lint
 
-      # lint가 실패해도 실행해, 한 번의 CI로 두 결과를 모두 본다.
+      # lint가 실패해도 실행해, 한 번의 CI로 세 결과를 모두 본다.
       - name: pnpm typecheck
         if: ${{ !cancelled() }}
         run: pnpm typecheck
+
+      # 파일 하나만 봐서는 판단할 수 없는 네이밍 규칙(같은 이름을 두 파일이 내보내는지 등)을
+      # 검사한다. 규칙과 근거는 docs/architecture/01-naming-dictionary.md 에 있다.
+      - name: pnpm check:naming
+        if: ${{ !cancelled() }}
+        run: pnpm check:naming

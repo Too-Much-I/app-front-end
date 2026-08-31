@@ -1,7 +1,0 @@
-export {
-  AUDIO_METER_UPDATE_INTERVAL_MS,
-  normalizeMeteringDb,
-  PLAYBACK_AUDIO_MODE,
-  RECORDING_AUDIO_MODE,
-  VOICE_RECORDING_OPTIONS as ANSWER_RECORDING_OPTIONS,
-} from "@/features/audio/audio-session";

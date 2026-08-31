@@ -11,7 +11,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { PortraitOnlyNotice } from "@/components/ui/PortraitOnlyNotice";
 import { useAuth } from "@/features/auth/auth-context";
-import { AuthProvider } from "@/features/auth/auth-provider";
+import { AuthProvider } from "@/features/auth/AuthProvider";
 import { OrientationProvider } from "@/features/orientation/OrientationProvider";
 import { useOrientation } from "@/features/orientation/orientation-context";
 import { RootNavigator } from "@/navigation/RootNavigator";

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { View } from "react-native";
 
 import { Text } from "@/components/ui/Text";
-import { PunchHoles } from "@/screens/ten-second-challenge/components/paper/PunchHoles";
+import { PunchHoles } from "@/screens/challenge/components/paper/PunchHoles";
 import { colors, shadows } from "@/theme";
 
 export type SentenceCardTone = "mint" | "sky";

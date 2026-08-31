@@ -1,4 +1,4 @@
-import { mapChallengeUploadUrl } from "@/features/challenge/map-challenge-question";
+import { mapChallengeUploadUrl } from "@/features/challenge/map-challenge-upload-url";
 import { apiFetch } from "@/lib/api/client";
 import type { ApiEnvelope } from "@/types/api";
 import type { ChallengeUploadUrl, RawChallengeUploadUrl } from "@/types/challenge";

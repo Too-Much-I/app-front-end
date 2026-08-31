@@ -1,0 +1,141 @@
+<mxfile host="app.diagrams.net" agent="claude-code" version="24.7.17">
+  <diagram id="concept-map" name="컨셉맵">
+    <mxGraphModel dx="1990" dy="1060" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1990" pageHeight="1060" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="토선생 앱 · 컨셉맵 — 학습자가 지나가는 여섯 단계" style="text;html=1;fontSize=22;fontStyle=1;fontColor=#111827;align=left;" vertex="1" parent="1">
+          <mxGeometry x="45" y="16" width="1200" height="30" as="geometry" /></mxCell>
+        <mxCell id="legend" value="왼쪽에서 오른쪽으로 한 번만 읽으면 끝난다. 가운데 두 줄은 &lt;b&gt;같은 여섯 단계를 지나는 서로 다른 학습 루프&lt;/b&gt;다 — 모양이 같아서 코드도 닮았고, 그래서 이름이 겹치는 문제가 생겼다." style="text;html=1;fontSize=13;fontColor=#6B7280;align=left;" vertex="1" parent="1">
+          <mxGeometry x="45" y="46" width="1600" height="20" as="geometry" /></mxCell>
+
+        <mxCell id="band1" value="먼저 한 번만 — 앱을 쓸 수 있게 되기까지" style="rounded=1;html=1;fillColor=#FFF9F2;strokeColor=#FFD9C2;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontColor=#BD4900;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="1910" height="170" as="geometry" /></mxCell>
+
+        <mxCell id="p_learner" value="학습자" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F76910;strokeColor=#BD4900;fontColor=#FFFFFF;fontSize=17;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="135" width="160" height="60" as="geometry" /></mxCell>
+        <mxCell id="p_install" value="설치 ID&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;UUID · 기기마다 하나&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#F76910;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="265" y="100" width="215" height="52" as="geometry" /></mxCell>
+        <mxCell id="p_req" value="필수 동의&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;개인정보 · 이용약관 (버전 있음)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#F76910;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="265" y="176" width="215" height="52" as="geometry" /></mxCell>
+        <mxCell id="p_guest" value="게스트 계정" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#F76910;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="545" y="128" width="180" height="52" as="geometry" /></mxCell>
+        <mxCell id="p_opt" value="선택 동의&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;채점 품질 검토 · 철회 가능&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FFBD94;dashed=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="545" y="196" width="180" height="44" as="geometry" /></mxCell>
+        <mxCell id="p_session" value="인증 세션&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;access · refresh 토큰&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#F76910;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="790" y="128" width="200" height="52" as="geometry" /></mxCell>
+        <mxCell id="p_note" value="&lt;b&gt;로그인 화면이 없다 — 필수 동의가 곧 가입이다.&lt;/b&gt;&lt;br&gt;이후 아래 여섯 단계의 모든 요청에 이 세션이 실린다. 만료되면 앱이 &lt;b&gt;한 번만&lt;/b&gt; 재발급하고, 동시에 여러 요청이 401을 받아도 재발급은 한 번뿐이다.&lt;br&gt;복구에 실패하면 처음부터 다시 하지 않는다 — 이 밴드에서 &lt;b&gt;실패한 작업 하나&lt;/b&gt;로 돌아간다." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#ECE2CF;fontColor=#6B7280;fontSize=12;align=left;verticalAlign=middle;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="120" width="880" height="100" as="geometry" /></mxCell>
+
+        <mxCell id="be1" value="무엇으로 식별되나" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#BD4900;fontSize=11;fontColor=#BD4900;" edge="1" parent="1" source="p_learner" target="p_install"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="be2" value="무엇에 동의했나" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#BD4900;fontSize=11;fontColor=#BD4900;" edge="1" parent="1" source="p_learner" target="p_req"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="be3" value="이 둘이 있어야 계정이 생긴다" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#BD4900;fontSize=11;fontColor=#BD4900;" edge="1" parent="1" source="p_install" target="p_guest"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="be4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#BD4900;" edge="1" parent="1" source="p_req" target="p_guest"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="be5" value="함께 기록되지만 조건은 아니다" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#FFBD94;dashed=1;fontSize=11;fontColor=#9CA3AF;" edge="1" parent="1" source="p_opt" target="p_guest"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="be6" value="토큰을 발급받는다" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#BD4900;fontSize=11;fontColor=#BD4900;" edge="1" parent="1" source="p_guest" target="p_session"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="h1" value="①　무엇을 풀지 정해진다" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#374151;strokeColor=none;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="280" width="275" height="42" as="geometry" /></mxCell>
+        <mxCell id="h2" value="②　제한 시간 안에 말한다" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#374151;strokeColor=none;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="495" y="280" width="275" height="42" as="geometry" /></mxCell>
+        <mxCell id="h3" value="③　올리고 접수시킨다" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#374151;strokeColor=none;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="790" y="280" width="275" height="42" as="geometry" /></mxCell>
+        <mxCell id="h4" value="④　서버가 판단한다" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#374151;strokeColor=none;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1085" y="280" width="275" height="42" as="geometry" /></mxCell>
+        <mxCell id="h5" value="⑤　읽을 수 있는 형태로 돌려받는다" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#374151;strokeColor=none;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="280" width="275" height="42" as="geometry" /></mxCell>
+        <mxCell id="h6" value="⑥　다시 한다 — 루프가 닫힌다" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#374151;strokeColor=none;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1675" y="280" width="275" height="42" as="geometry" /></mxCell>
+
+        <mxCell id="laneA" value="모의고사&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;한 번 응시하면&lt;br&gt;약점 리포트가 열린다&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B9DCF2;strokeColor=#0E5A7D;fontColor=#0E5A7D;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="340" width="150" height="105" as="geometry" /></mxCell>
+        <mxCell id="A1" value="&lt;b&gt;응시 1회&lt;/b&gt; — examId&lt;br&gt;파트 1~5 → 문항 N개&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#0E5A7D&quot;&gt;&lt;i&gt;파트마다 서두 음성·준비 시간이 다르다&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCEDF9;strokeColor=#0E5A7D;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="200" y="340" width="275" height="105" as="geometry" /></mxCell>
+        <mxCell id="A2" value="&lt;b&gt;답변 녹음&lt;/b&gt;&lt;br&gt;문항마다 정해진 답변 시간&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#0E5A7D&quot;&gt;&lt;i&gt;시간이 끝나면 자동으로 확정된다&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCEDF9;strokeColor=#0E5A7D;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="495" y="340" width="275" height="105" as="geometry" /></mxCell>
+        <mxCell id="A3" value="&lt;b&gt;답변 제출&lt;/b&gt;&lt;br&gt;presigned PUT → 완료 통지&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#0E5A7D&quot;&gt;&lt;i&gt;문항 수만큼 반복된다&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCEDF9;strokeColor=#0E5A7D;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="790" y="340" width="275" height="105" as="geometry" /></mxCell>
+        <mxCell id="A4" value="&lt;b&gt;채점&lt;/b&gt;&lt;br&gt;파트 단위로 순차 진행&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#0E5A7D&quot;&gt;&lt;i&gt;대기 화면이 진행률을 물어본다&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCEDF9;strokeColor=#0E5A7D;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1085" y="340" width="275" height="105" as="geometry" /></mxCell>
+        <mxCell id="A5" value="&lt;b&gt;종합 피드백 · 문제별 피드백&lt;/b&gt;&lt;br&gt;레벨 추정 · 파트 점수 · 첨삭&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#0E5A7D&quot;&gt;&lt;i&gt;이 화면을 그리는 건 앱이 아니라 웹이다&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCEDF9;strokeColor=#0E5A7D;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="340" width="275" height="105" as="geometry" /></mxCell>
+        <mxCell id="A6" value="&lt;b&gt;재답변&lt;/b&gt; — retryCount (0-base)&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#0E5A7D&quot;&gt;&lt;i&gt;문제별 피드백을 보다가 시작한다&lt;br&gt;회차는 앱이 계산하지 않는다&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCEDF9;strokeColor=#0E5A7D;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1675" y="340" width="275" height="105" as="geometry" /></mxCell>
+
+        <mxCell id="laneB" value="10초 챌린지&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;하루 몇 문장&lt;br&gt;짧은 반복&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFD9C2;strokeColor=#BD4900;fontColor=#BD4900;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="150" height="105" as="geometry" /></mxCell>
+        <mxCell id="B1" value="&lt;b&gt;오늘의 문장&lt;/b&gt; n / 총 N&lt;br&gt;날짜는 서버 KST · 순서 강제&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#BD4900&quot;&gt;&lt;i&gt;응시(attempt)가 그 날짜를 1시간 고정한다&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7F2;strokeColor=#BD4900;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="200" y="500" width="275" height="105" as="geometry" /></mxCell>
+        <mxCell id="B2" value="&lt;b&gt;10초 녹음&lt;/b&gt;&lt;br&gt;이름 그대로의 제한 시간&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#BD4900&quot;&gt;&lt;i&gt;들어보고 다시 녹음할 수 있다&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7F2;strokeColor=#BD4900;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="495" y="500" width="275" height="105" as="geometry" /></mxCell>
+        <mxCell id="B3" value="&lt;b&gt;제출&lt;/b&gt;&lt;br&gt;presigned PUT → 접수 통지&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#BD4900&quot;&gt;&lt;i&gt;녹음 1건 = 멱등 키 1개&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7F2;strokeColor=#BD4900;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="790" y="500" width="275" height="105" as="geometry" /></mxCell>
+        <mxCell id="B4" value="&lt;b&gt;AI 채점&lt;/b&gt;&lt;br&gt;전사 → 첨삭 → 토선생의 한마디&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#BD4900&quot;&gt;&lt;i&gt;결과 화면이 2~5초 간격으로 물어본다&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7F2;strokeColor=#BD4900;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1085" y="500" width="275" height="105" as="geometry" /></mxCell>
+        <mxCell id="B5" value="&lt;b&gt;결과&lt;/b&gt;&lt;br&gt;참고 답안은 접수 즉시 보인다&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#BD4900&quot;&gt;&lt;i&gt;AI 첨삭은 준비되는 대로 그 위를 덮는다&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7F2;strokeColor=#BD4900;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="500" width="275" height="105" as="geometry" /></mxCell>
+        <mxCell id="B6" value="&lt;b&gt;한 문장 더&lt;/b&gt;&lt;br&gt;다음 문장으로 넘어간다&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#BD4900&quot;&gt;&lt;i&gt;마지막 문장이면 나오지 않는다&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7F2;strokeColor=#BD4900;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1675" y="500" width="275" height="105" as="geometry" /></mxCell>
+
+        <mxCell id="ea0" value="응시한다" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#0E5A7D;strokeWidth=2;fontSize=11;fontColor=#0E5A7D;" edge="1" parent="1" source="p_learner" target="A1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="eb0" value="매일 참여한다" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#BD4900;strokeWidth=2;fontSize=11;fontColor=#BD4900;" edge="1" parent="1" source="p_learner" target="B1"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="ea1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#0E5A7D;strokeWidth=2;" edge="1" parent="1" source="A1" target="A2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ea2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#0E5A7D;strokeWidth=2;" edge="1" parent="1" source="A2" target="A3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ea3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#0E5A7D;strokeWidth=2;" edge="1" parent="1" source="A3" target="A4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ea4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#0E5A7D;strokeWidth=2;" edge="1" parent="1" source="A4" target="A5"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ea5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#0E5A7D;strokeWidth=2;" edge="1" parent="1" source="A5" target="A6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ea6" value="③으로 되돌아온다 — 같은 제출 경로를 다시 탄다" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#0E5A7D;strokeWidth=2;dashed=1;fontSize=11;fontColor=#0E5A7D;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="A6" target="A3"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1812" y="470" /><mxPoint x="927" y="470" /></Array></mxGeometry></mxCell>
+
+        <mxCell id="eb1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#BD4900;strokeWidth=2;" edge="1" parent="1" source="B1" target="B2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="eb2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#BD4900;strokeWidth=2;" edge="1" parent="1" source="B2" target="B3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="eb3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#BD4900;strokeWidth=2;" edge="1" parent="1" source="B3" target="B4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="eb4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#BD4900;strokeWidth=2;" edge="1" parent="1" source="B4" target="B5"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="eb5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#BD4900;strokeWidth=2;" edge="1" parent="1" source="B5" target="B6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="eb6" value="①로 되돌아온다 — 다음 문장의 응시를 새로 발급받는다" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#BD4900;strokeWidth=2;dashed=1;fontSize=11;fontColor=#BD4900;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="B6" target="B1"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1812" y="632" /><mxPoint x="337" y="632" /></Array></mxGeometry></mxCell>
+
+        <mxCell id="cmpLbl" value="두 줄을 세로로 비교하면" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F7F7F7;strokeColor=#D1D5DB;fontColor=#374151;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="670" width="150" height="90" as="geometry" /></mxCell>
+        <mxCell id="c1" value="&lt;b&gt;다르다&lt;/b&gt;　시험은 examId 하나로,&lt;br&gt;챌린지는 날짜 하나로 묶인다.&lt;br&gt;둘 다 앱이 만들지 않는다." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#ECE2CF;fontColor=#6B7280;fontSize=12;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="200" y="670" width="275" height="90" as="geometry" /></mxCell>
+        <mxCell id="c2" value="&lt;b style=&quot;color:#0E5A7D&quot;&gt;같다&lt;/b&gt;　녹음은 훅 하나가 담당한다&lt;br&gt;(use-timed-audio-recorder).&lt;br&gt;두 도메인은 어댑터만 다르다." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCEDF9;strokeColor=#B9DCF2;fontColor=#0E5A7D;fontSize=12;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="495" y="670" width="275" height="90" as="geometry" /></mxCell>
+        <mxCell id="c3" value="&lt;b style=&quot;color:#0E5A7D&quot;&gt;같다&lt;/b&gt;　업로드 경로가 같다.&lt;br&gt;실제로 챌린지가 시험 쪽 모듈을&lt;br&gt;그대로 가져다 쓴다." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCEDF9;strokeColor=#B9DCF2;fontColor=#0E5A7D;fontSize=12;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="790" y="670" width="275" height="90" as="geometry" /></mxCell>
+        <mxCell id="c4" value="&lt;b&gt;다르다&lt;/b&gt;　시험은 파트별 진행률이&lt;br&gt;보이고, 챌린지는 되거나 안 되거나&lt;br&gt;뿐이다." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#ECE2CF;fontColor=#6B7280;fontSize=12;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1085" y="670" width="275" height="90" as="geometry" /></mxCell>
+        <mxCell id="c5" value="&lt;b&gt;다르다&lt;/b&gt;　시험 피드백은 웹이 그리고&lt;br&gt;챌린지 결과는 앱이 그린다.&lt;br&gt;같은 &quot;첨삭&quot;을 두 번 구현한 셈이다." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#ECE2CF;fontColor=#6B7280;fontSize=12;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="670" width="275" height="90" as="geometry" /></mxCell>
+        <mxCell id="c6" value="&lt;b style=&quot;color:#0E5A7D&quot;&gt;같다&lt;/b&gt;　되돌아오는 길이 있다.&lt;br&gt;시험은 ③으로, 챌린지는 ①로.&lt;br&gt;이 차이가 화면 상태를 가른다." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCEDF9;strokeColor=#B9DCF2;fontColor=#0E5A7D;fontSize=12;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1675" y="670" width="275" height="90" as="geometry" /></mxCell>
+
+        <mxCell id="vocLbl" value="이 단계에서 쓰는 이름" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F7F7F7;strokeColor=#D1D5DB;fontColor=#374151;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="775" width="150" height="80" as="geometry" /></mxCell>
+        <mxCell id="v1" value="exam · session · part&lt;br&gt;prelude · directions · question&lt;br&gt;challenge · challengeDate · attempt · promptKo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D1D5DB;fontColor=#374151;fontSize=11;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="200" y="775" width="275" height="80" as="geometry" /></mxCell>
+        <mxCell id="v2" value="answer · recording · prepTime&lt;br&gt;&lt;br&gt;10초는 CHALLENGE_RECORDING_DURATION_MS 하나에서 나온다&lt;br&gt;(_SEC는 그 옆에서 파생 — 2026-08-31 한 자리로 모음)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D1D5DB;fontColor=#374151;fontSize=11;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="495" y="775" width="275" height="80" as="geometry" /></mxCell>
+        <mxCell id="v3" value="upload-url · presigned · maxBytes&lt;br&gt;Idempotency-Key&lt;br&gt;&lt;br&gt;⚠ 같은 &quot;완료를 알린다&quot;를 notify와 submit으로 부른다" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D1D5DB;fontColor=#374151;fontSize=11;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="790" y="775" width="275" height="80" as="geometry" /></mxCell>
+        <mxCell id="v4" value="grading · gradingStatus&lt;br&gt;not_requested · pending · processing&lt;br&gt;completed · failed&lt;br&gt;&lt;i&gt;snake_case = 서버가 준 값&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D1D5DB;fontColor=#374151;fontSize=11;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1085" y="775" width="275" height="80" as="geometry" /></mxCell>
+        <mxCell id="v5" value="feedback · correction · severity&lt;br&gt;transcript · referenceAnswer · correctedAnswer&lt;br&gt;&lt;br&gt;⚠ severity는 AI 어휘가 흔들려 화면 직전에 정규화한다" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D1D5DB;fontColor=#374151;fontSize=11;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="775" width="275" height="80" as="geometry" /></mxCell>
+        <mxCell id="v6" value="reanswer&lt;br&gt;&lt;br&gt;⚠ retry가 세 뜻이다 —&lt;br&gt;retryCount(회차) · retry(재요청) · resetForRetry(재녹음)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D1D5DB;fontColor=#374151;fontSize=11;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1675" y="775" width="275" height="80" as="geometry" /></mxCell>
+
+        <mxCell id="xLbl" value="여섯 단계 전부에&lt;br&gt;걸리는 것" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F7F7F7;strokeColor=#D1D5DB;fontColor=#374151;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="875" width="150" height="100" as="geometry" /></mxCell>
+        <mxCell id="x1" value="&lt;b&gt;신원과 토큰&lt;/b&gt;&lt;br&gt;모든 요청에 인증 세션이 실린다.&lt;br&gt;만료되면 한 번만 재발급하고,&lt;br&gt;복구 못 하면 맨 위 게이트로 돌아간다." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#F76910;fontColor=#111827;fontSize=12;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="200" y="875" width="425" height="100" as="geometry" /></mxCell>
+        <mxCell id="x2" value="&lt;b&gt;시간의 정본은 언제나 서버&lt;/b&gt;&lt;br&gt;챌린지 날짜 · 제출 기한 · URL 만료.&lt;br&gt;앱은 자정 경계를 계산하지 않는다.&lt;br&gt;기기 시계를 서버 시각과 비교하지도 않는다." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F7F7F7;strokeColor=#9CA3AF;fontColor=#374151;fontSize=12;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="640" y="875" width="425" height="100" as="geometry" /></mxCell>
+        <mxCell id="x3" value="&lt;b&gt;관측&lt;/b&gt;&lt;br&gt;②③④에서 &lt;b&gt;흐름을 막은 실패&lt;/b&gt;만 남긴다.&lt;br&gt;답안·점수·식별자는 어느 도구에도 보내지 않는다.&lt;br&gt;&lt;font color=&quot;#B91C1C&quot;&gt;⚠ 챌린지 줄은 아직 이 표에 들어와 있지 않다&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F7F7F7;strokeColor=#9CA3AF;fontColor=#374151;fontSize=12;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="875" width="425" height="100" as="geometry" /></mxCell>
+        <mxCell id="x4" value="&lt;b&gt;화면 규율&lt;/b&gt;&lt;br&gt;디자인 토큰 한 벌 · rem 스케일(웹뷰까지 같은 배율)&lt;br&gt;세로 전용 — Part 4 표만 가로를 허용한다.&lt;br&gt;되돌아가면 안 되는 화면은 제스처를 막는다." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F7F7F7;strokeColor=#9CA3AF;fontColor=#374151;fontSize=12;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1520" y="875" width="430" height="100" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

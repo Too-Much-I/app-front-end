@@ -1,0 +1,150 @@
+<mxfile host="app.diagrams.net" agent="claude-code" version="24.7.17">
+  <diagram id="architecture" name="아키텍처">
+    <mxGraphModel dx="1740" dy="1520" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1740" pageHeight="1520" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="토선생 앱 · 아키텍처 — 계층과 계층 사이를 무엇이 지나가는가" style="text;html=1;fontSize=20;fontStyle=1;fontColor=#111827;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="18" width="1000" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="위에서 아래로만 의존한다. 아래 계층은 위를 모른다 — 단 하나의 예외(lib/api → authController)는 빨간 라벨로 표시했다." style="text;html=1;fontSize=13;fontColor=#6B7280;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="44" width="1200" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="L0" value="① 앱 진입 — 무엇이 먼저 켜지는가" style="rounded=1;html=1;fillColor=#FFFDF8;strokeColor=#ECE2CF;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontColor=#92400E;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="1660" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="L1" value="② 화면 — src/screens, src/navigation" style="rounded=1;html=1;fillColor=#FFF9F2;strokeColor=#FFD9C2;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontColor=#BD4900;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="225" width="1660" height="235" as="geometry" />
+        </mxCell>
+        <mxCell id="L2" value="③ 화면 상태 — screens/*/hooks, screens/*/*-ui.ts　(여러 훅의 상태를 화면 상태 하나로 합성하는 자리)" style="rounded=1;html=1;fillColor=#FFF9F2;strokeColor=#FFD9C2;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontColor=#BD4900;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="485" width="1660" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="L3" value="④ 기능 — src/features　(도메인 지식이 사는 곳: API 호출 · 매퍼 · 생명주기 훅)" style="rounded=1;html=1;fillColor=#DCEDF9;strokeColor=#B9DCF2;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontColor=#0E5A7D;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="665" width="1660" height="255" as="geometry" />
+        </mxCell>
+        <mxCell id="L4" value="⑤ 공용 — src/lib, src/theme, src/components　(도메인을 모른다)" style="rounded=1;html=1;fillColor=#F7F7F7;strokeColor=#D1D5DB;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontColor=#374151;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="945" width="1660" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="L5" value="⑥ 외부 경계 — 앱이 소유하지 않는 것" style="rounded=1;html=1;fillColor=#FFFFFF;strokeColor=#9CA3AF;dashed=1;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontColor=#374151;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1180" width="1660" height="230" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a_index" value="index.ts&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;Sentry → Clarity → Amplitude → withSentry(App)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#F76910;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="70" y="118" width="270" height="60" as="geometry" /></mxCell>
+        <mxCell id="a_app" value="App.tsx&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;SafeArea → Orientation → Auth → 폰트·rem 게이트&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#F76910;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="370" y="118" width="320" height="60" as="geometry" /></mxCell>
+        <mxCell id="a_root" value="RootNavigator&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;인증 상태가 스택 자체를 고른다&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#F76910;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="720" y="118" width="250" height="60" as="geometry" /></mxCell>
+        <mxCell id="a_tab" value="MainTabNavigator&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;홈 · 모의고사 · 피드백&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#F76910;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="118" width="230" height="60" as="geometry" /></mxCell>
+        <mxCell id="a_stack" value="MockExamStackNavigator&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;응시 6화면&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#F76910;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="118" width="230" height="60" as="geometry" /></mxCell>
+
+        <mxCell id="s_home" value="HomeScreen&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;최근 피드백 · 챌린지 배너&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="70" y="275" width="230" height="65" as="geometry" /></mxCell>
+        <mxCell id="s_exam" value="mock-exam 6화면&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;준비 → 파트 안내 → 마이크 → 음향 → 응시 → 채점 대기&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="330" y="275" width="300" height="65" as="geometry" /></mxCell>
+        <mxCell id="s_feed" value="FeedbackScreen (WebView 호스트)&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#B91C1C&quot;&gt;+ ExamHistoryScreen 983줄 — components/ 아래, 라우트 미등록&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="660" y="275" width="330" height="65" as="geometry" /></mxCell>
+        <mxCell id="s_re" value="ReanswerScreen&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;웹 메시지로 진입&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="275" width="200" height="65" as="geometry" /></mxCell>
+        <mxCell id="s_ch" value="TenSecondChallengeScreen&lt;br&gt;ChallengeResultScreen" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="275" width="240" height="65" as="geometry" /></mxCell>
+        <mxCell id="s_consent" value="ConsentScreen · AuthRecoveryScreen&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;인증 게이트 전용 스택&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="70" y="365" width="230" height="65" as="geometry" /></mxCell>
+        <mxCell id="s_set" value="SettingsScreen · SettingsWebViewScreen&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;약관 · 개인정보 · 기록 삭제 · 선택 동의&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="330" y="365" width="300" height="65" as="geometry" /></mxCell>
+        <mxCell id="s_noti" value="NotificationsScreen&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#B91C1C&quot;&gt;목 데이터만 — 서버 연동 없음&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="660" y="365" width="330" height="65" as="geometry" /></mxCell>
+        <mxCell id="s_diag" value="SentryValidationScreen&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;개발 빌드 전용 별도 루트&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="365" width="240" height="65" as="geometry" /></mxCell>
+
+        <mxCell id="h_examctl" value="use-exam-session-controller　+　exam-session-store&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;zustand vanilla · phase 유니온 17종 · 도메인 사건만 노출&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="70" y="530" width="360" height="80" as="geometry" /></mxCell>
+        <mxCell id="h_chui" value="challenge-ui.ts　/　reanswer-ui.ts&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;조회·발급·녹음·제출 상태를 화면 상태 하나로 합성하는 순수 함수&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="460" y="530" width="380" height="80" as="geometry" /></mxCell>
+        <mxCell id="h_mic" value="use-microphone-test&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;632줄 · 권한→녹음→재생 판정&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="870" y="530" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="h_misc" value="use-recent-feedback · use-quality-review-consent · use-delete-learning-records&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;화면 한 곳에서만 쓰는 조회·명령 훅&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="530" width="340" height="80" as="geometry" /></mxCell>
+
+        <mxCell id="f_auth" value="features/auth&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#0E5A7D&quot;&gt;authController 모듈 싱글턴 (821줄)&lt;br&gt;부트스트랩 상태기계 · 토큰 1회 재발급 보장&lt;br&gt;installation-id · auth-session-storage · api 5&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0E5A7D;fontSize=13;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="70" y="710" width="310" height="95" as="geometry" /></mxCell>
+        <mxCell id="f_exam" value="features/exam&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#0E5A7D&quot;&gt;api 11 · mapper 7 · hook 6&lt;br&gt;파트 메타 · 서두 판정 · 오디오 큐&lt;br&gt;웹뷰 메시지 계약 5종 · 업로드&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0E5A7D;fontSize=13;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="405" y="710" width="310" height="95" as="geometry" /></mxCell>
+        <mxCell id="f_chal" value="features/challenge&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#0E5A7D&quot;&gt;api 6 · mapper 1파일 · hook 5&lt;br&gt;오류 코드 표 · attempt 생명주기&lt;br&gt;&lt;/font&gt;&lt;font style=&quot;font-size:11px;color:#B91C1C&quot;&gt;dev-mock-challenge (__DEV__ 분기 4곳)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0E5A7D;fontSize=13;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="740" y="710" width="310" height="95" as="geometry" /></mxCell>
+        <mxCell id="f_audio" value="features/audio&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#0E5A7D&quot;&gt;use-timed-audio-recorder (566줄)&lt;br&gt;audio-session · recording-file&lt;br&gt;recording-permission&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0E5A7D;fontSize=13;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="1075" y="710" width="290" height="95" as="geometry" /></mxCell>
+        <mxCell id="f_consent" value="features/consent&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#0E5A7D&quot;&gt;필수 · 선택 동의 로컬 기록&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0E5A7D;fontSize=13;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="710" width="280" height="95" as="geometry" /></mxCell>
+        <mxCell id="f_orient" value="features/orientation&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#0E5A7D&quot;&gt;센서로 가로 자세 감지 · 세로 전용 안내&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0E5A7D;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="70" y="825" width="310" height="70" as="geometry" /></mxCell>
+        <mxCell id="f_diag" value="features/diagnostics&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#0E5A7D&quot;&gt;Sentry 스크러빙 검증 카탈로그&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0E5A7D;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="405" y="825" width="310" height="70" as="geometry" /></mxCell>
+        <mxCell id="note_map" value="계층 규칙: 서버 응답은 반드시 &lt;b&gt;Raw* → map* → 도메인 타입&lt;/b&gt;.&#10;nullable · snake_case · 흔들리는 어휘는 매퍼에서 죽고 화면까지 오지 않는다." style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#FFFDF8;strokeColor=#ECE2CF;fontColor=#6B7280;fontSize=11;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="740" y="825" width="410" height="70" as="geometry" /></mxCell>
+        <mxCell id="note_types" value="도메인 타입은 features가 아니라 &lt;b&gt;src/types&lt;/b&gt;에 있다&#10;(api.ts · exam.ts 556줄 · challenge.ts 285줄)." style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#FFFDF8;strokeColor=#ECE2CF;fontColor=#6B7280;fontSize=11;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="1175" y="825" width="380" height="70" as="geometry" /></mxCell>
+
+        <mxCell id="l_api" value="lib/api&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#374151&quot;&gt;client — 토큰 부착 · 401 1회 복구 · 호출자 취소 존중&lt;br&gt;transport — Envelope 검증 · 타임아웃 · ApiError&lt;br&gt;service-base-url — identity/learning 분리 · HTTPS 강제&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B7280;fontSize=13;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="70" y="990" width="400" height="90" as="geometry" /></mxCell>
+        <mxCell id="l_obs" value="lib 관측&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#374151&quot;&gt;sentry — 스크러빙 · 운영 이벤트만&lt;br&gt;operational-error-codes / -reporting — 허용 목록&lt;br&gt;amplitude — 이벤트 union · clarity&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B7280;fontSize=13;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="500" y="990" width="380" height="90" as="geometry" /></mxCell>
+        <mxCell id="l_web" value="lib/web-base-url&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#374151&quot;&gt;withRemScale — 앱 배율을 웹뷰 URL로&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B7280;fontSize=13;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="910" y="990" width="250" height="90" as="geometry" /></mxCell>
+        <mxCell id="l_theme" value="theme&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#374151&quot;&gt;tokens.js — 단일 소스 (CommonJS, tailwind가 읽음)&lt;br&gt;rem-scale — 폭 → 글자 크기 · use-app-fonts&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B7280;fontSize=13;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="990" width="480" height="90" as="geometry" /></mxCell>
+        <mxCell id="l_ui" value="components/ui — Text · Pressable(터치 피드백 통일) · ConfirmModal · MascotModal · Skeleton · Sparkle · TickingClock · ShardHeader · PortraitOnlyNotice　　|　　components/exam — Part4Table" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B7280;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="1095" width="1600" height="45" as="geometry" /></mxCell>
+
+        <mxCell id="x_id" value="Identity API&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;게스트 · 재발급 · 동의 · 탈퇴&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9CA3AF;dashed=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="70" y="1230" width="240" height="70" as="geometry" /></mxCell>
+        <mxCell id="x_learn" value="Learning API&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;시험 · 채점 · 피드백 · 챌린지&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9CA3AF;dashed=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="340" y="1230" width="250" height="70" as="geometry" /></mxCell>
+        <mxCell id="x_s3" value="S3 presigned PUT&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;답변 · 챌린지 음성 (audio/mp4)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9CA3AF;dashed=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="620" y="1230" width="240" height="70" as="geometry" /></mxCell>
+        <mxCell id="x_web" value="웹 서비스 (다른 저장소)&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;/app-exam-screen · /app-question-feedback · /app-settings/*&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9CA3AF;dashed=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="890" y="1230" width="330" height="70" as="geometry" /></mxCell>
+        <mxCell id="x_obs" value="Sentry · Amplitude · Clarity" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9CA3AF;dashed=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="1230" width="420" height="70" as="geometry" /></mxCell>
+        <mxCell id="x_store" value="기기 — SecureStore(토큰 · 설치 ID)　·　AsyncStorage(동의 기록)　·　expo-file-system(녹음 파일)　·　expo-audio　·　expo-sensors　·　expo-screen-orientation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9CA3AF;dashed=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="1320" width="1600" height="45" as="geometry" /></mxCell>
+
+        <mxCell id="note_bridge" value="&lt;b&gt;웹뷰 데이터 브리지&lt;/b&gt; — 액세스 토큰을 웹에 넘기지 않는다.&#10;웹은 resource 이름만 말하고, 앱이 검증된 경로로 대신 조회해 결과만 돌려준다.&#10;임의 경로 프록시는 제공하지 않는다." style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#DCEDF9;strokeColor=#0E5A7D;fontColor=#0E5A7D;fontSize=11;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="1330" width="420" height="70" as="geometry" /></mxCell>
+        <mxCell id="note_debt" value="&lt;b&gt;서버 상태 계층이 비어 있다.&lt;/b&gt;　@tanstack/react-query가 의존성에 있으나 사용처 0.&#10;조회 · 폴링 · 취소 · 재시도 · 백오프가 36개 훅에 각자 구현돼 있다." style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#FFF1F0;strokeColor=#EF4444;fontColor=#B91C1C;fontSize=11;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="500" y="1330" width="700" height="55" as="geometry" /></mxCell>
+
+        <mxCell id="ae1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="a_index" target="a_app"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="a_app" target="a_root"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="a_root" target="a_tab"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="a_tab" target="a_stack"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae5" value="인증 상태가 게이트" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#F76910;dashed=1;fontSize=11;fontColor=#BD4900;" edge="1" parent="1" source="a_root" target="s_consent"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="s_exam" target="h_examctl"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="s_ch" target="h_chui"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="s_re" target="h_chui"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="h_examctl" target="f_exam"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="h_chui" target="f_chal"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae11" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="h_mic" target="f_audio"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="s_feed" target="f_exam"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae13" value="공용 녹음 훅" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#0E5A7D;fontSize=11;fontColor=#0E5A7D;" edge="1" parent="1" source="f_exam" target="f_audio"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae14" value="공용 녹음 훅" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#0E5A7D;fontSize=11;fontColor=#0E5A7D;" edge="1" parent="1" source="f_chal" target="f_audio"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae15" value="upload-answer-audio 직접 참조 (기능 간 결합)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#EF4444;dashed=1;fontSize=11;fontColor=#B91C1C;" edge="1" parent="1" source="f_chal" target="f_exam"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae16" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="f_exam" target="l_api"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae17" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="f_chal" target="l_api"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae18" value="토큰을 묻는다 (유일한 역방향 배선)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#EF4444;fontSize=11;fontColor=#B91C1C;" edge="1" parent="1" source="l_api" target="f_auth"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae19" value="reportOperationalError" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;fontSize=11;fontColor=#6B7280;" edge="1" parent="1" source="f_exam" target="l_obs"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae20" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="l_api" target="x_learn"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae21" value="serviceFetch (Identity)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;fontSize=11;fontColor=#6B7280;" edge="1" parent="1" source="f_auth" target="x_id"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae22" value="PUT (인증 헤더 없음)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;fontSize=11;fontColor=#6B7280;" edge="1" parent="1" source="f_exam" target="x_s3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae23" value="postMessage ↔ injectJavaScript" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#0E5A7D;startArrow=block;startFill=1;fontSize=11;fontColor=#0E5A7D;" edge="1" parent="1" source="s_feed" target="x_web"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae24" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="l_obs" target="x_obs"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae25" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="f_auth" target="x_store"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ae26" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="l_theme" target="l_ui"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

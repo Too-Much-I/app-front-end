@@ -4,7 +4,7 @@ import { Text } from "@/components/ui/Text";
 import {
   getCorrectionSeverityColor,
   type ChallengeCorrectionSpan,
-} from "@/screens/ten-second-challenge/challenge-ui";
+} from "@/screens/challenge/challenge-ui";
 import type { ChallengeCorrectionItem } from "@/types/challenge";
 
 interface ChallengeMarkedTranscriptProps {

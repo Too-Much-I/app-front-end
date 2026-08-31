@@ -11,16 +11,16 @@ import {
   type ChallengeResultStatus,
 } from "@/features/challenge/use-challenge-result";
 import type { RootStackParamList } from "@/navigation/types";
-import { SkeletonBlock } from "@/components/ui/Skeleton";
-import { findCorrectionSpans } from "@/screens/ten-second-challenge/challenge-ui";
-import { ChallengeCelebration } from "@/screens/ten-second-challenge/components/ChallengeCelebration";
-import { ChallengeCorrectionSheet } from "@/screens/ten-second-challenge/components/ChallengeCorrectionSheet";
-import { ChallengeSentenceCard } from "@/screens/ten-second-challenge/components/ChallengeSentenceCard";
-import { ChallengeVerdictCard } from "@/screens/ten-second-challenge/components/ChallengeVerdictCard";
-import { Tape } from "@/screens/ten-second-challenge/components/paper/Tape";
-import { ChallengeMarkedTranscript } from "@/screens/ten-second-challenge/components/ChallengeMarkedTranscript";
-import { ChallengeHeader } from "@/screens/ten-second-challenge/components/ChallengeHeader";
-import { ChallengeResultSkeleton } from "@/screens/ten-second-challenge/components/ChallengeResultSkeleton";
+import { SkeletonBlock } from "@/components/ui/SkeletonBlock";
+import { findCorrectionSpans } from "@/screens/challenge/challenge-ui";
+import { ChallengeCelebration } from "@/screens/challenge/components/ChallengeCelebration";
+import { ChallengeCorrectionSheet } from "@/screens/challenge/components/ChallengeCorrectionSheet";
+import { ChallengeSentenceCard } from "@/screens/challenge/components/ChallengeSentenceCard";
+import { ChallengeVerdictCard } from "@/screens/challenge/components/ChallengeVerdictCard";
+import { Tape } from "@/screens/challenge/components/paper/Tape";
+import { ChallengeMarkedTranscript } from "@/screens/challenge/components/ChallengeMarkedTranscript";
+import { ChallengeHeader } from "@/screens/challenge/components/ChallengeHeader";
+import { ChallengeResultSkeleton } from "@/screens/challenge/components/ChallengeResultSkeleton";
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
 const graduateTurtle = require("../../../public/mascots/graduate_turtle.png");

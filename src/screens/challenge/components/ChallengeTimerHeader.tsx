@@ -5,7 +5,7 @@ import { Text } from "@/components/ui/Text";
 import {
   formatCountdown,
   isUrgentRemaining,
-} from "@/screens/ten-second-challenge/challenge-ui";
+} from "@/screens/challenge/challenge-ui";
 import { colors } from "@/theme";
 
 interface ChallengeTimerHeaderProps {
