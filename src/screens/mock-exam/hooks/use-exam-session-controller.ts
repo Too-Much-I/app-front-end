@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
 
-import {
-  AnswerRecordingError,
-  useAnswerRecorder,
-} from "@/features/exam/use-answer-recorder";
+import { AudioRecordingError } from "@/features/audio/use-timed-audio-recorder";
+import { useAnswerRecorder } from "@/features/exam/use-answer-recorder";
 import { useAnswerSubmissions } from "@/features/exam/use-answer-submissions";
 import { trackEvent } from "@/lib/amplitude";
 import { reportOperationalError } from "@/lib/operational-error-reporting";
@@ -127,7 +125,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
         })
         .catch((error: unknown) => {
           console.error("[ExamSession] 답변 확정 실패", error);
-          const isRecordingError = error instanceof AnswerRecordingError;
+          const isRecordingError = error instanceof AudioRecordingError;
           if (
             !isRecordingError ||
             (error.stage !== "interruption" && error.stage !== "permission")
@@ -223,7 +221,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
       })
       .catch((error: unknown) => {
         console.error("[ExamSession] 답변 녹음 시작 실패", error);
-        const isRecordingError = error instanceof AnswerRecordingError;
+        const isRecordingError = error instanceof AudioRecordingError;
         reportOperationalError({
           code: "ANSWER_RECORDING_FAILED",
           surface: "live",

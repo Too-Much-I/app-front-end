@@ -6,7 +6,7 @@ import { View } from "react-native";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
-import { formatCountdown } from "@/screens/ten-second-challenge/challenge-ui";
+import { formatCountdown } from "@/screens/challenge/challenge-ui";
 import { colors } from "@/theme";
 
 interface ChallengeReviewPanelProps {

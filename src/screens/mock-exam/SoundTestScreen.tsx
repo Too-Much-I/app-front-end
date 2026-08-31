@@ -6,7 +6,7 @@ import { ActivityIndicator, AppState, Image, View } from "react-native";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
-import { PLAYBACK_AUDIO_MODE } from "@/features/exam/answer-audio";
+import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
 import { createExamSession } from "@/features/exam/api/exam-session-create";
 import { ExamQuestionAudioError } from "@/features/exam/question-audio";
 import { reportOperationalError } from "@/lib/operational-error-reporting";

@@ -1,4 +1,4 @@
-import { mapChallengeToday } from "@/features/challenge/map-challenge-question";
+import { mapChallengeToday } from "@/features/challenge/map-challenge-today";
 import { apiFetchWithAuthRetry } from "@/lib/api/client";
 import type { ApiEnvelope } from "@/types/api";
 import type { ChallengeToday, RawChallengeToday } from "@/types/challenge";

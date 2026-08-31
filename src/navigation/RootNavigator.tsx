@@ -9,8 +9,8 @@ import { NotificationsScreen } from "@/screens/notifications/NotificationsScreen
 import { ReanswerScreen } from "@/screens/reanswer/ReanswerScreen";
 import { SettingsScreen } from "@/screens/settings/SettingsScreen";
 import { SettingsWebViewScreen } from "@/screens/settings/SettingsWebViewScreen";
-import { ChallengeResultScreen } from "@/screens/ten-second-challenge/ChallengeResultScreen";
-import { TenSecondChallengeScreen } from "@/screens/ten-second-challenge/TenSecondChallengeScreen";
+import { ChallengeResultScreen } from "@/screens/challenge/ChallengeResultScreen";
+import { TenSecondChallengeScreen } from "@/screens/challenge/TenSecondChallengeScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

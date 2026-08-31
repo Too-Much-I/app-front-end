@@ -11,16 +11,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 
 import {
-  ANSWER_RECORDING_OPTIONS,
+  VOICE_RECORDING_OPTIONS,
   AUDIO_METER_UPDATE_INTERVAL_MS,
   PLAYBACK_AUDIO_MODE,
   RECORDING_AUDIO_MODE,
-} from "@/features/exam/answer-audio";
+} from "@/features/audio/audio-session";
 import {
   RecordingPermissionError,
   resolveRecordingPermissionAsync,
   type RecordingPermissionFailureOperation,
-} from "@/features/exam/recording-permission";
+} from "@/features/audio/recording-permission";
 import { trackEvent } from "@/lib/amplitude";
 import type { MicrophoneTestFailureStage } from "@/lib/analytics-events";
 import { reportOperationalError } from "@/lib/operational-error-reporting";
@@ -64,7 +64,7 @@ function trackMicrophoneTestFailure(operation: MicrophoneTestFailureStage): void
 }
 
 export function useMicrophoneTest() {
-  const recorder = useAudioRecorder(ANSWER_RECORDING_OPTIONS);
+  const recorder = useAudioRecorder(VOICE_RECORDING_OPTIONS);
   const recorderState = useAudioRecorderState(recorder, AUDIO_METER_UPDATE_INTERVAL_MS);
   const recordingPlayer = useAudioPlayer(null, { updateInterval: 100 });
   const playbackStatus = useAudioPlayerStatus(recordingPlayer);

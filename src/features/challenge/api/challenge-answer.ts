@@ -1,4 +1,4 @@
-import { mapChallengeAnswerAccepted } from "@/features/challenge/map-challenge-question";
+import { mapChallengeAnswerAccepted } from "@/features/challenge/map-challenge-answer";
 import { apiFetch } from "@/lib/api/client";
 import type { ApiEnvelope } from "@/types/api";
 import type {

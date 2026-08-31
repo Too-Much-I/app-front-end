@@ -1,9 +1,7 @@
 import type { AudioRecordingStatus } from "@/features/audio/use-timed-audio-recorder";
-import { CHALLENGE_RECORDING_DURATION_MS } from "@/features/challenge/use-challenge-recorder";
+import { CHALLENGE_RECORDING_DURATION_SEC } from "@/features/challenge/use-challenge-recorder";
 import { colors } from "@/theme";
 import type { ChallengeCorrectionItem } from "@/types/challenge";
-
-export const CHALLENGE_RECORDING_SECONDS = CHALLENGE_RECORDING_DURATION_MS / 1_000;
 
 /** 녹음 진행에 따라 화면이 직접 관리하는 단계. 문제 조회 상태는 훅이 따로 들고 있다. */
 export type RecordingPhase =
@@ -39,12 +37,12 @@ export type ChallengeNoteStatus = Extract<
 /** 노트 카드 대신 안내 화면 한 장만 그리는 상태. */
 export type ChallengeStatusOnly = Exclude<ChallengeUiStatus, ChallengeNoteStatus>;
 
-export function isStatusOnly(status: ChallengeUiStatus): status is ChallengeStatusOnly {
+export function isChallengeStatusOnly(status: ChallengeUiStatus): status is ChallengeStatusOnly {
   return status !== "preparing" && status !== "recording" && status !== "reviewing";
 }
 
 /** 나가기 전에 확인을 받아야 하는 상태 — 녹음 중이거나 아직 제출하지 않은 녹음본이 있다. */
-export function hasUnsavedRecording(status: ChallengeUiStatus): boolean {
+export function hasUnsavedChallengeRecording(status: ChallengeUiStatus): boolean {
   return status === "recording" || status === "reviewing" || status === "submit-failed";
 }
 
@@ -52,7 +50,7 @@ export function hasUnsavedRecording(status: ChallengeUiStatus): boolean {
  * 업로드가 진행 중이라 화면을 벗어날 수 없는 상태.
  * 중간에 나가면 S3에 올라간 파일만 남고 서버는 접수를 모르는 상태가 된다.
  */
-export function isSubmissionLocked(status: ChallengeUiStatus): boolean {
+export function isChallengeSubmissionLocked(status: ChallengeUiStatus): boolean {
   return status === "submitting";
 }
 
@@ -126,7 +124,7 @@ export function getChallengeRemainingSeconds(
   status: ChallengeUiStatus,
   remainingMs: number,
 ): number | null {
-  if (status === "preparing") return CHALLENGE_RECORDING_SECONDS;
+  if (status === "preparing") return CHALLENGE_RECORDING_DURATION_SEC;
   if (status === "recording") return remainingMs / 1_000;
   return null;
 }

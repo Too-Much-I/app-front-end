@@ -1,4 +1,4 @@
-import { mapChallengeDayResult } from "@/features/challenge/map-challenge-question";
+import { mapChallengeDayResult } from "@/features/challenge/map-challenge-day-result";
 import { apiFetchWithAuthRetry } from "@/lib/api/client";
 import type { ApiEnvelope } from "@/types/api";
 import type { ChallengeDayResult, RawChallengeDayResult } from "@/types/challenge";

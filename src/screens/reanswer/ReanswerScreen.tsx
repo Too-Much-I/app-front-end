@@ -6,10 +6,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { ShardHeader } from "@/components/ui/ShardHeader";
-import {
-  AnswerRecordingError,
-  useAnswerRecorder,
-} from "@/features/exam/use-answer-recorder";
+import { AudioRecordingError } from "@/features/audio/use-timed-audio-recorder";
+import { useAnswerRecorder } from "@/features/exam/use-answer-recorder";
 import { useReanswerQuestion } from "@/features/exam/use-reanswer-question";
 import { useReanswerSubmission } from "@/features/exam/use-reanswer-submission";
 import type { RootStackParamList } from "@/navigation/types";
@@ -20,9 +18,9 @@ import { ReanswerRecordPanel } from "@/screens/reanswer/components/ReanswerRecor
 import { ReanswerStatusPanel } from "@/screens/reanswer/components/ReanswerStatusPanel";
 import {
   formatRetryLabel,
-  hasUnsavedRecording,
-  isStatusOnly,
-  isSubmissionLocked,
+  hasUnsavedReanswerRecording,
+  isReanswerStatusOnly,
+  isReanswerSubmissionLocked,
   type ReanswerUiStatus,
 } from "@/screens/reanswer/reanswer-ui";
 
@@ -146,14 +144,14 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
     } catch (error) {
       console.error("[Reanswer] 답변 확정 실패", error);
       if (
-        !(error instanceof AnswerRecordingError) ||
+        !(error instanceof AudioRecordingError) ||
         (error.stage !== "interruption" && error.stage !== "permission")
       ) {
         reportOperationalError({
           code: "ANSWER_RECORDING_FAILED",
           surface: "reanswer",
           stage:
-            error instanceof AnswerRecordingError &&
+            error instanceof AudioRecordingError &&
             error.stage !== "permission" &&
             error.stage !== "interruption"
               ? error.stage
@@ -228,7 +226,7 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
   }, [navigation]);
 
   const requestClose = useCallback(() => {
-    if (hasUnsavedRecording(uiStatus)) {
+    if (hasUnsavedReanswerRecording(uiStatus)) {
       setIsDiscardVisible(true);
       return;
     }
@@ -239,11 +237,11 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
   useEffect(() => {
     const unsubscribe = navigation.addListener("beforeRemove", (event) => {
       if (leavingRef.current) return;
-      if (isSubmissionLocked(uiStatus)) {
+      if (isReanswerSubmissionLocked(uiStatus)) {
         event.preventDefault();
         return;
       }
-      if (!hasUnsavedRecording(uiStatus)) return;
+      if (!hasUnsavedReanswerRecording(uiStatus)) return;
 
       event.preventDefault();
       setIsDiscardVisible(true);
@@ -259,7 +257,7 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
         title={formatRetryLabel(nextRetryCount)}
         leftAction={
           // 제출과 채점 중에는 화면을 벗어날 수 없다.
-          isSubmissionLocked(uiStatus)
+          isReanswerSubmissionLocked(uiStatus)
             ? undefined
             : {
                 icon: "x",
@@ -271,13 +269,13 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
       />
 
       <SafeAreaView className="flex-1" edges={["bottom"]}>
-        {isStatusOnly(uiStatus) || !question ? (
+        {isReanswerStatusOnly(uiStatus) || !question ? (
           <ReanswerStatusPanel
             errorMessage={submission.errorMessage}
             onLeave={leaveScreen}
             onOpenSettings={() => void Linking.openSettings()}
             onRetryRecording={retakeRecording}
-            status={isStatusOnly(uiStatus) ? uiStatus : "loading"}
+            status={isReanswerStatusOnly(uiStatus) ? uiStatus : "loading"}
           />
         ) : (
           <>

@@ -1,20 +1,11 @@
 import { useCallback, useMemo } from "react";
 
 import {
-  AudioRecordingError,
   useTimedAudioRecorder,
-  type AudioRecordingFailureStage,
   type AudioRecordingFinishReason,
-  type AudioRecordingStartOperation,
-  type AudioRecordingStatus,
   type StartAudioRecordingResult,
 } from "@/features/audio/use-timed-audio-recorder";
 import type { AnswerKey, FinalizedAnswer } from "@/types/exam";
-
-export { AudioRecordingError as AnswerRecordingError };
-export type AnswerRecordingStatus = AudioRecordingStatus;
-export type AnswerRecordingFailureStage = AudioRecordingFailureStage;
-export type AnswerRecordingStartOperation = AudioRecordingStartOperation;
 
 interface StartAnswerRecordingInput {
   key: AnswerKey;

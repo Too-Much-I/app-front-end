@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { View } from "react-native";
 
 import { Text } from "@/components/ui/Text";
-import { StarSticker } from "@/screens/ten-second-challenge/components/paper/StarSticker";
+import { StarSticker } from "@/screens/challenge/components/paper/StarSticker";
 import { shadows } from "@/theme";
 
 interface ChallengeVerdictCardProps {
