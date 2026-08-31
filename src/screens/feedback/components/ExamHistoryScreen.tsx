@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -21,7 +22,10 @@ import { Pressable } from "@/components/ui/Pressable";
 import { Sparkle, type SparkleProps } from "@/components/ui/Sparkle";
 import { StartMockExamButton } from "@/components/ui/StartMockExamButton";
 import { Text } from "@/components/ui/Text";
-import { getExamHistory } from "@/features/exam/api/exam-history";
+import {
+  examHistoryQueryOptions,
+  examRetriesQueryOptions,
+} from "@/features/exam/exam-history-queries";
 import {
   EXAM_TOTAL_MAX_SCORE,
   ExamHistoryContractError,
@@ -29,7 +33,6 @@ import {
   type ExamHistoryItem,
   type ExamHistoryTone,
 } from "@/features/exam/map-exam-history";
-import { getExamRetries } from "@/features/exam/api/exam-retries";
 import {
   ExamRetriesContractError,
   summarizeReanswerProgress,
@@ -466,21 +469,91 @@ function ReanswerQuestionCard({ item }: { item: ReanswerQuestionItem }) {
  */
 type FailureKind = { retryable: boolean };
 
-type ExamHistoryState =
+/** 두 탭이 같은 세 상태를 쓴다. 담는 항목만 다르다. */
+type PanelState<T> =
   | { status: "loading" }
   | ({ status: "error" } & FailureKind)
-  | { status: "ready"; items: readonly ExamHistoryItem[] };
+  | { status: "ready"; items: readonly T[] };
 
-type ReanswerState =
-  | { status: "loading" }
-  | ({ status: "error" } & FailureKind)
-  | { status: "ready"; items: readonly ReanswerQuestionItem[] };
+type ExamHistoryState = PanelState<ExamHistoryItem>;
+
+type ReanswerState = PanelState<ReanswerQuestionItem>;
 
 function isRetryableFailure(error: unknown): boolean {
   return !(
     error instanceof ExamHistoryContractError ||
     error instanceof ExamRetriesContractError
   );
+}
+
+/**
+ * 조회 결과를 화면이 쓰는 상태로 옮긴다.
+ *
+ * 데이터를 오류보다 먼저 본다. 캐시에 목록이 있는 채로 뒤에서 돌던 갱신이 실패하면 화면은
+ * 실패를 알리는 대신 갖고 있던 목록을 계속 보여준다 — 사용자가 할 일이 없는 실패다.
+ */
+function toQueryPanelState<T>(query: {
+  data: readonly T[] | undefined;
+  error: Error | null;
+}): PanelState<T> {
+  if (query.data !== undefined) return { status: "ready", items: query.data };
+  if (query.error !== null) {
+    return { status: "error", retryable: isRetryableFailure(query.error) };
+  }
+  return { status: "loading" };
+}
+
+/**
+ * 재답변 패널의 상태는 두 조회에 걸쳐 있다.
+ *
+ * 대상 시험을 이력이 정해 주기 전에는 재답변 조회 자체가 시작되지 않으므로, 그때까지는
+ * 이력 단계의 상태가 그대로 이 패널의 상태가 된다.
+ */
+function resolveReanswerState(
+  history: ExamHistoryState,
+  targetExamId: string | null,
+  query: { data: readonly ReanswerQuestionItem[] | undefined; error: Error | null },
+): ReanswerState {
+  if (history.status === "loading") return { status: "loading" };
+  // 이력을 못 받으면 대상 시험을 못 정한다. 원인 구분은 이력 쪽 판정을 그대로 물려받는다.
+  if (history.status === "error") {
+    return { status: "error", retryable: history.retryable };
+  }
+  // 이력은 받았는데 재답변한 시험이 없다 — 조회할 것이 없는 정상 빈 상태다.
+  if (targetExamId === null) return { status: "ready", items: [] };
+
+  return toQueryPanelState(query);
+}
+
+/**
+ * 화면이 실제로 오류를 보여주는 동안 한 번만 운영 오류로 보고한다.
+ *
+ * 목록을 띄운 채 실패한 백그라운드 갱신은 여기 오지 않는다 — `reportOperationalError`는
+ * 사용자 흐름을 막은 실패만 받는다. 호출부는 그래서 화면에 보일 오류만 넘긴다.
+ *
+ * `attempt`를 ref로 세는 이유는 라이브러리의 `failureCount`가 재조회를 시작할 때 0으로
+ * 돌아가기 때문이다. 알고 싶은 것은 이번 요청의 실패 횟수가 아니라 사용자가 이 화면에서
+ * 몇 번째로 실패를 마주쳤는가다.
+ */
+function useBlockingFailureReport(
+  surface: "exam-history" | "reanswer-history",
+  logMessage: string,
+  error: Error | null,
+) {
+  const attemptRef = useRef(0);
+
+  useEffect(() => {
+    if (error === null) return;
+    attemptRef.current += 1;
+    // 화면 문구만으로는 네트워크·서버·계약 중 무엇이었는지 알 수 없다.
+    console.error(logMessage, error);
+    reportOperationalError({
+      code: "FEEDBACK_HISTORY_LOAD_FAILED",
+      surface,
+      attempt: attemptRef.current,
+      cause: error,
+    });
+  }, [error, logMessage, surface]);
 }
 
 /** 재시도해도 풀리지 않는 실패에 쓰는 안내. 앱과 서버 중 한쪽이 바뀌어야 한다. */
@@ -652,52 +725,19 @@ function ReanswerHistoryPanel({
       ? (history.items.find((item) => item.retriedQuestionCount > 0)?.examId ?? null)
       : null;
 
-  const [state, setState] = useState<ReanswerState>({ status: "loading" });
-  // 값 자체엔 의미가 없다. 재시도 버튼이 아래 effect를 다시 돌리기 위한 트리거다.
-  const [reloadNonce, setReloadNonce] = useState(0);
+  // 탭을 처음 열기 전에는 요청을 보내지 않는다. 한번 열리면 부모가 enabled를 계속 유지한다.
+  const retriesQuery = useQuery({
+    ...examRetriesQueryOptions(targetExamId),
+    enabled,
+  });
+  const { refetch: refetchRetries } = retriesQuery;
 
-  useEffect(() => {
-    // 탭을 처음 열기 전에는 불필요한 요청을 보내지 않는다. 한번 열리면 부모가 enabled를
-    // 계속 유지하므로 탭을 왕복해도 이 상태와 조회 결과가 사라지지 않는다.
-    if (!enabled) return;
-
-    if (history.status === "loading") {
-      setState({ status: "loading" });
-      return;
-    }
-    if (history.status === "error") {
-      // 이력을 못 받으면 대상 시험을 못 정한다. 원인 구분은 이력 쪽 판정을 그대로 물려받는다.
-      setState({ status: "error", retryable: history.retryable });
-      return;
-    }
-    // 이력은 받았는데 재답변한 시험이 없다 — 조회할 것이 없는 정상 빈 상태다.
-    if (!targetExamId) {
-      setState({ status: "ready", items: [] });
-      return;
-    }
-
-    const controller = new AbortController();
-    setState({ status: "loading" });
-
-    getExamRetries(targetExamId, controller.signal)
-      .then((items) => {
-        if (controller.signal.aborted) return;
-        setState({ status: "ready", items });
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
-        console.error("[ReanswerHistory] 재답변 이력 조회 실패", error);
-        reportOperationalError({
-          code: "FEEDBACK_HISTORY_LOAD_FAILED",
-          surface: "reanswer-history",
-          attempt: reloadNonce + 1,
-          cause: error,
-        });
-        setState({ status: "error", retryable: isRetryableFailure(error) });
-      });
-
-    return () => controller.abort();
-  }, [enabled, history, targetExamId, reloadNonce]);
+  const state = resolveReanswerState(history, targetExamId, retriesQuery);
+  useBlockingFailureReport(
+    "reanswer-history",
+    "[ReanswerHistory] 재답변 이력 조회 실패",
+    state.status === "error" && history.status !== "error" ? retriesQuery.error : null,
+  );
 
   if (state.status === "loading") {
     return <PanelLoading />;
@@ -719,7 +759,7 @@ function ReanswerHistoryPanel({
                   onRetryHistory();
                   return;
                 }
-                setReloadNonce((nonce) => nonce + 1);
+                void refetchRetries();
               }
             : undefined
         }
@@ -887,43 +927,22 @@ export function ExamHistoryScreen({ onOpenExam, onStartExam }: ExamHistoryScreen
    * 재답변 탭도 어느 시험을 조회할지 알려면 이력이 필요하다. 탭마다 따로 받으면
    * 탭을 오갈 때마다 같은 요청이 반복된다.
    */
-  const [historyState, setHistoryState] = useState<ExamHistoryState>({
-    status: "loading",
-  });
-  // 값 자체엔 의미가 없다. 재시도 버튼이 아래 effect를 다시 돌리기 위한 트리거다.
-  const [reloadNonce, setReloadNonce] = useState(0);
+  const historyQuery = useQuery(examHistoryQueryOptions());
+  const { refetch: refetchHistory } = historyQuery;
   const reduceMotion = useReducedMotion();
   const panelOffset = useSharedValue(0);
   const panelOpacity = useSharedValue(1);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    setHistoryState({ status: "loading" });
-
-    getExamHistory(controller.signal)
-      .then((items) => {
-        if (controller.signal.aborted) return;
-        setHistoryState({ status: "ready", items });
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
-        // 화면 문구만으로는 네트워크·서버·계약 중 무엇이었는지 알 수 없다.
-        console.error("[ExamHistory] 모의고사 이력 조회 실패", error);
-        reportOperationalError({
-          code: "FEEDBACK_HISTORY_LOAD_FAILED",
-          surface: "exam-history",
-          attempt: reloadNonce + 1,
-          cause: error,
-        });
-        setHistoryState({ status: "error", retryable: isRetryableFailure(error) });
-      });
-
-    return () => controller.abort();
-  }, [reloadNonce]);
+  const historyState = toQueryPanelState(historyQuery);
+  useBlockingFailureReport(
+    "exam-history",
+    "[ExamHistory] 모의고사 이력 조회 실패",
+    historyState.status === "error" ? historyQuery.error : null,
+  );
 
   const retryHistory = useCallback(() => {
-    setReloadNonce((nonce) => nonce + 1);
-  }, []);
+    void refetchHistory();
+  }, [refetchHistory]);
 
   const handleSelectTab = useCallback(
     (tab: HistoryTab) => {

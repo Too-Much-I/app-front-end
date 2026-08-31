@@ -4,6 +4,7 @@ import {
   NavigationContainer,
   useNavigationContainerRef,
 } from "@react-navigation/native";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
 import { useRef } from "react";
 import { View } from "react-native";
@@ -17,6 +18,7 @@ import { useOrientation } from "@/features/orientation/orientation-context";
 import { RootNavigator } from "@/navigation/RootNavigator";
 import type { RootStackParamList } from "@/navigation/types";
 import { trackScreenView } from "@/lib/amplitude";
+import { queryClient } from "@/lib/query-client";
 import { IS_SENTRY_VALIDATION_MODE } from "@/lib/sentry-validation-mode";
 import { SentryValidationScreen } from "@/screens/diagnostics/SentryValidationScreen";
 import { useRemScale } from "@/theme/rem-scale";
@@ -90,11 +92,14 @@ export default function App() {
       {IS_SENTRY_VALIDATION_MODE ? (
         <SentryValidationAppContent />
       ) : (
-        <OrientationProvider>
-          <AuthProvider>
-            <AppContent />
-          </AuthProvider>
-        </OrientationProvider>
+        // 검증 모드는 화면 하나만 띄우고 서버 조회를 하지 않으므로 캐시도 필요 없다.
+        <QueryClientProvider client={queryClient}>
+          <OrientationProvider>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </OrientationProvider>
+        </QueryClientProvider>
       )}
     </SafeAreaProvider>
   );
