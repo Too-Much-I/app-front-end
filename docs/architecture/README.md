@@ -45,8 +45,10 @@
 |---|---|
 | [`generated/dependency-graph.mmd`](generated/dependency-graph.mmd) | Dependency-Cruiser로 생성한 현재 모듈 의존성 그래프 |
 | [`dependency-analysis-2026-08-31.md`](dependency-analysis-2026-08-31.md) | 기존 그림과의 차이, 순환 참조, 단일 소비 공용 모듈 분석 |
+| [`04-dependency-boundaries.md`](04-dependency-boundaries.md) | CI가 차단하는 의존성 경계와 PR에 보고만 하는 변화 |
 
-그래프는 `pnpm deps:graph`로 다시 만든다. 현재는 구조 관찰용이며 CI 검사에는 연결하지 않았다.
+그래프는 `pnpm deps:graph`로 다시 만든다. `pnpm check:architecture`는 같은 분석 결과에서 명확한
+경계 침범만 차단하고, 해석이 필요한 변화는 PR 보고서로 남긴다.
 
 ---
 

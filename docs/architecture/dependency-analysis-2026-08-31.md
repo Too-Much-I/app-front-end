@@ -89,4 +89,7 @@ fan-out 상위 화면은 `ExamSessionScreen` 24, `TenSecondChallengeScreen` 19,
 1. `PortraitOnlyNotice`를 공용 UI로 볼지 orientation 기능 UI로 볼지 정한다.
 2. `TickingClock`은 재사용 계획이 없다면 Home 화면 가까이 두는 것을 검토한다.
 
-Dependency-Cruiser는 계속 관찰용으로만 두며 CI 게이트는 추가하지 않았다.
+이 스냅샷 뒤 `pnpm check:architecture`를 추가했다. Dependency-Cruiser가 수집한 그래프에서 순환과
+화면 영역 간 직접 참조를 차단하고, TypeScript import의 `Raw*`·`map*` 이름까지 확인한다. feature 간
+참조와 fan-in/fan-out은 수치만으로 잘못이라 단정하지 않고 PR 보고서에만 남긴다. 세부 규칙은
+[`04-dependency-boundaries.md`](04-dependency-boundaries.md)에 있다.

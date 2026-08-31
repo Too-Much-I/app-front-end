@@ -10,7 +10,7 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# 코드를 읽기만 한다. 토큰이 새어도 할 수 있는 일을 남기지 않는다.
+# 기본 job은 코드를 읽기만 한다. architecture job만 PR 결과 댓글에 필요한 권한을 좁게 덮어쓴다.
 permissions:
   contents: read
 
@@ -50,3 +50,68 @@ jobs:
       - name: pnpm check:naming
         if: ${{ !cancelled() }}
         run: pnpm check:naming
+
+  architecture:
+    # 최초 실행 뒤 main 룰셋의 required status check에 이 이름을 등록한다.
+    name: architecture-boundaries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # 같은 저장소의 PR에서는 결과 댓글을 갱신한다. fork PR은 GitHub가 읽기 권한으로 낮추며,
+      # 댓글이 실패해도 Job Summary는 남고 차단 검사 결과에는 영향을 주지 않는다.
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # PR에서 추가·제거된 의존성만 경고하기 위한 비교 기준이다.
+      - uses: actions/checkout@v7
+        if: ${{ github.event_name == 'pull_request' }}
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: architecture-base
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: pnpm check:architecture (PR diff)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: pnpm check:architecture -- --base-dir architecture-base --report-file architecture-report.md
+
+      - name: pnpm check:architecture
+        if: ${{ github.event_name != 'pull_request' }}
+        run: pnpm check:architecture -- --report-file architecture-report.md
+
+      # 새 댓글을 쌓지 않고 이 workflow가 만든 댓글 하나를 현재 결과로 갱신한다.
+      - name: Update architecture report comment
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        continue-on-error: true
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require("node:fs");
+            const marker = "<!-- architecture-boundaries-report -->";
+            const body = fs.readFileSync("architecture-report.md", "utf8");
+            const issue = context.issue;
+            const comments = await github.paginate(github.rest.issues.listComments, issue);
+            const previous = comments.find(
+              (comment) => comment.user?.type === "Bot" && comment.body?.includes(marker),
+            );
+
+            if (previous) {
+              await github.rest.issues.updateComment({
+                ...issue,
+                comment_id: previous.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({ ...issue, body });
+            }

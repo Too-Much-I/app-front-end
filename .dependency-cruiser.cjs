@@ -1,6 +1,7 @@
 /** @type {import("dependency-cruiser").IConfiguration} */
 module.exports = {
-  // 이 설정은 구조를 관찰하기 위한 스냅샷용이다. 금지 규칙과 CI 게이트는 의도적으로 두지 않는다.
+  // 그래프 생성과 scripts/check-architecture.mjs가 같은 의존성 해석 기준을 공유한다.
+  // 이름 단위 경계까지 함께 판단해야 하므로 차단과 경고 분류는 검사 스크립트가 맡는다.
   forbidden: [],
   options: {
     doNotFollow: {

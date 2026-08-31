@@ -11,6 +11,7 @@
     "web": "expo start --web",
     "lint": "oxlint",
     "typecheck": "tsc --noEmit",
+    "check:architecture": "node scripts/check-architecture.mjs",
     "check:naming": "node scripts/check-naming.mjs",
     "deps:graph": "depcruise index.ts App.tsx src --config .dependency-cruiser.cjs --output-type mermaid --collapse '^(?:src/(?:features|screens|components)/[^/]+|src/(?:navigation|lib|theme|types))' --output-to docs/architecture/generated/dependency-graph.mmd"
   },
