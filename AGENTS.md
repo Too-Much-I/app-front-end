@@ -19,9 +19,12 @@ pnpm android
 pnpm web
 pnpm lint
 pnpm exec tsc --noEmit
+pnpm check:naming
 ```
 
-No automated test runner is configured yet. For code changes, run `pnpm lint` and `pnpm exec tsc --noEmit` unless the change is documentation-only. Report any check that cannot be run and why.
+No automated test runner is configured yet. For code changes, run `pnpm lint`, `pnpm exec tsc --noEmit`, and `pnpm check:naming` unless the change is documentation-only. Report any check that cannot be run and why.
+
+`pnpm check:naming` enforces the rules that a per-file linter cannot express — chiefly that two different files never export the same name. The rules and their rationale live in `docs/architecture/01-naming-dictionary.md`; change that document and `scripts/check-naming.mjs` together. Record deliberate exceptions in the script's `ALLOWLIST` with a reason rather than adding a suppression comment to the source: this repository has zero `oxlint-disable` comments and that property is worth keeping.
 
 ## Repository structure
 

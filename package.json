@@ -10,7 +10,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "oxlint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:naming": "node scripts/check-naming.mjs"
   },
   "dependencies": {
     "@amplitude/analytics-react-native": "^1.6.9",
