@@ -42,6 +42,7 @@ import {
 } from "@/features/consent/optional-consent-storage";
 import { ApiError } from "@/lib/api/transport";
 import { reportOperationalError } from "@/lib/operational-error-reporting";
+import { queryClient } from "@/lib/query-client";
 
 const PROACTIVE_REFRESH_WINDOW_MS = 60_000;
 const RETRY_MESSAGE = "인증을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.";
@@ -762,6 +763,19 @@ class AuthController {
     this.reissueSession = null;
     this.pendingRotationSession = null;
     this.rotationPromise = null;
+    /*
+     * 서버 상태 캐시도 지운다. 캐시는 컴포넌트 밖에 살아서 화면이 언마운트돼도 남으므로,
+     * 비우지 않으면 새 게스트의 이력 화면이 삭제된 계정의 목록을 먼저 보여준다.
+     *
+     * 캐시 키에 사용자 식별자를 넣는 방식으로는 이 문제를 못 막는다. 서버가 주는 세션에
+     * 사용자 식별자가 없고, installationId는 위 주석대로 삭제 후에도 유지되며,
+     * generation은 토큰이 회전할 때마다 바뀐다. 무엇보다 "모든 학습 기록 삭제"는 데이터를
+     * 안 보이게 하는 것이 아니라 없애는 요청이다.
+     *
+     * 지금 살아 있는 쿼리를 고르지 않고 전부 비우는 이유는, 여기서 사라지는 것이 특정
+     * 조회가 아니라 주체 자체이기 때문이다. 나중에 추가되는 쿼리도 자동으로 포함된다.
+     */
+    queryClient.clear();
     // 비우지 않으면 아래 bootstrap()이 직전 실행의 promise를 보고 조기 반환한다.
     this.bootstrapPromise = null;
 
