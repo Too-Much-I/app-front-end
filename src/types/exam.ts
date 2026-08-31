@@ -1,3 +1,22 @@
+/** 라이브 시험 화면의 상태 기계가 가질 수 있는 단계. 이벤트 payload도 같은 계약을 사용한다. */
+export type ExamSessionPhase =
+  | "directions"
+  | "part3-intro"
+  | "part4-reading"
+  | "part-prelude-error"
+  | "question-cue"
+  | "preparation-cue"
+  | "preparation"
+  | "response-cue"
+  | "starting-response"
+  | "response"
+  | "finalizing"
+  | "interrupted"
+  | "recording-recovery"
+  | "registration-recovery"
+  | "submission-barrier"
+  | "completed";
+
 export type ExamTableScalar = string | number | boolean | null;
 
 export interface RawExamTableMetadata {

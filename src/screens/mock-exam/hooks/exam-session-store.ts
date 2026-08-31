@@ -8,26 +8,9 @@ import type {
   ExamPartPrelude,
   ExamQuestion,
   ExamSession,
+  ExamSessionPhase,
   FinalizedAnswer,
 } from "@/types/exam";
-
-export type ExamSessionPhase =
-  | "directions"
-  | "part3-intro"
-  | "part4-reading"
-  | "part-prelude-error"
-  | "question-cue"
-  | "preparation-cue"
-  | "preparation"
-  | "response-cue"
-  | "starting-response"
-  | "response"
-  | "finalizing"
-  | "interrupted"
-  | "recording-recovery"
-  | "registration-recovery"
-  | "submission-barrier"
-  | "completed";
 
 function getQuestionStartPhase(partNumber: number | undefined): ExamSessionPhase {
   return partNumber !== undefined && getExamPartDirections(partNumber)

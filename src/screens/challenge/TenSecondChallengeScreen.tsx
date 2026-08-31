@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Text } from "@/components/ui/Text";
+import { AudioWaveform } from "@/features/audio/components/AudioWaveform";
 import { deleteRecordingFile } from "@/features/audio/recording-file";
 import {
   isAttemptAlreadyTerminal,
@@ -19,7 +20,6 @@ import {
 } from "@/features/challenge/use-challenge-recorder";
 import { useChallengeSubmission } from "@/features/challenge/use-challenge-submission";
 import type { RootStackParamList } from "@/navigation/types";
-import { AudioWaveform } from "@/screens/mock-exam/components/AudioWaveform";
 import {
   getChallengeRemainingSeconds,
   hasUnsavedChallengeRecording,

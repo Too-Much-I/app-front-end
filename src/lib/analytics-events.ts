@@ -1,4 +1,4 @@
-import type { ExamSessionPhase } from "@/screens/mock-exam/hooks/use-exam-session-controller";
+import type { ExamSessionPhase } from "@/types/exam";
 
 /**
  * 제품 분석 이벤트 카탈로그.
@@ -87,4 +87,3 @@ export type MicrophoneTestFailureStage =
   | "playback-attach"
   | "playback"
   | "permission-recheck";
-

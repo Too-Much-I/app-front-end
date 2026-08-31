@@ -2,7 +2,7 @@ import { ActivityIndicator, Image, View } from "react-native";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
-import { GradingRabbitBanner } from "@/screens/mock-exam/components/GradingRabbitBanner";
+import { GradingRabbitBanner } from "@/features/exam/components/GradingRabbitBanner";
 import type { ReanswerStatusOnly } from "@/screens/reanswer/reanswer-ui";
 import { colors, shadows } from "@/theme";
 
