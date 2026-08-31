@@ -3,7 +3,7 @@ import { Image, View } from "react-native";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
-import { AudioWaveform } from "@/screens/mock-exam/components/AudioWaveform";
+import { AudioWaveform } from "@/features/audio/components/AudioWaveform";
 import { formatDuration } from "@/screens/reanswer/reanswer-ui";
 import { colors, shadows } from "@/theme";
 

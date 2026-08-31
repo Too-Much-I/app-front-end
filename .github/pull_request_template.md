@@ -18,7 +18,7 @@
 
 ## 검증
 
-<!-- `pnpm lint`와 `pnpm typecheck`는 CI가 PR마다 자동으로 실행합니다. -->
+<!-- `pnpm lint`, `pnpm typecheck`, `pnpm check:naming`, `pnpm check:architecture`는 CI가 PR마다 자동으로 실행합니다. -->
 
 - [ ] 직접 확인:
 

@@ -13,8 +13,6 @@ import {
 } from "@/screens/mock-exam/hooks/exam-session-store";
 import type { ExamSession, FinalizedAnswer } from "@/types/exam";
 
-export type { ExamSessionPhase } from "@/screens/mock-exam/hooks/exam-session-store";
-
 const TIMER_UPDATE_INTERVAL_MS = 100;
 
 export function useExamSessionController(session: ExamSession, isExamActive: boolean) {

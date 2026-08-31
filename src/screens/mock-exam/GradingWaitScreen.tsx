@@ -6,13 +6,13 @@ import { AccessibilityInfo, Platform, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Text } from "@/components/ui/Text";
+import { GradingRabbitBanner } from "@/features/exam/components/GradingRabbitBanner";
 import {
   GRADING_PART_COUNT,
   useGradingStatus,
 } from "@/features/exam/use-grading-status";
 import type { MainTabParamList, MockExamStackParamList } from "@/navigation/types";
 import { GradingFailedNotice } from "@/screens/mock-exam/components/GradingFailedNotice";
-import { GradingRabbitBanner } from "@/screens/mock-exam/components/GradingRabbitBanner";
 import { GradingRetryNotice } from "@/screens/mock-exam/components/GradingRetryNotice";
 import { GradingSheet } from "@/screens/mock-exam/components/GradingSheet";
 import { colors } from "@/theme";

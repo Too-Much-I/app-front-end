@@ -5,9 +5,9 @@ import { Image, Linking, View } from "react-native";
 
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
+import { AudioWaveform } from "@/features/audio/components/AudioWaveform";
 import type { MockExamStackParamList } from "@/navigation/types";
 import { DeviceTestLayout } from "@/screens/mock-exam/components/DeviceTestLayout";
-import { AudioWaveform } from "@/screens/mock-exam/components/AudioWaveform";
 import { useMicrophoneTest } from "@/screens/mock-exam/hooks/use-microphone-test";
 import { colors } from "@/theme";
 

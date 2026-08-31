@@ -9,12 +9,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
+import { AudioWaveform } from "@/features/audio/components/AudioWaveform";
 import { getExamResponseCueKind } from "@/features/exam/exam-cue";
 import { getExamPartDirections } from "@/features/exam/part-directions";
 import { getQuestionAudioPlayCount } from "@/features/exam/question-audio";
 import { useOrientation } from "@/features/orientation/orientation-context";
 import type { MainTabParamList, MockExamStackParamList } from "@/navigation/types";
-import { AudioWaveform } from "@/screens/mock-exam/components/AudioWaveform";
 import { ExamAnswerStatus } from "@/screens/mock-exam/components/ExamAnswerStatus";
 import { ExamInformationReading } from "@/screens/mock-exam/components/ExamInformationReading";
 import { ExamPartIntroContent } from "@/screens/mock-exam/components/ExamPartIntroContent";
@@ -31,13 +31,11 @@ import {
 } from "@/screens/mock-exam/components/ExamTimerCard";
 import { Part4TableLandscapeModal } from "@/screens/mock-exam/components/Part4TableLandscapeModal";
 import { useExamAudioSession } from "@/screens/mock-exam/hooks/use-exam-audio-session";
-import {
-  type ExamSessionPhase,
-  useExamSessionController,
-} from "@/screens/mock-exam/hooks/use-exam-session-controller";
+import { useExamSessionController } from "@/screens/mock-exam/hooks/use-exam-session-controller";
 import type {
   ExamPartPrelude,
   ExamQuestion,
+  ExamSessionPhase,
   ExamTableContext,
 } from "@/types/exam";
 

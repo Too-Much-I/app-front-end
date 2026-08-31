@@ -4,12 +4,12 @@ import { ActivityIndicator, Image, Linking, View } from "react-native";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import type { AudioRecordingStatus } from "@/features/audio/use-timed-audio-recorder";
-import type { ExamSessionPhase } from "@/screens/mock-exam/hooks/use-exam-session-controller";
 import { colors } from "@/theme";
 import type {
   AnswerKey,
   AnswerSubmissionJob,
   AnswerSubmissionSummary,
+  ExamSessionPhase,
 } from "@/types/exam";
 
 const errorMascot = require("../../../../public/mascots/error.png");
