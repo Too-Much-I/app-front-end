@@ -44,8 +44,8 @@ import { trackEvent } from "@/lib/amplitude";
 import { reportOperationalError } from "@/lib/operational-error-reporting";
 import { WEB_BASE_URL, withRemScale } from "@/lib/web-base-url";
 import type { MainTabParamList, RootStackParamList } from "@/navigation/types";
+import { ExamHistoryTabView } from "@/screens/feedback/components/ExamHistoryTabView";
 import { FeedbackWebViewSkeleton } from "@/screens/feedback/components/FeedbackWebViewSkeleton";
-import { ExamHistoryScreen } from "@/screens/feedback/components/ExamHistoryScreen";
 import { useScaleValue } from "@/theme/rem-scale";
 
 /** 탭 안에서 파라미터를 지우고, 탭 위로 재답변 화면을 띄우기 위해 두 내비게이터를 함께 쓴다. */
@@ -573,7 +573,7 @@ export function FeedbackScreen() {
 
   if (!examId) {
     return (
-      <ExamHistoryScreen
+      <ExamHistoryTabView
         onOpenExam={(nextExamId) => navigation.setParams({ examId: nextExamId })}
         onStartExam={() => navigation.navigate("MockExam")}
       />

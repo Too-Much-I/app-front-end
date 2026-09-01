@@ -6,8 +6,9 @@
 > **적용 상태 (2026-08-31)** — §4의 11건은 **모두 반영됐고**, §5의 검사가 CI에서 재발을 막는다.
 > §A~§3에 "깨진다"고 적힌 항목은 **고치기 전의 상태**다. 지운 이유가 아니라 고친 이유를 남기려고
 > 그대로 두었으니, 지금 코드에서 그 위반을 찾지 말 것. 현재 상태는 §4와 §5가 정본이다.
-> 아직 남아 있는 것은 §A의 `ExamHistoryScreen`(983줄, `components/` 아래, 라우트 미등록)과
-> §G의 `retry` 세 가지 뜻뿐이며, 둘 다 이름만 바꿔서는 해결되지 않는다.
+> §A의 `ExamHistoryScreen`(983줄, `components/` 아래, 라우트 미등록)은 2026-09-01에 분해했다 —
+> `ExamHistoryTabView` 외 14개 파일(총 15개), 최대 187줄이고 `*Screen` 접미도 뗐다.
+> 아직 남아 있는 것은 §G의 `retry` 세 가지 뜻뿐이며, 이름만 바꿔서는 해결되지 않는다.
 
 이 문서는 세 가지를 답한다.
 
@@ -209,10 +210,35 @@ screens/ten-second-challenge/challenge-ui.ts   CHALLENGE_RECORDING_SECONDS = ↑
 | `*Cue` | 안내 음성을 재생하는 단계 화면 | `ExamPhaseCue`, `ExamQuestionCue` |
 | `*Skeleton` | 로딩 자리 지킴 | `ChallengeNoteSkeleton`, `FeedbackWebViewSkeleton` |
 | `*Layout` | 여러 화면이 공유하는 껍데기 | `DeviceTestLayout` |
+| `*TabView` | 다른 화면 안에서 탭으로 갈리는 뷰(라우트 아님) | `ExamHistoryTabView` |
 
-`*Screen`의 정의(= 라우트로 등록된다)를 깨는 것은 **`ExamHistoryScreen` 하나뿐**이다. 라우트가 아니라
-`FeedbackScreen`이 파라미터가 없을 때 렌더하는 자식이고, `screens/feedback/components/` 아래에 있으며
-983줄로 저장소에서 가장 큰 파일이다. 세 규칙(위치·접미·크기)을 동시에 어긴다.
+### 파일 이름에는 catch-all 접미를 쓰지 않는다
+
+컴포넌트가 아닌 모듈의 파일명은 **무엇이 들었는지**를 말한다. `-ui` · `-utils` ·
+`-helpers` · `-misc`처럼 아무거나 담을 수 있는 이름은 쓰지 않는다.
+
+2026-09-01까지 `challenge-ui.ts` · `reanswer-ui.ts` · `exam-history-ui.ts` 세 개가
+그 접미를 썼고, 249줄짜리 `challenge-ui.ts` 안에는 상태 판정 · 타이머 표기 · 첨삭
+밑줄 구간 계산이 함께 들어 있었다. `findCorrectionSpans`(문자열 매칭)가 "ui"에
+있는 것이 이 접미의 성격을 그대로 보여준다. 내용대로 갈랐다.
+
+| 이전 | 이후 |
+|---|---|
+| `screens/challenge/challenge-ui.ts` (249) | `challenge-status.ts` (156) · `challenge-corrections.ts` (105) |
+| `screens/reanswer/reanswer-ui.ts` (56) | `reanswer-status.ts` (56) |
+| `screens/feedback/exam-history-ui.ts` (140) | `exam-history-state.ts` (84) · `exam-history-tabs.ts` (20) · `exam-history-format.ts` (37) |
+
+`-status` · `-state`는 **화면이 그리는 상태 union과 그 판정**을 담는다. 그 외에는
+담긴 것을 그대로 부른다(`-corrections` · `-tabs` · `-format`). 새 이름이 필요하면
+새 접미를 만들지 말고 파일을 하나 더 만든다.
+
+`ui`라는 단어를 쓰지 않는 이유가 하나 더 있다 — Feature-Sliced Design에서 `ui`는
+컴포넌트를 뜻해서 정확히 반대로 읽힌다. 이 저장소에서 컴포넌트는 `components/` 폴더가 맡는다.
+
+`*Screen`의 정의(= 라우트로 등록된다)를 깨는 것은 이제 없다. 하나 있던 `ExamHistoryScreen`은
+2026-09-01에 `ExamHistoryTabView`로 개명하며 정리했다 — 라우트가 아니라 `FeedbackScreen`이
+파라미터 없이 렌더하는 자식이므로, 라우트로 올리는 대신 접미를 바꿔 사실과 이름을 맞췄다.
+(`*TabView` = 다른 화면 안에서 탭으로 갈리는 뷰.)
 
 ---
 
@@ -327,12 +353,14 @@ AGENTS.md의 예측 가능성 기준("이름 겹치지 않게 관리")과 정면
 | 파일 | 줄 | 무엇이 들었나 |
 |---|---|---|
 | `screens/mock-exam/hooks/exam-session-store.ts` | 296 | 시험 진행 상태 기계 전체 |
-| `screens/challenge/challenge-ui.ts` | 249 | 첨삭 심각도 정규화, 라벨 사전, 밑줄 구간 계산 |
-| `screens/reanswer/reanswer-ui.ts` | 61 | 상태 합성 + 회차 표기 |
-| `screens/feedback/components/ExamHistoryScreen.tsx` | 983 | 이력 화면 전체 |
+| `screens/challenge/challenge-corrections.ts` | 105 | 첨삭 심각도 정규화, 라벨 사전, 밑줄 구간 계산 |
+| `screens/challenge/challenge-status.ts` | 156 | 상태 합성 + 타이머 표기 |
+| `screens/reanswer/reanswer-status.ts` | 56 | 상태 합성 + 회차 표기 |
+| `screens/feedback/exam-history-state.ts` | 84 | 패널 상태 판정 |
 
 이름 규칙(`screens/` = 화면)과 내용(도메인 지식)이 어긋난다. 챌린지 스테이지 화면이 생기면
-`challenge-ui.ts`를 두 화면이 공유하게 되고, 그때 이 어긋남이 실제 비용이 된다.
+`challenge-corrections.ts`를 두 화면이 공유하게 되고, 그때 이 어긋남이 실제 비용이 된다.
+(2026-09-01의 파일 분해는 이름만 정확히 했을 뿐, 이 어긋남 자체는 그대로다.)
 
 ### ③ 가장 최근에 만든 기능
 
@@ -359,7 +387,7 @@ AGENTS.md의 예측 가능성 기준("이름 겹치지 않게 관리")과 정면
 | 11 | `features/exam/answer-audio.ts` | 삭제, import를 `features/audio/audio-session`으로 | 7과 같은 유형 (규칙 적용 중 발견) |
 
 **2번을 그대로 둔 이유** — 구현은 같지만 중복 자체가 의도적이고(분 단위까지 가는 재답변 녹음과
-10초로 끝나는 챌린지는 표기를 함께 바꿀 이유가 없다) 그 근거가 이미 `challenge-ui.ts` 주석에 있다.
+10초로 끝나는 챌린지는 표기를 함께 바꿀 이유가 없다) 그 근거가 이미 `challenge-status.ts` 주석에 있다.
 이름이 겹치지도 않아 규칙 위반이 아니다. 통일하려면 두 화면의 표기를 함께 바꾸겠다는 결정이
 먼저 있어야 한다.
 

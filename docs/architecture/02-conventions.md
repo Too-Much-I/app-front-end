@@ -159,11 +159,12 @@ features/challenge/use-challenge-result.ts:176     if (!__DEV__) return load(); 
 | 파일 | 줄 | 들어 있는 것 |
 |---|---|---|
 | `screens/mock-exam/hooks/exam-session-store.ts` | 296 | 시험 진행 상태 기계 전체 (phase 17종) |
-| `screens/challenge/challenge-ui.ts` | 249 | 첨삭 정규화 · 라벨 사전 · 밑줄 구간 계산 |
-| `screens/reanswer/reanswer-ui.ts` | 61 | 상태 합성 · 회차 표기 |
+| `screens/challenge/challenge-corrections.ts` | 105 | 첨삭 정규화 · 라벨 사전 · 밑줄 구간 계산 |
+| `screens/challenge/challenge-status.ts` | 156 | 상태 합성 · 타이머 표기 |
+| `screens/reanswer/reanswer-status.ts` | 56 | 상태 합성 · 회차 표기 |
 
 AGENTS.md는 "재사용 가능한 동작은 feature/theme/ui 계층에" 두라고 한다.
-**비용**: 챌린지 스테이지 화면이 생기면 `challenge-ui.ts`를 두 화면이 공유한다 —
+**비용**: 챌린지 스테이지 화면이 생기면 `challenge-status.ts`를 두 화면이 공유한다 —
 그 순간 `screens/challenge/`에서 import하는 다른 화면이 생긴다.
 
 ### 3.4 테스트가 하나도 없다
@@ -190,7 +191,6 @@ getEqualJitterDelayMs · previewOperationalError · areExamTableContextsEqual
 
 | 파일 | 줄 |
 |---|---|
-| `screens/feedback/components/ExamHistoryScreen.tsx` | **983** |
 | `features/auth/auth-controller.ts` | **821** |
 | `screens/mock-exam/hooks/use-microphone-test.ts` | 632 |
 | `screens/feedback/FeedbackScreen.tsx` | 623 |
@@ -237,7 +237,7 @@ import { ANSWER_AUDIO_CONTENT_TYPE, AnswerAudioUploadError,
 | # | 내용 |
 |---|---|
 | 3.9 | lint 규칙이 3개뿐(oxlint). import 순서 · 파일 길이 · 미사용 export가 기계화되지 않아 사람 리뷰에 의존한다 |
-| 3.10 | `import` 그룹 내부가 알파벳 순이 아니다 (`FeedbackScreen.tsx`에서 `ExamHistoryScreen`이 `FeedbackWebViewSkeleton` 뒤) |
+| 3.10 | `import` 그룹 내부 알파벳 순이 기계화돼 있지 않다. 실측 위반은 2026-09-01 `FeedbackScreen.tsx` 분해 때 정리했지만 다시 쌓이는 것을 막는 규칙은 없다 |
 | 3.11 | 루트 `index.ts` · `app.config.ts`만 홑따옴표 (`src/`는 100% 큰따옴표) |
 | 3.12 | `NotificationsScreen`이 목 데이터만 그린다. 사용자에게 노출되는 화면인데 서버 연동이 없다 |
 | 3.13 | `specs/` 14개 폴더가 죽은 워크플로 산출물로 남아 있고 AGENTS.md가 "따르지 말라"고 방어 중이다. `docs/superpowers/`도 같은 성격. 문서가 코드보다 많고 새 참여자에게 가장 큰 노이즈다 |
@@ -259,7 +259,7 @@ import { ANSWER_AUDIO_CONTENT_TYPE, AnswerAudioUploadError,
 | 4 | `screens/*/`의 도메인 로직을 `features/`로 | 스테이지 화면 만들기 직전에 | 반나절 |
 | 5 | 업로드 모듈을 `features/exam` 밖으로 (3.7) | 세 번째 녹음 도메인이 생길 때 | 1~2시간 |
 | 6 | `__DEV__` 목 제거 | 백엔드 붙는 날 | 백엔드 일정에 종속 |
-| 7 | `ExamHistoryScreen` 분해 · 라우트 등록 여부 결정 | 983줄. 아프지만 급하지 않다 | 하루 |
+| ~~7~~ | ~~`ExamHistoryScreen` 분해 · 라우트 등록 여부 결정~~ | 완료(2026-09-01). 라우트로 올리지 않고 `ExamHistoryTabView`로 개명해 `*Screen` = 라우트 규칙을 지켰다 | |
 
 이름 정리를 0번으로 먼저 한 이유: 리스크가 0(전부 삭제·개명이고 typecheck가 잡는다)이고,
 검사 스크립트를 지금 붙여야 아래 1~7을 하면서 새 위반이 안 쌓인다. 테스트보다 앞선 것은

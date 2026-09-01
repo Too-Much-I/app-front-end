@@ -54,7 +54,7 @@
         <mxCell id="ia_wait" value="GradingWait&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#B91C1C&quot;&gt;제스처 잠금 · 채점 폴링&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCEDF9;strokeColor=#0E5A7D;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="880" y="740" width="220" height="48" as="geometry" /></mxCell>
 
-        <mxCell id="ia_history" value="ExamHistoryScreen&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#B91C1C&quot;&gt;파라미터 없으면 앱이 직접 그린다 · 라우트 미등록&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9F2;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+        <mxCell id="ia_history" value="ExamHistoryTabView&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;파라미터 없으면 앱이 직접 그린다&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9F2;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="880" y="845" width="270" height="55" as="geometry" /></mxCell>
         <mxCell id="ia_fb_overview" value="웹 /app-exam-screen&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;종합 피드백 (examId만 있을 때)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F7F7F7;strokeColor=#9CA3AF;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="880" y="915" width="270" height="50" as="geometry" /></mxCell>

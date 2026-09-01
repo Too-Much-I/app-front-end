@@ -18,7 +18,7 @@
         <mxCell id="L1" value="② 화면 — src/screens, src/navigation" style="rounded=1;html=1;fillColor=#FFF9F2;strokeColor=#FFD9C2;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontColor=#BD4900;fontSize=14;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="225" width="1660" height="235" as="geometry" />
         </mxCell>
-        <mxCell id="L2" value="③ 화면 상태 — screens/*/hooks, screens/*/*-ui.ts　(여러 훅의 상태를 화면 상태 하나로 합성하는 자리)" style="rounded=1;html=1;fillColor=#FFF9F2;strokeColor=#FFD9C2;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontColor=#BD4900;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="L2" value="③ 화면 상태 — screens/*/hooks, screens/*/*-status.ts　(여러 훅의 상태를 화면 상태 하나로 합성하는 자리)" style="rounded=1;html=1;fillColor=#FFF9F2;strokeColor=#FFD9C2;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontColor=#BD4900;fontSize=14;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="485" width="1660" height="155" as="geometry" />
         </mxCell>
         <mxCell id="L3" value="④ 기능 — src/features　(도메인 지식이 사는 곳: API 호출 · 매퍼 · 생명주기 훅)" style="rounded=1;html=1;fillColor=#DCEDF9;strokeColor=#B9DCF2;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontColor=#0E5A7D;fontSize=14;fontStyle=1;" vertex="1" parent="1">
@@ -46,7 +46,7 @@
           <mxGeometry x="70" y="275" width="230" height="65" as="geometry" /></mxCell>
         <mxCell id="s_exam" value="mock-exam 6화면&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;준비 → 파트 안내 → 마이크 → 음향 → 응시 → 채점 대기&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="330" y="275" width="300" height="65" as="geometry" /></mxCell>
-        <mxCell id="s_feed" value="FeedbackScreen (WebView 호스트)&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#B91C1C&quot;&gt;+ ExamHistoryScreen 983줄 — components/ 아래, 라우트 미등록&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+        <mxCell id="s_feed" value="FeedbackScreen (WebView 호스트)&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;+ ExamHistoryTabView (파라미터 없을 때의 자식 뷰)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="660" y="275" width="330" height="65" as="geometry" /></mxCell>
         <mxCell id="s_re" value="ReanswerScreen&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;웹 메시지로 진입&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="1020" y="275" width="200" height="65" as="geometry" /></mxCell>
@@ -63,7 +63,7 @@
 
         <mxCell id="h_examctl" value="use-exam-session-controller　+　exam-session-store&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;zustand vanilla · phase 유니온 17종 · 도메인 사건만 노출&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="70" y="530" width="360" height="80" as="geometry" /></mxCell>
-        <mxCell id="h_chui" value="challenge-ui.ts　/　reanswer-ui.ts&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;조회·발급·녹음·제출 상태를 화면 상태 하나로 합성하는 순수 함수&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+        <mxCell id="h_chui" value="challenge-status.ts　/　reanswer-status.ts&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;조회·발급·녹음·제출 상태를 화면 상태 하나로 합성하는 순수 함수&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="460" y="530" width="380" height="80" as="geometry" /></mxCell>
         <mxCell id="h_mic" value="use-microphone-test&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;632줄 · 권한→녹음→재생 판정&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="870" y="530" width="250" height="80" as="geometry" /></mxCell>
@@ -115,7 +115,7 @@
 
         <mxCell id="note_bridge" value="&lt;b&gt;웹뷰 데이터 브리지&lt;/b&gt; — 액세스 토큰을 웹에 넘기지 않는다.&#10;웹은 resource 이름만 말하고, 앱이 검증된 경로로 대신 조회해 결과만 돌려준다.&#10;임의 경로 프록시는 제공하지 않는다." style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#DCEDF9;strokeColor=#0E5A7D;fontColor=#0E5A7D;fontSize=11;align=left;spacingLeft=6;" vertex="1" parent="1">
           <mxGeometry x="1250" y="1330" width="420" height="70" as="geometry" /></mxCell>
-        <mxCell id="note_debt" value="&lt;b&gt;서버 상태 계층이 비어 있다.&lt;/b&gt;　@tanstack/react-query가 의존성에 있으나 사용처 0.&#10;조회 · 폴링 · 취소 · 재시도 · 백오프가 36개 훅에 각자 구현돼 있다." style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#FFF1F0;strokeColor=#EF4444;fontColor=#B91C1C;fontSize=11;align=left;spacingLeft=6;" vertex="1" parent="1">
+        <mxCell id="note_debt" value="&lt;b&gt;서버 상태 계층이 이제 막 생겼다.&lt;/b&gt;　@tanstack/react-query를 시험 이력 경로 두 곳에서만 쓴다.&#10;나머지 조회 · 폴링 · 취소 · 재시도 · 백오프는 훅마다 각자 구현돼 있다." style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#FFF1F0;strokeColor=#EF4444;fontColor=#B91C1C;fontSize=11;align=left;spacingLeft=6;" vertex="1" parent="1">
           <mxGeometry x="500" y="1330" width="700" height="55" as="geometry" /></mxCell>
 
         <mxCell id="ae1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9CA3AF;" edge="1" parent="1" source="a_index" target="a_app"><mxGeometry relative="1" as="geometry" /></mxCell>

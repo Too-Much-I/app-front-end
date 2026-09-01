@@ -2,10 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { View } from "react-native";
 
 import { Text } from "@/components/ui/Text";
-import {
-  formatCountdown,
-  isUrgentRemaining,
-} from "@/screens/challenge/challenge-ui";
+import { formatCountdown, isUrgentRemaining } from "@/screens/challenge/challenge-status";
 import { colors } from "@/theme";
 
 interface ChallengeTimerHeaderProps {

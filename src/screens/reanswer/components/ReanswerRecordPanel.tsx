@@ -4,7 +4,7 @@ import { Image, View } from "react-native";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { AudioWaveform } from "@/features/audio/components/AudioWaveform";
-import { formatDuration } from "@/screens/reanswer/reanswer-ui";
+import { formatDuration } from "@/screens/reanswer/reanswer-status";
 import { colors, shadows } from "@/theme";
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.

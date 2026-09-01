@@ -27,7 +27,7 @@ import {
   isChallengeSubmissionLocked,
   resolveChallengeUiStatus,
   resolveRecordingPhase,
-} from "@/screens/challenge/challenge-ui";
+} from "@/screens/challenge/challenge-status";
 import { ChallengeActionBar } from "@/screens/challenge/components/ChallengeActionBar";
 import { ChallengeHeader } from "@/screens/challenge/components/ChallengeHeader";
 import { ChallengeNoteCard } from "@/screens/challenge/components/ChallengeNoteCard";

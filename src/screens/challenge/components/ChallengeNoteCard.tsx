@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Image, View } from "react-native";
 
 import { Text } from "@/components/ui/Text";
-import { isUrgentRemaining } from "@/screens/challenge/challenge-ui";
+import { isUrgentRemaining } from "@/screens/challenge/challenge-status";
 import { PunchHoles } from "@/screens/challenge/components/paper/PunchHoles";
 import { Tape } from "@/screens/challenge/components/paper/Tape";
 import { colors, shadows } from "@/theme";
