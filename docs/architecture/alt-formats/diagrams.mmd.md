@@ -88,7 +88,7 @@ graph TB
     RN --> TAB["MainTabNavigator"] --> MS["MockExamStackNavigator"]
   end
   subgraph L1["② 화면 src/screens"]
-    SH["Home"]; SE["mock-exam 6화면"]; SF["Feedback (WebView)<br/>+ ExamHistory 983줄"]; SR["Reanswer"]; SC["10초 챌린지 2화면"]
+    SH["Home"]; SE["mock-exam 6화면"]; SF["Feedback (WebView)<br/>+ ExamHistoryTabView 외 14개"]; SR["Reanswer"]; SC["10초 챌린지 2화면"]
   end
   subgraph L2["③ 화면 상태"]
     HE["use-exam-session-controller<br/>+ exam-session-store (zustand)"]; HU["challenge-status / reanswer-status<br/>상태 합성"]
