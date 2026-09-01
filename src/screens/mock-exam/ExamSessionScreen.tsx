@@ -30,6 +30,7 @@ import {
   type ExamTimerMode,
 } from "@/screens/mock-exam/components/ExamTimerCard";
 import { Part4TableLandscapeModal } from "@/screens/mock-exam/components/Part4TableLandscapeModal";
+import { emitExamBreadcrumb } from "@/screens/mock-exam/exam-breadcrumb";
 import { useExamAudioSession } from "@/screens/mock-exam/hooks/use-exam-audio-session";
 import { useExamSessionController } from "@/screens/mock-exam/hooks/use-exam-session-controller";
 import type {
@@ -166,6 +167,10 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     });
     return () => subscription.remove();
   }, []);
+
+  useEffect(() => {
+    emitExamBreadcrumb("exam.lifecycle", { isFocused, isAppActive });
+  }, [isFocused, isAppActive]);
 
   useEffect(() => {
     if (!activePart4Table && isLandscapeTableRequested) void restorePortrait();

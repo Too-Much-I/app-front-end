@@ -257,12 +257,20 @@ function scrubStacktrace(value: unknown): SentryStacktrace | undefined {
   };
 }
 
-function scrubExceptionValue(value: unknown): SentryExceptionValue | undefined {
+function scrubExceptionValue(
+  value: unknown,
+  stableOperationalMessage?: string,
+): SentryExceptionValue | undefined {
   if (!isRecord(value)) return undefined;
 
   return {
     type: scrubOptionalString(value.type),
-    value: value.value === undefined ? undefined : FILTERED,
+    value:
+      typeof value.value === "string" && value.value === stableOperationalMessage
+        ? stableOperationalMessage
+        : value.value === undefined
+          ? undefined
+          : FILTERED,
     mechanism: scrubMechanism(value.mechanism),
     module: scrubOptionalString(value.module),
     thread_id: undefined,
@@ -270,11 +278,16 @@ function scrubExceptionValue(value: unknown): SentryExceptionValue | undefined {
   };
 }
 
-function scrubException(value: unknown): SentryException | undefined {
+function scrubException(
+  value: unknown,
+  stableOperationalMessage?: string,
+): SentryException | undefined {
   if (!isRecord(value)) return undefined;
   const values = Array.isArray(value.values)
     ? value.values
-        .map(scrubExceptionValue)
+        .map((exceptionValue) =>
+          scrubExceptionValue(exceptionValue, stableOperationalMessage),
+        )
         .filter(
           (exceptionValue): exceptionValue is SentryExceptionValue =>
             exceptionValue !== undefined,
@@ -285,9 +298,11 @@ function scrubException(value: unknown): SentryException | undefined {
 }
 
 function scrubEvent(event: ErrorEvent): ErrorEvent {
+  const stableOperationalMessage = getStableOperationalMessage(event);
+
   return {
     ...event,
-    message: getStableOperationalMessage(event),
+    message: stableOperationalMessage,
     transaction:
       typeof event.transaction === "string"
         ? redactIdentifiers(event.transaction)
@@ -308,7 +323,7 @@ function scrubEvent(event: ErrorEvent): ErrorEvent {
     breadcrumbs: event.breadcrumbs?.map(scrubBreadcrumb),
     contexts: scrubContexts(event.contexts),
     extra: scrubRecord(event.extra),
-    exception: scrubException(event.exception),
+    exception: scrubException(event.exception, stableOperationalMessage),
   };
 }
 
@@ -341,7 +356,30 @@ export function withSentry<P extends Record<string, unknown>>(
   return SENTRY_ENABLED ? Sentry.wrap(RootComponent) : RootComponent;
 }
 
-type OperationalContextValue = string | number | boolean;
+export type OperationalContextValue = string | number | boolean;
+
+export type BreadcrumbLevel = "info" | "warning";
+
+/**
+ * `beforeBreadcrumb`(위 scrubBreadcrumb)이 message를 항상 지우므로, 실제로 Sentry에
+ * 남는 값은 category와 이 data뿐이다. data에는 enum·숫자처럼 닫힌 집합의 값만
+ * 넘긴다 — 자유 텍스트를 조합해서 넘기면 scrubBreadcrumb의 message 전체 삭제 정책을
+ * 우회하는 셈이 된다. `category`는 기능마다 자기 타입으로 좁혀 호출한다(예:
+ * `ExamBreadcrumbCategory`) — 이 함수는 SDK 호출만 감쌀 뿐 특정 기능을 모른다.
+ */
+export function emitBreadcrumb(
+  category: string,
+  data: Record<string, OperationalContextValue>,
+  level: BreadcrumbLevel = "info",
+): void {
+  if (!SENTRY_ENABLED) return;
+
+  try {
+    Sentry.addBreadcrumb({ category, level, data });
+  } catch {
+    // 관측 도구 실패가 원래 사용자 흐름을 가로막으면 안 된다.
+  }
+}
 
 export interface OperationalEventPayload {
   code: OperationalErrorCode;
