@@ -14,6 +14,7 @@ import { getExamResponseCueKind } from "@/features/exam/exam-cue";
 import { getExamPartDirections } from "@/features/exam/part-directions";
 import { getQuestionAudioPlayCount } from "@/features/exam/question-audio";
 import { useOrientation } from "@/features/orientation/orientation-context";
+import { emitExamBreadcrumb } from "@/lib/sentry";
 import type { MainTabParamList, MockExamStackParamList } from "@/navigation/types";
 import { ExamAnswerStatus } from "@/screens/mock-exam/components/ExamAnswerStatus";
 import { ExamInformationReading } from "@/screens/mock-exam/components/ExamInformationReading";
@@ -166,6 +167,10 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     });
     return () => subscription.remove();
   }, []);
+
+  useEffect(() => {
+    emitExamBreadcrumb("exam.lifecycle", { isFocused, isAppActive });
+  }, [isFocused, isAppActive]);
 
   useEffect(() => {
     if (!activePart4Table && isLandscapeTableRequested) void restorePortrait();

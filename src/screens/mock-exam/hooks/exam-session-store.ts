@@ -4,6 +4,7 @@ import { getExamPartDirections } from "@/features/exam/part-directions";
 import { decidePartPrelude } from "@/features/exam/part-prelude";
 import { getPlayableQuestionAudioUrl } from "@/features/exam/question-audio";
 import { reportOperationalError } from "@/lib/operational-error-reporting";
+import { emitExamBreadcrumb } from "@/lib/sentry";
 import type {
   ExamPartPrelude,
   ExamQuestion,
@@ -95,16 +96,33 @@ export function createExamSessionStore(session: ExamSession) {
     const currentQuestion = (): ExamQuestion | undefined =>
       session.questions[get().currentIndex];
 
+    /**
+     * phase가 바뀐 직후 호출한다. `data`는 enum·숫자만 담는다 — breadcrumb의
+     * `message`는 beforeBreadcrumb(sentry.ts)이 항상 지우므로 자유 텍스트를 넣어도
+     * 남지 않는다.
+     */
+    const emitPhaseBreadcrumb = () => {
+      const { phase, currentIndex } = get();
+      const question = currentQuestion();
+      emitExamBreadcrumb("exam.phase", {
+        phase,
+        currentIndex,
+        ...(question ? { partNumber: question.partNumber } : {}),
+      });
+    };
+
     const enterPreparationCue = (question: ExamQuestion) => {
       set({
         preparationRemainingMs: question.prepTimeSec * 1_000,
         phase: "preparation-cue",
       });
+      emitPhaseBreadcrumb();
     };
 
     const enterQuestionStart = (question: ExamQuestion) => {
       if (getPlayableQuestionAudioUrl(question)) {
         set({ phase: "question-cue" });
+        emitPhaseBreadcrumb();
         return;
       }
       enterPreparationCue(question);
@@ -132,6 +150,7 @@ export function createExamSessionStore(session: ExamSession) {
             return;
           case "part3-intro":
             set({ phase: "part3-intro" });
+            emitPhaseBreadcrumb();
             return;
           case "part4-reading":
             set({
@@ -139,6 +158,7 @@ export function createExamSessionStore(session: ExamSession) {
               isReadingTableReady: false,
               phase: "part4-reading",
             });
+            emitPhaseBreadcrumb();
             return;
           case "failed":
             reportOperationalError({
@@ -147,11 +167,13 @@ export function createExamSessionStore(session: ExamSession) {
               reason: decision.reason,
             });
             set({ phase: "part-prelude-error" });
+            emitPhaseBreadcrumb();
             return;
           default: {
             const unhandled: never = decision;
             console.error("[ExamSession] 처리되지 않은 서두 판정", unhandled);
             set({ phase: "part-prelude-error" });
+            emitPhaseBreadcrumb();
             return;
           }
         }
@@ -186,6 +208,7 @@ export function createExamSessionStore(session: ExamSession) {
           preparationRemainingMs: question.prepTimeSec * 1_000,
           phase: "preparation",
         });
+        emitPhaseBreadcrumb();
       },
 
       markPart4TableReady: () => {
@@ -199,6 +222,7 @@ export function createExamSessionStore(session: ExamSession) {
           return;
         }
         set({ phase: "response-cue" });
+        emitPhaseBreadcrumb();
       },
 
       retryRecording: () => get().beginResponse(),
@@ -221,17 +245,28 @@ export function createExamSessionStore(session: ExamSession) {
       beginRecordingAttempt: () => {
         if (get().phase !== "response-cue") return false;
         set({ phase: "starting-response" });
+        emitPhaseBreadcrumb();
         return true;
       },
 
-      recordingStarted: () => set({ phase: "response" }),
-      recordingInterrupted: () => set({ phase: "interrupted" }),
-      recordingFailed: () => set({ phase: "recording-recovery" }),
+      recordingStarted: () => {
+        set({ phase: "response" });
+        emitPhaseBreadcrumb();
+      },
+      recordingInterrupted: () => {
+        set({ phase: "interrupted" });
+        emitPhaseBreadcrumb();
+      },
+      recordingFailed: () => {
+        set({ phase: "recording-recovery" });
+        emitPhaseBreadcrumb();
+      },
 
       beginFinalizing: () => {
         const { phase } = get();
         if (phase !== "response" && phase !== "finalizing") return false;
         set({ phase: "finalizing" });
+        emitPhaseBreadcrumb();
         return true;
       },
 
@@ -242,21 +277,25 @@ export function createExamSessionStore(session: ExamSession) {
 
       answerRegistrationFailed: (answer) => {
         set({ pendingFinalizedAnswer: answer, phase: "registration-recovery" });
+        emitPhaseBreadcrumb();
       },
 
       answerFileInvalid: () => {
         set({ pendingFinalizedAnswer: null, phase: "recording-recovery" });
+        emitPhaseBreadcrumb();
       },
 
       examCompleted: () => {
         if (get().phase !== "submission-barrier") return;
         set({ phase: "completed" });
+        emitPhaseBreadcrumb();
       },
 
       advanceAfterRegistration: () => {
         const activeIndex = get().currentIndex;
         if (activeIndex >= session.questions.length - 1) {
           set({ phase: "submission-barrier" });
+          emitPhaseBreadcrumb();
           return;
         }
 
@@ -270,6 +309,7 @@ export function createExamSessionStore(session: ExamSession) {
             preparationRemainingMs: nextQuestion.prepTimeSec * 1_000,
             phase: getQuestionStartPhase(nextQuestion.partNumber),
           });
+          emitPhaseBreadcrumb();
           return;
         }
         enterQuestionStart(nextQuestion);
