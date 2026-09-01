@@ -12,7 +12,7 @@ import {
 } from "@/features/challenge/use-challenge-result";
 import type { RootStackParamList } from "@/navigation/types";
 import { SkeletonBlock } from "@/components/ui/SkeletonBlock";
-import { findCorrectionSpans } from "@/screens/challenge/challenge-ui";
+import { findCorrectionSpans } from "@/screens/challenge/challenge-corrections";
 import { ChallengeCelebration } from "@/screens/challenge/components/ChallengeCelebration";
 import { ChallengeCorrectionSheet } from "@/screens/challenge/components/ChallengeCorrectionSheet";
 import { ChallengeSentenceCard } from "@/screens/challenge/components/ChallengeSentenceCard";

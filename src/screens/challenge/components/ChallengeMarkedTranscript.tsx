@@ -2,9 +2,9 @@ import type { ReactNode } from "react";
 
 import { Text } from "@/components/ui/Text";
 import {
-  getCorrectionSeverityColor,
   type ChallengeCorrectionSpan,
-} from "@/screens/challenge/challenge-ui";
+  getCorrectionSeverityColor,
+} from "@/screens/challenge/challenge-corrections";
 import type { ChallengeCorrectionItem } from "@/types/challenge";
 
 interface ChallengeMarkedTranscriptProps {

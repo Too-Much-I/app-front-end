@@ -91,7 +91,7 @@ graph TB
     SH["Home"]; SE["mock-exam 6화면"]; SF["Feedback (WebView)<br/>+ ExamHistory 983줄"]; SR["Reanswer"]; SC["10초 챌린지 2화면"]
   end
   subgraph L2["③ 화면 상태"]
-    HE["use-exam-session-controller<br/>+ exam-session-store (zustand)"]; HU["challenge-ui / reanswer-ui<br/>상태 합성"]
+    HE["use-exam-session-controller<br/>+ exam-session-store (zustand)"]; HU["challenge-status / reanswer-status<br/>상태 합성"]
   end
   subgraph L3["④ 기능 src/features"]
     FA["auth<br/>controller 싱글턴 821줄"]; FE["exam<br/>api11·map7·hook6"]; FC["challenge<br/>api6·hook5"]; FD["audio<br/>시간제한 녹음"]
@@ -161,7 +161,7 @@ graph LR
   M --> M1["MockExamReady"] --> M2["ExamPartGuide"] --> M3["MicrophoneTest"] --> M4["SoundTest"] --> M5["ExamSession<br/>탭바 숨김·뒤로가기 보호"] --> M6["GradingWait<br/>제스처 잠금"]
   M6 -->|채점 완료| F
 
-  F -->|파라미터 없음| FH["ExamHistoryScreen<br/>라우트 미등록 ⚠"]
+  F -->|파라미터 없음| FH["ExamHistoryTabView<br/>FeedbackScreen의 자식 뷰"]
   F -->|examId| FO["웹 /app-exam-screen"]
   F -->|+questionNumber| FQ["웹 /app-question-feedback"]
   FQ -->|REANSWER_REQUESTED| RA["Reanswer<br/>제스처 잠금"]

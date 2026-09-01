@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, View } from "react-native";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { GradingRabbitBanner } from "@/features/exam/components/GradingRabbitBanner";
-import type { ReanswerStatusOnly } from "@/screens/reanswer/reanswer-ui";
+import type { ReanswerStatusOnly } from "@/screens/reanswer/reanswer-status";
 import { colors, shadows } from "@/theme";
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.

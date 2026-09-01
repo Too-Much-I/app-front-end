@@ -189,7 +189,7 @@ null로 좁힌다" 같은 **정규화**를 함께 한다는 것 — zod로 표�
 
 **하지만** Query 후보가 되는 멱등 조회·폴링 경로는 분명하다: `useChallengeQuestion`,
 `useChallengeResult`, `useRecentFeedback`, `useReanswerQuestion`, `useGradingStatus`, 그리고
-`ExamHistoryScreen` 내부 조회다. `useChallengeToday`와 `useExamHistory`라는 훅은 현재 존재하지 않는다.
+`ExamHistoryTabView` 내부 조회다. `useChallengeToday`와 `useExamHistory`라는 훅은 현재 존재하지 않는다.
 반대로 attempt 발급, 녹음, 업로드 큐는 Query 도입 뒤에도 별도 생명주기 상태 기계가 필요하다.
 
 **판단** — 셋 중 하나를 골라야 한다.

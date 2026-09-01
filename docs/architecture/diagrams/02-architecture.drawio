@@ -18,7 +18,7 @@
         <mxCell id="L1" value="② 화면 — src/screens, src/navigation" style="rounded=1;html=1;fillColor=#FFF9F2;strokeColor=#FFD9C2;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontColor=#BD4900;fontSize=14;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="225" width="1660" height="235" as="geometry" />
         </mxCell>
-        <mxCell id="L2" value="③ 화면 상태 — screens/*/hooks, screens/*/*-ui.ts　(여러 훅의 상태를 화면 상태 하나로 합성하는 자리)" style="rounded=1;html=1;fillColor=#FFF9F2;strokeColor=#FFD9C2;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontColor=#BD4900;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="L2" value="③ 화면 상태 — screens/*/hooks, screens/*/*-status.ts　(여러 훅의 상태를 화면 상태 하나로 합성하는 자리)" style="rounded=1;html=1;fillColor=#FFF9F2;strokeColor=#FFD9C2;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontColor=#BD4900;fontSize=14;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="485" width="1660" height="155" as="geometry" />
         </mxCell>
         <mxCell id="L3" value="④ 기능 — src/features　(도메인 지식이 사는 곳: API 호출 · 매퍼 · 생명주기 훅)" style="rounded=1;html=1;fillColor=#DCEDF9;strokeColor=#B9DCF2;verticalAlign=top;align=left;spacingLeft=12;spacingTop=6;fontColor=#0E5A7D;fontSize=14;fontStyle=1;" vertex="1" parent="1">
@@ -46,7 +46,7 @@
           <mxGeometry x="70" y="275" width="230" height="65" as="geometry" /></mxCell>
         <mxCell id="s_exam" value="mock-exam 6화면&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;준비 → 파트 안내 → 마이크 → 음향 → 응시 → 채점 대기&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="330" y="275" width="300" height="65" as="geometry" /></mxCell>
-        <mxCell id="s_feed" value="FeedbackScreen (WebView 호스트)&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#B91C1C&quot;&gt;+ ExamHistoryScreen 983줄 — components/ 아래, 라우트 미등록&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+        <mxCell id="s_feed" value="FeedbackScreen (WebView 호스트)&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;+ ExamHistoryTabView (파라미터 없을 때의 자식 뷰)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="660" y="275" width="330" height="65" as="geometry" /></mxCell>
         <mxCell id="s_re" value="ReanswerScreen&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;웹 메시지로 진입&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECE0;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="1020" y="275" width="200" height="65" as="geometry" /></mxCell>
@@ -63,7 +63,7 @@
 
         <mxCell id="h_examctl" value="use-exam-session-controller　+　exam-session-store&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;zustand vanilla · phase 유니온 17종 · 도메인 사건만 노출&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="70" y="530" width="360" height="80" as="geometry" /></mxCell>
-        <mxCell id="h_chui" value="challenge-ui.ts　/　reanswer-ui.ts&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;조회·발급·녹음·제출 상태를 화면 상태 하나로 합성하는 순수 함수&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
+        <mxCell id="h_chui" value="challenge-status.ts　/　reanswer-status.ts&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;조회·발급·녹음·제출 상태를 화면 상태 하나로 합성하는 순수 함수&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="460" y="530" width="380" height="80" as="geometry" /></mxCell>
         <mxCell id="h_mic" value="use-microphone-test&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#6B7280&quot;&gt;632줄 · 권한→녹음→재생 판정&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FC9351;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="870" y="530" width="250" height="80" as="geometry" /></mxCell>

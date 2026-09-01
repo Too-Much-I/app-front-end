@@ -8,7 +8,7 @@ import {
   getCorrectionSeverityColor,
   getCorrectionTypeLabel,
   normalizeCorrectionSeverity,
-} from "@/screens/challenge/challenge-ui";
+} from "@/screens/challenge/challenge-corrections";
 import { shadows } from "@/theme";
 import type { ChallengeCorrectionItem } from "@/types/challenge";
 

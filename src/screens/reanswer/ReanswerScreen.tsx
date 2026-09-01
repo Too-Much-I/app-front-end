@@ -22,7 +22,7 @@ import {
   isReanswerStatusOnly,
   isReanswerSubmissionLocked,
   type ReanswerUiStatus,
-} from "@/screens/reanswer/reanswer-ui";
+} from "@/screens/reanswer/reanswer-status";
 
 type ReanswerScreenProps = NativeStackScreenProps<RootStackParamList, "Reanswer">;
 
