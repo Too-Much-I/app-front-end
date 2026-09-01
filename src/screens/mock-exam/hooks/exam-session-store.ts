@@ -4,7 +4,7 @@ import { getExamPartDirections } from "@/features/exam/part-directions";
 import { decidePartPrelude } from "@/features/exam/part-prelude";
 import { getPlayableQuestionAudioUrl } from "@/features/exam/question-audio";
 import { reportOperationalError } from "@/lib/operational-error-reporting";
-import { emitExamBreadcrumb } from "@/lib/sentry";
+import { emitExamBreadcrumb } from "@/screens/mock-exam/exam-breadcrumb";
 import type {
   ExamPartPrelude,
   ExamQuestion,
@@ -18,6 +18,14 @@ function getQuestionStartPhase(partNumber: number | undefined): ExamSessionPhase
     ? "directions"
     : "preparation-cue";
 }
+
+/** 무언가 실패해 복구 대기로 빠진 phase. breadcrumb level을 warning으로 올려 눈에 띄게 한다. */
+const WARNING_PHASES: ReadonlySet<ExamSessionPhase> = new Set([
+  "part-prelude-error",
+  "interrupted",
+  "recording-recovery",
+  "registration-recovery",
+]);
 
 export function getPartPrelude(
   partPreludes: ExamPartPrelude[],
@@ -90,8 +98,9 @@ export type ExamSessionStore = ExamSessionState & ExamSessionActions;
 
 export function createExamSessionStore(session: ExamSession) {
   const firstQuestion = session.questions[0];
+  const initialPhase = getQuestionStartPhase(firstQuestion?.partNumber);
 
-  return createStore<ExamSessionStore>()((set, get) => {
+  const store = createStore<ExamSessionStore>()((set, get) => {
     // 클로저 안의 헬퍼는 스토어 표면에 올라가지 않는다 — 위 주석의 "원시 조작 숨기기".
     const currentQuestion = (): ExamQuestion | undefined =>
       session.questions[get().currentIndex];
@@ -104,11 +113,15 @@ export function createExamSessionStore(session: ExamSession) {
     const emitPhaseBreadcrumb = () => {
       const { phase, currentIndex } = get();
       const question = currentQuestion();
-      emitExamBreadcrumb("exam.phase", {
-        phase,
-        currentIndex,
-        ...(question ? { partNumber: question.partNumber } : {}),
-      });
+      emitExamBreadcrumb(
+        "exam.phase",
+        {
+          phase,
+          currentIndex,
+          ...(question ? { partNumber: question.partNumber } : {}),
+        },
+        WARNING_PHASES.has(phase) ? "warning" : "info",
+      );
     };
 
     const enterPreparationCue = (question: ExamQuestion) => {
@@ -129,7 +142,7 @@ export function createExamSessionStore(session: ExamSession) {
     };
 
     return {
-      phase: getQuestionStartPhase(firstQuestion?.partNumber),
+      phase: initialPhase,
       currentIndex: 0,
       preparationRemainingMs: (firstQuestion?.prepTimeSec ?? 0) * 1_000,
       readingRemainingMs: 0,
@@ -316,4 +329,14 @@ export function createExamSessionStore(session: ExamSession) {
       },
     };
   });
+
+  // creator 안의 emitPhaseBreadcrumb은 store가 완성된 뒤에야 get()을 쓸 수 있어
+  // 초기 상태 자체는 못 찍는다. 트레일의 첫 항목이 비지 않도록 여기서 한 번 찍는다.
+  emitExamBreadcrumb("exam.phase", {
+    phase: initialPhase,
+    currentIndex: 0,
+    ...(firstQuestion ? { partNumber: firstQuestion.partNumber } : {}),
+  });
+
+  return store;
 }

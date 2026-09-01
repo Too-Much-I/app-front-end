@@ -219,6 +219,23 @@ wiring과 stall 타이머 effect는 형태가 사실상 동일해 공용 훅으�
 호출 지점(약 18곳)은 사전에 사람이 검토한 뼈대가 없었으므로 구현 시점에 스토어
 코드를 다시 읽으며 처음 확정했다.
 
+구현 직후 자체 리뷰에서 세 가지를 추가로 정정했다.
+
+- **초기 phase 누락**: `createExamSessionStore`의 초기 상태는 zustand creator가
+  객체 리터럴로 반환하는 값이라, `get()`에 의존하는 `emitPhaseBreadcrumb()`을 그
+  안에서 부를 수 없었다 — 트레일이 항상 두 번째 전이부터 시작했다. `createStore`
+  호출을 변수로 받아 반환 직전에 초기값으로 한 번 더 emit하도록 고쳤다.
+- **배치 재정리**: `sentry.ts`의 나머지 심볼(`OperationalErrorCode`,
+  `captureOperationalEvent` 등)은 기능 이름이 안 붙은 범용 인프라인데
+  `emitExamBreadcrumb`만 "exam"이 박혀 있었다. `sentry.ts`엔 범용
+  `emitBreadcrumb(category: string, data, level?)`만 남기고,
+  `ExamBreadcrumbCategory`와 `emitExamBreadcrumb` 래퍼는 새 파일
+  [exam-breadcrumb.ts](../../src/screens/mock-exam/exam-breadcrumb.ts)로 옮겼다.
+- **breadcrumb level 분리**: 모든 phase breadcrumb가 `info`로 균일해 복구 계열
+  phase가 트레일에서 안 튀어 보였다. `part-prelude-error`·`interrupted`·
+  `recording-recovery`·`registration-recovery` 4개만 `warning`, 나머지 12개는
+  `info`로 나눴다(사용자 확인 후 반영).
+
 ## 기준 충돌
 
 아직 없음. 뼈대 코드 작성 시 재검토.

@@ -14,7 +14,6 @@ import { getExamResponseCueKind } from "@/features/exam/exam-cue";
 import { getExamPartDirections } from "@/features/exam/part-directions";
 import { getQuestionAudioPlayCount } from "@/features/exam/question-audio";
 import { useOrientation } from "@/features/orientation/orientation-context";
-import { emitExamBreadcrumb } from "@/lib/sentry";
 import type { MainTabParamList, MockExamStackParamList } from "@/navigation/types";
 import { ExamAnswerStatus } from "@/screens/mock-exam/components/ExamAnswerStatus";
 import { ExamInformationReading } from "@/screens/mock-exam/components/ExamInformationReading";
@@ -31,6 +30,7 @@ import {
   type ExamTimerMode,
 } from "@/screens/mock-exam/components/ExamTimerCard";
 import { Part4TableLandscapeModal } from "@/screens/mock-exam/components/Part4TableLandscapeModal";
+import { emitExamBreadcrumb } from "@/screens/mock-exam/exam-breadcrumb";
 import { useExamAudioSession } from "@/screens/mock-exam/hooks/use-exam-audio-session";
 import { useExamSessionController } from "@/screens/mock-exam/hooks/use-exam-session-controller";
 import type {
