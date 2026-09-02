@@ -185,6 +185,7 @@ const DEFINITIONS = {
     input: {
       code: "API_RESPONSE_VALIDATION_FAILED",
       resource: "CHALLENGE_TODAY",
+      mode: "enforced",
       issuePath: "questions.0.attemptStatus",
       issueCode: "invalid_value",
     },

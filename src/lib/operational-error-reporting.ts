@@ -131,6 +131,11 @@ export type OperationalErrorInput =
   | {
       code: "API_RESPONSE_VALIDATION_FAILED";
       resource: ApiResponseResource;
+      /**
+       * `enforced`는 요청을 실패시켰고, `observed`는 기록만 하고 화면은 그대로 뒀다.
+       * 관찰 단계의 스키마는 아직 실제 트래픽과 맞지 않을 수 있어 대응이 다르다.
+       */
+      mode: "enforced" | "observed";
       /** 우리 스키마 기준의 필드 경로. 서버가 보낸 값은 담지 않는다. */
       issuePath: string;
       issueCode: string;
@@ -144,6 +149,7 @@ export type OperationalErrorInput =
  */
 export type ApiResponseResource =
   | "CHALLENGE_TODAY"
+  | "EXAM_HISTORY"
   | "CHALLENGE_QUESTION"
   | "CHALLENGE_ATTEMPT"
   | "CHALLENGE_UPLOAD_URL"
