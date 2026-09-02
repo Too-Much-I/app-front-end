@@ -1,10 +1,11 @@
-import { mapChallengeAnswerAccepted } from "@/features/challenge/map-challenge-answer";
+import {
+  challengeAnswerAcceptedSchema,
+  mapChallengeAnswerAccepted,
+} from "@/features/challenge/map-challenge-answer";
 import { apiFetch } from "@/lib/api/client";
+import { parseApiResult } from "@/lib/api/parse-api-result";
 import type { ApiEnvelope } from "@/types/api";
-import type {
-  ChallengeAnswerAccepted,
-  RawChallengeAnswerAccepted,
-} from "@/types/challenge";
+import type { ChallengeAnswerAccepted } from "@/types/challenge";
 
 /**
  * S3 업로드가 끝났음을 서버에 알린다. 여기서 비로소 공개 상태가 `submitted`가 된다.
@@ -22,7 +23,7 @@ export async function submitChallengeAnswer(
   idempotencyKey: string,
   signal?: AbortSignal,
 ): Promise<ChallengeAnswerAccepted> {
-  const { result } = await apiFetch<ApiEnvelope<RawChallengeAnswerAccepted>>(
+  const { result } = await apiFetch<ApiEnvelope<unknown>>(
     `/api/v1/challenges/today/questions/${questionNumber}/answer`,
     {
       method: "POST",
@@ -31,5 +32,7 @@ export async function submitChallengeAnswer(
       signal,
     },
   );
-  return mapChallengeAnswerAccepted(result);
+  return mapChallengeAnswerAccepted(
+    parseApiResult(challengeAnswerAcceptedSchema, result, "CHALLENGE_ANSWER"),
+  );
 }

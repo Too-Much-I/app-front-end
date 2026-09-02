@@ -180,6 +180,16 @@ const DEFINITIONS = {
       cause: SYNTHETIC_API_CAUSE,
     },
   },
+  API_RESPONSE_VALIDATION_FAILED: {
+    title: "서버 응답 형식 불일치",
+    input: {
+      code: "API_RESPONSE_VALIDATION_FAILED",
+      resource: "CHALLENGE_TODAY",
+      mode: "enforced",
+      issuePath: "questions.0.attemptStatus",
+      issueCode: "invalid_value",
+    },
+  },
 } satisfies ValidationDefinitions;
 
 export interface SentryValidationCatalogItem {

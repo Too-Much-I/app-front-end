@@ -1,7 +1,11 @@
-import { mapChallengeUploadUrl } from "@/features/challenge/map-challenge-upload-url";
+import {
+  challengeUploadUrlSchema,
+  mapChallengeUploadUrl,
+} from "@/features/challenge/map-challenge-upload-url";
 import { apiFetch } from "@/lib/api/client";
+import { parseApiResult } from "@/lib/api/parse-api-result";
 import type { ApiEnvelope } from "@/types/api";
-import type { ChallengeUploadUrl, RawChallengeUploadUrl } from "@/types/challenge";
+import type { ChallengeUploadUrl } from "@/types/challenge";
 
 /**
  * 녹음이 끝난 뒤 이 attempt의 S3 Presigned PUT URL을 받는다(명세 6.4).
@@ -19,9 +23,11 @@ export async function issueChallengeUploadUrl(
   attemptId: string,
   signal?: AbortSignal,
 ): Promise<ChallengeUploadUrl> {
-  const { result } = await apiFetch<ApiEnvelope<RawChallengeUploadUrl>>(
+  const { result } = await apiFetch<ApiEnvelope<unknown>>(
     `/api/v1/challenges/attempts/${attemptId}/upload-url`,
     { method: "POST", signal },
   );
-  return mapChallengeUploadUrl(result);
+  return mapChallengeUploadUrl(
+    parseApiResult(challengeUploadUrlSchema, result, "CHALLENGE_UPLOAD_URL"),
+  );
 }

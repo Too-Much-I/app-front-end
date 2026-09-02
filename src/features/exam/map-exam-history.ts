@@ -1,5 +1,37 @@
+import { z } from "zod";
+
 import { getLevelAbbreviation } from "@/features/exam/level-estimate";
 import type { RawExamHistoryResult } from "@/types/exam";
+
+/**
+ * `GET /api/v1/exams/history` 응답에 대한 우리 쪽 계약. 아직 관찰 전용이다.
+ *
+ * 아래 매퍼의 방어 코드를 그대로 옮기지 않고 **계약대로 엄격하게** 썼다. 방어 코드는
+ * "서버가 이런 적이 있었다"는 기록일 수도 있고 그냥 조심스러웠던 것일 수도 있는데,
+ * 코드만 읽어서는 둘을 구분할 수 없다. 실제 트래픽이 무엇을 위반하는지 보고 나서
+ * 느슨하게 만드는 편이, 지금 추측으로 느슨하게 두는 것보다 정확하다.
+ *
+ * 특히 `retriedQuestionCount`는 매퍼가 없으면 0으로 넘기지만 여기서는 필수로 둔다 —
+ * 그 방어가 실제로 필요한지가 이 관찰로 처음 확인된다.
+ *
+ * `totalCount`는 매퍼가 읽지 않으므로 선언하지 않는다.
+ */
+export const examHistorySchema = z.object({
+  histories: z.array(
+    z.object({
+      examId: z.string().min(1),
+      title: z.string(),
+      // 매퍼가 이미 `isValidDateString`으로 던지는 값이다. 스키마가 그보다 느슨하면
+      // 화면을 실제로 깨뜨리는 응답이 관찰에 안 잡혀 관찰 모드의 의미가 없어진다.
+      completedAt: z
+        .string()
+        .refine((value) => value.length > 0 && Number.isFinite(new Date(value).getTime())),
+      totalScore: z.number(),
+      levelEstimate: z.string(),
+      retriedQuestionCount: z.number(),
+    }),
+  ),
+});
 
 /**
  * 시험 총점의 만점.

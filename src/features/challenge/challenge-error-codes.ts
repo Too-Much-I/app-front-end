@@ -15,7 +15,7 @@ export const CHALLENGE_ERROR_CODE = {
   dateChanged: "CHALLENGE_DATE_CHANGED",
   dateClosed: "CHALLENGE_DATE_CLOSED",
   attemptNotFound: "CHALLENGE_ATTEMPT_NOT_FOUND",
-  /** 제출 유효시간(5분)이 지났다. 서버는 이 attempt를 만료 terminal로 처리한다. */
+  /** 제출 유효시간(attempt 생성 + 1시간)이 지났다. 서버는 이 attempt를 만료 terminal로 처리한다. */
   attemptExpired: "CHALLENGE_ATTEMPT_EXPIRED",
   /** S3에 파일이 없다 — 업로드 성공 여부를 확인하고 같은 키로 다시 통지한다. */
   audioNotUploaded: "CHALLENGE_AUDIO_NOT_UPLOADED",

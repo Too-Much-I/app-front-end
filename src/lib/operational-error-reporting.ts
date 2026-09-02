@@ -127,7 +127,33 @@ export type OperationalErrorInput =
   | ({
       code: "QUALITY_REVIEW_CONSENT_UPDATE_FAILED";
       operation: "set-quality-review-consent";
-    } & SafeCause);
+    } & SafeCause)
+  | {
+      code: "API_RESPONSE_VALIDATION_FAILED";
+      resource: ApiResponseResource;
+      /**
+       * `enforced`는 요청을 실패시켰고, `observed`는 기록만 하고 화면은 그대로 뒀다.
+       * 관찰 단계의 스키마는 아직 실제 트래픽과 맞지 않을 수 있어 대응이 다르다.
+       */
+      mode: "enforced" | "observed";
+      /** 우리 스키마 기준의 필드 경로. 서버가 보낸 값은 담지 않는다. */
+      issuePath: string;
+      issueCode: string;
+    };
+
+/**
+ * 스키마 검증을 붙인 엔드포인트. 옮겨올 때마다 여기에 하나씩 추가한다.
+ *
+ * feature 태그는 code 단위로만 붙어서(`FEATURE_BY_CODE`) 어느 응답이 어긋났는지는
+ * 이 값으로 구분한다. `FEEDBACK_DATA_LOAD_FAILED`의 `resource`와 같은 방식이다.
+ */
+export type ApiResponseResource =
+  | "CHALLENGE_TODAY"
+  | "EXAM_HISTORY"
+  | "CHALLENGE_QUESTION"
+  | "CHALLENGE_ATTEMPT"
+  | "CHALLENGE_UPLOAD_URL"
+  | "CHALLENGE_ANSWER";
 
 type SafeValue = string | number | boolean;
 
@@ -148,6 +174,7 @@ const FEATURE_BY_CODE: Record<OperationalErrorCode, string> = {
   REANSWER_GRADING_FAILED: "reanswer",
   LEARNING_RECORD_DELETE_FAILED: "settings",
   QUALITY_REVIEW_CONSENT_UPDATE_FAILED: "settings",
+  API_RESPONSE_VALIDATION_FAILED: "api",
 };
 
 const SAFE_SERVER_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,63}$/;
