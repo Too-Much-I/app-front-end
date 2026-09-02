@@ -10,7 +10,7 @@ import type { ChallengeAnswerAccepted } from "@/types/challenge";
  */
 export const challengeAnswerAcceptedSchema = z.object({
   attemptId: z.string(),
-  challengeDate: z.string(),
+  challengeDate: z.iso.date(),
   questionNumber: z.number().int(),
   gradingStatus: z.enum([
     "not_requested",

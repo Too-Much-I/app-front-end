@@ -10,8 +10,11 @@ import type { ChallengeQuestion } from "@/types/challenge";
  * 화면이 멈춘다.
  */
 export const challengeQuestionSchema = z.object({
-  /** 서버 기준 KST 날짜. 자정 경계가 기기 시계와 갈리므로 앱이 계산하지 않는다. */
-  challengeDate: z.string(),
+  /**
+   * 서버 기준 KST 날짜. 자정 경계가 기기 시계와 갈리므로 앱이 계산하지 않는다.
+   * 이 값이 이후 요청의 `X-Challenge-Date`가 되므로 형식까지 확인한다.
+   */
+  challengeDate: z.iso.date(),
   questionNumber: z.number().int(),
   totalQuestionCount: z.number().int(),
   /** 10초 안에 영어로 바꿔 말할 한국어 문장. */

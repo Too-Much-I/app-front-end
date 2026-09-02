@@ -21,7 +21,11 @@ export const examHistorySchema = z.object({
     z.object({
       examId: z.string().min(1),
       title: z.string(),
-      completedAt: z.string(),
+      // 매퍼가 이미 `isValidDateString`으로 던지는 값이다. 스키마가 그보다 느슨하면
+      // 화면을 실제로 깨뜨리는 응답이 관찰에 안 잡혀 관찰 모드의 의미가 없어진다.
+      completedAt: z
+        .string()
+        .refine((value) => value.length > 0 && Number.isFinite(new Date(value).getTime())),
       totalScore: z.number(),
       levelEstimate: z.string(),
       retriedQuestionCount: z.number(),

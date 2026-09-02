@@ -14,7 +14,12 @@ import type { ChallengeToday } from "@/types/challenge";
  * zod가 버린다.
  */
 export const challengeTodaySchema = z.object({
-  challengeDate: z.string(),
+  /**
+   * KST 기준 `YYYY-MM-DD`. 형식을 검증하는 이유는 이 값이 이후 요청의
+   * `X-Challenge-Date` 헤더가 되기 때문이다 — 깨진 값을 그대로 보내면 서버가
+   * 날짜 불일치로 거절하고, 앱은 원인을 모른 채 진행도만 다시 읽는다.
+   */
+  challengeDate: z.iso.date(),
   expiresInSeconds: z.number(),
   dailyStatus: z.enum(["not_started", "in_progress", "completed"]),
   totalQuestionCount: z.number().int(),
