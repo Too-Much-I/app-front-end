@@ -4,12 +4,12 @@
  * 시험(`exam.ts`)과 파일을 나눈 이유: 두 도메인은 같은 녹음 생명주기를 쓸 뿐
  * 문제 식별자도(`examId` vs `challengeDate`) 채점 흐름도 달라 함께 바뀌지 않는다.
  *
- * 필드는 "10초 영작 챌린지 프론트엔드 API 명세 Draft v0.5"를 따른다.
+ * 필드는 "10초 영작 챌린지 프론트엔드 API 명세 v1"(2026-08-28 승인)을 따른다.
  */
 
 /**
  * 공개 응시 상태. 서버 내부의 attempt 생성·업로드 중은 `not_started`로,
- * 정상 제출·무음·5분 만료는 모두 `submitted`로 projection된 값이다.
+ * 정상 제출·무음·제출 유효시간(1시간) 만료는 모두 `submitted`로 projection된 값이다.
  * 프론트는 이 값만으로 문제 화면과 결과 화면 중 어디로 갈지 정한다.
  */
 export type ChallengeAttemptStatus = "not_started" | "submitted";
@@ -24,26 +24,6 @@ export type ChallengeGradingStatus =
 
 /** 하루 진행 상태. `completed`는 세 문제를 다 마쳤다는 뜻일 뿐 참여 조건이 아니다. */
 export type ChallengeDailyStatus = "not_started" | "in_progress" | "completed";
-
-/** `GET /api/v1/challenges/today` 의 result. */
-export interface RawChallengeToday {
-  challengeDate: string;
-  /** 현재 서버 KST 날짜가 끝나는 절대 시각(ISO UTC). */
-  challengeDateExpiresAt: string;
-  /** 응답 생성 시점부터 날짜가 끝날 때까지 서버가 계산한 남은 초. */
-  expiresInSeconds: number;
-  dailyStatus: ChallengeDailyStatus;
-  totalQuestionCount: number;
-  /** 서버가 판단한 다음 진행 대상. 모두 끝났으면 `null`. 앱이 순서를 계산하지 않는다. */
-  nextQuestionNumber: number | null;
-  completedQuestionNumbers: number[];
-  questions: {
-    questionNumber: number;
-    attemptStatus: ChallengeAttemptStatus;
-    gradingStatus: ChallengeGradingStatus;
-    resultAvailable: boolean;
-  }[];
-}
 
 export interface ChallengeToday {
   date: string;
@@ -64,18 +44,6 @@ export interface ChallengeToday {
   }[];
 }
 
-/** `GET /api/v1/challenges/today/questions/{questionNumber}` 의 result. */
-export interface RawChallengeQuestion {
-  /** 서버 기준 KST 날짜. 자정 경계가 기기 시계와 갈리므로 앱이 계산하지 않는다. */
-  challengeDate: string;
-  questionNumber: number;
-  totalQuestionCount: number;
-  /** 10초 안에 영어로 바꿔 말할 한국어 문장. */
-  promptKo: string;
-  attemptStatus: ChallengeAttemptStatus;
-  gradingStatus: ChallengeGradingStatus;
-}
-
 export interface ChallengeQuestion {
   /** `challengeDate`를 옮긴 값. 이후 요청의 `X-Challenge-Date`가 되는 값이다. */
   date: string;
@@ -86,49 +54,12 @@ export interface ChallengeQuestion {
   gradingStatus: ChallengeGradingStatus;
 }
 
-/**
- * `POST /api/v1/challenges/today/questions/{questionNumber}/attempt` 의 result.
- *
- * 명세 6.3. 업로드 URL은 여기 없다 — 녹음이 끝난 뒤 6.4에서 따로 받는다.
- */
-export interface RawChallengeAttempt {
-  attemptId: string;
-  challengeDate: string;
-  questionNumber: number;
-  attemptStatus: ChallengeAttemptStatus;
-  /**
-   * attempt 생성 시각 + 1시간.
-   *
-   * 자정을 지나도 이때까지는 attempt가 속한 원래 `challengeDate`의 제출로 처리된다.
-   * 앱이 녹음을 들어보고 다시 녹음하는 동안 날짜가 넘어가도 제출이 막히지 않는 근거다.
-   */
-  submissionDeadlineAt: string;
-}
-
 export interface ChallengeAttempt {
   attemptId: string;
   date: string;
   questionNumber: number;
   /** ISO 문자열을 앱 시계 기준 ms로 옮긴 값. */
   submissionDeadlineAtMs: number;
-}
-
-/**
- * `POST /api/v1/challenges/attempts/{attemptId}/upload-url` 의 result.
- *
- * 명세 6.4. 녹음이 끝난 뒤 같은 attempt에 연결된 presigned PUT URL을 받는다. 재발급해도
- * 새 응시로 계산되지 않고 attempt에 고정된 같은 S3 object key로만 발급된다.
- */
-export interface RawChallengeUploadUrl {
-  attemptId: string;
-  submissionDeadlineAt: string;
-  upload: {
-    method: string;
-    url: string;
-    expiresAt: string;
-    contentType: string;
-    maxBytes: number;
-  };
 }
 
 export interface ChallengeUploadUrl {
@@ -144,19 +75,6 @@ export interface ChallengeUploadUrl {
    * 명세상 `upload.expiresAt`은 이 시각을 넘지 않는다.
    */
   submissionDeadlineAtMs: number;
-}
-
-/** `POST /api/v1/challenges/today/questions/{questionNumber}/answer` 의 result. */
-export interface RawChallengeAnswerAccepted {
-  attemptId: string;
-  challengeDate: string;
-  questionNumber: number;
-  attemptStatus: ChallengeAttemptStatus;
-  gradingStatus: ChallengeGradingStatus;
-  acceptedAt: string;
-  /** 접수 즉시 내려오는 참고 답안. AI 피드백을 기다리지 않고 보여줄 수 있다. */
-  referenceAnswer: string;
-  feedbackAvailable: boolean;
 }
 
 export interface ChallengeAnswerAccepted {
