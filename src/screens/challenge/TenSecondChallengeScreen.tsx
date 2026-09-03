@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useQueryClient } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { Linking, ScrollView, View } from "react-native";
@@ -12,6 +13,7 @@ import {
   isAttemptAlreadyTerminal,
   isProgressRefreshRequired,
 } from "@/features/challenge/challenge-error-codes";
+import { CHALLENGE_TODAY_QUERY_KEY } from "@/features/challenge/challenge-today-queries";
 import { useChallengeAttempt } from "@/features/challenge/use-challenge-attempt";
 import { useChallengeQuestion } from "@/features/challenge/use-challenge-question";
 import {
@@ -86,8 +88,13 @@ export function TenSecondChallengeScreen({
   route,
 }: TenSecondChallengeScreenProps) {
   const { challengeDate, questionNumber } = route.params;
-  const { status: questionStatus, question, retry: retryQuestion } =
-    useChallengeQuestion(challengeDate, questionNumber);
+  const queryClient = useQueryClient();
+  const {
+    status: questionStatus,
+    question,
+    errorCode: questionErrorCode,
+    retry: retryQuestion,
+  } = useChallengeQuestion(challengeDate, questionNumber);
   /**
    * 문제가 오면 곧바로 attempt를 발급받는다. 녹음은 이게 끝난 뒤에 시작한다(명세 6.3).
    * 업로드 URL은 여기 없다 — 제출을 누른 뒤 제출 훅이 따로 받아 온다.
@@ -144,11 +151,20 @@ export function TenSecondChallengeScreen({
           console.error("[Challenge] 제출한 녹음 파일 삭제 실패", error);
         }
       }
+      /*
+       * "한 문장 더"의 목적지. 순서대로만 진행하므로 방금 푼 다음 번호이고, 마지막
+       * 문장이면 없다. 결과 화면은 이 값을 계산할 근거가 없어서 여기서 실어 보낸다.
+       */
+      const nextQuestionNumber =
+        question !== null && questionNumber < question.totalQuestionCount
+          ? questionNumber + 1
+          : null;
+
       leavingRef.current = true;
       navigation.replace("ChallengeResult", {
         challengeDate: accepted?.date ?? resolvedDate,
         questionNumber,
-        totalQuestionCount: question?.totalQuestionCount,
+        ...(nextQuestionNumber === null ? {} : { nextQuestionNumber }),
         // 접수 응답이 참고 답안까지 줬다면 결과 화면이 스피너부터 보여줄 이유가 없다.
         ...(accepted && question
           ? {
@@ -173,13 +189,29 @@ export function TenSecondChallengeScreen({
   );
 
   /**
-   * 서버가 이 화면의 전제(오늘 날짜, 이 문제가 다음 차례)를 부정했다. 명세대로 사용자에게
-   * 오류를 띄우지 않고 오늘 진행도를 다시 읽을 수 있는 스테이지로 조용히 돌려보낸다.
+   * 서버가 이 화면의 전제(오늘 날짜, 이 문제가 다음 차례)를 부정해서 이 화면을 중단한다.
+   * 명세대로 사용자에게 오류를 띄우지 않고, 오늘 진행도를 다시 읽을 수 있는 스테이지로
+   * 조용히 돌려보낸다.
+   *
+   * 사용자가 스스로 나가는 길은 `leaveScreen`이다. 둘 다 `goBack()`으로 끝나지만
+   * 이쪽은 오류 복구라 캐시까지 손대므로, 호출부에서 둘이 구분되어야 한다.
+   *
+   * 돌려보내기 전에 진행도 캐시를 낡은 것으로 표시한다. 이게 없으면 스테이지가 방금
+   * 부정당한 그 진행도를 그대로 다시 그린다 — `staleTime`이 다음 자정까지라 날짜가
+   * 바뀐 경우가 아니면 포커스 복귀만으로는 다시 읽지 않는다. 사용자는 같은 자리를
+   * 눌러 같은 실패를 반복하게 된다.
+   *
+   * `refetchType: "none"`인 이유는 요청을 스테이지가 내야 하기 때문이다. 이 화면은
+   * 떠나는 중이고, 스테이지는 포커스를 되찾으며 낡은 캐시를 스스로 다시 읽는다.
    */
-  const goToStage = useCallback(() => {
+  const abortToStage = useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: CHALLENGE_TODAY_QUERY_KEY,
+      refetchType: "none",
+    });
     leavingRef.current = true;
     navigation.goBack();
-  }, [navigation]);
+  }, [navigation, queryClient]);
 
   const {
     status: submissionStatus,
@@ -189,7 +221,7 @@ export function TenSecondChallengeScreen({
   } = useChallengeSubmission({
     attempt,
     onSubmitted: goToResult,
-    onProgressStale: goToStage,
+    onProgressStale: abortToStage,
   });
 
   /**
@@ -256,6 +288,17 @@ export function TenSecondChallengeScreen({
   }, [attemptStatus, navigation, question, startRecording]);
 
   /**
+   * 문제 조회가 이 화면의 전제(스테이지가 넘겨준 날짜)를 부정했다.
+   *
+   * 같은 날짜로 다시 물어도 답이 같으므로 재시도를 내주지 않고 스테이지로 돌려보낸다.
+   * 스테이지는 포커스를 되찾으면서 만료된 진행도를 다시 읽고, 새 날짜로 시작한다.
+   */
+  useEffect(() => {
+    if (questionStatus !== "failed") return;
+    if (isProgressRefreshRequired(questionErrorCode)) abortToStage();
+  }, [abortToStage, questionErrorCode, questionStatus]);
+
+  /**
    * attempt를 못 만든 이유가 이 화면의 전제를 부정하는 경우다.
    *
    * 이미 끝난 응시면 결과로, 순서가 어긋났거나 날짜가 바뀐 경우면 스테이지로 보낸다.
@@ -273,11 +316,11 @@ export function TenSecondChallengeScreen({
       });
       return;
     }
-    if (isProgressRefreshRequired(attemptErrorCode)) goToStage();
+    if (isProgressRefreshRequired(attemptErrorCode)) abortToStage();
   }, [
     attemptErrorCode,
     attemptStatus,
-    goToStage,
+    abortToStage,
     navigation,
     questionNumber,
     resolvedDate,

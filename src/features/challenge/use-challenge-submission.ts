@@ -1,7 +1,9 @@
+import { useQueryClient } from "@tanstack/react-query";
 import * as Crypto from "expo-crypto";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { submitChallengeAnswer } from "@/features/challenge/api/challenge-answer";
+import { CHALLENGE_TODAY_QUERY_KEY } from "@/features/challenge/challenge-today-queries";
 import { issueChallengeUploadUrl } from "@/features/challenge/api/challenge-upload-url";
 import {
   createDevMockAccepted,
@@ -69,6 +71,7 @@ export function useChallengeSubmission({
   onSubmitted,
   onProgressStale,
 }: UseChallengeSubmissionInput) {
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<ChallengeSubmissionStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const mountedRef = useRef(true);
@@ -95,6 +98,25 @@ export function useChallengeSubmission({
     setErrorMessage(message);
   }, []);
 
+  /**
+   * 진행도가 바뀌었다고 스테이지에 알린다.
+   *
+   * 만료를 기다리지 않는다 — `staleTime`이 다음 자정까지라, 방금 푼 문장이 스테이지에
+   * 반영되려면 캐시를 낡은 것으로 표시해야 한다. `invalidateQueries`는 `staleTime`을
+   * 무시하므로 스테이지가 포커스를 되찾는 순간 다시 읽는다.
+   *
+   * 여기서 다시 조회하지는 않는다. 지금 화면은 결과로 넘어가는 중이고, 보이지 않는
+   * 화면을 위해 요청을 미리 보낼 이유가 없다. 그래서 `refetchType: "none"`이 필요하다 —
+   * 기본값 `"active"`는 표시에 그치지 않고 곧바로 요청을 낸다. 스테이지는 스택 아래에
+   * 마운트된 채라 observer가 살아 있어서, 보이지 않는 화면의 요청이 실제로 나간다.
+   */
+  const markProgressStale = useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: CHALLENGE_TODAY_QUERY_KEY,
+      refetchType: "none",
+    });
+  }, [queryClient]);
+
   const run = useCallback(
     async (audioFileUri: string) => {
       const { attempt: target } = inputRef.current;
@@ -120,6 +142,7 @@ export function useChallengeSubmission({
         await new Promise((resolve) => setTimeout(resolve, DEV_SUBMIT_DELAY_MS));
         if (controller.signal.aborted || !mountedRef.current) return;
         setStatus("idle");
+        markProgressStale();
         inputRef.current.onSubmitted(
           createDevMockAccepted(target.date, target.questionNumber),
         );
@@ -156,11 +179,13 @@ export function useChallengeSubmission({
         if (isAttemptAlreadyTerminal(code)) {
           // 서버는 이미 이 문제를 끝난 것으로 본다. 다시 녹음시키지 않고 결과로 보낸다.
           idempotencyKeyRef.current = null;
+          markProgressStale();
           inputRef.current.onSubmitted(null);
           return;
         }
         if (isProgressRefreshRequired(code)) {
           idempotencyKeyRef.current = null;
+          markProgressStale();
           inputRef.current.onProgressStale();
           return;
         }
@@ -172,9 +197,10 @@ export function useChallengeSubmission({
       if (controller.signal.aborted || !mountedRef.current) return;
       idempotencyKeyRef.current = null;
       setStatus("idle");
+      markProgressStale();
       inputRef.current.onSubmitted(accepted);
     },
-    [fail],
+    [fail, markProgressStale],
   );
 
   const submit = useCallback((audioFileUri: string) => void run(audioFileUri), [run]);
