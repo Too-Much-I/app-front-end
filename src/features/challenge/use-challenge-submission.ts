@@ -106,10 +106,15 @@ export function useChallengeSubmission({
    * 무시하므로 스테이지가 포커스를 되찾는 순간 다시 읽는다.
    *
    * 여기서 다시 조회하지는 않는다. 지금 화면은 결과로 넘어가는 중이고, 보이지 않는
-   * 화면을 위해 요청을 미리 보낼 이유가 없다.
+   * 화면을 위해 요청을 미리 보낼 이유가 없다. 그래서 `refetchType: "none"`이 필요하다 —
+   * 기본값 `"active"`는 표시에 그치지 않고 곧바로 요청을 낸다. 스테이지는 스택 아래에
+   * 마운트된 채라 observer가 살아 있어서, 보이지 않는 화면의 요청이 실제로 나간다.
    */
   const markProgressStale = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: CHALLENGE_TODAY_QUERY_KEY });
+    void queryClient.invalidateQueries({
+      queryKey: CHALLENGE_TODAY_QUERY_KEY,
+      refetchType: "none",
+    });
   }, [queryClient]);
 
   const run = useCallback(

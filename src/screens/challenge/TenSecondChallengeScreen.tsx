@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useQueryClient } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { Linking, ScrollView, View } from "react-native";
@@ -12,6 +13,7 @@ import {
   isAttemptAlreadyTerminal,
   isProgressRefreshRequired,
 } from "@/features/challenge/challenge-error-codes";
+import { CHALLENGE_TODAY_QUERY_KEY } from "@/features/challenge/challenge-today-queries";
 import { useChallengeAttempt } from "@/features/challenge/use-challenge-attempt";
 import { useChallengeQuestion } from "@/features/challenge/use-challenge-question";
 import {
@@ -86,6 +88,7 @@ export function TenSecondChallengeScreen({
   route,
 }: TenSecondChallengeScreenProps) {
   const { challengeDate, questionNumber } = route.params;
+  const queryClient = useQueryClient();
   const {
     status: questionStatus,
     question,
@@ -188,11 +191,23 @@ export function TenSecondChallengeScreen({
   /**
    * 서버가 이 화면의 전제(오늘 날짜, 이 문제가 다음 차례)를 부정했다. 명세대로 사용자에게
    * 오류를 띄우지 않고 오늘 진행도를 다시 읽을 수 있는 스테이지로 조용히 돌려보낸다.
+   *
+   * 돌려보내기 전에 진행도 캐시를 낡은 것으로 표시한다. 이게 없으면 스테이지가 방금
+   * 부정당한 그 진행도를 그대로 다시 그린다 — `staleTime`이 다음 자정까지라 날짜가
+   * 바뀐 경우가 아니면 포커스 복귀만으로는 다시 읽지 않는다. 사용자는 같은 자리를
+   * 눌러 같은 실패를 반복하게 된다.
+   *
+   * `refetchType: "none"`인 이유는 요청을 스테이지가 내야 하기 때문이다. 이 화면은
+   * 떠나는 중이고, 스테이지는 포커스를 되찾으며 낡은 캐시를 스스로 다시 읽는다.
    */
   const goToStage = useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: CHALLENGE_TODAY_QUERY_KEY,
+      refetchType: "none",
+    });
     leavingRef.current = true;
     navigation.goBack();
-  }, [navigation]);
+  }, [navigation, queryClient]);
 
   const {
     status: submissionStatus,
