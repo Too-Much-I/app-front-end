@@ -45,6 +45,13 @@ export type RootStackParamList = {
     nextRetryCount: number;
   };
   /**
+   * 10초 챌린지 스테이지. 오늘 세 문장의 진행도를 보여주고 문제·결과 화면으로 보낸다.
+   *
+   * 챌린지의 유일한 진입점이다. 서버가 정한 `challengeDate`를 아는 화면도 여기뿐이라
+   * 아래 두 화면은 이 화면이 넘겨준 날짜를 받아 쓴다.
+   */
+  ChallengeStage: undefined;
+  /**
    * 10초 챌린지 문제 화면. 스테이지가 자기가 받은 `challengeDate`와 진행할 문제 번호를
    * 넘긴다. 날짜는 앱이 계산한 값이 아니라 서버가 준 값이어야 한다 — 이후 요청의
    * `X-Challenge-Date`가 되어 자정을 넘긴 화면을 서버가 걸러낸다.
