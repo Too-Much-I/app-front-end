@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { getChallengeToday } from "@/features/challenge/api/challenge-today";
+import { getChallengeErrorCode } from "@/features/challenge/challenge-error-codes";
 import { DEV_MOCK_CHALLENGE_QUESTION } from "@/features/challenge/dev-mock-challenge";
 import { getChallengeTodayQuestion } from "@/features/challenge/api/challenge-today-question";
 import type { ChallengeQuestion } from "@/types/challenge";
@@ -8,6 +9,13 @@ import type { ChallengeQuestion } from "@/types/challenge";
 interface ChallengeQuestionState {
   status: "loading" | "ready" | "failed";
   question: ChallengeQuestion | null;
+  /**
+   * 실패한 이유의 서버 코드. 실패가 아니면 `null`이다.
+   *
+   * 화면이 재시도 버튼을 줄지, 진행도부터 다시 읽어야 하는지를 이 값으로 가른다.
+   * attempt 발급(`useChallengeAttempt`)이 같은 이유로 같은 값을 내보낸다.
+   */
+  errorCode: string | null;
 }
 
 /**
@@ -27,6 +35,7 @@ export function useChallengeQuestion(
   const [state, setState] = useState<ChallengeQuestionState>({
     status: "loading",
     question: null,
+    errorCode: null,
   });
   const [reloadCount, setReloadCount] = useState(0);
 
@@ -35,22 +44,27 @@ export function useChallengeQuestion(
       setState({
         status: "ready",
         question: { ...DEV_MOCK_CHALLENGE_QUESTION, questionNumber },
+        errorCode: null,
       });
       return;
     }
 
     const controller = new AbortController();
-    setState({ status: "loading", question: null });
+    setState({ status: "loading", question: null, errorCode: null });
 
     resolveQuestion(challengeDate, questionNumber, controller.signal)
       .then((question) => {
         if (controller.signal.aborted) return;
-        setState({ status: "ready", question });
+        setState({ status: "ready", question, errorCode: null });
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         console.error("[Challenge] 문제 조회 실패", error);
-        setState({ status: "failed", question: null });
+        setState({
+          status: "failed",
+          question: null,
+          errorCode: getChallengeErrorCode(error),
+        });
       });
 
     return () => controller.abort();
@@ -64,13 +78,11 @@ export function useChallengeQuestion(
 /**
  * 넘겨받은 날짜가 없으면 오늘 진행도에서 알아 온다.
  *
- * 지금은 `challengeDate`가 항상 `undefined`다 — 유일한 진입점인 홈 배너가 문제 번호만
- * 넘긴다. 그래서 재조회 때마다 서버 날짜를 새로 받아 오고, 자정을 넘긴 화면도 재시도
- * 한 번으로 회복한다.
+ * 스테이지가 날짜를 넘기므로 이 조회는 그 날짜에 고정된다. 자정을 넘겨
+ * `CHALLENGE_DATE_CHANGED`가 나면 같은 날짜로 다시 물어도 결과가 같으므로, 화면은
+ * 재시도를 내주는 대신 `errorCode`를 보고 스테이지로 돌아가 진행도부터 다시 읽는다.
  *
- * 스테이지 화면이 날짜를 넘기기 시작하면 이 성질이 사라진다. 고정된 `challengeDate`로
- * 계속 조회하므로 `CHALLENGE_DATE_CHANGED`가 나면 재시도가 같은 실패를 반복한다.
- * 그때는 이 오류를 따로 받아 상위에 진행도 갱신을 요청해야 한다.
+ * 날짜 없이 부르는 경로도 남겨둔다 — 그때는 오늘 진행도에서 날짜를 알아 온다.
  */
 async function resolveQuestion(
   challengeDate: string | undefined,

@@ -89,6 +89,7 @@ export function TenSecondChallengeScreen({
   const {
     status: questionStatus,
     question,
+    errorCode: questionErrorCode,
     retry: retryQuestion,
   } = useChallengeQuestion(challengeDate, questionNumber);
   /**
@@ -266,6 +267,17 @@ export function TenSecondChallengeScreen({
     autoStartedKeyRef.current = questionKey;
     void startRecording(question);
   }, [attemptStatus, navigation, question, startRecording]);
+
+  /**
+   * 문제 조회가 이 화면의 전제(스테이지가 넘겨준 날짜)를 부정했다.
+   *
+   * 같은 날짜로 다시 물어도 답이 같으므로 재시도를 내주지 않고 스테이지로 돌려보낸다.
+   * 스테이지는 포커스를 되찾으면서 만료된 진행도를 다시 읽고, 새 날짜로 시작한다.
+   */
+  useEffect(() => {
+    if (questionStatus !== "failed") return;
+    if (isProgressRefreshRequired(questionErrorCode)) goToStage();
+  }, [goToStage, questionErrorCode, questionStatus]);
 
   /**
    * attempt를 못 만든 이유가 이 화면의 전제를 부정하는 경우다.
