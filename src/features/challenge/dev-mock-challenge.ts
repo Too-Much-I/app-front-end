@@ -4,14 +4,16 @@ import type {
   ChallengeCorrectionItem,
   ChallengeDayResult,
   ChallengeQuestion,
+  ChallengeToday,
 } from "@/types/challenge";
 
 /**
  * 백엔드가 붙기 전까지 챌린지 화면을 끝까지 걸어보기 위한 임시 목 데이터.
  *
- * 전부 `__DEV__` 안에서만 쓰이고, 서버가 준비되면 이 파일과 아래 세 곳의 분기를
+ * 전부 `__DEV__` 안에서만 쓰이고, 서버가 준비되면 이 파일과 아래 다섯 곳의 분기를
  * 함께 지우면 원래 흐름으로 돌아온다.
  *
+ * - `challenge-today-queries.ts`  오늘 진행도 — 응답이 없으면 목으로 대체
  * - `use-challenge-question.ts`   문제 조회 — 목으로 바로 대체
  * - `use-challenge-attempt.ts`    attempt 발급 — 목으로 바로 대체
  * - `use-challenge-submission.ts` 제출 접수 — 올리지 않고 접수된 것처럼 넘어감
@@ -69,6 +71,51 @@ export const DEV_MOCK_CHALLENGE_QUESTION: ChallengeQuestion = {
   attemptStatus: "not_started",
   gradingStatus: "not_requested",
 };
+
+/**
+ * 진행도 캐시의 수명.
+ *
+ * 실제 값은 다음 KST 자정까지 남은 시간이라 개발 중에는 몇 시간이 걸린다. 30초로 줄여
+ * 만료 → 재조회 흐름을 실제로 걸어볼 수 있게 한다.
+ */
+const DEV_MOCK_TODAY_EXPIRES_IN_SEC = 30;
+
+/**
+ * 오늘 진행도.
+ *
+ * 세 문항이 `done` · `next` · `locked`로 하나씩 나오게 맞췄다 — 스테이지의 카드 3종을
+ * 한 화면에서 다 보지 못하면 목으로서 쓸모가 없다.
+ */
+export function createDevMockToday(): ChallengeToday {
+  return {
+    date: DEV_MOCK_CHALLENGE_QUESTION.date,
+    expiresInSeconds: DEV_MOCK_TODAY_EXPIRES_IN_SEC,
+    dailyStatus: "in_progress",
+    totalQuestionCount: DEV_MOCK_CHALLENGE_QUESTION.totalQuestionCount,
+    nextQuestionNumber: 2,
+    completedQuestionNumbers: [1],
+    questions: [
+      {
+        questionNumber: 1,
+        attemptStatus: "submitted",
+        gradingStatus: "completed",
+        resultAvailable: true,
+      },
+      {
+        questionNumber: 2,
+        attemptStatus: "not_started",
+        gradingStatus: "not_requested",
+        resultAvailable: false,
+      },
+      {
+        questionNumber: 3,
+        attemptStatus: "not_started",
+        gradingStatus: "not_requested",
+        resultAvailable: false,
+      },
+    ],
+  };
+}
 
 /** attempt 발급 응답. 제출 유효시간은 명세대로 생성 시각 + 1시간이다. */
 export function createDevMockAttempt(
