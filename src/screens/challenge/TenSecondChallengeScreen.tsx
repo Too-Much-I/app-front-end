@@ -86,8 +86,11 @@ export function TenSecondChallengeScreen({
   route,
 }: TenSecondChallengeScreenProps) {
   const { challengeDate, questionNumber } = route.params;
-  const { status: questionStatus, question, retry: retryQuestion } =
-    useChallengeQuestion(challengeDate, questionNumber);
+  const {
+    status: questionStatus,
+    question,
+    retry: retryQuestion,
+  } = useChallengeQuestion(challengeDate, questionNumber);
   /**
    * 문제가 오면 곧바로 attempt를 발급받는다. 녹음은 이게 끝난 뒤에 시작한다(명세 6.3).
    * 업로드 URL은 여기 없다 — 제출을 누른 뒤 제출 훅이 따로 받아 온다.
@@ -144,11 +147,20 @@ export function TenSecondChallengeScreen({
           console.error("[Challenge] 제출한 녹음 파일 삭제 실패", error);
         }
       }
+      /*
+       * "한 문장 더"의 목적지. 순서대로만 진행하므로 방금 푼 다음 번호이고, 마지막
+       * 문장이면 없다. 결과 화면은 이 값을 계산할 근거가 없어서 여기서 실어 보낸다.
+       */
+      const nextQuestionNumber =
+        question !== null && questionNumber < question.totalQuestionCount
+          ? questionNumber + 1
+          : null;
+
       leavingRef.current = true;
       navigation.replace("ChallengeResult", {
         challengeDate: accepted?.date ?? resolvedDate,
         questionNumber,
-        totalQuestionCount: question?.totalQuestionCount,
+        ...(nextQuestionNumber === null ? {} : { nextQuestionNumber }),
         // 접수 응답이 참고 답안까지 줬다면 결과 화면이 스피너부터 보여줄 이유가 없다.
         ...(accepted && question
           ? {

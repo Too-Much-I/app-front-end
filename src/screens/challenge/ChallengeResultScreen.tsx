@@ -47,7 +47,7 @@ export function ChallengeResultScreen({
   navigation,
   route,
 }: ChallengeResultScreenProps) {
-  const { challengeDate, questionNumber, initialResult, totalQuestionCount } = route.params;
+  const { challengeDate, questionNumber, initialResult, nextQuestionNumber } = route.params;
   const { status, question, retry } = useChallengeResult(
     challengeDate,
     questionNumber,
@@ -58,18 +58,15 @@ export function ChallengeResultScreen({
   /*
    * 다음 문장으로 바로 넘어갈 수 있는가.
    *
-   * 챌린지는 순서대로만 진행하고 서버가 순서 밖 요청을 막으므로 다음 번호는 +1이다.
-   * 다만 마지막 문장에서 없는 번호로 보내지 않으려면 총 문항 수가 필요한데, 결과 조회
-   * 응답에는 없어서 문제 화면이 넘겨준 값에 기댄다. 스테이지에서 들어오면 그 값이 없고,
-   * 그때는 이 버튼 대신 진행도로 돌아가는 버튼만 남는다.
+   * 이 화면은 계산하지 않는다 — 결과 조회 응답에 총 문항 수도 진행도도 없어서, 어느
+   * 문장이 아직 안 풀렸는지는 들어온 쪽만 안다. 제출 직후에는 문제 화면이, 스테이지에서
+   * 열었을 때는 스테이지가 각자 아는 값을 실어 보낸다. 없으면 다 풀었거나 여기서 다음
+   * 문장을 고를 근거가 없다는 뜻이고, 그때는 진행도로 돌아가는 버튼만 남는다.
+   *
+   * `replace`인 이유는 뒤로가기로 방금 본 결과에 다시 닿지 않게 하기 위해서다.
    */
-  const nextQuestionNumber =
-    totalQuestionCount !== undefined && questionNumber < totalQuestionCount
-      ? questionNumber + 1
-      : null;
-
   const goToNextQuestion = () => {
-    if (nextQuestionNumber === null) return;
+    if (nextQuestionNumber === undefined) return;
     navigation.replace("TenSecondChallenge", {
       challengeDate,
       questionNumber: nextQuestionNumber,
@@ -257,7 +254,7 @@ export function ChallengeResultScreen({
         </ScrollView>
 
         <View className="gap-2 px-5 pb-3">
-          {nextQuestionNumber !== null ? (
+          {nextQuestionNumber !== undefined ? (
             <Pressable
               accessibilityHint={`${nextQuestionNumber}번째 문장으로 넘어갑니다`}
               accessibilityLabel="한 문장 더"

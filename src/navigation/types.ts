@@ -45,9 +45,9 @@ export type RootStackParamList = {
     nextRetryCount: number;
   };
   /**
-   * 10초 챌린지 문제 화면. 오늘의 진행도(스테이지) 화면이 자기가 받은 `challengeDate`와
-   * 진행할 문제 번호를 넘긴다. 날짜는 앱이 계산한 값이 아니라 서버가 준 값이어야 한다 —
-   * 이후 요청의 `X-Challenge-Date`가 되어 자정을 넘긴 화면을 서버가 걸러낸다.
+   * 10초 챌린지 문제 화면. 스테이지가 자기가 받은 `challengeDate`와 진행할 문제 번호를
+   * 넘긴다. 날짜는 앱이 계산한 값이 아니라 서버가 준 값이어야 한다 — 이후 요청의
+   * `X-Challenge-Date`가 되어 자정을 넘긴 화면을 서버가 걸러낸다.
    */
   TenSecondChallenge: { challengeDate?: string; questionNumber: number };
   /**
@@ -64,13 +64,14 @@ export type RootStackParamList = {
      */
     initialResult?: ChallengeInitialResult;
     /**
-     * 오늘의 총 문항 수. 문제 화면이 조회 응답에서 알고 있어 그대로 실어 보낸다.
+     * "한 문장 더" 버튼의 목적지. 없으면 버튼을 내지 않는다.
      *
-     * "한 문장 더" 버튼이 마지막 문장에서 없는 번호로 보내지 않으려면 이 값이 필요한데,
-     * 결과 조회 응답에는 없다. 스테이지에서 들어올 때는 없고, 그때는 버튼도 내지 않는다 —
-     * 다음 문장을 고르는 일은 어차피 스테이지의 몫이다.
+     * 다음 **순번**이 아니라 다음 **안 푼** 문장이다. 두 진입 경로가 이 값을 각자
+     * 알고 있다 — 제출 직후에는 방금 푼 다음 번호이고, 스테이지에서는 진행도 응답의
+     * `nextQuestionNumber`다. 순번으로 계산하면 스테이지에서 이미 푼 문장을 열었을 때
+     * 버튼이 역시 이미 푼 다음 번호로 보내고, 문제 화면이 곧바로 결과로 되돌린다.
      */
-    totalQuestionCount?: number;
+    nextQuestionNumber?: number;
   };
   /** 설정 화면. 탭이 아니라 홈 화면 헤더 아이콘으로 진입하는 루트 스택 push 화면이다. */
   Settings: undefined;
