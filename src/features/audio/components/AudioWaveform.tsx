@@ -15,12 +15,10 @@ const ANSWER_SCALES = [
 ] as const;
 
 type AudioWaveformVariant = "microphone-test" | "answer";
-type AudioWaveformState = "idle" | "recording" | "complete";
 
 interface AudioWaveformProps {
   active: boolean;
   meteringDb: number | null;
-  state?: AudioWaveformState;
   variant: AudioWaveformVariant;
 }
 
@@ -47,19 +45,16 @@ function createEmptyWaveform(config: WaveformConfig): number[] {
   return config.scales.map(() => config.minHeight);
 }
 
-export function AudioWaveform({
-  active,
-  meteringDb,
-  state = active ? "recording" : "idle",
-  variant,
-}: AudioWaveformProps) {
+export function AudioWaveform({ active, meteringDb, variant }: AudioWaveformProps) {
   const config = WAVEFORM_CONFIGS[variant];
   const emptyWaveform = useMemo(() => createEmptyWaveform(config), [config]);
   const [heights, setHeights] = useState<number[]>(emptyWaveform);
 
   useEffect(() => {
+    // 녹음이 멈추면 막대를 바닥으로 되돌린다. 멈춘 파형을 그대로 두면 마지막 음량이
+    // 계속 지금 상태인 것처럼 읽힌다.
     if (!active) {
-      if (state === "idle") setHeights(emptyWaveform);
+      setHeights(emptyWaveform);
       return;
     }
 
@@ -75,7 +70,7 @@ export function AudioWaveform({
         return currentHeight + (scaledTarget - currentHeight) * VISUAL_SMOOTHING;
       }),
     );
-  }, [active, config, emptyWaveform, meteringDb, state]);
+  }, [active, config, emptyWaveform, meteringDb]);
 
   /*
    * 막대 사이 간격이 간격 토큰(`gap-content` 등)을 쓰지 않는 이유:
@@ -96,7 +91,6 @@ export function AudioWaveform({
     if (variant === "answer") {
       return active ? "bg-exam-dangerSoft" : "bg-line";
     }
-    if (state === "complete") return "bg-sky";
     if (active) return "bg-brand-cta";
     return "bg-brand-200";
   })();
