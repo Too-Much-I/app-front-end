@@ -26,6 +26,11 @@ export function ChallengeNoteSkeleton() {
       style={pulseStyle}
     >
       <View className="items-center gap-3">
+        {/*
+          `ChallengeTimerHeader`의 진행 점 자리를 그대로 잡아두는 부분이라
+          점 크기와 간격을 그쪽과 같은 값으로 맞춘다. 여기만 토큰으로 바꾸면
+          스켈레톤과 실제 화면의 점 위치가 어긋나 로딩이 끝날 때 튄다.
+        */}
         <View className="flex-row gap-1.5">
           <SkeletonBlock className="h-2 w-2" />
           <SkeletonBlock className="h-2 w-2" />

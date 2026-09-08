@@ -134,7 +134,7 @@ function NotificationCard({ item, onPress }: { item: NotificationItem; onPress: 
       </View>
 
       <View className="min-w-0 flex-1 pr-10">
-        <View className="flex-row items-center gap-1.5">
+        <View className="flex-row items-center">
           <Text className="min-w-0 flex-1 text-base" numberOfLines={1}>
             {item.title}
           </Text>

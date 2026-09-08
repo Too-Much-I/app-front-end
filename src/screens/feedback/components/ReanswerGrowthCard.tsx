@@ -88,7 +88,7 @@ export function ReanswerGrowthCard({ item }: { item: ReanswerQuestionItem }) {
 
       <View className="mt-3 flex-row items-end justify-between gap-3">
         <View>
-          <View className="flex-row items-center gap-1.5">
+          <View className="flex-row items-center gap-content">
             <GaugeLegendDot color={colors.brand[300]} />
             <Text className="text-xs text-ink-muted">최초 답변</Text>
           </View>
@@ -98,7 +98,7 @@ export function ReanswerGrowthCard({ item }: { item: ReanswerQuestionItem }) {
         </View>
 
         <View className="items-end">
-          <View className="flex-row items-center gap-1.5">
+          <View className="flex-row items-center gap-content">
             <GaugeLegendDot color={colors.brand.DEFAULT} />
             <Text className="text-xs text-ink-muted">최신 답변</Text>
           </View>

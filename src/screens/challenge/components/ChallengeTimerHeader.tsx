@@ -27,6 +27,16 @@ export function ChallengeTimerHeader({
 
   return (
     <View className="items-center gap-3">
+      {/*
+        점 사이 간격에 토큰을 쓰지 않는 이유: 이건 요소 사이의 여백이 아니라
+        점 크기(`h-2 w-2` = 8px)와 짝을 이루는 조형 값이다. 간격이 점보다 좁아야
+        낱개가 아니라 하나의 진행 표시로 읽힌다.
+
+        문항 수만큼 반복되므로 간격이 곧 전체 폭이기도 하다. `gap-content`(8px)로
+        벌리면 폭이 문항당 8px씩 늘어 헤더 가운데 영역을 넘길 수 있다.
+
+        `ChallengeNoteSkeleton`이 이 점들의 자리를 잡아두므로 값을 바꿀 때 같이 고친다.
+      */}
       <View
         accessibilityLabel={`오늘 ${totalQuestionCount}문장 중 ${questionNumber}번째`}
         className="flex-row items-center gap-1.5"
@@ -48,7 +58,7 @@ export function ChallengeTimerHeader({
       {remainingSeconds === null ? null : (
       <View
         accessibilityLabel={`남은 시간 ${Math.max(0, Math.ceil(remainingSeconds))}초`}
-        className={`flex-row items-center gap-1.5 rounded-full px-4 py-1.5 ${
+        className={`flex-row items-center gap-content rounded-full px-4 py-1.5 ${
           isUrgent ? "bg-exam-danger" : "bg-brand-cta"
         }`}
       >

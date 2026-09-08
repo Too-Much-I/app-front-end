@@ -77,6 +77,14 @@ export function AudioWaveform({
     );
   }, [active, config, emptyWaveform, meteringDb, state]);
 
+  /*
+   * 막대 사이 간격이 간격 토큰(`gap-content` 등)을 쓰지 않는 이유:
+   * 이건 요소 사이의 여백이 아니라 파형의 밀도를 만드는 조형 값이다.
+   * 바로 아래 `barWidthClassName`의 막대 폭과 한 쌍으로 움직인다 —
+   * microphone-test는 `w-1.5`에 `gap-1.5`, 그 외는 `w-1`에 `gap-1`으로
+   * 폭과 간격이 같아야 막대가 고르게 늘어선 파형으로 읽힌다.
+   * 간격만 8px로 벌리면 파형이 아니라 막대그래프가 된다.
+   */
   const containerClassName =
     variant === "microphone-test"
       ? "h-16 flex-row gap-1.5"

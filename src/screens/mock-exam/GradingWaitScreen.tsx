@@ -109,7 +109,7 @@ export function GradingWaitScreen({ navigation, route }: GradingWaitScreenProps)
 
       {/* 안심시키는 한 줄이라 카드로 감싸지 않는다. 상자를 두르면 조용한 안내가
           아니라 눌러야 하는 것처럼 보인다. */}
-      <View className="flex-row items-center justify-center gap-1.5 px-screen pb-5 pt-4">
+      <View className="flex-row items-center justify-center gap-content px-screen pb-5 pt-4">
         <MaterialCommunityIcons name="star" size={15} color={colors.brand.DEFAULT} />
         <Text className="text-sm text-ink-muted">화면을 벗어나도 채점은 계속돼요</Text>
       </View>

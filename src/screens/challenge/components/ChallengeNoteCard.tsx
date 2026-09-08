@@ -68,7 +68,7 @@ export function ChallengeNoteCard({
           <PunchHoles carvedFrom={colors.challenge.mat} fit="note" />
 
           <View className="grow items-center justify-center gap-4 pb-20 pl-9 pr-5 pt-5">
-            <View className="flex-row items-center gap-1.5 rounded-lg bg-challenge-label px-3 py-1.5">
+            <View className="flex-row items-center gap-content rounded-lg bg-challenge-label px-3 py-1.5">
               <Feather color={colors.brand.cta} name="star" size={14} />
               <Text className="text-sm">오늘의 문장</Text>
             </View>
