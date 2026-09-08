@@ -7,7 +7,7 @@ import { colors, shadows } from "@/theme";
 
 function InsightSkeleton() {
   return (
-    <View className="min-w-36 flex-1 rounded-3xl border border-line bg-surface p-card" style={shadows.card}>
+    <View className="min-w-36 flex-1 rounded-card border border-line bg-surface p-card" style={shadows.card}>
       <View className="flex-row items-center gap-2">
         <SkeletonBlock className="h-9 w-9" />
         <SkeletonBlock className="h-5 w-20" />
@@ -22,7 +22,7 @@ function InsightSkeleton() {
 
 function PartCardSkeleton() {
   return (
-    <View className="rounded-3xl border border-line bg-surface p-card" style={shadows.card}>
+    <View className="rounded-card border border-line bg-surface p-card" style={shadows.card}>
       <View className="flex-row gap-3">
         <SkeletonBlock className="h-16 w-16" />
         <View className="min-w-0 flex-1">
@@ -102,7 +102,7 @@ export function FeedbackWebViewSkeleton() {
 
         <View className="mt-8">
           <SkeletonBlock className="mb-4 h-6 w-36" />
-          <View className="rounded-3xl border border-line bg-surface p-card" style={shadows.card}>
+          <View className="rounded-card border border-line bg-surface p-card" style={shadows.card}>
             <View className="gap-3">
               <SkeletonBlock className="h-4 w-full" />
               <SkeletonBlock className="h-4 w-full" />

@@ -37,7 +37,7 @@ export function EmptyHistoryCard({
   children,
 }: EmptyHistoryCardProps) {
   return (
-    <View className="mt-3xl items-center rounded-3xl border border-line bg-surface px-xl pb-2xl pt-lg">
+    <View className="mt-3xl items-center rounded-card border border-line bg-surface px-xl pb-2xl pt-lg">
       <EmptyHistoryIllustration mascot={mascot} />
 
       <Text accessibilityRole="header" className="mt-element text-center text-xl">

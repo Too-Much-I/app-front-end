@@ -67,7 +67,7 @@ export function ChallengeSentenceCard({
   return (
     <View>
       <View
-        className={`overflow-hidden rounded-3xl ${palette.surface}`}
+        className={`overflow-hidden rounded-card ${palette.surface}`}
         style={shadows.card}
       >
         {/* 카드는 화면 배경 위에 놓이므로 구멍 뒤에 비치는 것도 화면 배경이다. */}

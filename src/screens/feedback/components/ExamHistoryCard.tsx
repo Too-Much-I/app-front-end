@@ -31,7 +31,7 @@ export function ExamHistoryCard({
     <Pressable
       accessibilityLabel={`${item.title}, ${item.level}, 총점 ${item.maxTotalScore}점 만점에 ${item.totalScore}점, ${subtitle}`}
       accessibilityHint="이 모의고사의 피드백을 엽니다"
-      className="flex-row items-center rounded-3xl border border-line bg-surface p-card"
+      className="flex-row items-center rounded-card border border-line bg-surface p-card"
       style={shadows.card}
       onPress={onPress}
     >

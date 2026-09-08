@@ -72,7 +72,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="px-screen pb-10 pt-2">
           <View
-            className="flex-row items-center gap-4 overflow-hidden rounded-3xl border border-line bg-brand-50 p-card"
+            className="flex-row items-center gap-4 overflow-hidden rounded-card border border-line bg-brand-50 p-card"
             style={shadows.card}
           >
             <View className="min-w-0 flex-1">

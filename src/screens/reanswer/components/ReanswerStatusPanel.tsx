@@ -59,7 +59,7 @@ export function ReanswerStatusPanel({
     return (
       <View className="flex-1 items-center justify-center px-screen">
         <View
-          className="w-full items-center overflow-hidden rounded-3xl bg-surface pb-6"
+          className="w-full items-center overflow-hidden rounded-card bg-surface pb-6"
           style={shadows.card}
         >
           <GradingRabbitBanner />
@@ -94,7 +94,7 @@ export function ReanswerStatusPanel({
         source={notice.mascot}
       />
 
-      <View className="w-full items-center rounded-3xl bg-surface p-card" style={shadows.card}>
+      <View className="w-full items-center rounded-card bg-surface p-card" style={shadows.card}>
         <Text className="text-center text-base leading-6 text-exam-danger">
           {errorMessage ?? notice.title}
         </Text>

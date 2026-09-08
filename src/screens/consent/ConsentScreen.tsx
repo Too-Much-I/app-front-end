@@ -210,7 +210,7 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
           accessibilityLabel="약관 전체 동의 (선택 항목 포함)"
           accessibilityRole="checkbox"
           accessibilityState={{ checked: allAgreed }}
-          className="mt-14 flex-row items-center gap-3 rounded-3xl border px-4 py-4"
+          className="mt-14 flex-row items-center gap-3 rounded-card border px-4 py-4"
           onPress={toggleAll}
           style={{
             /*
@@ -244,7 +244,7 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
         </Pressable>
 
         <View
-          className="mt-3 overflow-hidden rounded-3xl border border-line bg-surface px-4"
+          className="mt-3 overflow-hidden rounded-card border border-line bg-surface px-4"
           style={shadows.card}
         >
           {requiredItems.privacy ? (

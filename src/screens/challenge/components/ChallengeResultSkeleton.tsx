@@ -7,7 +7,7 @@ import { shadows } from "@/theme";
 
 function CardSkeleton({ lineClassName }: { lineClassName: string }) {
   return (
-    <View className="rounded-3xl bg-surface p-card" style={shadows.card}>
+    <View className="rounded-card bg-surface p-card" style={shadows.card}>
       <SkeletonBlock className="h-4 w-20" />
       <SkeletonBlock className="mt-3 h-6 w-full" />
       <SkeletonBlock className={`mt-2 h-6 ${lineClassName}`} />

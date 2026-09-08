@@ -16,7 +16,7 @@ export function SettingsSection({ title, children }: SettingsSectionProps) {
         {title}
       </Text>
       <View
-        className="mt-element overflow-hidden rounded-3xl border border-line bg-surface px-4"
+        className="mt-element overflow-hidden rounded-card border border-line bg-surface px-4"
         style={shadows.card}
       >
         {children}

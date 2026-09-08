@@ -143,7 +143,7 @@ export function HomeScreen() {
           */}
           <Pressable
             accessibilityLabel="10초 챌린지 시작"
-            className="relative mt-3 flex-row items-center gap-3 rounded-3xl border border-sky-line bg-sky-surface p-card"
+            className="relative mt-3 flex-row items-center gap-3 rounded-card border border-sky-line bg-sky-surface p-card"
             onPress={() => navigation.navigate("ChallengeStage")}
             style={shadows.card}
           >

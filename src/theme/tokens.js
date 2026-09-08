@@ -390,9 +390,13 @@ const spacingScale = { ...toRemScale(spacing), ...toRemScale(layout) };
  * | --- | --- | --- |
  * | `chip` | 8 | 배지 · 라벨 · 작은 태그 |
  * | `control` | 16 | 사각 버튼 · 입력 · 토글 |
- * | `card` | 20 | 카드 · 패널 · 리스트 아이템 |
- * | `sheet` | 24 | 바텀시트 · 모달처럼 화면을 덮는 표면 |
+ * | `card` | 24 | 카드 · 패널 · 리스트 아이템 · 바텀시트 |
  * | `pill` | — | 알약 버튼 · 원형 (`radiusScale`에서 9999px) |
+ *
+ * 바텀시트에 따로 단계를 두지 않는 이유: 이 앱은 카드와 시트가 원래 같은 값(24px,
+ * `rounded-3xl`)으로 그려져 있었다. 시트가 세 곳뿐이라 그 셋과 구분하려고 카드 18곳을
+ * 바꾸는 것은 근거 없이 만든 구분이다. 값이 같은 토큰 두 개를 두는 쪽은 더 나쁘다 —
+ * 나중에 한쪽만 조정하면 그 이름으로 적힌 자리들이 조용히 갈라진다.
  *
  * `control`과 `pill`을 함께 두는 이유: 지금 `rounded-full` 91곳에는 알약 버튼뿐 아니라
  * 점 · 원형 아바타 · 진행 바가 섞여 있다. 버튼 모양을 사각(`control`)으로 할지
@@ -401,8 +405,7 @@ const spacingScale = { ...toRemScale(spacing), ...toRemScale(layout) };
 const radius = {
   chip: 8,
   control: 16,
-  card: 20,
-  sheet: 24,
+  card: 24,
 };
 
 /**

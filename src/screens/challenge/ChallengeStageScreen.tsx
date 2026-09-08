@@ -89,7 +89,7 @@ export function ChallengeStageScreen({ navigation }: ChallengeStageScreenProps) 
               source={errorRabbit}
             />
             <View
-              className="w-full items-center rounded-3xl bg-surface p-card"
+              className="w-full items-center rounded-card bg-surface p-card"
               style={shadows.card}
             >
               <Text className="text-center text-base leading-6 text-exam-danger">

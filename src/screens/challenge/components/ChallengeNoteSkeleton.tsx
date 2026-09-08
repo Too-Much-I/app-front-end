@@ -39,7 +39,7 @@ export function ChallengeNoteSkeleton() {
         <SkeletonBlock className="h-8 w-24 rounded-full" />
       </View>
 
-      <View className="grow rounded-3xl bg-challenge-mat p-3" style={shadows.card}>
+      <View className="grow rounded-card bg-challenge-mat p-3" style={shadows.card}>
         <View className="grow rounded-2xl bg-surface pb-20 pl-9 pr-5 pt-5">
           <View className="grow items-center justify-center gap-4">
             <SkeletonBlock className="h-8 w-24 rounded-lg" />

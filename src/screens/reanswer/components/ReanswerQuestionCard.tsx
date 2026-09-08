@@ -54,7 +54,7 @@ export function ReanswerQuestionCard({
   }, [audioSource, player]);
 
   return (
-    <View className="rounded-3xl bg-surface p-card" style={shadows.card}>
+    <View className="rounded-card bg-surface p-card" style={shadows.card}>
       <Text className="text-sm text-exam-navy">문제</Text>
 
       <View className="mt-3 gap-3">

@@ -133,7 +133,7 @@ export function ReanswerHistoryPanel({
       <View
         accessible
         accessibilityLabel={`최초 답변 대비 평균 달성률 ${formattedDelta}, ${progress.comparableQuestionCount}문제 중 ${progress.improvedQuestionCount}문제 향상`}
-        className="relative mt-5 overflow-hidden rounded-3xl border border-sky-line bg-sky-surface p-card"
+        className="relative mt-5 overflow-hidden rounded-card border border-sky-line bg-sky-surface p-card"
         style={shadows.card}
       >
         <View className="flex-row items-center gap-3">

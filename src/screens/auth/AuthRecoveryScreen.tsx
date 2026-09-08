@@ -23,7 +23,7 @@ export function AuthRecoveryScreen() {
   return (
     <SafeAreaView className="flex-1 bg-surface-subtle" edges={["top", "bottom"]}>
       <View className="flex-1 items-center justify-center px-screen">
-        <View className="w-full max-w-xl items-center rounded-3xl border border-line bg-surface p-6">
+        <View className="w-full max-w-xl items-center rounded-card border border-line bg-surface p-6">
           <Text className="text-center text-2xl">인증을 준비하지 못했어요</Text>
           <Text className="mt-3 text-center text-sm leading-6 text-ink-muted">{message}</Text>
           <Button

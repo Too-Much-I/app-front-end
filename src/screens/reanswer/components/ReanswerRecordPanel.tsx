@@ -46,7 +46,7 @@ export function ReanswerRecordPanel({
     speakTimeSec > 0 ? Math.max(0, Math.min(1, remainingSeconds / speakTimeSec)) : 0;
 
   return (
-    <View className="rounded-3xl bg-surface p-card" style={shadows.card}>
+    <View className="rounded-card bg-surface p-card" style={shadows.card}>
       {status === "idle" ? (
         <View className="items-center gap-4">
           <View className="w-full flex-row items-center gap-1">

@@ -239,7 +239,7 @@ export function SentryValidationScreen() {
           실제 API와 사용자 데이터 없이 운영 오류 카탈로그 15개를 검증합니다.
         </Text>
 
-        <View className="mt-5 rounded-3xl border border-sky-line bg-sky-surface p-card">
+        <View className="mt-5 rounded-card border border-sky-line bg-sky-surface p-card">
           <Text className="text-lg text-sky-text">검증 환경</Text>
           <Text className="mt-2 text-sm text-sky-text">
             mode: {runtime.validationMode ? "synthetic-validation" : "disabled"}
@@ -309,7 +309,7 @@ export function SentryValidationScreen() {
             const result = results[code];
             const isActive = activeCode === code;
             return (
-              <View key={code} className="rounded-3xl border border-line bg-surface p-card">
+              <View key={code} className="rounded-card border border-line bg-surface p-card">
                 <Text className="text-xs text-ink-disabled">{index + 1}/15</Text>
                 <Text className="mt-1 text-lg text-exam-navy">{item.title}</Text>
                 <Text selectable className="mt-1 text-xs text-ink-muted">

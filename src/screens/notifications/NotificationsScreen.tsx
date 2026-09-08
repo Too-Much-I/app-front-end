@@ -122,7 +122,7 @@ function NotificationCard({ item, onPress }: { item: NotificationItem; onPress: 
   return (
     <Pressable
       accessibilityLabel={`${item.title}, ${item.body}, ${item.isRead ? "읽음" : "안 읽음"}`}
-      className="relative flex-row items-start gap-3 rounded-3xl border border-line bg-surface p-card"
+      className="relative flex-row items-start gap-3 rounded-card border border-line bg-surface p-card"
       style={shadows.card}
       onPress={onPress}
     >
@@ -213,7 +213,7 @@ export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="px-screen pb-10 pt-2">
           <View
-            className="flex-row items-center gap-4 overflow-hidden rounded-3xl border border-line bg-brand-50 p-card"
+            className="flex-row items-center gap-4 overflow-hidden rounded-card border border-line bg-brand-50 p-card"
             style={shadows.card}
           >
             <View className="min-w-0 flex-1">
