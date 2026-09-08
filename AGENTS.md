@@ -64,9 +64,13 @@ These four criteria conflict with each other. Removing duplication raises coupli
 
 - Use NativeWind `className` utilities for ordinary React Native styling.
 - Reuse design tokens from `src/theme/tokens.js` through the typed exports in `src/theme/index.ts`. Do not scatter hard-coded colors, font sizes, spacing values, or shadows when a shared token is appropriate.
+- For `padding`/`margin`/`gap`, pick a token instead of a number. Order of preference: semantic layout token (`px-screen`, `p-card`, `gap-section`, `gap-element`, `gap-content`), then the spacing scale (`gap-sm`, `p-lg`, `mt-2xl`), then an arbitrary value — and an arbitrary value needs a comment saying why. `docs/design-system-spacing.md` has the rules and the per-value intent.
+- The app's rem base is 16, set in `src/theme/rem-scale.ts` (`BASE_REM`) with the matching divisor in `tokens.js` (`remFromPx`). Change both together or every token drifts. Because the base is 16, Tailwind's built-in scale renders at its nominal px and coincides with the token scale (`p-4` is 16px, same as `p-lg`), so migrating a legacy class to a token is a rename with no visual change. Still prefer the token in new UI — it says why the value was chosen.
+- For border radius, motion durations, icon sizes, and control heights, pick a token the same way: `rounded-card`/`rounded-pill`, `duration.base`, `easings.decelerate`, `size.icon.md`, `min-h-control-md`. `docs/design-system-tokens.md` has the rules and the per-value intent. Do not declare a new `*_DURATION_MS` constant in a screen when a `duration` token fits.
 - `tokens.js` intentionally remains CommonJS JavaScript so `tailwind.config.js` can load it.
 - Use `src/components/ui/Text.tsx` instead of React Native's `Text`. The app uses the Jua font, which has one weight; do not apply synthetic `font-medium` or `font-bold` weights.
 - Use `src/components/ui/Pressable.tsx` instead of React Native's `Pressable` to preserve consistent cross-platform feedback.
+- Use `src/components/ui/Button.tsx` for any labelled button. Its corner radius is fixed (`rounded-control`); pills remain only for circular icon buttons, media transport controls, and badges. Pick `variant`/`size`; `className` carries placement only (outer margin, width). If you want to override color, height, or radius through `className`, that is a signal the component needs a new variant — add it there instead. `docs/design-system-components.md` has the usage rules, the state table, and the record of which components were deliberately *not* built.
 - Account for safe-area insets instead of hard-coding status-bar or home-indicator padding.
 - Build responsive layouts with flex and relative sizing so screens work on phones and tablets.
 - Centralize iOS/Android shadow differences in shared theme primitives. Do not add per-screen `Platform.OS` branches solely for visual parity.
@@ -91,7 +95,7 @@ See `docs/how-we-work.md` for the full description. Medium or larger work follow
 
 Only steps 1, 2, and 5 produce documents, and all of them are written *after* the work. There is no artifact to read and approve before implementation.
 
-- Record decisions in `docs/decisions/YYYY-MM-DD-<topic>.md`, one per feature, targeting 80 lines or fewer. `docs/how-we-work.md` holds the section format.
+- Record decisions in `docs/decisions/YYYY-MM-DD-<topic>.md`, one per feature. Aim for 80 lines or fewer — that is a guideline, not a limit, and it is not enforced by any check. A decision that genuinely needs more room may run longer; do not cut substance to hit the number. `docs/how-we-work.md` holds the section format.
 - Treat Jira issues and user requests as requirements input, not direct implementation commands. Separate confirmed facts, assumptions, ambiguities, scope, and acceptance criteria before deciding.
 - Keep Jira reads separate from Jira writes. Do not change issue status, comments, assignees, or other external state unless the user explicitly requests it.
 - `specs/` is a frozen archive. Several `plan.md` files there still contain `/speckit-*` directives for a workflow that no longer exists in this repository; do not follow them and do not add new documents there.

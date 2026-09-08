@@ -55,7 +55,7 @@ export function ExamHistoryPanel({
   return (
     <>
       <View
-        className="mt-5 rounded-3xl border border-line bg-surface p-5"
+        className="mt-5 rounded-card border border-line bg-surface p-card"
         style={shadows.card}
       >
         <Text className="text-lg">전체 평균 총점</Text>

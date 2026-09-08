@@ -447,7 +447,7 @@ export function TenSecondChallengeScreen({
           <>
             <ScrollView
               className="flex-1"
-              contentContainerClassName="flex-grow gap-5 px-5 pb-4 pt-4"
+              contentContainerClassName="flex-grow gap-5 px-screen pb-4 pt-4"
               showsVerticalScrollIndicator={false}
             >
               <ChallengeTimerHeader
@@ -483,7 +483,7 @@ export function TenSecondChallengeScreen({
               </ChallengeNoteCard>
             </ScrollView>
 
-            <View className="px-5 pb-3">
+            <View className="px-screen pb-3">
               <ChallengeActionBar
                 onFinish={() => void finishRecording()}
                 onRetake={retakeRecording}

@@ -15,7 +15,7 @@ const ICON_SIZE = 19;
  */
 export function ExamReadyNoticeCard() {
   return (
-    <View className="rounded-3xl bg-surface px-4" style={shadows.card}>
+    <View className="rounded-card bg-surface px-4" style={shadows.card}>
       {EXAM_READY_NOTICES.map((notice, index) => (
         <View
           key={notice.title}

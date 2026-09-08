@@ -277,7 +277,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
                 onTableReady={markPart4TableReady}
                 onRequestLandscape={handleRequestTableLandscape}
               />
-              <View className="items-center gap-3 border-t border-line bg-surface px-5 pb-4 pt-4">
+              <View className="items-center gap-3 border-t border-line bg-surface px-screen pb-4 pt-4">
                 <ExamTimerCard mode="reading" remainingSeconds={remainingSeconds} />
                 <Pressable
                   accessibilityState={{ disabled: !isReadingTableReady }}
@@ -346,7 +346,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
               />
             </ScrollView>
 
-            <View className="items-center gap-3 bg-surface px-5 pb-3 pt-4">
+            <View className="items-center gap-3 bg-surface px-screen pb-3 pt-4">
               {showResponseWaveform ? (
                 <AudioWaveform
                   active={phase === "response" && recorder.status === "recording"}

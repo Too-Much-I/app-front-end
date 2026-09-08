@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { Image, ScrollView, View } from "react-native";
 
+import { Button } from "@/components/ui/Button";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import type { ExamPartGuide } from "@/features/exam/part-guide";
@@ -136,12 +137,12 @@ export function ExamPartGuidePage({
         <TimingItem icon="mic" label="답변 시간" value={guide.answerTime} />
       </View>
 
-      <Pressable
-        className="mt-6 items-center justify-center rounded-2xl bg-brand-cta py-4"
+      <Button
+        className="mt-section"
+        label={isLast ? "시작하기" : "다음 파트"}
+        size="lg"
         onPress={isLast ? onStart : onNext}
-      >
-        <Text className="text-lg text-white">{isLast ? "시작하기" : "다음 파트"}</Text>
-      </Pressable>
+      />
     </ScrollView>
   );
 }

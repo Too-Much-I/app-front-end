@@ -1,6 +1,6 @@
 import { ActivityIndicator, Image, View } from "react-native";
 
-import { Pressable } from "@/components/ui/Pressable";
+import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
 import type { ChallengeStatusOnly } from "@/screens/challenge/challenge-status";
 import { colors, shadows } from "@/theme";
@@ -48,7 +48,7 @@ export function ChallengeStatusPanel({
   // 얼마나 걸릴지는 업로드 상황에 달려 있어서 자리를 미리 잡아줄 것이 없다.
   if (status === "submitting") {
     return (
-      <View className="flex-1 items-center justify-center gap-3 px-5">
+      <View className="flex-1 items-center justify-center gap-3 px-screen">
         <ActivityIndicator color={colors.brand.cta} size="large" />
         <Text className="text-sm text-ink-muted">제출하는 중이에요...</Text>
       </View>
@@ -65,7 +65,7 @@ export function ChallengeStatusPanel({
   });
 
   return (
-    <View className="flex-1 items-center justify-center gap-5 px-5">
+    <View className="flex-1 items-center justify-center gap-5 px-screen">
       <Image
         accessibilityElementsHidden
         className="h-40 w-40"
@@ -73,7 +73,7 @@ export function ChallengeStatusPanel({
         source={notice.mascot}
       />
 
-      <View className="w-full items-center rounded-3xl bg-surface p-5" style={shadows.card}>
+      <View className="w-full items-center rounded-card bg-surface p-card" style={shadows.card}>
         <Text className="text-center text-base leading-6 text-exam-danger">
           {errorMessage ?? notice.title}
         </Text>
@@ -82,21 +82,16 @@ export function ChallengeStatusPanel({
         </Text>
 
         <View className="mt-5 w-full gap-2">
+          {/* 첫 번째가 항상 다시 시도라 채움 CTA를 가져간다. 나머지는 빠져나가는 길이다. */}
           {actions.map((action, index) => (
-            <Pressable
+            <Button
               accessibilityHint={action.hint}
-              accessibilityLabel={action.label}
-              accessibilityRole="button"
-              className={`w-full items-center rounded-full py-3 ${
-                index === 0 ? "bg-brand-cta" : "border border-line bg-surface"
-              }`}
+              className="w-full"
               key={action.label}
+              label={action.label}
+              variant={index === 0 ? "primary" : "neutral"}
               onPress={action.onPress}
-            >
-              <Text className={`text-sm ${index === 0 ? "text-white" : "text-ink-muted"}`}>
-                {action.label}
-              </Text>
-            </Pressable>
+            />
           ))}
         </View>
       </View>

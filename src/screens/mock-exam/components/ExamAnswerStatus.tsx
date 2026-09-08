@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ActivityIndicator, Image, Linking, View } from "react-native";
 
+import { Button } from "@/components/ui/Button";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import type { AudioRecordingStatus } from "@/features/audio/use-timed-audio-recorder";
@@ -29,15 +30,7 @@ interface ExamAnswerStatusProps {
 }
 
 function RecoveryButton({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      className="mt-4 items-center rounded-xl bg-brand-cta px-5 py-3"
-      onPress={onPress}
-    >
-      <Text className="text-base text-white">{label}</Text>
-    </Pressable>
-  );
+  return <Button className="mt-lg" label={label} onPress={onPress} />;
 }
 
 export function ExamAnswerStatus({
@@ -106,30 +99,29 @@ export function ExamAnswerStatus({
           </Text>
 
           {retryableFailedJobs.length > 0 ? (
-            <Pressable
-              accessibilityRole="button"
-              className="mt-6 w-full items-center rounded-2xl bg-brand-cta py-3.5"
+            <Button
+              className="mt-section w-full"
+              label="다시 시도"
+              size="lg"
               onPress={() => {
                 for (const job of retryableFailedJobs) onRetrySubmission(job.key);
               }}
-            >
-              <Text className="text-base text-white">다시 시도</Text>
-            </Pressable>
+            />
           ) : null}
 
-          <Pressable
-            accessibilityRole="button"
-            className={`${retryableFailedJobs.length > 0 ? "mt-3" : "mt-6"} w-full items-center rounded-2xl border border-brand-300 py-3.5`}
+          <Button
+            className={`${retryableFailedJobs.length > 0 ? "mt-element" : "mt-section"} w-full`}
+            label="홈으로 돌아가기"
+            size="lg"
+            variant="secondary"
             onPress={onGoHome}
-          >
-            <Text className="text-base text-brand-text">홈으로 돌아가기</Text>
-          </Pressable>
+          />
         </View>
       );
     }
 
     return (
-      <View accessibilityLiveRegion="polite" className="w-full rounded-2xl border border-line bg-surface p-5">
+      <View accessibilityLiveRegion="polite" className="w-full rounded-2xl border border-line bg-surface p-card">
         <View className="flex-row items-center gap-3">
           {summary.pendingCount > 0 ? (
             <ActivityIndicator color={colors.brand.cta} />
@@ -147,7 +139,7 @@ export function ExamAnswerStatus({
         {failedJobs.map((job) => (
           <View
             key={`${job.key.questionNumber}:${job.key.retryCount}`}
-            className="mt-4 rounded-xl bg-surface-muted p-4"
+            className="mt-4 rounded-xl bg-surface-muted p-card"
           >
             <Text className="text-sm text-ink-muted">문항 {job.key.questionNumber}</Text>
             <Text className="mt-1 text-sm text-exam-danger">
@@ -170,7 +162,7 @@ export function ExamAnswerStatus({
 
   if (phase === "registration-recovery") {
     return (
-      <View accessibilityLiveRegion="assertive" className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-5">
+      <View accessibilityLiveRegion="assertive" className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-card">
         <Text className="text-center text-lg text-exam-danger">답변 파일 등록이 끝나지 않았어요</Text>
         <Text className="mt-2 text-center text-sm leading-5 text-ink-muted">
           녹음 파일은 그대로 보관 중이에요. 다시 녹음하지 않고 등록만 재시도합니다.
@@ -182,7 +174,7 @@ export function ExamAnswerStatus({
 
   if (phase === "interrupted") {
     return (
-      <View accessibilityLiveRegion="assertive" className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-5">
+      <View accessibilityLiveRegion="assertive" className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-card">
         <Text className="text-center text-lg text-exam-danger">녹음이 중단됐어요</Text>
         <Text className="mt-2 text-center text-sm leading-5 text-ink-muted">
           부분 녹음은 제출하지 않았습니다. 현재 문항을 전체 시간으로 다시 녹음해주세요.
@@ -194,7 +186,7 @@ export function ExamAnswerStatus({
 
   if (phase === "recording-recovery") {
     return (
-      <View accessibilityLiveRegion="assertive" className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-5">
+      <View accessibilityLiveRegion="assertive" className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-card">
         <Text className="text-center text-lg text-exam-danger">
           {permissionDenied ? "마이크 권한이 필요해요" : "답변 녹음을 완료하지 못했어요"}
         </Text>

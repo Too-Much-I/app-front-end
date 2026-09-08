@@ -66,13 +66,17 @@ export function MicrophoneTestScreen({ navigation }: MicrophoneTestScreenProps) 
 
   return (
     <DeviceTestLayout currentStep={1} onBack={handleBack}>
-      <View className="flex-1">
+      {/* `flex-1`이 아니라 `grow`인 이유: `flex-1`은 flex-basis가 0%라 콘텐츠 높이가
+          0으로 측정되고, `DeviceTestLayout`의 ScrollView 콘텐츠가 뷰포트 높이에 못 박힌다.
+          그러면 내용이 넘칠 때 스크롤되지 않고 잘린다. `grow`는 basis가 auto라 콘텐츠를
+          실제로 재고, 남는 공간이 있을 때만 늘어난다. */}
+      <View className="grow">
         <View className="items-center">
           <Text className="text-center text-3xl">마이크 테스트</Text>
           <Text className="mt-2 text-center text-base leading-6 text-ink-muted">{helpText}</Text>
         </View>
 
-        <View className="my-6 min-h-80 flex-1 items-center justify-center px-5 py-6">
+        <View className="my-6 min-h-80 grow items-center justify-center px-screen py-6">
           {isComplete ? (
             <View className="absolute right-5 top-5 h-11 w-11 items-center justify-center rounded-full bg-sky-surface">
               <MaterialCommunityIcons name="check-bold" size={26} color={colors.sky.text} />
@@ -88,14 +92,18 @@ export function MicrophoneTestScreen({ navigation }: MicrophoneTestScreenProps) 
             />
           </View>
 
-          <View className="mt-7">
-            <AudioWaveform
-              active={isRecording}
-              meteringDb={meteringDb}
-              state={isComplete ? "complete" : isRecording ? "recording" : "idle"}
-              variant="microphone-test"
-            />
-          </View>
+          {/* 녹음이 끝나면 파형은 더 이상 알려줄 것이 없다. 입력이 정상이었다는 사실은
+              아래 "마이크 입력 정상"과 체크 배지가 말하고, 녹음 내용은 재생 버튼이 맡는다.
+              멈춘 파형만 남으면 아직 녹음 중인지 끝난 것인지 오히려 흐려진다. */}
+          {isComplete ? null : (
+            <View className="mt-7">
+              <AudioWaveform
+                active={isRecording}
+                meteringDb={meteringDb}
+                variant="microphone-test"
+              />
+            </View>
+          )}
 
           <View accessibilityLiveRegion="polite" className="mt-3 flex-row items-center gap-2">
             <View

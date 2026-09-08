@@ -1,9 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Image, ScrollView, View } from "react-native";
+import { Image, ScrollView, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Button } from "@/components/ui/Button";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { useAuth } from "@/features/auth/auth-context";
@@ -187,7 +188,7 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
   return (
     // bottom edge는 SafeAreaView가 아니라 아래 고정 영역이 직접 처리한다.
     <SafeAreaView edges={["top"]} className="flex-1 bg-surface-subtle">
-      <ScrollView className="flex-1" contentContainerClassName="px-5 pb-6 pt-8">
+      <ScrollView className="flex-1" contentContainerClassName="px-screen pb-6 pt-8">
         <Text className="text-center text-lg">토선생과 함께하는</Text>
         <Text className="text-center text-3xl" style={{ color: colors.brand.text }}>
           토익스피킹 연습
@@ -209,7 +210,7 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
           accessibilityLabel="약관 전체 동의 (선택 항목 포함)"
           accessibilityRole="checkbox"
           accessibilityState={{ checked: allAgreed }}
-          className="mt-14 flex-row items-center gap-3 rounded-3xl border px-4 py-4"
+          className="mt-14 flex-row items-center gap-3 rounded-card border px-4 py-4"
           onPress={toggleAll}
           style={{
             /*
@@ -243,7 +244,7 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
         </Pressable>
 
         <View
-          className="mt-3 overflow-hidden rounded-3xl border border-line bg-surface px-4"
+          className="mt-3 overflow-hidden rounded-card border border-line bg-surface px-4"
           style={shadows.card}
         >
           {requiredItems.privacy ? (
@@ -254,7 +255,7 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
                 label="개인정보 수집 및 이용 동의"
                 onToggle={() => toggle("privacy")}
               />
-              <View className="mt-3 gap-2 rounded-2xl bg-surface-muted p-4">
+              <View className="mt-3 gap-2 rounded-2xl bg-surface-muted p-card">
                 {COLLECTION_TABLE_ROWS.map((row) => (
                   <View className="flex-row" key={row.label}>
                     <Text className="w-20 text-xs text-ink-muted">{row.label}</Text>
@@ -262,13 +263,14 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
                   </View>
                 ))}
               </View>
-              <Pressable
+              <Button
                 accessibilityLabel="개인정보 처리방침 자세히 보기"
-                className="mt-3 items-center rounded-full border border-line py-2.5"
+                className="mt-element w-full"
+                label="자세히 보기"
+                size="sm"
+                variant="neutral"
                 onPress={openPrivacyPolicy}
-              >
-                <Text className="text-xs text-ink-muted">자세히 보기</Text>
-              </Pressable>
+              />
             </View>
           ) : null}
 
@@ -312,29 +314,21 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
         className="bg-surface-subtle"
         style={{ paddingBottom: insets.bottom, ...shadows.raisedBottom }}
       >
-        <View className="px-5 pb-3 pt-3">
+        <View className="px-screen pb-3 pt-3">
           {/* 버튼 위에 둔다. 아래에 두면 에러가 뜰 때 버튼이 위로 밀려 누르던 자리가 바뀐다. */}
           {submitError ? (
             <Text accessibilityRole="alert" className="mb-3 text-center text-sm text-ink-muted">
               {submitError}
             </Text>
           ) : null}
-          <Pressable
+          <Button
             accessibilityLabel={idleButtonLabel}
-            accessibilityState={{ busy: isSubmitting, disabled: !allChecked || isSubmitting }}
-            className="min-h-14 flex-row items-center justify-center gap-2 rounded-full py-4"
-            disabled={!allChecked || isSubmitting}
+            disabled={!allChecked}
+            label={isSubmitting ? busyButtonLabel : submitError ? "다시 시도하기" : idleButtonLabel}
+            loading={isSubmitting}
+            size="lg"
             onPress={handleStart}
-            style={{ backgroundColor: allChecked ? colors.brand.DEFAULT : colors.line.DEFAULT }}
-          >
-            {isSubmitting ? <ActivityIndicator color={colors.surface.DEFAULT} /> : null}
-            <Text
-              className="text-base"
-              style={{ color: allChecked ? colors.surface.DEFAULT : colors.ink.disabled }}
-            >
-              {isSubmitting ? busyButtonLabel : submitError ? "다시 시도하기" : idleButtonLabel}
-            </Text>
-          </Pressable>
+          />
         </View>
       </View>
     </SafeAreaView>

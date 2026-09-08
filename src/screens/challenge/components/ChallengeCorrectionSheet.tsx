@@ -70,7 +70,7 @@ export function ChallengeCorrectionSheet({
 
         <View
           accessibilityViewIsModal
-          className="rounded-t-3xl bg-surface px-5 pt-3"
+          className="rounded-t-3xl bg-surface px-screen pt-3"
           style={[shadows.card, { paddingBottom: insets.bottom + 20 }]}
         >
           <View className="h-1 w-10 self-center rounded-full bg-line" />

@@ -65,7 +65,7 @@ export function HomeScreen() {
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-surface-subtle">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <View className="px-5 pb-8">
+        <View className="px-screen pb-8">
           {/* 헤더 */}
           <View className="flex-row items-center justify-between py-4">
             <View className="flex-row items-center gap-2">
@@ -143,7 +143,7 @@ export function HomeScreen() {
           */}
           <Pressable
             accessibilityLabel="10초 챌린지 시작"
-            className="relative mt-3 flex-row items-center gap-3 rounded-3xl border border-sky-line bg-sky-surface p-5"
+            className="relative mt-3 flex-row items-center gap-3 rounded-card border border-sky-line bg-sky-surface p-card"
             onPress={() => navigation.navigate("ChallengeStage")}
             style={shadows.card}
           >

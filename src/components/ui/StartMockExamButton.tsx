@@ -1,8 +1,6 @@
 import { AntDesign } from "@expo/vector-icons";
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import { colors, shadows } from "@/theme";
+import { Button } from "@/components/ui/Button";
 
 type StartMockExamButtonProps = {
   onPress: () => void;
@@ -19,6 +17,9 @@ type StartMockExamButtonProps = {
  * 홈 기준으로 통일한 것이다. 화면 전체에서 유일하게 강한 주황이어야 하므로 색과
  * 그림자는 프롭으로 열지 않고, 배치(`className`)만 호출부가 정한다.
  *
+ * 모양은 `Button`이 맡는다. 이 파일에 남은 것은 "무엇을 하는 버튼인가" — 라벨, 아이콘,
+ * 그리고 이 앱에서 유일하게 그림자를 지는 주 행동이라는 사실이다.
+ *
  * 이동은 호출부가 맡는다 — 홈은 탭, 나머지는 각자의 스택으로 가야 해서 내비게이션
  * 대상이 화면마다 다르다.
  */
@@ -28,17 +29,16 @@ export function StartMockExamButton({
   accessibilityHint,
 }: StartMockExamButtonProps) {
   return (
-    <Pressable
+    <Button
+      elevated
       accessibilityHint={accessibilityHint}
-      accessibilityLabel="모의고사 시작하기"
-      accessibilityRole="button"
-      // 규칙: 버튼이 주황이면 아이콘·글자는 흰색
-      className={`flex-row items-center justify-center gap-2 rounded-2xl bg-brand-cta py-4 ${className ?? ""}`}
-      style={shadows.card}
+      className={className}
+      label="모의고사 시작하기"
+      renderIcon={({ color, size }) => (
+        <AntDesign color={color} name="audio" size={size} />
+      )}
+      size="lg"
       onPress={onPress}
-    >
-      <AntDesign name="audio" size={20} color={colors.surface.DEFAULT} />
-      <Text className="text-base text-white">모의고사 시작하기</Text>
-    </Pressable>
+    />
   );
 }

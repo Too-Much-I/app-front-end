@@ -16,7 +16,7 @@ interface DeviceTestLayoutProps {
 export function DeviceTestLayout({ children, currentStep, onBack }: DeviceTestLayoutProps) {
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-surface-subtle">
-      <View className="h-16 flex-row items-center px-5">
+      <View className="h-16 flex-row items-center px-screen">
         <Pressable
           accessibilityLabel="뒤로 가기"
           accessibilityRole="button"
@@ -38,7 +38,7 @@ export function DeviceTestLayout({ children, currentStep, onBack }: DeviceTestLa
       <ScrollView
         bounces={false}
         className="flex-1"
-        contentContainerClassName="flex-grow px-5 pb-6 pt-2"
+        contentContainerClassName="flex-grow px-screen pb-6 pt-2"
         showsVerticalScrollIndicator={false}
       >
         <View className="mb-6 flex-row justify-center gap-2">

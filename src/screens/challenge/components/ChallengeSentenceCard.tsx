@@ -67,7 +67,7 @@ export function ChallengeSentenceCard({
   return (
     <View>
       <View
-        className={`overflow-hidden rounded-3xl ${palette.surface}`}
+        className={`overflow-hidden rounded-card ${palette.surface}`}
         style={shadows.card}
       >
         {/* 카드는 화면 배경 위에 놓이므로 구멍 뒤에 비치는 것도 화면 배경이다. */}
@@ -76,7 +76,7 @@ export function ChallengeSentenceCard({
         <View className="gap-2 py-4 pl-6 pr-4">
           <View className="flex-row items-center gap-2">
             <View
-              className={`flex-row items-center gap-1.5 rounded-lg px-2.5 py-1 ${palette.label}`}
+              className={`flex-row items-center gap-content rounded-lg px-2.5 py-1 ${palette.label}`}
             >
               <Feather color={palette.icon} name="star" size={12} />
               <Text className={`text-xs ${palette.text}`}>{label}</Text>

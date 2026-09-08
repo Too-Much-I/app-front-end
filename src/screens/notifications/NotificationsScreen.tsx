@@ -122,7 +122,7 @@ function NotificationCard({ item, onPress }: { item: NotificationItem; onPress: 
   return (
     <Pressable
       accessibilityLabel={`${item.title}, ${item.body}, ${item.isRead ? "읽음" : "안 읽음"}`}
-      className="relative flex-row items-start gap-3 rounded-3xl border border-line bg-surface p-4"
+      className="relative flex-row items-start gap-3 rounded-card border border-line bg-surface p-card"
       style={shadows.card}
       onPress={onPress}
     >
@@ -134,7 +134,7 @@ function NotificationCard({ item, onPress }: { item: NotificationItem; onPress: 
       </View>
 
       <View className="min-w-0 flex-1 pr-10">
-        <View className="flex-row items-center gap-1.5">
+        <View className="flex-row items-center">
           <Text className="min-w-0 flex-1 text-base" numberOfLines={1}>
             {item.title}
           </Text>
@@ -184,7 +184,7 @@ export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
 
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-surface-subtle">
-      <View className="h-16 flex-row items-center justify-between px-5">
+      <View className="h-16 flex-row items-center justify-between px-screen">
         <View className="flex-row items-center">
           <Pressable
             accessibilityLabel="뒤로 가기"
@@ -211,9 +211,9 @@ export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <View className="px-5 pb-10 pt-2">
+        <View className="px-screen pb-10 pt-2">
           <View
-            className="flex-row items-center gap-4 overflow-hidden rounded-3xl border border-line bg-brand-50 p-5"
+            className="flex-row items-center gap-4 overflow-hidden rounded-card border border-line bg-brand-50 p-card"
             style={shadows.card}
           >
             <View className="min-w-0 flex-1">

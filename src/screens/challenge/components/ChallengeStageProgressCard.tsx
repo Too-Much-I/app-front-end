@@ -28,7 +28,7 @@ export function ChallengeStageProgressCard({
     <View
       accessibilityLabel={`오늘 ${totalCount}문장 중 ${solvedCount}문장 완료`}
       accessible
-      className="flex-row items-center gap-3 self-start rounded-3xl bg-surface py-3 pl-4 pr-6"
+      className="flex-row items-center gap-3 self-start rounded-card bg-surface py-3 pl-4 pr-6"
       style={shadows.card}
     >
       <Image

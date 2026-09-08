@@ -22,10 +22,15 @@ export function ChallengeNoteSkeleton() {
       accessible
       accessibilityLabel="오늘의 문장을 불러오는 중"
       accessibilityRole="progressbar"
-      className="flex-1 gap-5 px-5 pb-4 pt-4"
+      className="flex-1 gap-5 px-screen pb-4 pt-4"
       style={pulseStyle}
     >
       <View className="items-center gap-3">
+        {/*
+          `ChallengeTimerHeader`의 진행 점 자리를 그대로 잡아두는 부분이라
+          점 크기와 간격을 그쪽과 같은 값으로 맞춘다. 여기만 토큰으로 바꾸면
+          스켈레톤과 실제 화면의 점 위치가 어긋나 로딩이 끝날 때 튄다.
+        */}
         <View className="flex-row gap-1.5">
           <SkeletonBlock className="h-2 w-2" />
           <SkeletonBlock className="h-2 w-2" />
@@ -34,7 +39,7 @@ export function ChallengeNoteSkeleton() {
         <SkeletonBlock className="h-8 w-24 rounded-full" />
       </View>
 
-      <View className="grow rounded-3xl bg-challenge-mat p-3" style={shadows.card}>
+      <View className="grow rounded-card bg-challenge-mat p-3" style={shadows.card}>
         <View className="grow rounded-2xl bg-surface pb-20 pl-9 pr-5 pt-5">
           <View className="grow items-center justify-center gap-4">
             <SkeletonBlock className="h-8 w-24 rounded-lg" />

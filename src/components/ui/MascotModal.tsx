@@ -61,7 +61,7 @@ export function MascotModal({
       <View className="flex-1 items-center justify-center bg-ink/50 px-6">
         <View
           accessibilityViewIsModal
-          className="w-full max-w-md items-center rounded-3xl bg-surface px-6 pb-6 pt-3"
+          className="w-full max-w-md items-center rounded-card bg-surface px-6 pb-6 pt-3"
           style={shadows.card}
         >
           {/* 크롭할 때만 컨테이너를 이미지보다 낮춰 하단을 숨긴다(160dp -> 144dp). */}

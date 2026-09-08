@@ -1,16 +1,14 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
 
-import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
+import { ExamAudioErrorNotice } from "@/screens/mock-exam/components/ExamAudioErrorNotice";
 import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
 import {
   getExamPartDirectionAudioSource,
   type ExamPartDirections,
 } from "@/features/exam/part-directions";
-import { colors } from "@/theme";
 import { reportOperationalError } from "@/lib/operational-error-reporting";
 
 interface ExamPartDirectionsContentProps {
@@ -153,37 +151,22 @@ export function ExamPartDirectionsContent({
       </ScrollView>
 
       {cannotPlay ? (
-        <View className="items-center gap-3 border-t border-line bg-surface-subtle px-5 pb-5 pt-3">
-          <View accessibilityLiveRegion="polite" className="flex-row items-center gap-2">
-            <MaterialCommunityIcons
-              name="alert-circle-outline"
-              size={20}
-              color={colors.exam.danger}
-            />
-            <Text className="text-sm text-exam-danger">안내 음성을 재생하지 못했어요</Text>
-          </View>
-
-          <View className="w-full flex-row gap-3">
-            {audioSource !== undefined ? (
-              <Pressable
-                accessibilityRole="button"
-                className="flex-1 items-center justify-center rounded-2xl border border-brand-300 bg-surface py-3.5"
-                onPress={() => {
+        <ExamAudioErrorNotice
+          className="bg-surface-subtle"
+          exitLabel="문제로 이동하기"
+          message="안내 음성을 재생하지 못했어요"
+          placement="footer"
+          retryLabel="다시 재생하기"
+          onExit={completeDirections}
+          // 재생할 음원 자체가 없으면 재시도가 성립하지 않는다.
+          onRetry={
+            audioSource === undefined
+              ? undefined
+              : () => {
                   void playDirections(true);
-                }}
-              >
-                <Text className="text-base text-brand-text">다시 재생하기</Text>
-              </Pressable>
-            ) : null}
-            <Pressable
-              accessibilityRole="button"
-              className="flex-1 items-center justify-center rounded-2xl bg-brand-cta py-3.5"
-              onPress={completeDirections}
-            >
-              <Text className="text-base text-white">문제로 이동하기</Text>
-            </Pressable>
-          </View>
-        </View>
+                }
+          }
+        />
       ) : null}
     </View>
   );

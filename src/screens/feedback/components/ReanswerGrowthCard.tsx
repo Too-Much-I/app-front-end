@@ -35,7 +35,7 @@ export function ReanswerGrowthCard({ item }: { item: ReanswerQuestionItem }) {
     <View
       accessible
       accessibilityLabel={`파트 ${item.partNumber} ${item.questionNumber}번 문제, 만점 ${item.maxScore}점, 최초 ${item.initialScore}점에서 최신 ${item.latestScore}점`}
-      className="rounded-3xl border border-line bg-surface p-5"
+      className="rounded-card border border-line bg-surface p-card"
       style={shadows.card}
     >
       <View className="flex-row items-center gap-2">
@@ -88,7 +88,7 @@ export function ReanswerGrowthCard({ item }: { item: ReanswerQuestionItem }) {
 
       <View className="mt-3 flex-row items-end justify-between gap-3">
         <View>
-          <View className="flex-row items-center gap-1.5">
+          <View className="flex-row items-center gap-content">
             <GaugeLegendDot color={colors.brand[300]} />
             <Text className="text-xs text-ink-muted">최초 답변</Text>
           </View>
@@ -98,7 +98,7 @@ export function ReanswerGrowthCard({ item }: { item: ReanswerQuestionItem }) {
         </View>
 
         <View className="items-end">
-          <View className="flex-row items-center gap-1.5">
+          <View className="flex-row items-center gap-content">
             <GaugeLegendDot color={colors.brand.DEFAULT} />
             <Text className="text-xs text-ink-muted">최신 답변</Text>
           </View>

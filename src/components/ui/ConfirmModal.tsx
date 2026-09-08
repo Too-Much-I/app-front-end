@@ -1,7 +1,7 @@
 import { View } from "react-native";
 
+import { Button } from "@/components/ui/Button";
 import { MascotModal } from "@/components/ui/MascotModal";
-import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
@@ -50,11 +50,6 @@ export function ConfirmModal({
   onCancel,
   onConfirm,
 }: ConfirmModalProps) {
-  const confirmBorderClassName =
-    confirmTone === "danger" ? "border-exam-dangerLine" : "border-line";
-  const confirmTextClassName =
-    confirmTone === "danger" ? "text-exam-danger" : "text-ink-muted";
-
   return (
     <MascotModal
       cropMascotBottom
@@ -72,24 +67,23 @@ export function ConfirmModal({
       {/* Pressable이 자체 Animated opacity를 style 배열 끝에 덧붙여 className의
           opacity-*를 덮어쓴다. 대기 중 흐림 처리는 바깥 View에서 해야 먹는다. */}
       <View className={`w-full ${pending ? "opacity-50" : ""}`}>
-        <Pressable
-          accessibilityRole="button"
-          className="mt-6 w-full items-center rounded-full bg-brand-cta py-4"
+        <Button
+          className="mt-section w-full"
           disabled={pending}
+          label={cancelLabel}
+          size="lg"
           onPress={onCancel}
-        >
-          <Text className="text-base text-white">{cancelLabel}</Text>
-        </Pressable>
+        />
 
-        <Pressable
+        <Button
           accessibilityHint={confirmHint}
-          accessibilityRole="button"
-          className={`mt-3 w-full items-center rounded-full border bg-surface py-4 ${confirmBorderClassName}`}
+          className="mt-element w-full"
           disabled={pending}
+          label={confirmLabel}
+          size="lg"
+          variant={confirmTone === "danger" ? "danger" : "neutral"}
           onPress={onConfirm}
-        >
-          <Text className={`text-base ${confirmTextClassName}`}>{confirmLabel}</Text>
-        </Pressable>
+        />
       </View>
     </MascotModal>
   );

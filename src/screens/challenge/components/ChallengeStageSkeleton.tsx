@@ -19,7 +19,7 @@ export function ChallengeStageSkeleton() {
       accessible
       accessibilityLabel="오늘의 진행도를 불러오는 중"
       accessibilityRole="progressbar"
-      className="flex-1 px-5"
+      className="flex-1 px-screen"
       style={pulseStyle}
     >
       <View className="flex-row items-start">

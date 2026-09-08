@@ -7,7 +7,7 @@ import { shadows } from "@/theme";
 
 function CardSkeleton({ lineClassName }: { lineClassName: string }) {
   return (
-    <View className="rounded-3xl bg-surface p-5" style={shadows.card}>
+    <View className="rounded-card bg-surface p-card" style={shadows.card}>
       <SkeletonBlock className="h-4 w-20" />
       <SkeletonBlock className="mt-3 h-6 w-full" />
       <SkeletonBlock className={`mt-2 h-6 ${lineClassName}`} />
@@ -30,7 +30,7 @@ export function ChallengeResultSkeleton() {
       accessible
       accessibilityLabel="결과를 불러오는 중"
       accessibilityRole="progressbar"
-      className="flex-1 gap-4 px-5 pb-4 pt-4"
+      className="flex-1 gap-4 px-screen pb-4 pt-4"
       style={pulseStyle}
     >
       <View className="items-center gap-2">

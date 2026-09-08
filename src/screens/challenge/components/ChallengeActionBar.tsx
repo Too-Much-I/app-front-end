@@ -1,6 +1,6 @@
 import { View } from "react-native";
 
-import { Pressable } from "@/components/ui/Pressable";
+import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
 import type { ChallengeNoteStatus } from "@/screens/challenge/challenge-status";
 
@@ -35,25 +35,20 @@ export function ChallengeActionBar({
         </Text>
 
         <View className="flex-row gap-2">
-          <Pressable
+          <Button
             accessibilityHint="지금 녹음을 버리고 10초를 처음부터 다시 시작합니다"
-            accessibilityLabel="다시 녹음"
-            accessibilityRole="button"
-            className="flex-1 items-center rounded-full border border-line bg-surface py-3"
+            className="flex-1"
+            label="다시 녹음"
+            variant="neutral"
             onPress={onRetake}
-          >
-            <Text className="text-sm text-ink-muted">다시 녹음</Text>
-          </Pressable>
+          />
 
-          <Pressable
+          <Button
             accessibilityHint="녹음한 답변을 올리고 채점을 요청합니다"
-            accessibilityLabel="제출하기"
-            accessibilityRole="button"
-            className="flex-1 items-center rounded-full bg-brand-cta py-3"
+            className="flex-1"
+            label="제출하기"
             onPress={onSubmit}
-          >
-            <Text className="text-sm text-white">제출하기</Text>
-          </Pressable>
+          />
         </View>
       </View>
     );
@@ -67,21 +62,15 @@ export function ChallengeActionBar({
         10초가 지나면 자동으로 끝나요.
       </Text>
 
-      <Pressable
+      {/* 비활성일 때도 외곽선을 유지한다 — Button이 variant의 채움 여부를 지킨다. */}
+      <Button
         accessibilityHint="10초를 다 쓰지 않고 지금 녹음을 끝냅니다"
-        accessibilityLabel="완료"
-        accessibilityRole="button"
-        accessibilityState={{ disabled: !isRecording }}
-        className={`w-full items-center rounded-full border py-3 ${
-          isRecording ? "border-brand-300 bg-surface" : "border-line bg-surface"
-        }`}
+        className="w-full"
         disabled={!isRecording}
+        label="완료"
+        variant="secondary"
         onPress={onFinish}
-      >
-        <Text className={`text-sm ${isRecording ? "text-brand-text" : "text-ink-disabled"}`}>
-          완료
-        </Text>
-      </Pressable>
+      />
     </View>
   );
 }
