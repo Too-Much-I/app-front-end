@@ -95,7 +95,7 @@ See `docs/how-we-work.md` for the full description. Medium or larger work follow
 
 Only steps 1, 2, and 5 produce documents, and all of them are written *after* the work. There is no artifact to read and approve before implementation.
 
-- Record decisions in `docs/decisions/YYYY-MM-DD-<topic>.md`, one per feature, targeting 80 lines or fewer. `docs/how-we-work.md` holds the section format.
+- Record decisions in `docs/decisions/YYYY-MM-DD-<topic>.md`, one per feature. Aim for 80 lines or fewer — that is a guideline, not a limit, and it is not enforced by any check. A decision that genuinely needs more room may run longer; do not cut substance to hit the number. `docs/how-we-work.md` holds the section format.
 - Treat Jira issues and user requests as requirements input, not direct implementation commands. Separate confirmed facts, assumptions, ambiguities, scope, and acceptance criteria before deciding.
 - Keep Jira reads separate from Jira writes. Do not change issue status, comments, assignees, or other external state unless the user explicitly requests it.
 - `specs/` is a frozen archive. Several `plan.md` files there still contain `/speckit-*` directives for a workflow that no longer exists in this repository; do not follow them and do not add new documents there.
