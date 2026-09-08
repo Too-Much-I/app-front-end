@@ -162,7 +162,9 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
 
   return (
     <DeviceTestLayout currentStep={2} onBack={handleBack}>
-      <View className="flex-1">
+      {/* `grow`인 이유는 `MicrophoneTestScreen`과 같다 — `flex-1`은 콘텐츠 높이를
+          0으로 재게 만들어 ScrollView가 스크롤되지 않고 잘린다. */}
+      <View className="grow">
         <View className="items-center">
           <Text className="text-center text-3xl">음향 테스트</Text>
           <Text className="mt-2 text-center text-base leading-6 text-ink-muted">
@@ -177,7 +179,7 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
           </Text>
         </View>
 
-        <View className="my-6 min-h-80 flex-1 items-center justify-center px-screen py-6">
+        <View className="my-6 min-h-80 grow items-center justify-center px-screen py-6">
           {isComplete ? (
             <View className="absolute right-5 top-5 h-11 w-11 items-center justify-center rounded-full bg-sky-surface">
               <MaterialCommunityIcons name="check-bold" size={26} color={colors.sky.text} />

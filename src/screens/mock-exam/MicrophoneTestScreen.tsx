@@ -66,13 +66,17 @@ export function MicrophoneTestScreen({ navigation }: MicrophoneTestScreenProps) 
 
   return (
     <DeviceTestLayout currentStep={1} onBack={handleBack}>
-      <View className="flex-1">
+      {/* `flex-1`이 아니라 `grow`인 이유: `flex-1`은 flex-basis가 0%라 콘텐츠 높이가
+          0으로 측정되고, `DeviceTestLayout`의 ScrollView 콘텐츠가 뷰포트 높이에 못 박힌다.
+          그러면 내용이 넘칠 때 스크롤되지 않고 잘린다. `grow`는 basis가 auto라 콘텐츠를
+          실제로 재고, 남는 공간이 있을 때만 늘어난다. */}
+      <View className="grow">
         <View className="items-center">
           <Text className="text-center text-3xl">마이크 테스트</Text>
           <Text className="mt-2 text-center text-base leading-6 text-ink-muted">{helpText}</Text>
         </View>
 
-        <View className="my-6 min-h-80 flex-1 items-center justify-center px-screen py-6">
+        <View className="my-6 min-h-80 grow items-center justify-center px-screen py-6">
           {isComplete ? (
             <View className="absolute right-5 top-5 h-11 w-11 items-center justify-center rounded-full bg-sky-surface">
               <MaterialCommunityIcons name="check-bold" size={26} color={colors.sky.text} />
