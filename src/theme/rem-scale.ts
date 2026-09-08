@@ -3,13 +3,20 @@ import { useEffect } from "react";
 import { Dimensions, useWindowDimensions } from "react-native";
 
 /**
- * NativeWind의 rem 기본값.
+ * 앱의 rem 기준.
  *
- * 빌드 타임 `inlineRem` 기본값(`nativewind/metro`)과 런타임 rem 옵저버블의
- * 기본값(`react-native-css-interop`)이 둘 다 14다. 같은 값이어서 scale이 1일 때
- * 스케일링 도입 전과 렌더 결과가 완전히 같다.
+ * `tokens.js`의 `remFromPx()` 제수와 **반드시 같아야 한다.** 둘이 같아야 `p-card`가
+ * 이름 그대로 16px로 렌더된다. 한쪽만 바꾸면 모든 토큰 값이 그 비율만큼 어긋난다.
+ *
+ * NativeWind의 기본값은 14지만(빌드 타임 `inlineRem`, 런타임 rem 옵저버블 모두),
+ * `metro.config.js`가 `inlineRem: false`로 인라이닝을 꺼 두었으므로 런타임에 여기서
+ * 정하는 값이 정본이다.
+ *
+ * 16인 이유는 Tailwind 기본 스케일이 이름 그대로의 px가 되게 하기 위해서다 —
+ * `p-4` = 16px, `gap-2` = 8px. 그래야 기본 스케일과 토큰 스케일이 같은 값을 가리킨다.
+ * 자세한 배경은 `remFromPx()` 주석과 `docs/design-system-spacing.md` §9에 있다.
  */
-export const BASE_REM = 14;
+export const BASE_REM = 16;
 
 /** iPhone 15/16 표준 폭. 이 폭에서 scale이 정확히 1.0이 된다. */
 const BASE_WIDTH = 393;
