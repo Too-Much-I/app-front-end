@@ -3,8 +3,8 @@ import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-au
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
 
-import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
+import { ExamAudioErrorNotice } from "@/screens/mock-exam/components/ExamAudioErrorNotice";
 import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
 import { getExamPartIntroAudioSource } from "@/features/exam/part-prelude";
 import { colors } from "@/theme";
@@ -214,31 +214,16 @@ export function ExamPartIntroContent({
       </ScrollView>
 
       {hasPlaybackError ? (
-        <View className="gap-3 border-t border-line bg-surface px-screen pb-5 pt-4">
-          <View
-            accessibilityLiveRegion="assertive"
-            className="flex-row items-center justify-center gap-2"
-          >
-            <MaterialCommunityIcons
-              name="alert-circle-outline"
-              size={20}
-              color={colors.exam.danger}
-            />
-            <Text className="text-sm text-exam-danger">안내 음성을 재생하지 못했어요</Text>
-          </View>
-          <View className="flex-row gap-3">
-            <Button
-              className="flex-1"
-              label="처음부터 다시 듣기"
-              size="lg"
-              variant="secondary"
-              onPress={() => {
-                void playFromStart(true);
-              }}
-            />
-            <Button className="flex-1" label="시험 나가기" size="lg" onPress={onExit} />
-          </View>
-        </View>
+        <ExamAudioErrorNotice
+          className="bg-surface"
+          exitLabel="시험 나가기"
+          message="안내 음성을 재생하지 못했어요"
+          placement="footer"
+          onExit={onExit}
+          onRetry={() => {
+            void playFromStart(true);
+          }}
+        />
       ) : null}
     </View>
   );

@@ -3,8 +3,8 @@ import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-au
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 
-import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
+import { ExamAudioErrorNotice } from "@/screens/mock-exam/components/ExamAudioErrorNotice";
 import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
 import {
   getExamCueAudioSource,
@@ -241,27 +241,15 @@ export function ExamPhaseCue({
 
   if (hasPlaybackError) {
     return (
-      <View className="w-full gap-3 rounded-2xl border border-exam-dangerLine bg-surface p-card">
-        <View accessibilityLiveRegion="assertive" className="flex-row items-center justify-center gap-2">
-          <MaterialCommunityIcons
-            name="alert-circle-outline"
-            size={20}
-            color={colors.exam.danger}
-          />
-          <Text className="text-sm text-exam-danger">시작 안내 음성을 재생하지 못했어요</Text>
-        </View>
-        <View className="flex-row gap-3">
-          <Button
-            className="flex-1"
-            label="처음부터 다시 듣기"
-            variant="secondary"
-            onPress={() => {
-              void playFromStart(true);
-            }}
-          />
-          <Button className="flex-1" label="시험 나가기" onPress={onExit} />
-        </View>
-      </View>
+      <ExamAudioErrorNotice
+        exitLabel="시험 나가기"
+        message="시작 안내 음성을 재생하지 못했어요"
+        placement="card"
+        onExit={onExit}
+        onRetry={() => {
+          void playFromStart(true);
+        }}
+      />
     );
   }
 
