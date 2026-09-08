@@ -35,7 +35,7 @@ export function MockExamReadyScreen({ navigation }: MockExamReadyScreenProps) {
 
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-surface-subtle">
-      <View className="h-16 flex-row items-center justify-between px-5">
+      <View className="h-16 flex-row items-center justify-between px-screen">
         <Text className="text-xl">모의고사</Text>
         <Pressable
           accessibilityHint="파트별 문제 유형과 제한 시간을 확인합니다"
@@ -53,7 +53,7 @@ export function MockExamReadyScreen({ navigation }: MockExamReadyScreenProps) {
         contentContainerClassName="flex-grow"
         showsVerticalScrollIndicator={false}
       >
-        <View className="px-5">
+        <View className="px-screen">
           {/* 헤드라인 — 아래 목록 전체가 무엇을 위한 것인지 한 줄로 묶어준다 */}
           <View className="flex-row items-center gap-2">
             <View className="flex-1">
@@ -73,7 +73,7 @@ export function MockExamReadyScreen({ navigation }: MockExamReadyScreenProps) {
         </View>
 
         {/* 남는 공간의 중앙에 CTA를 두고, 작은 화면에서는 전체 콘텐츠와 함께 스크롤한다. */}
-        <View className="flex-1 justify-center px-5 py-4">
+        <View className="flex-1 justify-center px-screen py-4">
           {/* 마이크 테스트를 포함한 모의고사 준비 흐름 전체를 시작하는 버튼이다. */}
           <StartMockExamButton
             accessibilityHint="마이크와 소리 테스트를 거쳐 모의고사를 시작합니다"

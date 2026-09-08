@@ -282,6 +282,89 @@ const fontSize = {
   "3xl": [remFromPx(30), { lineHeight: remFromPx(38) }],
 };
 
+/**
+ * 간격 스케일 — px 원시값.
+ *
+ * 8px을 기본 리듬으로 쓰고 4px을 세부 단위로 보탠다. 12·20은 8의 배수가 아니지만
+ * 각각 "컴포넌트 내부 분리"와 "화면 좌우 여백"이라는 확실한 역할이 있어 남겼다.
+ * 목표는 모든 값을 8의 배수로 만드는 게 아니라 화면마다 17·19·21이 새로 생기는 걸 막는 것이다.
+ *
+ * `fontSize`와 달리 px 숫자로 두는 이유: 이 객체는 tailwind와 RN 스타일 객체
+ * 양쪽이 본다. tailwind에 넘길 rem 환산은 아래 `spacingScale`이 한 번에 하고,
+ * JS 계산이 필요한 곳(`tabBar.contentHeight` 같은 자리)은 숫자를 그대로 쓴다.
+ */
+const spacing = {
+  0: 0,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  "2xl": 24,
+  "3xl": 32,
+  "4xl": 40,
+  "5xl": 48,
+  "6xl": 64,
+};
+
+/**
+ * 의미를 가진 레이아웃 간격.
+ *
+ * `colors`가 `brand`·`sky`·`exam`처럼 역할별로 묶여 있는 것과 같은 이유로 둔다.
+ * 숫자 스케일만 있으면 "여기는 md인가 lg인가"를 화면마다 다시 판단하게 되고,
+ * 그 판단이 화면마다 갈리면 스케일이 있어도 간격은 여전히 제각각이 된다.
+ *
+ * 키 이름에 `Padding`/`Gap` 접미를 붙이지 않은 이유: tailwind는 padding·margin·gap이
+ * 스케일 하나를 공유한다. `cardPadding`으로 이름 붙이면 `gap-card-padding`이 되어
+ * 호출부 절반에서 이름이 거짓말을 한다. 그래서 "무엇의 안" / "무엇들 사이"라는
+ * 대상으로만 이름을 짓고, 어떤 속성에 쓰는지는 유틸리티 접두사가 말하게 했다.
+ *
+ * | 토큰 | px | 쓰는 자리 |
+ * | --- | --- | --- |
+ * | `content` | 8 | 아이콘↔텍스트, 라벨↔값, 버튼 묶음 — 붙어 읽혀야 하는 것들 |
+ * | `element` | 12 | 한 컴포넌트 안에서 성격이 다른 요소를 가를 때 (제목↔설명) |
+ * | `card` | 16 | 카드·패널·리스트 아이템의 기본 내부 여백 |
+ * | `screen` | 20 | 화면 좌우 edge와 콘텐츠 사이 |
+ * | `section` | 24 | 콘텐츠 그룹과 다음 그룹 사이 |
+ * | `section-lg` | 32 | 화면의 의미 단위가 바뀌는 자리 (헤더↔본문) |
+ *
+ * 4px(`spacing.xs`)와 40 이상(`4xl`~`6xl`)은 의미 토큰을 두지 않았다. 전자는 특정
+ * 요소의 시각 보정이라 반복되는 규칙이 아니고, 후자는 hero처럼 화면마다 사정이 달라서
+ * 이름을 붙이면 오히려 아무 데나 쓰이게 된다. 그 두 구간은 스케일에서 직접 고른다.
+ */
+const layout = {
+  content: spacing.sm,
+  element: spacing.md,
+  card: spacing.lg,
+  screen: spacing.xl,
+  section: spacing["2xl"],
+  "section-lg": spacing["3xl"],
+};
+
+/**
+ * tailwind `theme.extend.spacing`에 넘기는 rem 환산본.
+ *
+ * rem인 이유는 `fontSize`와 같다 — 런타임 rem 스케일링(`src/theme/rem-scale.ts`)이
+ * 글자와 여백을 같은 계수로 움직이려면 둘이 같은 단위여야 한다.
+ *
+ * 주의: rem 기준이 14라서 tailwind 기본 스케일(`p-4` = 1rem = 14px)은 여기 px 값과
+ * 어긋난다. `p-card`(16px)와 `p-4`(14px)는 다른 값이다. 새 UI는 이 스케일을 쓰고,
+ * 기본 스케일과 섞어 쓰지 않는다.
+ *
+ * 기본 스케일을 덮어쓰지 않고 키를 더하기만 하는 이유: `p-4`·`gap-2`가 이미
+ * 수백 군데에 있어 값을 바꾸면 전 화면이 한 번에 움직인다. 두 스케일은 공존하고,
+ * 마이그레이션은 의미가 확실한 자리부터 따로 진행한다.
+ *
+ * tailwind의 `width`/`height`/`maxWidth`는 spacing을 펼친 뒤 자기 키로 덮어쓰므로
+ * `max-w-3xl`·`w-screen` 같은 기존 클래스는 여기 키를 더해도 그대로다.
+ */
+const toRemScale = (scale) =>
+  Object.fromEntries(
+    Object.entries(scale).map(([key, px]) => [key, remFromPx(px)]),
+  );
+
+const spacingScale = { ...toRemScale(spacing), ...toRemScale(layout) };
+
 /** 하단 탭바 치수. safe-area inset은 런타임에 더해지므로 여기 포함하지 않는다. */
 const TAB_BAR_ICON_SIZE = 24;
 const TAB_BAR_LABEL_LINE_HEIGHT = 14;
@@ -301,4 +384,13 @@ const tabBar = {
     TAB_BAR_VERTICAL_PADDING * 2,
 };
 
-module.exports = { colors, fontFamily, fontSize, shadow, tabBar };
+module.exports = {
+  colors,
+  fontFamily,
+  fontSize,
+  layout,
+  shadow,
+  spacing,
+  spacingScale,
+  tabBar,
+};

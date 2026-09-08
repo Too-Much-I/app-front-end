@@ -35,7 +35,7 @@ export function ReanswerGrowthCard({ item }: { item: ReanswerQuestionItem }) {
     <View
       accessible
       accessibilityLabel={`파트 ${item.partNumber} ${item.questionNumber}번 문제, 만점 ${item.maxScore}점, 최초 ${item.initialScore}점에서 최신 ${item.latestScore}점`}
-      className="rounded-3xl border border-line bg-surface p-5"
+      className="rounded-3xl border border-line bg-surface p-card"
       style={shadows.card}
     >
       <View className="flex-row items-center gap-2">

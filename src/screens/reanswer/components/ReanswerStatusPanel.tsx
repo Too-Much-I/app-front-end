@@ -48,7 +48,7 @@ export function ReanswerStatusPanel({
 }: ReanswerStatusPanelProps) {
   if (status === "loading") {
     return (
-      <View className="flex-1 items-center justify-center gap-3 px-5">
+      <View className="flex-1 items-center justify-center gap-3 px-screen">
         <ActivityIndicator color={colors.brand.cta} size="large" />
         <Text className="text-sm text-ink-muted">문제를 불러오고 있어요...</Text>
       </View>
@@ -57,7 +57,7 @@ export function ReanswerStatusPanel({
 
   if (status === "submitting" || status === "grading") {
     return (
-      <View className="flex-1 items-center justify-center px-5">
+      <View className="flex-1 items-center justify-center px-screen">
         <View
           className="w-full items-center overflow-hidden rounded-3xl bg-surface pb-6"
           style={shadows.card}
@@ -86,7 +86,7 @@ export function ReanswerStatusPanel({
   });
 
   return (
-    <View className="flex-1 items-center justify-center gap-5 px-5">
+    <View className="flex-1 items-center justify-center gap-5 px-screen">
       <Image
         accessibilityElementsHidden
         className="h-40 w-40"
@@ -94,7 +94,7 @@ export function ReanswerStatusPanel({
         source={notice.mascot}
       />
 
-      <View className="w-full items-center rounded-3xl bg-surface p-5" style={shadows.card}>
+      <View className="w-full items-center rounded-3xl bg-surface p-card" style={shadows.card}>
         <Text className="text-center text-base leading-6 text-exam-danger">
           {errorMessage ?? notice.title}
         </Text>

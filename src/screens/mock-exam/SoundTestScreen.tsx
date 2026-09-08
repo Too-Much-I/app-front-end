@@ -177,7 +177,7 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
           </Text>
         </View>
 
-        <View className="my-6 min-h-80 flex-1 items-center justify-center px-5 py-6">
+        <View className="my-6 min-h-80 flex-1 items-center justify-center px-screen py-6">
           {isComplete ? (
             <View className="absolute right-5 top-5 h-11 w-11 items-center justify-center rounded-full bg-sky-surface">
               <MaterialCommunityIcons name="check-bold" size={26} color={colors.sky.text} />

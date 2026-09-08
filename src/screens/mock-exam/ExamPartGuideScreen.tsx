@@ -42,7 +42,7 @@ export function ExamPartGuideScreen({ navigation }: ExamPartGuideScreenProps) {
 
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-surface">
-      <View className="h-16 flex-row items-center px-5">
+      <View className="h-16 flex-row items-center px-screen">
         <Pressable
           accessibilityLabel="뒤로 가기"
           className="h-10 w-10 items-center justify-center rounded-full"

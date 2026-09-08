@@ -214,7 +214,7 @@ export function ExamPartIntroContent({
       </ScrollView>
 
       {hasPlaybackError ? (
-        <View className="gap-3 border-t border-line bg-surface px-5 pb-5 pt-4">
+        <View className="gap-3 border-t border-line bg-surface px-screen pb-5 pt-4">
           <View
             accessibilityLiveRegion="assertive"
             className="flex-row items-center justify-center gap-2"

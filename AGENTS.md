@@ -64,6 +64,8 @@ These four criteria conflict with each other. Removing duplication raises coupli
 
 - Use NativeWind `className` utilities for ordinary React Native styling.
 - Reuse design tokens from `src/theme/tokens.js` through the typed exports in `src/theme/index.ts`. Do not scatter hard-coded colors, font sizes, spacing values, or shadows when a shared token is appropriate.
+- For `padding`/`margin`/`gap`, pick a token instead of a number. Order of preference: semantic layout token (`px-screen`, `p-card`, `gap-section`, `gap-element`, `gap-content`), then the spacing scale (`gap-sm`, `p-lg`, `mt-2xl`), then an arbitrary value — and an arbitrary value needs a comment saying why. `docs/design-system-spacing.md` has the rules and the per-value intent.
+- Note that NativeWind's rem base is 14, so Tailwind's built-in spacing scale is not in pixels (`p-4` is 14px, `px-5` is 17.5px) while the spacing tokens are (`p-card` is exactly 16px). Do not mix the two scales in new UI.
 - `tokens.js` intentionally remains CommonJS JavaScript so `tailwind.config.js` can load it.
 - Use `src/components/ui/Text.tsx` instead of React Native's `Text`. The app uses the Jua font, which has one weight; do not apply synthetic `font-medium` or `font-bold` weights.
 - Use `src/components/ui/Pressable.tsx` instead of React Native's `Pressable` to preserve consistent cross-platform feedback.

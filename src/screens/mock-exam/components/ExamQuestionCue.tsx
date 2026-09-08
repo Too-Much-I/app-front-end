@@ -303,7 +303,7 @@ export function ExamQuestionCue({
 
   if (hasPlaybackError) {
     return (
-      <View className="w-full gap-3 rounded-2xl border border-exam-dangerLine bg-surface p-4">
+      <View className="w-full gap-3 rounded-2xl border border-exam-dangerLine bg-surface p-card">
         <View
           accessibilityLiveRegion="assertive"
           className="flex-row items-center justify-center gap-2"

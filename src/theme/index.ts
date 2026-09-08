@@ -4,6 +4,18 @@ import tokens from "@/theme/tokens";
 
 export const { colors, tabBar } = tokens;
 
+/**
+ * 간격 토큰 — px 숫자.
+ *
+ * `className`으로 스타일링할 수 있는 곳은 NativeWind 유틸리티(`px-screen`, `gap-section`)를
+ * 그대로 쓰면 되고, 이 export는 RN 스타일 객체만 받는 지점(react-navigation 옵션,
+ * `contentContainerStyle`, 애니메이션 계산 등)을 위한 것이다. `shadows`와 같은 역할이다.
+ *
+ * rem 스케일링을 타지 않는 생값이라는 점에 주의한다. 유틸리티로 표현할 수 있으면
+ * 유틸리티가 먼저다.
+ */
+export const { spacing, layout } = tokens;
+
 /** 피드백 화면에서 JS 스타일 계산(SVG/상태 배지)에 사용하는 의미 색 타입. */
 export type FeedbackColors = typeof colors.feedback;
 

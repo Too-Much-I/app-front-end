@@ -81,7 +81,7 @@ export function ChallengeStageScreen({ navigation }: ChallengeStageScreenProps) 
         {state.status === "loading" ? <ChallengeStageSkeleton /> : null}
 
         {state.status === "error" ? (
-          <View className="flex-1 items-center justify-center gap-5 px-5">
+          <View className="flex-1 items-center justify-center gap-5 px-screen">
             <Image
               accessibilityElementsHidden
               className="h-40 w-40"
@@ -89,7 +89,7 @@ export function ChallengeStageScreen({ navigation }: ChallengeStageScreenProps) 
               source={errorRabbit}
             />
             <View
-              className="w-full items-center rounded-3xl bg-surface p-5"
+              className="w-full items-center rounded-3xl bg-surface p-card"
               style={shadows.card}
             >
               <Text className="text-center text-base leading-6 text-exam-danger">
@@ -115,7 +115,7 @@ export function ChallengeStageScreen({ navigation }: ChallengeStageScreenProps) 
         {state.status === "ready" ? (
           <ScrollView
             className="flex-1"
-            contentContainerClassName="grow px-5 pb-6"
+            contentContainerClassName="grow px-screen pb-6"
             showsVerticalScrollIndicator={false}
           >
             <View className="flex-row items-start">

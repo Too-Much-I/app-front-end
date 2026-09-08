@@ -48,7 +48,7 @@ export function ChallengeStatusPanel({
   // 얼마나 걸릴지는 업로드 상황에 달려 있어서 자리를 미리 잡아줄 것이 없다.
   if (status === "submitting") {
     return (
-      <View className="flex-1 items-center justify-center gap-3 px-5">
+      <View className="flex-1 items-center justify-center gap-3 px-screen">
         <ActivityIndicator color={colors.brand.cta} size="large" />
         <Text className="text-sm text-ink-muted">제출하는 중이에요...</Text>
       </View>
@@ -65,7 +65,7 @@ export function ChallengeStatusPanel({
   });
 
   return (
-    <View className="flex-1 items-center justify-center gap-5 px-5">
+    <View className="flex-1 items-center justify-center gap-5 px-screen">
       <Image
         accessibilityElementsHidden
         className="h-40 w-40"
@@ -73,7 +73,7 @@ export function ChallengeStatusPanel({
         source={notice.mascot}
       />
 
-      <View className="w-full items-center rounded-3xl bg-surface p-5" style={shadows.card}>
+      <View className="w-full items-center rounded-3xl bg-surface p-card" style={shadows.card}>
         <Text className="text-center text-base leading-6 text-exam-danger">
           {errorMessage ?? notice.title}
         </Text>

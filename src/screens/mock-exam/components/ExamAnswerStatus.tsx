@@ -129,7 +129,7 @@ export function ExamAnswerStatus({
     }
 
     return (
-      <View accessibilityLiveRegion="polite" className="w-full rounded-2xl border border-line bg-surface p-5">
+      <View accessibilityLiveRegion="polite" className="w-full rounded-2xl border border-line bg-surface p-card">
         <View className="flex-row items-center gap-3">
           {summary.pendingCount > 0 ? (
             <ActivityIndicator color={colors.brand.cta} />
@@ -147,7 +147,7 @@ export function ExamAnswerStatus({
         {failedJobs.map((job) => (
           <View
             key={`${job.key.questionNumber}:${job.key.retryCount}`}
-            className="mt-4 rounded-xl bg-surface-muted p-4"
+            className="mt-4 rounded-xl bg-surface-muted p-card"
           >
             <Text className="text-sm text-ink-muted">문항 {job.key.questionNumber}</Text>
             <Text className="mt-1 text-sm text-exam-danger">
@@ -170,7 +170,7 @@ export function ExamAnswerStatus({
 
   if (phase === "registration-recovery") {
     return (
-      <View accessibilityLiveRegion="assertive" className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-5">
+      <View accessibilityLiveRegion="assertive" className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-card">
         <Text className="text-center text-lg text-exam-danger">답변 파일 등록이 끝나지 않았어요</Text>
         <Text className="mt-2 text-center text-sm leading-5 text-ink-muted">
           녹음 파일은 그대로 보관 중이에요. 다시 녹음하지 않고 등록만 재시도합니다.
@@ -182,7 +182,7 @@ export function ExamAnswerStatus({
 
   if (phase === "interrupted") {
     return (
-      <View accessibilityLiveRegion="assertive" className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-5">
+      <View accessibilityLiveRegion="assertive" className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-card">
         <Text className="text-center text-lg text-exam-danger">녹음이 중단됐어요</Text>
         <Text className="mt-2 text-center text-sm leading-5 text-ink-muted">
           부분 녹음은 제출하지 않았습니다. 현재 문항을 전체 시간으로 다시 녹음해주세요.
@@ -194,7 +194,7 @@ export function ExamAnswerStatus({
 
   if (phase === "recording-recovery") {
     return (
-      <View accessibilityLiveRegion="assertive" className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-5">
+      <View accessibilityLiveRegion="assertive" className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-card">
         <Text className="text-center text-lg text-exam-danger">
           {permissionDenied ? "마이크 권한이 필요해요" : "답변 녹음을 완료하지 못했어요"}
         </Text>

@@ -7,7 +7,7 @@ import { colors, shadows } from "@/theme";
 
 function InsightSkeleton() {
   return (
-    <View className="min-w-36 flex-1 rounded-3xl border border-line bg-surface p-4" style={shadows.card}>
+    <View className="min-w-36 flex-1 rounded-3xl border border-line bg-surface p-card" style={shadows.card}>
       <View className="flex-row items-center gap-2">
         <SkeletonBlock className="h-9 w-9" />
         <SkeletonBlock className="h-5 w-20" />
@@ -22,7 +22,7 @@ function InsightSkeleton() {
 
 function PartCardSkeleton() {
   return (
-    <View className="rounded-3xl border border-line bg-surface p-4" style={shadows.card}>
+    <View className="rounded-3xl border border-line bg-surface p-card" style={shadows.card}>
       <View className="flex-row gap-3">
         <SkeletonBlock className="h-16 w-16" />
         <View className="min-w-0 flex-1">
@@ -56,7 +56,7 @@ export function FeedbackWebViewSkeleton() {
     >
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerClassName="mx-auto w-full max-w-3xl px-5 pb-14"
+        contentContainerClassName="mx-auto w-full max-w-3xl px-screen pb-14"
         style={pulseStyle}
       >
         <View className="pb-5 pt-3">
@@ -67,7 +67,7 @@ export function FeedbackWebViewSkeleton() {
 
         <View className="rounded-3xl p-2" style={{ backgroundColor: colors.feedback.wood }}>
           <View
-            className="rounded-2xl border-2 p-5"
+            className="rounded-2xl border-2 p-card"
             style={{
               borderColor: colors.feedback.woodLight,
               backgroundColor: colors.feedback.scoreSurface,
@@ -102,7 +102,7 @@ export function FeedbackWebViewSkeleton() {
 
         <View className="mt-8">
           <SkeletonBlock className="mb-4 h-6 w-36" />
-          <View className="rounded-3xl border border-line bg-surface p-5" style={shadows.card}>
+          <View className="rounded-3xl border border-line bg-surface p-card" style={shadows.card}>
             <View className="gap-3">
               <SkeletonBlock className="h-4 w-full" />
               <SkeletonBlock className="h-4 w-full" />

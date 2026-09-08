@@ -57,7 +57,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
 
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-surface-subtle">
-      <View className="h-16 flex-row items-center px-5">
+      <View className="h-16 flex-row items-center px-screen">
         <Pressable
           accessibilityLabel="뒤로 가기"
           className="h-10 w-10 items-center justify-center rounded-full"
@@ -70,9 +70,9 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <View className="px-5 pb-10 pt-2">
+        <View className="px-screen pb-10 pt-2">
           <View
-            className="flex-row items-center gap-4 overflow-hidden rounded-3xl border border-line bg-brand-50 p-5"
+            className="flex-row items-center gap-4 overflow-hidden rounded-3xl border border-line bg-brand-50 p-card"
             style={shadows.card}
           >
             <View className="min-w-0 flex-1">

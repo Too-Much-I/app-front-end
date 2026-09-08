@@ -22,7 +22,7 @@ export function ChallengeNoteSkeleton() {
       accessible
       accessibilityLabel="오늘의 문장을 불러오는 중"
       accessibilityRole="progressbar"
-      className="flex-1 gap-5 px-5 pb-4 pt-4"
+      className="flex-1 gap-5 px-screen pb-4 pt-4"
       style={pulseStyle}
     >
       <View className="items-center gap-3">

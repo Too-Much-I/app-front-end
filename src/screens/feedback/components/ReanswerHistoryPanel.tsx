@@ -133,7 +133,7 @@ export function ReanswerHistoryPanel({
       <View
         accessible
         accessibilityLabel={`최초 답변 대비 평균 달성률 ${formattedDelta}, ${progress.comparableQuestionCount}문제 중 ${progress.improvedQuestionCount}문제 향상`}
-        className="relative mt-5 overflow-hidden rounded-3xl border border-sky-line bg-sky-surface p-5"
+        className="relative mt-5 overflow-hidden rounded-3xl border border-sky-line bg-sky-surface p-card"
         style={shadows.card}
       >
         <View className="flex-row items-center gap-3">
@@ -153,11 +153,11 @@ export function ReanswerHistoryPanel({
 
         {/* 색 배경 위에서는 흰 타일이 수치를 또렷하게 띄운다(챌린지 배너의 '시작하기' 알약과 같다). */}
         <View className="mt-4 flex-row gap-3">
-          <View className="flex-1 rounded-2xl bg-surface p-4">
+          <View className="flex-1 rounded-2xl bg-surface p-card">
             <Text className="text-xs text-ink-muted">평균 달성률 변화</Text>
             <Text className="mt-1 text-2xl text-sky-text">{formattedDelta}</Text>
           </View>
-          <View className="flex-1 rounded-2xl bg-surface p-4">
+          <View className="flex-1 rounded-2xl bg-surface p-card">
             <Text className="text-xs text-ink-muted">향상한 문제</Text>
             <Text className="mt-1 text-2xl text-brand-text">
               {progress.improvedQuestionCount}/{progress.comparableQuestionCount}

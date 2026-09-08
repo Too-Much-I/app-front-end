@@ -153,7 +153,7 @@ export function ExamPartDirectionsContent({
       </ScrollView>
 
       {cannotPlay ? (
-        <View className="items-center gap-3 border-t border-line bg-surface-subtle px-5 pb-5 pt-3">
+        <View className="items-center gap-3 border-t border-line bg-surface-subtle px-screen pb-5 pt-3">
           <View accessibilityLiveRegion="polite" className="flex-row items-center gap-2">
             <MaterialCommunityIcons
               name="alert-circle-outline"

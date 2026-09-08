@@ -281,7 +281,7 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
           <>
             <ScrollView
               className="flex-1"
-              contentContainerClassName="flex-grow px-5 pb-4 pt-4"
+              contentContainerClassName="flex-grow px-screen pb-4 pt-4"
               showsVerticalScrollIndicator={false}
             >
               <ReanswerQuestionCard
@@ -290,7 +290,7 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
               />
             </ScrollView>
 
-            <View className="px-5 pb-3">
+            <View className="px-screen pb-3">
               <ReanswerRecordPanel
                 meteringDb={recorder.meteringDb}
                 onRetake={retakeRecording}

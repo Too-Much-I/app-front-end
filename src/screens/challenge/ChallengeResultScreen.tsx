@@ -121,7 +121,7 @@ export function ChallengeResultScreen({
       <SafeAreaView className="flex-1" edges={["bottom"]}>
         <ScrollView
           className="flex-1"
-          contentContainerClassName="flex-grow gap-4 px-5 pb-4 pt-4"
+          contentContainerClassName="flex-grow gap-4 px-screen pb-4 pt-4"
           showsVerticalScrollIndicator={false}
         >
           {/*
@@ -253,7 +253,7 @@ export function ChallengeResultScreen({
           ) : null}
         </ScrollView>
 
-        <View className="gap-2 px-5 pb-3">
+        <View className="gap-2 px-screen pb-3">
           {nextQuestionNumber !== undefined ? (
             <Pressable
               accessibilityHint={`${nextQuestionNumber}번째 문장으로 넘어갑니다`}

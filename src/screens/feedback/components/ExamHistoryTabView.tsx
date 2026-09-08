@@ -93,7 +93,7 @@ export function ExamHistoryTabView({
     <SafeAreaView edges={["top"]} className="flex-1 bg-surface-subtle">
       <ScrollView
         className="flex-1"
-        contentContainerClassName="mx-auto w-full max-w-3xl px-5 pb-8 pt-4"
+        contentContainerClassName="mx-auto w-full max-w-3xl px-screen pb-8 pt-4"
         showsVerticalScrollIndicator={false}
       >
         <HistoryTabs selectedTab={selectedTab} onSelect={handleSelectTab} />

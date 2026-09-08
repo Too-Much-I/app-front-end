@@ -187,7 +187,7 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
   return (
     // bottom edge는 SafeAreaView가 아니라 아래 고정 영역이 직접 처리한다.
     <SafeAreaView edges={["top"]} className="flex-1 bg-surface-subtle">
-      <ScrollView className="flex-1" contentContainerClassName="px-5 pb-6 pt-8">
+      <ScrollView className="flex-1" contentContainerClassName="px-screen pb-6 pt-8">
         <Text className="text-center text-lg">토선생과 함께하는</Text>
         <Text className="text-center text-3xl" style={{ color: colors.brand.text }}>
           토익스피킹 연습
@@ -254,7 +254,7 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
                 label="개인정보 수집 및 이용 동의"
                 onToggle={() => toggle("privacy")}
               />
-              <View className="mt-3 gap-2 rounded-2xl bg-surface-muted p-4">
+              <View className="mt-3 gap-2 rounded-2xl bg-surface-muted p-card">
                 {COLLECTION_TABLE_ROWS.map((row) => (
                   <View className="flex-row" key={row.label}>
                     <Text className="w-20 text-xs text-ink-muted">{row.label}</Text>
@@ -312,7 +312,7 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
         className="bg-surface-subtle"
         style={{ paddingBottom: insets.bottom, ...shadows.raisedBottom }}
       >
-        <View className="px-5 pb-3 pt-3">
+        <View className="px-screen pb-3 pt-3">
           {/* 버튼 위에 둔다. 아래에 두면 에러가 뜰 때 버튼이 위로 밀려 누르던 자리가 바뀐다. */}
           {submitError ? (
             <Text accessibilityRole="alert" className="mb-3 text-center text-sm text-ink-muted">

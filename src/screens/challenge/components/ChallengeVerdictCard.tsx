@@ -31,7 +31,7 @@ export function ChallengeVerdictCard({
   return (
     <View>
       <View className="overflow-hidden rounded-3xl bg-challenge-verdict" style={shadows.card}>
-        <View className="gap-3 p-4">
+        <View className="gap-3 p-card">
           {/* 문장 카드와 같은 구조 — 글은 흰 상자에, 색은 그것을 감싸는 테두리에. */}
           <View className="gap-3 rounded-2xl bg-surface px-4 py-4">
             <Text className="text-center text-lg leading-8">{message}</Text>

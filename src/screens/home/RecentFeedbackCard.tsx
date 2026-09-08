@@ -63,7 +63,7 @@ function ReadyFeedbackCard({
     <Pressable
       accessibilityHint="이 모의고사의 피드백을 엽니다"
       accessibilityLabel={`${title}, ${item.level}, 총점 ${item.maxTotalScore}점 만점에 ${item.totalScore}점`}
-      className="mt-3 flex-row items-center justify-between rounded-3xl bg-surface p-5"
+      className="mt-3 flex-row items-center justify-between rounded-3xl bg-surface p-card"
       style={shadows.card}
       onPress={() => onOpenFeedback(item.examId)}
     >
@@ -95,7 +95,7 @@ function EmptyFeedbackCard() {
     <View
       accessible
       accessibilityLabel="아직 완료한 모의고사가 없습니다. 모의고사를 완료하면 맞춤 피드백을 확인할 수 있습니다."
-      className="mt-3 flex-row items-center justify-between rounded-3xl bg-surface p-5"
+      className="mt-3 flex-row items-center justify-between rounded-3xl bg-surface p-card"
       style={shadows.card}
     >
       <View
@@ -117,7 +117,7 @@ function LoadingFeedbackCard() {
     <View
       accessibilityLabel="최근 피드백을 불러오는 중입니다"
       accessibilityLiveRegion="polite"
-      className="mt-3 min-h-40 items-center justify-center rounded-3xl bg-surface p-5"
+      className="mt-3 min-h-40 items-center justify-center rounded-3xl bg-surface p-card"
       style={shadows.card}
     >
       <ActivityIndicator color={colors.brand.DEFAULT} />
@@ -131,7 +131,7 @@ function ErrorFeedbackCard({ onRetry }: { onRetry: () => void }) {
     <Pressable
       accessibilityHint="최근 피드백을 다시 불러옵니다"
       accessibilityLabel="최근 피드백을 불러오지 못했습니다. 다시 시도"
-      className="mt-3 min-h-40 items-center justify-center rounded-3xl bg-surface p-5"
+      className="mt-3 min-h-40 items-center justify-center rounded-3xl bg-surface p-card"
       style={shadows.card}
       onPress={onRetry}
     >
