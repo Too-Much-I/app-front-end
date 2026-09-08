@@ -1,6 +1,6 @@
 import { View } from "react-native";
 
-import { Pressable } from "@/components/ui/Pressable";
+import { Button } from "@/components/ui/Button";
 import { StartMockExamButton } from "@/components/ui/StartMockExamButton";
 import { Text } from "@/components/ui/Text";
 import { EmptyHistoryIllustration } from "@/screens/feedback/components/EmptyHistoryIllustration";
@@ -29,14 +29,13 @@ export function EmptyReanswerHistory({
       </Text>
       {/* 재답변할 시험이 있으면 그쪽 피드백으로 보내고, 없을 때만 응시를 권한다. */}
       {feedbackExamId ? (
-        <Pressable
-          accessibilityLabel="문제별 피드백 보기"
+        <Button
           accessibilityHint="재답변할 수 있는 모의고사의 종합 피드백으로 이동합니다"
-          className="mt-6 w-full items-center rounded-2xl bg-brand px-6 py-4"
+          className="mt-section w-full"
+          label="문제별 피드백 보기"
+          size="lg"
           onPress={() => onOpenExam(feedbackExamId)}
-        >
-          <Text className="text-base text-white">문제별 피드백 보기</Text>
-        </Pressable>
+        />
       ) : (
         <StartMockExamButton
           accessibilityHint="모의고사 준비 화면으로 이동합니다"

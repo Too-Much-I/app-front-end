@@ -70,6 +70,7 @@ These four criteria conflict with each other. Removing duplication raises coupli
 - `tokens.js` intentionally remains CommonJS JavaScript so `tailwind.config.js` can load it.
 - Use `src/components/ui/Text.tsx` instead of React Native's `Text`. The app uses the Jua font, which has one weight; do not apply synthetic `font-medium` or `font-bold` weights.
 - Use `src/components/ui/Pressable.tsx` instead of React Native's `Pressable` to preserve consistent cross-platform feedback.
+- Use `src/components/ui/Button.tsx` for any labelled button. Its corner radius is fixed (`rounded-control`); pills remain only for circular icon buttons, media transport controls, and badges. Pick `variant`/`size`; `className` carries placement only (outer margin, width). If you want to override color, height, or radius through `className`, that is a signal the component needs a new variant — add it there instead. `docs/design-system-components.md` has the usage rules, the state table, and the record of which components were deliberately *not* built.
 - Account for safe-area insets instead of hard-coding status-bar or home-indicator padding.
 - Build responsive layouts with flex and relative sizing so screens work on phones and tablets.
 - Centralize iOS/Android shadow differences in shared theme primitives. Do not add per-screen `Platform.OS` branches solely for visual parity.

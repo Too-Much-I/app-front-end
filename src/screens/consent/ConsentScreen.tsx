@@ -1,9 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Image, ScrollView, View } from "react-native";
+import { Image, ScrollView, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Button } from "@/components/ui/Button";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { useAuth } from "@/features/auth/auth-context";
@@ -262,13 +263,14 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
                   </View>
                 ))}
               </View>
-              <Pressable
+              <Button
                 accessibilityLabel="개인정보 처리방침 자세히 보기"
-                className="mt-3 items-center rounded-full border border-line py-2.5"
+                className="mt-element w-full"
+                label="자세히 보기"
+                size="sm"
+                variant="neutral"
                 onPress={openPrivacyPolicy}
-              >
-                <Text className="text-xs text-ink-muted">자세히 보기</Text>
-              </Pressable>
+              />
             </View>
           ) : null}
 
@@ -319,22 +321,14 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
               {submitError}
             </Text>
           ) : null}
-          <Pressable
+          <Button
             accessibilityLabel={idleButtonLabel}
-            accessibilityState={{ busy: isSubmitting, disabled: !allChecked || isSubmitting }}
-            className="min-h-14 flex-row items-center justify-center gap-2 rounded-full py-4"
-            disabled={!allChecked || isSubmitting}
+            disabled={!allChecked}
+            label={isSubmitting ? busyButtonLabel : submitError ? "다시 시도하기" : idleButtonLabel}
+            loading={isSubmitting}
+            size="lg"
             onPress={handleStart}
-            style={{ backgroundColor: allChecked ? colors.brand.DEFAULT : colors.line.DEFAULT }}
-          >
-            {isSubmitting ? <ActivityIndicator color={colors.surface.DEFAULT} /> : null}
-            <Text
-              className="text-base"
-              style={{ color: allChecked ? colors.surface.DEFAULT : colors.ink.disabled }}
-            >
-              {isSubmitting ? busyButtonLabel : submitError ? "다시 시도하기" : idleButtonLabel}
-            </Text>
-          </Pressable>
+          />
         </View>
       </View>
     </SafeAreaView>

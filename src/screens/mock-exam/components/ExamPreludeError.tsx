@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { View } from "react-native";
 
-import { Pressable } from "@/components/ui/Pressable";
+import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
 import { colors } from "@/theme";
 import type { InvalidExamPartPrelude } from "@/types/exam";
@@ -44,13 +44,12 @@ export function ExamPreludeError({
             : "필수 사전 정보를 확인할 수 없어요."}{" "}
           불완전한 정보로 문제를 시작하지 않습니다.
         </Text>
-        <Pressable
-          accessibilityRole="button"
-          className="mt-6 w-full items-center rounded-2xl bg-brand-cta py-3.5"
+        <Button
+          className="mt-section w-full"
+          label="시험 나가기"
+          size="lg"
           onPress={onExit}
-        >
-          <Text className="text-base text-white">시험 나가기</Text>
-        </Pressable>
+        />
       </View>
     </View>
   );

@@ -1,6 +1,6 @@
 import { ActivityIndicator, View } from "react-native";
 
-import { Pressable } from "@/components/ui/Pressable";
+import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
 import { colors } from "@/theme";
 
@@ -32,14 +32,12 @@ export function HistoryPanelNotice({
         {description}
       </Text>
       {actionLabel && onAction && (
-        <Pressable
-          accessibilityLabel={actionLabel}
+        <Button
           accessibilityHint={actionHint}
-          className="mt-5 rounded-full bg-brand px-6 py-3"
+          className="mt-xl"
+          label={actionLabel}
           onPress={onAction}
-        >
-          <Text className="text-base text-white">{actionLabel}</Text>
-        </Pressable>
+        />
       )}
     </View>
   );

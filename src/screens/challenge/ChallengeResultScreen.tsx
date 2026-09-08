@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Image, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Button } from "@/components/ui/Button";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import {
@@ -255,38 +256,31 @@ export function ChallengeResultScreen({
 
         <View className="gap-2 px-screen pb-3">
           {nextQuestionNumber !== undefined ? (
-            <Pressable
+            <Button
               accessibilityHint={`${nextQuestionNumber}번째 문장으로 넘어갑니다`}
-              accessibilityLabel="한 문장 더"
-              accessibilityRole="button"
-              className="w-full items-center rounded-full bg-brand-cta py-4"
+              className="w-full"
+              label="한 문장 더"
+              size="lg"
               onPress={goToNextQuestion}
-            >
-              <Text className="text-base text-white">한 문장 더</Text>
-            </Pressable>
+            />
           ) : null}
 
           {notice.canRetry ? (
-            <Pressable
+            <Button
               accessibilityHint="채점 상태를 서버에 다시 물어봅니다"
-              accessibilityLabel="다시 확인하기"
-              accessibilityRole="button"
-              className="w-full items-center rounded-full bg-brand-cta py-3"
+              className="w-full"
+              label="다시 확인하기"
               onPress={retry}
-            >
-              <Text className="text-sm text-white">다시 확인하기</Text>
-            </Pressable>
+            />
           ) : null}
 
-          <Pressable
+          <Button
             accessibilityHint="오늘의 진행도 화면으로 돌아갑니다"
-            accessibilityLabel="오늘의 진행도로"
-            accessibilityRole="button"
-            className="w-full items-center rounded-full border border-line bg-surface py-3"
+            className="w-full"
+            label="오늘의 진행도로"
+            variant="neutral"
             onPress={goToStage}
-          >
-            <Text className="text-sm text-ink-muted">오늘의 진행도로</Text>
-          </Pressable>
+          />
         </View>
       </SafeAreaView>
 

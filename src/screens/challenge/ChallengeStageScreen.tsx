@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { Image, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Pressable } from "@/components/ui/Pressable";
+import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
 import { useChallengeToday } from "@/features/challenge/use-challenge-today";
 import type { RootStackParamList } from "@/navigation/types";
@@ -99,15 +99,12 @@ export function ChallengeStageScreen({ navigation }: ChallengeStageScreenProps) 
                 잠시 뒤 다시 시도해 주세요.
               </Text>
 
-              <Pressable
+              <Button
                 accessibilityHint="오늘의 진행도를 다시 요청합니다"
-                accessibilityLabel="다시 불러오기"
-                accessibilityRole="button"
-                className="mt-5 w-full items-center rounded-full bg-brand-cta py-3"
+                className="mt-xl w-full"
+                label="다시 불러오기"
                 onPress={retry}
-              >
-                <Text className="text-sm text-white">다시 불러오기</Text>
-              </Pressable>
+              />
             </View>
           </View>
         ) : null}

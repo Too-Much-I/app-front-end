@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { Image, View } from "react-native";
 
+import { Button } from "@/components/ui/Button";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { AudioWaveform } from "@/features/audio/components/AudioWaveform";
@@ -121,25 +122,20 @@ export function ReanswerRecordPanel({
           </View>
 
           <View className="flex-row gap-2">
-            <Pressable
+            <Button
               accessibilityHint="지금 녹음한 답변을 버리고 처음부터 다시 녹음합니다"
-              accessibilityLabel="다시 녹음"
-              accessibilityRole="button"
-              className="flex-1 items-center rounded-full border border-line bg-surface py-3"
+              className="flex-1"
+              label="다시 녹음"
+              variant="neutral"
               onPress={onRetake}
-            >
-              <Text className="text-sm text-ink-muted">다시 녹음</Text>
-            </Pressable>
+            />
 
-            <Pressable
+            <Button
               accessibilityHint="녹음한 답변을 제출하고 채점을 기다립니다"
-              accessibilityLabel="제출하기"
-              accessibilityRole="button"
-              className="flex-1 items-center rounded-full bg-brand-cta py-3"
+              className="flex-1"
+              label="제출하기"
               onPress={onSubmit}
-            >
-              <Text className="text-sm text-white">제출하기</Text>
-            </Pressable>
+            />
           </View>
         </View>
       ) : null}

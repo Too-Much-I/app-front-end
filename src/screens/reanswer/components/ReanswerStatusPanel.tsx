@@ -1,6 +1,6 @@
 import { ActivityIndicator, Image, View } from "react-native";
 
-import { Pressable } from "@/components/ui/Pressable";
+import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
 import { GradingRabbitBanner } from "@/features/exam/components/GradingRabbitBanner";
 import type { ReanswerStatusOnly } from "@/screens/reanswer/reanswer-status";
@@ -103,21 +103,16 @@ export function ReanswerStatusPanel({
         </Text>
 
         <View className="mt-5 w-full gap-2">
+          {/* 첫 번째가 항상 회복 행동이라 채움 CTA를 가져간다. 나머지는 빠져나가는 길이다. */}
           {actions.map((action, index) => (
-            <Pressable
+            <Button
               accessibilityHint={action.hint}
-              accessibilityLabel={action.label}
-              accessibilityRole="button"
-              className={`w-full items-center rounded-full py-3 ${
-                index === 0 ? "bg-brand-cta" : "border border-line bg-surface"
-              }`}
+              className="w-full"
               key={action.label}
+              label={action.label}
+              variant={index === 0 ? "primary" : "neutral"}
               onPress={action.onPress}
-            >
-              <Text className={`text-sm ${index === 0 ? "text-white" : "text-ink-muted"}`}>
-                {action.label}
-              </Text>
-            </Pressable>
+            />
           ))}
         </View>
       </View>
