@@ -17,7 +17,7 @@
 도입 전에는 같은 "브랜드 CTA"가 59곳에 서로 다른 문자열로 흩어져 있었다. 모서리까지
 `rounded-2xl`과 `rounded-full`로 갈려 있었다.
 
-```
+```text
 rounded-2xl bg-brand-cta py-4      ← StartMockExamButton
 rounded-full bg-brand px-6 py-3    ← HistoryPanelNotice
 rounded-2xl bg-brand px-6 py-4     ← EmptyReanswerHistory

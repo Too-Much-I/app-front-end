@@ -173,7 +173,9 @@ export function Button({
       hitSlop={
         sizeName === "sm" ? (size.hitTarget - size.control.sm) / 2 : undefined
       }
-      accessibilityState={{ busy: loading, disabled }}
+      // `disabled`가 아니라 `isInert`인 이유: loading일 때도 `Pressable`이 실제로 잠긴다.
+      // 여기에 `disabled`만 넘기면 눌리지 않는 버튼을 보조기기가 활성으로 읽는다.
+      accessibilityState={{ busy: loading, disabled: isInert }}
       className={`flex-row items-center justify-center rounded-control ${sizeStyle.container} ${variantStyle.container} ${className ?? ""}`}
       disabled={isInert}
       style={elevated && !isInert ? shadows.card : undefined}
