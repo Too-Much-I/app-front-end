@@ -3,7 +3,7 @@ import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-au
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
 
-import { Pressable } from "@/components/ui/Pressable";
+import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
 import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
 import { getExamPartIntroAudioSource } from "@/features/exam/part-prelude";
@@ -227,22 +227,16 @@ export function ExamPartIntroContent({
             <Text className="text-sm text-exam-danger">안내 음성을 재생하지 못했어요</Text>
           </View>
           <View className="flex-row gap-3">
-            <Pressable
-              accessibilityRole="button"
-              className="flex-1 items-center rounded-2xl border border-brand-300 bg-surface py-3.5"
+            <Button
+              className="flex-1"
+              label="처음부터 다시 듣기"
+              size="lg"
+              variant="secondary"
               onPress={() => {
                 void playFromStart(true);
               }}
-            >
-              <Text className="text-base text-brand-text">처음부터 다시 듣기</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              className="flex-1 items-center rounded-2xl bg-brand-cta py-3.5"
-              onPress={onExit}
-            >
-              <Text className="text-base text-white">시험 나가기</Text>
-            </Pressable>
+            />
+            <Button className="flex-1" label="시험 나가기" size="lg" onPress={onExit} />
           </View>
         </View>
       ) : null}

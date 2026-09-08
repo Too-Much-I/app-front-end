@@ -1,6 +1,6 @@
 import { Image, View } from "react-native";
 
-import { Pressable } from "@/components/ui/Pressable";
+import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
 
 const errorMascot = require("../../../../public/mascots/error.png");
@@ -33,14 +33,13 @@ export function GradingFailedNotice({ onGoHome }: GradingFailedNoticeProps) {
       <Text className="mt-2 text-center text-sm leading-6 text-ink-muted">
         답변은 그대로 보관돼 있어요. 홈으로 돌아간 뒤 잠시 후 다시 확인해주세요.
       </Text>
-      <Pressable
+      <Button
         accessibilityHint="끝난 모의고사 화면을 닫고 홈 탭으로 이동합니다"
-        accessibilityRole="button"
-        className="mt-6 min-h-11 w-full items-center justify-center rounded-2xl bg-brand-cta py-3.5"
+        className="mt-section w-full"
+        label="홈으로 돌아가기"
+        size="lg"
         onPress={onGoHome}
-      >
-        <Text className="text-base text-white">홈으로 돌아가기</Text>
-      </Pressable>
+      />
     </View>
   );
 }

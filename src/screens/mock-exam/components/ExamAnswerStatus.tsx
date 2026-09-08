@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ActivityIndicator, Image, Linking, View } from "react-native";
 
+import { Button } from "@/components/ui/Button";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import type { AudioRecordingStatus } from "@/features/audio/use-timed-audio-recorder";
@@ -29,15 +30,7 @@ interface ExamAnswerStatusProps {
 }
 
 function RecoveryButton({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      className="mt-4 items-center rounded-xl bg-brand-cta px-5 py-3"
-      onPress={onPress}
-    >
-      <Text className="text-base text-white">{label}</Text>
-    </Pressable>
-  );
+  return <Button className="mt-lg" label={label} onPress={onPress} />;
 }
 
 export function ExamAnswerStatus({
@@ -106,24 +99,23 @@ export function ExamAnswerStatus({
           </Text>
 
           {retryableFailedJobs.length > 0 ? (
-            <Pressable
-              accessibilityRole="button"
-              className="mt-6 w-full items-center rounded-2xl bg-brand-cta py-3.5"
+            <Button
+              className="mt-section w-full"
+              label="다시 시도"
+              size="lg"
               onPress={() => {
                 for (const job of retryableFailedJobs) onRetrySubmission(job.key);
               }}
-            >
-              <Text className="text-base text-white">다시 시도</Text>
-            </Pressable>
+            />
           ) : null}
 
-          <Pressable
-            accessibilityRole="button"
-            className={`${retryableFailedJobs.length > 0 ? "mt-3" : "mt-6"} w-full items-center rounded-2xl border border-brand-300 py-3.5`}
+          <Button
+            className={`${retryableFailedJobs.length > 0 ? "mt-element" : "mt-section"} w-full`}
+            label="홈으로 돌아가기"
+            size="lg"
+            variant="secondary"
             onPress={onGoHome}
-          >
-            <Text className="text-base text-brand-text">홈으로 돌아가기</Text>
-          </Pressable>
+          />
         </View>
       );
     }

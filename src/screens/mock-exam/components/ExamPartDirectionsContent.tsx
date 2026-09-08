@@ -3,7 +3,7 @@ import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-au
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
 
-import { Pressable } from "@/components/ui/Pressable";
+import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
 import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
 import {
@@ -165,23 +165,22 @@ export function ExamPartDirectionsContent({
 
           <View className="w-full flex-row gap-3">
             {audioSource !== undefined ? (
-              <Pressable
-                accessibilityRole="button"
-                className="flex-1 items-center justify-center rounded-2xl border border-brand-300 bg-surface py-3.5"
+              <Button
+                className="flex-1"
+                label="다시 재생하기"
+                size="lg"
+                variant="secondary"
                 onPress={() => {
                   void playDirections(true);
                 }}
-              >
-                <Text className="text-base text-brand-text">다시 재생하기</Text>
-              </Pressable>
+              />
             ) : null}
-            <Pressable
-              accessibilityRole="button"
-              className="flex-1 items-center justify-center rounded-2xl bg-brand-cta py-3.5"
+            <Button
+              className="flex-1"
+              label="문제로 이동하기"
+              size="lg"
               onPress={completeDirections}
-            >
-              <Text className="text-base text-white">문제로 이동하기</Text>
-            </Pressable>
+            />
           </View>
         </View>
       ) : null}
