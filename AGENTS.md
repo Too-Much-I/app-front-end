@@ -51,6 +51,13 @@ No automated test runner is configured yet. For code changes, run `pnpm lint`, `
 - Do not add dependencies unless the task genuinely requires one. Prefer Expo-compatible packages and verify compatibility with the installed Expo SDK.
 - Never expose secrets in client code. Only `EXPO_PUBLIC_*` variables are intended to be bundled, and those values must be treated as public.
 
+For new or modified state and decision logic, follow `docs/architecture/05-declarative-code.md`:
+
+- Model mutually exclusive states with discriminated unions that bind each state to its valid data. Derive status-only types from the state type when needed.
+- Check exhaustive decisions over closed unions with `never`, an explicit non-optional return type, or `satisfies Record<Union, Value>` for total lookup tables. Keep intentional partial predicates and external-input fallbacks explicit.
+- Keep domain decisions as values in pure functions; let hooks/controllers own I/O and lifecycle. Preserve input data and React state; local mutation of newly created accumulators is allowed.
+- Prefer existing TypeScript and ordinary control flow. Use existing domain examples before introducing a generic state abstraction or function-composition library.
+
 Code quality follows the four [Frontend Fundamentals](https://frontend-fundamentals.com/code-quality/) criteria:
 
 - **Readability**: Reduce context (split code that never runs together, abstract implementation details), name things (complex conditions, magic numbers), and let the file read top to bottom so the reader's eye moves less.

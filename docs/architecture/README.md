@@ -38,6 +38,7 @@
 | [`01-naming-dictionary.md`](01-naming-dictionary.md) | 쓰이는 이름 7축 MECE 분류 · 각 이름의 정의 · 어디서 깨지는가 |
 | [`02-conventions.md`](02-conventions.md) | 지키려는 컨벤션 60개(문서 20 + 코드에서만 읽히는 40) · code smell 15개 |
 | [`03-convergent-evolution.md`](03-convergent-evolution.md) | 기술·컨셉 15개 분류 · 각각의 수렴 방향 · 우리와의 거리와 이유 |
+| [`05-declarative-code.md`](05-declarative-code.md) | 상태별 유효 데이터 · 분기 누락 검사 · 순수 판단 함수의 작성 기준 |
 
 ## 자동 분석 스냅샷
 

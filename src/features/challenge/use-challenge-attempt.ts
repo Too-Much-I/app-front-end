@@ -5,14 +5,18 @@ import { getChallengeErrorCode } from "@/features/challenge/challenge-error-code
 import { createDevMockAttempt } from "@/features/challenge/dev-mock-challenge";
 import type { ChallengeAttempt, ChallengeQuestion } from "@/types/challenge";
 
-export type ChallengeAttemptRequestStatus = "idle" | "creating" | "ready" | "failed";
+type ChallengeAttemptState =
+  | { status: "idle"; attempt: null; errorCode: null }
+  | { status: "creating"; attempt: null; errorCode: null }
+  | { status: "ready"; attempt: ChallengeAttempt; errorCode: null }
+  | {
+      status: "failed";
+      attempt: null;
+      /** 화면이 결과·스테이지 중 어디로 보낼지 판단한다. 서버 코드가 없을 수도 있다. */
+      errorCode: string | null;
+    };
 
-interface ChallengeAttemptState {
-  status: ChallengeAttemptRequestStatus;
-  attempt: ChallengeAttempt | null;
-  /** 실패했을 때 서버가 준 코드. 화면이 결과·스테이지 중 어디로 보낼지 판단한다. */
-  errorCode: string | null;
-}
+export type ChallengeAttemptRequestStatus = ChallengeAttemptState["status"];
 
 /**
  * 문제가 도착하면 곧바로 attempt를 발급받는다. 녹음은 이게 성공한 뒤에만 시작한다.
