@@ -6,17 +6,15 @@ import { DEV_MOCK_CHALLENGE_QUESTION } from "@/features/challenge/dev-mock-chall
 import { getChallengeTodayQuestion } from "@/features/challenge/api/challenge-today-question";
 import type { ChallengeQuestion } from "@/types/challenge";
 
-interface ChallengeQuestionState {
-  status: "loading" | "ready" | "failed";
-  question: ChallengeQuestion | null;
-  /**
-   * 실패한 이유의 서버 코드. 실패가 아니면 `null`이다.
-   *
-   * 화면이 재시도 버튼을 줄지, 진행도부터 다시 읽어야 하는지를 이 값으로 가른다.
-   * attempt 발급(`useChallengeAttempt`)이 같은 이유로 같은 값을 내보낸다.
-   */
-  errorCode: string | null;
-}
+type ChallengeQuestionState =
+  | { status: "loading"; question: null; errorCode: null }
+  | { status: "ready"; question: ChallengeQuestion; errorCode: null }
+  | {
+      status: "failed";
+      question: null;
+      /** 화면이 재시도와 진행도 새로 조회를 구분한다. 서버 코드가 없을 수도 있다. */
+      errorCode: string | null;
+    };
 
 /**
  * 오늘의 챌린지 문제를 한 번 조회하고, 실패하면 같은 자리에서 다시 시도하게 한다.
