@@ -139,11 +139,68 @@ function scrubContexts(value: unknown): SentryContexts | undefined {
   return contexts;
 }
 
+/**
+ * SDK가 터치 breadcrumb에 쓰는 category. 이 값일 때만 아래 `path` 예외가 적용된다.
+ * (@sentry/react-native의 TouchEventBoundary 기본값)
+ */
+const TOUCH_BREADCRUMB_CATEGORY = "touch";
+
+/**
+ * 터치 breadcrumb의 `data.path` 항목에서 살려두는 필드.
+ *
+ * SDK가 넣는 항목은 `{ name, element, file, label }`인데, 앞의 셋은
+ * `@sentry/babel-plugin-component-annotate`가 빌드 타임에 박아준 소스 식별자
+ * (컴포넌트 이름·엘리먼트 이름·소스 파일명)라 사용자 데이터가 될 수 없다.
+ * `label`만 `sentry-label` prop에서 오는 런타임 값이라 화면에 보이는 텍스트
+ * — 사용자 이름 같은 것 — 이 들어올 수 있어 통째로 버린다.
+ */
+const TOUCH_PATH_SAFE_KEYS = ["name", "element", "file"] as const;
+
+type TouchPathEntry = Partial<Record<(typeof TOUCH_PATH_SAFE_KEYS)[number], string>>;
+
+function scrubTouchPathEntry(value: unknown): TouchPathEntry | undefined {
+  if (!isRecord(value)) return undefined;
+
+  const entry: TouchPathEntry = {};
+  for (const key of TOUCH_PATH_SAFE_KEYS) {
+    const nested = value[key];
+    // 소스 식별자라도 redactIdentifiers는 그대로 통과시킨다 — 방어선을 우회하지 않기 위해.
+    if (typeof nested === "string" && nested.length > 0) {
+      entry[key] = redactIdentifiers(nested);
+    }
+  }
+
+  return Object.keys(entry).length > 0 ? entry : undefined;
+}
+
+function scrubTouchPath(value: unknown): TouchPathEntry[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+
+  const path = value
+    .map(scrubTouchPathEntry)
+    .filter((entry): entry is TouchPathEntry => entry !== undefined);
+
+  return path.length > 0 ? path : undefined;
+}
+
+/**
+ * `message`는 항상 지운다 — 터치 breadcrumb의 message는 `label`을 그대로 끼워 넣는다.
+ *
+ * 대신 터치 breadcrumb에 한해 `data.path`를 되살린다. 기본 스크러버는 `path`를 민감 키로
+ * 보는데(URL 경로를 막기 위한 규칙), 터치 경로는 이름만 같을 뿐 성격이 다르다. 이게 없으면
+ * 재현 불가 제보에서 "어느 화면의 무엇을 눌렀는가"를 특정할 방법이 사라진다.
+ */
 function scrubBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb {
+  const data = scrubRecord(breadcrumb.data);
+  const touchPath =
+    breadcrumb.category === TOUCH_BREADCRUMB_CATEGORY && isRecord(breadcrumb.data)
+      ? scrubTouchPath(breadcrumb.data.path)
+      : undefined;
+
   return {
     ...breadcrumb,
     message: undefined,
-    data: scrubRecord(breadcrumb.data),
+    data: touchPath ? { ...data, path: touchPath } : data,
   };
 }
 
