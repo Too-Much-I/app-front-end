@@ -1,7 +1,15 @@
 const { getSentryExpoConfig } = require("@sentry/react-native/metro");
 const { withNativeWind } = require("nativewind/metro");
 
-const config = getSentryExpoConfig(__dirname);
+// annotateReactComponents는 빌드 타임에 컴포넌트 이름·소스 파일을 터치 breadcrumb의
+// `data.path`에 실어준다. 재현 불가 제보에서 "어느 화면의 무엇을 눌렀는가"를 특정하기 위한 것.
+//
+// lib/sentry.ts의 scrubBreadcrumb이 이 경로를 통과시키도록 예외를 두고 있다
+// (name/element/file만 남기고 label은 버림). 둘은 같이 움직여야 한다 — 한쪽만 끄면
+// 컴포넌트 이름이 생성되지 않거나 생성돼도 전송 직전에 지워진다.
+const config = getSentryExpoConfig(__dirname, {
+  annotateReactComponents: true,
+});
 
 module.exports = withNativeWind(config, {
   input: "./global.css",
