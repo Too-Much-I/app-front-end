@@ -24,7 +24,7 @@ type ExamPartPrelude =
 ## Part 3
 
 - 첫 Part 3 문항의 non-empty `partIntroText`와 `guideAudioUrl`만 유효하다.
-- `/assets/audio/part3_intro.wav`와 HTTP(S) URL을 지원한다.
+- HTTP(S) URL만 지원한다. (번들 논리 경로 `/assets/audio/part3_intro.wav`는 mock 전용이었고 mock 제거와 함께 삭제됐다.)
 - 지원하지 않는 local path와 후속 문항에만 위치한 값은 invalid다.
 
 ## Part 4

@@ -28,7 +28,11 @@ type RecordingStartOperation =
  * 다른 사유에는 붙지 않고 `playback`에는 반드시 붙게 한다.
  */
 export type ExamAudioFailureDetail =
-  | { reason: "missing" | "unsupported" | "timeout" | "media-reset" }
+  /**
+   * `load-timeout`은 음원을 받아 오지 못한 것이고 `timeout`은 받아 놓고 소리가 나지
+   * 않은 것이다. 대응이 서로 달라 한 값으로 묶지 않는다.
+   */
+  | { reason: "missing" | "unsupported" | "load-timeout" | "timeout" | "media-reset" }
   | {
       reason: "playback";
       origin: AudioPlaybackFailureOrigin;
