@@ -40,6 +40,7 @@ type AudioStopTrigger =
   | "navigation-blur"
   | "app-background"
   | "screen-leave"
+  | "screen-inactive"
   | "test-reset"
   | "start-cancelled"
   | "start-error"
@@ -66,7 +67,13 @@ function trackMicrophoneTestFailure(operation: MicrophoneTestFailureStage): void
 export function useMicrophoneTest() {
   const recorder = useAudioRecorder(VOICE_RECORDING_OPTIONS);
   const recorderState = useAudioRecorderState(recorder, AUDIO_METER_UPDATE_INTERVAL_MS);
-  const recordingPlayer = useAudioPlayer(null, { updateInterval: 100 });
+  // `keepAudioSessionActive`가 없으면 이 player의 pause가 100ms 뒤 공유 AVAudioSession
+  // 비활성화를 예약하고, 그 예약이 바로 뒤따르는 recorder 준비 위로 떨어진다.
+  // 근거는 docs/decisions/2026-08-21-ios-시험-오디오-세션.md.
+  const recordingPlayer = useAudioPlayer(null, {
+    updateInterval: 100,
+    keepAudioSessionActive: true,
+  });
   const playbackStatus = useAudioPlayerStatus(recordingPlayer);
   const recordingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stopPromiseRef = useRef<Promise<AudioStopResult> | null>(null);
@@ -78,6 +85,17 @@ export function useMicrophoneTest() {
    */
   const startCountRef = useRef(0);
   const isMountedRef = useRef(true);
+  /**
+   * 화면 생명주기를 state가 아니라 ref로 든다.
+   *
+   * `isStartAttemptActive`가 permission·audio-mode·prepare의 `await`가 끝난 **뒤에** 이
+   * 값을 읽는다. state로 받으면 `startRecording`이 시작될 때 클로저에 캡처된 값을 보게
+   * 되어, 그 사이 화면을 떠났는지 알 수 없다.
+   *
+   * 화면의 `useIsScreenActive()`도 같은 사실을 state로 들고 있지만 쓰임이 다르다 —
+   * 그쪽은 오디오 세션 소유권을 정하고 이 ref는 진행 중인 시작 시도를 무효화한다.
+   * 서로 읽지도 쓰지도 않으므로 한 틱 어긋나도 각자 맞는 판단을 한다.
+   */
   const isScreenFocusedRef = useRef(false);
   const isAppBackgroundedRef = useRef(AppState.currentState === "background");
   const isPermissionRequestInFlightRef = useRef(false);
@@ -375,6 +393,7 @@ export function useMicrophoneTest() {
             : failureOperation,
         permissionGranted,
         attempt,
+        cause: error,
       });
       updateTestState("error");
       void stopActiveAudio("start-error");
@@ -601,6 +620,17 @@ export function useMicrophoneTest() {
     interruptAndStop("screen-leave");
   }, [interruptAndStop]);
 
+  /**
+   * 오디오 세션을 반납하기 전에 이 화면이 열어 둔 녹음을 닫는다.
+   *
+   * `prepareToLeave`와 달리 기다릴 수 있어야 한다 — 세션을 먼저 끄면 네이티브 stop이
+   * 실패한다. 화면 상태는 건드리지 않는다. focus/AppState 전이에 따른 표시는 이미
+   * 이 훅의 `useFocusEffect`와 AppState 구독이 맡고 있다.
+   */
+  const suspendAudio = useCallback(async () => {
+    await stopActiveAudio("screen-inactive");
+  }, [stopActiveAudio]);
+
   const resetTest = useCallback(() => {
     updateTestState("idle");
     void stopActiveAudio("test-reset");
@@ -627,6 +657,7 @@ export function useMicrophoneTest() {
     startRecording,
     togglePlayback,
     prepareToLeave,
+    suspendAudio,
     resetTest,
   };
 }

@@ -30,6 +30,17 @@ const SYNTHETIC_API_CAUSE = new ApiError(
   "SYNTHETIC_VALIDATION",
 );
 
+/**
+ * expo-audio가 iOS에서 던지는 형태를 흉내 낸 원인. 메시지 원문은 전송되지 않아야 하고
+ * `nativeCode`·`nativeReason`·`nativeStatus`만 남아야 한다. 경로를 일부러 섞어 두었다.
+ */
+const SYNTHETIC_NATIVE_AUDIO_CAUSE = Object.assign(
+  new Error(
+    "Audio recording error: Failed to configure audio session: file:///var/mobile/Containers/Data/recording-synthetic.m4a (OSStatus error 561017449.)",
+  ),
+  { code: "ERR_AUDIO_RECORDING" },
+);
+
 const DEFINITIONS = {
   AUTH_BOOTSTRAP_FAILED: {
     title: "인증 초기화 실패",
@@ -83,6 +94,7 @@ const DEFINITIONS = {
       questionNumber: 1,
       retryCount: 0,
       attempt: 1,
+      cause: SYNTHETIC_NATIVE_AUDIO_CAUSE,
     },
   },
   ANSWER_SUBMISSION_FAILED: {

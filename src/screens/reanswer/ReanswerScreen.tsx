@@ -6,6 +6,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { ShardHeader } from "@/components/ui/ShardHeader";
+import { useIsScreenActive } from "@/features/audio/use-is-screen-active";
+import { useRecordingAudioSession } from "@/features/audio/use-recording-audio-session";
 import { AudioRecordingError } from "@/features/audio/use-timed-audio-recorder";
 import { useAnswerRecorder } from "@/features/exam/use-answer-recorder";
 import { useReanswerQuestion } from "@/features/exam/use-reanswer-question";
@@ -49,6 +51,11 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
 
   const { status: questionStatus, question } = useReanswerQuestion(examId, questionNumber);
   const recorder = useAnswerRecorder();
+  const isScreenActive = useIsScreenActive();
+  useRecordingAudioSession({
+    isActive: isScreenActive,
+    suspendRecording: () => recorder.discard("owner-inactive"),
+  });
   const [phase, setPhase] = useState<RecordingPhase>("idle");
   const [finalizedAudioUri, setFinalizedAudioUri] = useState<string | null>(null);
   const [recordedSeconds, setRecordedSeconds] = useState(0);
@@ -117,6 +124,7 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
         questionNumber,
         retryCount: nextRetryCount,
         attempt: recordingAttempt,
+        cause: result.error,
       });
     }
     setPhase(result.reason === "permission-denied" ? "permission-denied" : "record-failed");
@@ -159,6 +167,7 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
           questionNumber,
           retryCount: nextRetryCount,
           attempt: recordingAttemptRef.current,
+          cause: error,
         });
       }
       setFinalizedAudioUri(null);

@@ -71,15 +71,15 @@ export type OperationalErrorInput =
       partNumber: 3 | 4;
       reason: ExamPartPreludeInvalidReason | "missing-prelude";
     }
-  | {
+  | ({
       code: "ANSWER_RECORDING_FAILED";
       surface: "microphone-test";
       stage: "prepare";
       operation: RecordingStartOperation;
       permissionGranted: boolean;
       attempt: number;
-    }
-  | {
+    } & SafeCause)
+  | ({
       code: "ANSWER_RECORDING_FAILED";
       surface: "live" | "reanswer";
       stage: "prepare" | "stop" | "file-validation";
@@ -88,7 +88,7 @@ export type OperationalErrorInput =
       questionNumber: number;
       retryCount: number;
       attempt: number;
-    }
+    } & SafeCause)
   | ({
       code: "ANSWER_SUBMISSION_FAILED";
       stage: "upload" | "notify";
@@ -197,10 +197,29 @@ const FEATURE_BY_CODE: Record<OperationalErrorCode, string> = {
 };
 
 const SAFE_SERVER_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,63}$/;
+/** expo가 예외 클래스 이름에서 만들어 내는 코드. 자유 텍스트가 아니라 닫힌 식별자다. */
+const EXPO_ERROR_CODE_PATTERN = /^ERR_[A-Z0-9_]{1,60}$/;
+const OS_STATUS_PATTERN = /OSStatus error (-?\d{1,12})/;
+const NATIVE_CAUSE_CHAIN_LIMIT = 2;
 
-function classifyCause(cause: unknown): Record<string, SafeValue> {
-  if (!(cause instanceof ApiError)) return {};
+/**
+ * expo-audio의 네이티브 실패를 우리가 정한 이름으로 접는다.
+ *
+ * `code`만으로는 갈리지 않는다 — `AudioRecordingException` 하나가 세션 설정 실패,
+ * 리코더 생성 실패, 준비 거부를 모두 덮어 전부 `ERR_AUDIO_RECORDING`으로 온다. 구분은
+ * 메시지에만 있는데 원문은 경로·URL이 섞일 수 있는 자유 텍스트라 싣지 않는다.
+ * 여기 적힌 말머리에 걸린 것만 고정된 이름으로 바꿔 내보낸다.
+ * `ApiError`를 status와 code로만 접어 보내는 것과 같은 기준이다.
+ */
+const NATIVE_AUDIO_FAILURE_REASONS: readonly (readonly [string, string])[] = [
+  ["Failed to configure audio session", "session-configure"],
+  ["Failed to create recorder", "recorder-create"],
+  ["Failed to prepare recorder", "prepare-rejected"],
+  ["Failed to change audio state", "session-state"],
+  ["shared object that was already released", "shared-object-released"],
+];
 
+function classifyApiError(cause: ApiError): Record<string, SafeValue> {
   return {
     ...(Number.isInteger(cause.status) && cause.status >= 100 && cause.status <= 599
       ? { httpStatus: cause.status }
@@ -209,6 +228,40 @@ function classifyCause(cause: unknown): Record<string, SafeValue> {
       ? { serverCode: cause.code }
       : {}),
   };
+}
+
+function classifyNativeError(cause: Error): Record<string, SafeValue> {
+  const code: unknown = (cause as { code?: unknown }).code;
+  const message = typeof cause.message === "string" ? cause.message : "";
+  const reason = NATIVE_AUDIO_FAILURE_REASONS.find(([marker]) =>
+    message.includes(marker),
+  )?.[1];
+  // AVAudioSession이 붙여 주는 숫자 상태. 어떤 거절인지는 이 값으로만 갈린다.
+  const osStatus = Number(OS_STATUS_PATTERN.exec(message)?.[1]);
+
+  return {
+    ...(typeof code === "string" && EXPO_ERROR_CODE_PATTERN.test(code)
+      ? { nativeCode: code }
+      : {}),
+    ...(reason ? { nativeReason: reason } : {}),
+    ...(Number.isSafeInteger(osStatus) ? { nativeStatus: osStatus } : {}),
+  };
+}
+
+/**
+ * `AudioRecordingError`처럼 네이티브 오류를 한 겹 감싸 던지는 자리가 있어 사슬을 따라간다.
+ * 감싼 쪽에는 우리가 쓴 한국어 문구만 있고 원인은 안쪽에 있다.
+ */
+function classifyCause(cause: unknown, depth = 0): Record<string, SafeValue> {
+  if (cause instanceof ApiError) return classifyApiError(cause);
+  if (!(cause instanceof Error)) return {};
+
+  const classified = classifyNativeError(cause);
+  if (Object.keys(classified).length > 0 || depth >= NATIVE_CAUSE_CHAIN_LIMIT) {
+    return classified;
+  }
+
+  return classifyCause((cause as { cause?: unknown }).cause, depth + 1);
 }
 
 function toSafeContext(input: OperationalErrorInput): Record<string, SafeValue> {
