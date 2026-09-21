@@ -12,14 +12,18 @@ import type {
   RawExamQuestion,
 } from "@/types/exam";
 
-/** 번들 음원을 찾기 위한 synthetic lookup key이며 원격 요청에 사용하는 URL이 아니다. */
-export const PART3_GUIDE_AUDIO_LOGICAL_URL = "/assets/audio/part3_intro.wav";
 export const PART4_READING_DURATION_SEC = 45 as const;
 const PART4_FIRST_QUESTION_NUMBER = 8;
 
-const PART3_GUIDE_AUDIO_SOURCES: Record<string, AudioSource> = {
-  [PART3_GUIDE_AUDIO_LOGICAL_URL]: require("../../../public/assets/audio/part3_intro.wav"),
-};
+/**
+ * Part 3 안내 음성은 시험 세트마다 다른 상황 설명이라 서버가 URL로 준다.
+ *
+ * 예전에는 `/assets/audio/part3_intro.wav` 논리 경로를 번들 `require()`로 바꿔 주는
+ * 분기가 있었는데, 이는 `createMockExamSession()`으로 개발하던 시기의 mock 전용
+ * 장치였다(specs/002-part-aware-question-flow). mock이 사라진 뒤로는 죽은 경로였고,
+ * 서버가 그 문자열을 보내면 모든 시험에 같은 안내가 조용히 재생되는 함정이었다.
+ */
+const REMOTE_AUDIO_URL_PATTERN = /^https?:\/\//i;
 
 function trimNonEmpty(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
@@ -28,13 +32,11 @@ function trimNonEmpty(value: unknown): string | undefined {
 }
 
 export function isSupportedExamPartIntroAudioUrl(audioUrl: string): boolean {
-  return audioUrl in PART3_GUIDE_AUDIO_SOURCES || /^https?:\/\//i.test(audioUrl);
+  return REMOTE_AUDIO_URL_PATTERN.test(audioUrl);
 }
 
 export function getExamPartIntroAudioSource(audioUrl: string): AudioSource | undefined {
-  const bundledSource = PART3_GUIDE_AUDIO_SOURCES[audioUrl];
-  if (bundledSource !== undefined) return bundledSource;
-  return /^https?:\/\//i.test(audioUrl) ? { uri: audioUrl } : undefined;
+  return isSupportedExamPartIntroAudioUrl(audioUrl) ? { uri: audioUrl } : undefined;
 }
 
 interface ExamPartPreludeNormalization {

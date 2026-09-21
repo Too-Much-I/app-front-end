@@ -6,12 +6,26 @@ import { ScrollView, View } from "react-native";
 import { Text } from "@/components/ui/Text";
 import { ExamAudioErrorNotice } from "@/screens/mock-exam/components/ExamAudioErrorNotice";
 import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
+import { classifyAudioPlaybackError } from "@/features/audio/playback-error";
 import { getExamPartIntroAudioSource } from "@/features/exam/part-prelude";
 import { colors } from "@/theme";
-import { reportOperationalError } from "@/lib/operational-error-reporting";
+import {
+  reportOperationalError,
+  type ExamAudioFailureDetail,
+} from "@/lib/operational-error-reporting";
 import type { ExamPartIntroPrelude } from "@/types/exam";
 
-const REMOTE_AUDIO_LOAD_TIMEOUT_MS = 10_000;
+/**
+ * 원격 음원을 받아 오는 데 주는 시간.
+ *
+ * 재생 시작 예산과 따로 둔다. 하나로 묶으면 느린 회선에서 정상 다운로드가 실패로
+ * 잡히고, "못 받았다"와 "받아 놓고 소리가 안 난다"가 같은 사유로 들어와 원인을
+ * 가릴 수 없다. 형제 큐들이 로드와 무관하게 재생 정지만 재는 것과 같은 이유다.
+ */
+const AUDIO_LOAD_TIMEOUT_MS = 30_000;
+
+/** 로드가 끝난 뒤 실제로 소리가 나기까지 주는 시간. */
+const PLAYBACK_START_TIMEOUT_MS = 10_000;
 
 interface ExamPartIntroContentProps {
   isActive: boolean;
@@ -30,9 +44,10 @@ export function ExamPartIntroContent({
     () => getExamPartIntroAudioSource(prelude.guideAudioUrl),
     [prelude.guideAudioUrl],
   );
+  // `downloadFirst`를 켜지 않는다. 켜면 파일을 끝까지 받아야 isLoaded가 되어 첫 소리가
+  // 그만큼 늦는다. 같은 원격 음원을 다루는 `ExamQuestionCue`도 켜지 않는다.
   const player = useAudioPlayer(audioSource ?? null, {
     updateInterval: 100,
-    downloadFirst: true,
     keepAudioSessionActive: true,
   });
   const playbackStatus = useAudioPlayerStatus(player);
@@ -45,26 +60,23 @@ export function ExamPartIntroContent({
   const isActiveRef = useRef(isActive);
   const hasReportedPlaybackFailureRef = useRef(false);
 
-  const markPlaybackFailure = useCallback(
-    (reason: "missing" | "playback" | "timeout" | "media-reset") => {
-      if (!isActiveRef.current || hasReportedPlaybackFailureRef.current) return;
-      hasReportedPlaybackFailureRef.current = true;
-      reportOperationalError({
-        code: "EXAM_REQUIRED_AUDIO_FAILED",
-        cueKind: "part-intro",
-        reason,
-        partNumber: 3,
-      });
-    },
-    [],
-  );
+  const markPlaybackFailure = useCallback((detail: ExamAudioFailureDetail) => {
+    if (!isActiveRef.current || hasReportedPlaybackFailureRef.current) return;
+    hasReportedPlaybackFailureRef.current = true;
+    reportOperationalError({
+      code: "EXAM_REQUIRED_AUDIO_FAILED",
+      cueKind: "part-intro",
+      partNumber: 3,
+      ...detail,
+    });
+  }, []);
 
   const playFromStart = useCallback(
     async (reloadSource = false) => {
       if (reloadSource) hasReportedPlaybackFailureRef.current = false;
       if (!audioSource || !isActiveRef.current || hasCompletedRef.current) {
         if (!audioSource) {
-          markPlaybackFailure("missing");
+          markPlaybackFailure({ reason: "missing" });
           setHasPlaybackError(true);
         }
         return;
@@ -93,7 +105,11 @@ export function ExamPartIntroContent({
         hasStartedRef.current = true;
       } catch (error) {
         console.error("[ExamPartIntro] 안내 음성 재생 실패", error);
-        markPlaybackFailure("playback");
+        markPlaybackFailure({
+          reason: "playback",
+          origin: "start-call",
+          errorKind: classifyAudioPlaybackError(error),
+        });
         setHasPlaybackError(true);
       }
     },
@@ -134,24 +150,41 @@ export function ExamPartIntroContent({
       return;
     }
 
-    const timeoutId = setTimeout(() => {
-      if (
-        !isActiveRef.current ||
-        hasObservedPlayingRef.current ||
-        hasCompletedRef.current
-      ) {
-        return;
-      }
-      player.pause();
-      hasObservedPlayingRef.current = false;
-      shouldRestartRef.current = true;
-      console.error("[ExamPartIntro] 안내 음성 재생 시작 시간 초과");
-      markPlaybackFailure("timeout");
-      setHasPlaybackError(true);
-    }, REMOTE_AUDIO_LOAD_TIMEOUT_MS);
+    // 로드가 끝나면 이 effect가 다시 돌며 남은 예산이 재생 시작 쪽으로 갈아 끼워진다.
+    const isLoading = !playbackStatus.isLoaded;
+    const timeoutId = setTimeout(
+      () => {
+        if (
+          !isActiveRef.current ||
+          hasObservedPlayingRef.current ||
+          hasCompletedRef.current
+        ) {
+          return;
+        }
+        player.pause();
+        hasObservedPlayingRef.current = false;
+        shouldRestartRef.current = true;
+        console.error(
+          isLoading
+            ? "[ExamPartIntro] 안내 음성을 받아오지 못함"
+            : "[ExamPartIntro] 안내 음성 재생 시작 시간 초과",
+        );
+        markPlaybackFailure({ reason: isLoading ? "load-timeout" : "timeout" });
+        setHasPlaybackError(true);
+      },
+      isLoading ? AUDIO_LOAD_TIMEOUT_MS : PLAYBACK_START_TIMEOUT_MS,
+    );
 
     return () => clearTimeout(timeoutId);
-  }, [hasPlaybackError, isActive, markPlaybackFailure, playbackStatus.playing, player, reloadRevision]);
+  }, [
+    hasPlaybackError,
+    isActive,
+    markPlaybackFailure,
+    playbackStatus.isLoaded,
+    playbackStatus.playing,
+    player,
+    reloadRevision,
+  ]);
 
   useEffect(() => {
     if (playbackStatus.playing && isActive) {
@@ -165,7 +198,15 @@ export function ExamPartIntroContent({
     player.pause();
     hasObservedPlayingRef.current = false;
     shouldRestartRef.current = true;
-    markPlaybackFailure(playbackStatus.mediaServicesDidReset ? "media-reset" : "playback");
+    markPlaybackFailure(
+      playbackStatus.mediaServicesDidReset
+        ? { reason: "media-reset" }
+        : {
+            reason: "playback",
+            origin: "player-status",
+            errorKind: classifyAudioPlaybackError(playbackStatus.error),
+          },
+    );
     setHasPlaybackError(true);
   }, [markPlaybackFailure, playbackStatus.error, playbackStatus.mediaServicesDidReset, player]);
 

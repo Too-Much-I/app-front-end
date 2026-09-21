@@ -7,9 +7,13 @@ import { ActivityIndicator, AppState, Image, View } from "react-native";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
+import { classifyAudioPlaybackError } from "@/features/audio/playback-error";
 import { createExamSession } from "@/features/exam/api/exam-session-create";
 import { ExamQuestionAudioError } from "@/features/exam/question-audio";
-import { reportOperationalError } from "@/lib/operational-error-reporting";
+import {
+  reportOperationalError,
+  type ExamAudioFailureDetail,
+} from "@/lib/operational-error-reporting";
 import type { MockExamStackParamList } from "@/navigation/types";
 import { DeviceTestLayout } from "@/screens/mock-exam/components/DeviceTestLayout";
 import { colors } from "@/theme";
@@ -67,6 +71,8 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
           code: "EXAM_REQUIRED_AUDIO_FAILED",
           cueKind: "sound-test",
           reason: "playback",
+          origin: "start-call",
+          errorKind: classifyAudioPlaybackError(error),
         });
       }
       setHasPlaybackError(true);
@@ -141,10 +147,17 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
       return;
     }
     hasReportedPlaybackFailureRef.current = true;
+    const detail: ExamAudioFailureDetail = playbackStatus.mediaServicesDidReset
+      ? { reason: "media-reset" }
+      : {
+          reason: "playback",
+          origin: "player-status",
+          errorKind: classifyAudioPlaybackError(playbackStatus.error),
+        };
     reportOperationalError({
       code: "EXAM_REQUIRED_AUDIO_FAILED",
       cueKind: "sound-test",
-      reason: playbackStatus.mediaServicesDidReset ? "media-reset" : "playback",
+      ...detail,
     });
   }, [playbackStatus.error, playbackStatus.mediaServicesDidReset]);
 
