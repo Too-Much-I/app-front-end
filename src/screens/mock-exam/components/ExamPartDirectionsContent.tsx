@@ -5,11 +5,15 @@ import { ScrollView, View } from "react-native";
 import { Text } from "@/components/ui/Text";
 import { ExamAudioErrorNotice } from "@/screens/mock-exam/components/ExamAudioErrorNotice";
 import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
+import { classifyAudioPlaybackError } from "@/features/audio/playback-error";
 import {
   getExamPartDirectionAudioSource,
   type ExamPartDirections,
 } from "@/features/exam/part-directions";
-import { reportOperationalError } from "@/lib/operational-error-reporting";
+import {
+  reportOperationalError,
+  type ExamAudioFailureDetail,
+} from "@/lib/operational-error-reporting";
 
 interface ExamPartDirectionsContentProps {
   directions: ExamPartDirections;
@@ -51,14 +55,14 @@ export function ExamPartDirectionsContent({
   }, [onComplete, player]);
 
   const markPlaybackFailure = useCallback(
-    (reason: "missing" | "playback" | "media-reset") => {
+    (detail: ExamAudioFailureDetail) => {
       if (!isActiveRef.current || hasReportedPlaybackFailureRef.current) return;
       hasReportedPlaybackFailureRef.current = true;
       reportOperationalError({
         code: "EXAM_REQUIRED_AUDIO_FAILED",
         cueKind: "part-directions",
-        reason,
         partNumber,
+        ...detail,
       });
     },
     [partNumber],
@@ -67,7 +71,7 @@ export function ExamPartDirectionsContent({
   const playDirections = useCallback(async (isUserRetry = false) => {
     if (isUserRetry) hasReportedPlaybackFailureRef.current = false;
     if (audioSource === undefined) {
-      markPlaybackFailure("missing");
+      markPlaybackFailure({ reason: "missing" });
       setHasPlaybackError(true);
       return;
     }
@@ -90,7 +94,11 @@ export function ExamPartDirectionsContent({
       shouldRestartRef.current = false;
     } catch (error) {
       console.error(`[ExamPartDirections] Part ${partNumber} 안내 음성 재생 실패`, error);
-      markPlaybackFailure("playback");
+      markPlaybackFailure({
+        reason: "playback",
+        origin: "start-call",
+        errorKind: classifyAudioPlaybackError(error),
+      });
       setHasPlaybackError(true);
     }
   }, [audioSource, markPlaybackFailure, partNumber, player]);
@@ -116,7 +124,15 @@ export function ExamPartDirectionsContent({
 
   useEffect(() => {
     if (playbackStatus.error === null && !playbackStatus.mediaServicesDidReset) return;
-    markPlaybackFailure(playbackStatus.mediaServicesDidReset ? "media-reset" : "playback");
+    markPlaybackFailure(
+      playbackStatus.mediaServicesDidReset
+        ? { reason: "media-reset" }
+        : {
+            reason: "playback",
+            origin: "player-status",
+            errorKind: classifyAudioPlaybackError(playbackStatus.error),
+          },
+    );
   }, [markPlaybackFailure, playbackStatus.error, playbackStatus.mediaServicesDidReset]);
 
   useEffect(() => {

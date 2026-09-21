@@ -6,9 +6,13 @@ import { ScrollView, View } from "react-native";
 import { Text } from "@/components/ui/Text";
 import { ExamAudioErrorNotice } from "@/screens/mock-exam/components/ExamAudioErrorNotice";
 import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
+import { classifyAudioPlaybackError } from "@/features/audio/playback-error";
 import { getExamPartIntroAudioSource } from "@/features/exam/part-prelude";
 import { colors } from "@/theme";
-import { reportOperationalError } from "@/lib/operational-error-reporting";
+import {
+  reportOperationalError,
+  type ExamAudioFailureDetail,
+} from "@/lib/operational-error-reporting";
 import type { ExamPartIntroPrelude } from "@/types/exam";
 
 const REMOTE_AUDIO_LOAD_TIMEOUT_MS = 10_000;
@@ -45,26 +49,23 @@ export function ExamPartIntroContent({
   const isActiveRef = useRef(isActive);
   const hasReportedPlaybackFailureRef = useRef(false);
 
-  const markPlaybackFailure = useCallback(
-    (reason: "missing" | "playback" | "timeout" | "media-reset") => {
-      if (!isActiveRef.current || hasReportedPlaybackFailureRef.current) return;
-      hasReportedPlaybackFailureRef.current = true;
-      reportOperationalError({
-        code: "EXAM_REQUIRED_AUDIO_FAILED",
-        cueKind: "part-intro",
-        reason,
-        partNumber: 3,
-      });
-    },
-    [],
-  );
+  const markPlaybackFailure = useCallback((detail: ExamAudioFailureDetail) => {
+    if (!isActiveRef.current || hasReportedPlaybackFailureRef.current) return;
+    hasReportedPlaybackFailureRef.current = true;
+    reportOperationalError({
+      code: "EXAM_REQUIRED_AUDIO_FAILED",
+      cueKind: "part-intro",
+      partNumber: 3,
+      ...detail,
+    });
+  }, []);
 
   const playFromStart = useCallback(
     async (reloadSource = false) => {
       if (reloadSource) hasReportedPlaybackFailureRef.current = false;
       if (!audioSource || !isActiveRef.current || hasCompletedRef.current) {
         if (!audioSource) {
-          markPlaybackFailure("missing");
+          markPlaybackFailure({ reason: "missing" });
           setHasPlaybackError(true);
         }
         return;
@@ -93,7 +94,11 @@ export function ExamPartIntroContent({
         hasStartedRef.current = true;
       } catch (error) {
         console.error("[ExamPartIntro] 안내 음성 재생 실패", error);
-        markPlaybackFailure("playback");
+        markPlaybackFailure({
+          reason: "playback",
+          origin: "start-call",
+          errorKind: classifyAudioPlaybackError(error),
+        });
         setHasPlaybackError(true);
       }
     },
@@ -146,7 +151,7 @@ export function ExamPartIntroContent({
       hasObservedPlayingRef.current = false;
       shouldRestartRef.current = true;
       console.error("[ExamPartIntro] 안내 음성 재생 시작 시간 초과");
-      markPlaybackFailure("timeout");
+      markPlaybackFailure({ reason: "timeout" });
       setHasPlaybackError(true);
     }, REMOTE_AUDIO_LOAD_TIMEOUT_MS);
 
@@ -165,7 +170,15 @@ export function ExamPartIntroContent({
     player.pause();
     hasObservedPlayingRef.current = false;
     shouldRestartRef.current = true;
-    markPlaybackFailure(playbackStatus.mediaServicesDidReset ? "media-reset" : "playback");
+    markPlaybackFailure(
+      playbackStatus.mediaServicesDidReset
+        ? { reason: "media-reset" }
+        : {
+            reason: "playback",
+            origin: "player-status",
+            errorKind: classifyAudioPlaybackError(playbackStatus.error),
+          },
+    );
     setHasPlaybackError(true);
   }, [markPlaybackFailure, playbackStatus.error, playbackStatus.mediaServicesDidReset, player]);
 

@@ -5,6 +5,7 @@ import {
 } from "@/lib/sentry";
 import { ApiError } from "@/lib/api/transport";
 import type { OperationalErrorCode } from "@/lib/operational-error-codes";
+import type { AudioPlaybackErrorKind, AudioPlaybackFailureOrigin } from "@/types/audio";
 import type { ExamPartPreludeInvalidReason } from "@/types/exam";
 
 export type { OperationalErrorCode } from "@/lib/operational-error-codes";
@@ -18,6 +19,21 @@ type RecordingStartOperation =
   | "audio-mode"
   | "recorder-prepare"
   | "record-start";
+
+/**
+ * 필수 음성이 실패한 사유와, 그 사유에서만 뜻이 있는 자료.
+ *
+ * `playback`은 "플레이어가 에러를 뱉었다"는 말일 뿐이라 그 자체로는 조사할 방향이
+ * 없다. 어디서 감지했는지(`origin`)와 무엇이었는지(`errorKind`)를 사유에 묶어 두어,
+ * 다른 사유에는 붙지 않고 `playback`에는 반드시 붙게 한다.
+ */
+export type ExamAudioFailureDetail =
+  | { reason: "missing" | "unsupported" | "timeout" | "media-reset" }
+  | {
+      reason: "playback";
+      origin: AudioPlaybackFailureOrigin;
+      errorKind: AudioPlaybackErrorKind;
+    };
 
 export type OperationalErrorInput =
   | ({
@@ -39,14 +55,13 @@ export type OperationalErrorInput =
       stage: "session-create";
       attempt: ReportAttempt;
     } & SafeCause)
-  | {
+  | ({
       code: "EXAM_REQUIRED_AUDIO_FAILED";
       cueKind: "sound-test" | "part-directions" | "part-intro" | "phase" | "question";
-      reason: "missing" | "unsupported" | "playback" | "timeout" | "media-reset";
       partNumber?: number;
       questionNumber?: number;
       issueCount?: number;
-    }
+    } & ExamAudioFailureDetail)
   | {
       code: "EXAM_PRELUDE_FAILED";
       partNumber: 3 | 4;
@@ -219,7 +234,11 @@ export function previewOperationalError(
   const context = toSafeContext(input);
   const tags = Object.fromEntries(
     Object.entries(context)
-      .filter(([, value]) => typeof value === "string" || typeof value === "boolean")
+      // 숫자도 태그로 올린다. context에만 있으면 이벤트 하나를 열어봐야 보이고 집계가
+      // 되지 않아, "몇 번 문항에서 몰리는가" 같은 질문에 답할 수 없다. 여기 오는 숫자는
+      // partNumber·questionNumber·httpStatus처럼 값 범위가 좁은 분류값뿐이며,
+      // 식별자는 toSafeContext 이전 단계에서 이미 걸러진다.
+      .filter(([, value]) => typeof value !== "number" || Number.isFinite(value))
       .map(([key, value]) => [key, String(value)]),
   );
 

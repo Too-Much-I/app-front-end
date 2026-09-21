@@ -55,10 +55,13 @@ const DEFINITIONS = {
     input: {
       code: "EXAM_REQUIRED_AUDIO_FAILED",
       cueKind: "question",
-      reason: "missing",
+      // playback 변형이 필드를 가장 많이 채운다. partNumber·questionNumber는 숫자가
+      // 태그로 올라가는지까지 함께 확인한다.
+      reason: "playback",
+      origin: "player-status",
+      errorKind: "forbidden",
       partNumber: 2,
       questionNumber: 3,
-      issueCount: 1,
     },
   },
   EXAM_PRELUDE_FAILED: {

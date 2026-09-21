@@ -6,13 +6,17 @@ import { View } from "react-native";
 import { Text } from "@/components/ui/Text";
 import { ExamAudioErrorNotice } from "@/screens/mock-exam/components/ExamAudioErrorNotice";
 import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
+import { classifyAudioPlaybackError } from "@/features/audio/playback-error";
 import {
   getExamCueAudioSource,
   getExamCueBeepSource,
   type ExamCueKind,
 } from "@/features/exam/exam-cue";
 import { colors } from "@/theme";
-import { reportOperationalError } from "@/lib/operational-error-reporting";
+import {
+  reportOperationalError,
+  type ExamAudioFailureDetail,
+} from "@/lib/operational-error-reporting";
 
 interface ExamPhaseCueProps {
   cueKind: ExamCueKind;
@@ -78,15 +82,15 @@ export function ExamPhaseCue({
   const hasCompleted = useCallback(() => stageRef.current === "completed", []);
 
   const markPlaybackFailure = useCallback(
-    (reason: "playback" | "timeout" | "media-reset") => {
+    (detail: ExamAudioFailureDetail) => {
       if (!isActiveRef.current || hasReportedPlaybackFailureRef.current) return;
       hasReportedPlaybackFailureRef.current = true;
       reportOperationalError({
         code: "EXAM_REQUIRED_AUDIO_FAILED",
         cueKind: "phase",
-        reason,
         partNumber,
         questionNumber,
+        ...detail,
       });
     },
     [partNumber, questionNumber],
@@ -116,7 +120,11 @@ export function ExamPhaseCue({
       beepPlayer.play();
     } catch (error) {
       console.error(`[ExamPhaseCue] ${cueKind} 안내 음성 재생 실패`, error);
-      markPlaybackFailure("playback");
+      markPlaybackFailure({
+        reason: "playback",
+        origin: "start-call",
+        errorKind: classifyAudioPlaybackError(error),
+      });
       setHasPlaybackError(true);
     }
   }, [beepPlayer, beepSource, cueKind, cuePlayer, cueSource, hasCompleted, markPlaybackFailure]);
@@ -164,7 +172,7 @@ export function ExamPhaseCue({
       hasObservedPlayingRef.current = false;
       shouldRestartRef.current = true;
       console.error(`[ExamPhaseCue] ${cueKind} 안내 음성이 시간 안에 끝나지 않음`);
-      markPlaybackFailure("timeout");
+      markPlaybackFailure({ reason: "timeout" });
       setHasPlaybackError(true);
     }, CUE_STALL_TIMEOUT_MS);
 
@@ -190,7 +198,13 @@ export function ExamPhaseCue({
     hasObservedPlayingRef.current = false;
     shouldRestartRef.current = true;
     markPlaybackFailure(
-      currentStatus.mediaServicesDidReset ? "media-reset" : "playback",
+      currentStatus.mediaServicesDidReset
+        ? { reason: "media-reset" }
+        : {
+            reason: "playback",
+            origin: "player-status",
+            errorKind: classifyAudioPlaybackError(currentStatus.error),
+          },
     );
     setHasPlaybackError(true);
   }, [beepPlayer, beepStatus, cuePlayer, cueStatus, markPlaybackFailure]);
@@ -216,7 +230,11 @@ export function ExamPhaseCue({
         cuePlayer.play();
       } catch (error) {
         console.error(`[ExamPhaseCue] ${cueKind} 안내 음성 재생 실패`, error);
-        markPlaybackFailure("playback");
+        markPlaybackFailure({
+          reason: "playback",
+          origin: "start-call",
+          errorKind: classifyAudioPlaybackError(error),
+        });
         setHasPlaybackError(true);
       }
     })();

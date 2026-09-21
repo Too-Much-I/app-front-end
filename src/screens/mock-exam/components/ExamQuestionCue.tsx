@@ -6,10 +6,14 @@ import { View } from "react-native";
 import { Text } from "@/components/ui/Text";
 import { ExamAudioErrorNotice } from "@/screens/mock-exam/components/ExamAudioErrorNotice";
 import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
+import { classifyAudioPlaybackError } from "@/features/audio/playback-error";
 import { getExamListenAgainCueSource } from "@/features/exam/exam-cue";
 import { getQuestionAudioSource } from "@/features/exam/question-audio";
 import { colors } from "@/theme";
-import { reportOperationalError } from "@/lib/operational-error-reporting";
+import {
+  reportOperationalError,
+  type ExamAudioFailureDetail,
+} from "@/lib/operational-error-reporting";
 
 interface ExamQuestionCueProps {
   audioUrl: string;
@@ -81,15 +85,15 @@ export function ExamQuestionCue({
   }, []);
 
   const markPlaybackFailure = useCallback(
-    (reason: "missing" | "playback" | "timeout" | "media-reset") => {
+    (detail: ExamAudioFailureDetail) => {
       if (!isActiveRef.current || hasReportedPlaybackFailureRef.current) return;
       hasReportedPlaybackFailureRef.current = true;
       reportOperationalError({
         code: "EXAM_REQUIRED_AUDIO_FAILED",
         cueKind: "question",
-        reason,
         partNumber,
         questionNumber,
+        ...detail,
       });
     },
     [partNumber, questionNumber],
@@ -100,7 +104,7 @@ export function ExamQuestionCue({
       if (reloadSource) hasReportedPlaybackFailureRef.current = false;
       if (!audioSource || !isActiveRef.current || hasCompletedRef.current) {
         if (!audioSource) {
-          markPlaybackFailure("missing");
+          markPlaybackFailure({ reason: "missing" });
           setHasPlaybackError(true);
         }
         return;
@@ -128,7 +132,11 @@ export function ExamQuestionCue({
         shouldRestartRef.current = false;
       } catch (error) {
         console.error("[ExamQuestionCue] 문제 음성 재생 실패", error);
-        markPlaybackFailure("playback");
+        markPlaybackFailure({
+          reason: "playback",
+          origin: "start-call",
+          errorKind: classifyAudioPlaybackError(error),
+        });
         setHasPlaybackError(true);
       }
     },
@@ -178,7 +186,7 @@ export function ExamQuestionCue({
       hasObservedPlayingRef.current = false;
       shouldRestartRef.current = true;
       console.error("[ExamQuestionCue] 문제 음성이 시간 안에 끝나지 않음");
-      markPlaybackFailure("timeout");
+      markPlaybackFailure({ reason: "timeout" });
       setHasPlaybackError(true);
     }, CUE_STALL_TIMEOUT_MS);
 
@@ -206,8 +214,15 @@ export function ExamQuestionCue({
     shouldRestartRef.current = true;
     markPlaybackFailure(
       playbackStatus.mediaServicesDidReset || listenAgainStatus.mediaServicesDidReset
-        ? "media-reset"
-        : "playback",
+        ? { reason: "media-reset" }
+        : {
+            reason: "playback",
+            origin: "player-status",
+            // 두 플레이어를 함께 보므로 실제로 깨진 쪽의 서술을 고른다.
+            errorKind: classifyAudioPlaybackError(
+              playbackStatus.error ?? listenAgainStatus.error,
+            ),
+          },
     );
     setHasPlaybackError(true);
   }, [listenAgainPlayer, listenAgainStatus, markPlaybackFailure, playbackStatus, player]);
@@ -247,7 +262,11 @@ export function ExamQuestionCue({
         listenAgainPlayer.play();
       } catch (error) {
         console.error("[ExamQuestionCue] 다시 듣기 안내 재생 실패", error);
-        markPlaybackFailure("playback");
+        markPlaybackFailure({
+          reason: "playback",
+          origin: "start-call",
+          errorKind: classifyAudioPlaybackError(error),
+        });
         setHasPlaybackError(true);
       }
     })();
@@ -287,7 +306,11 @@ export function ExamQuestionCue({
         player.play();
       } catch (error) {
         console.error("[ExamQuestionCue] 문제 음성 반복 재생 실패", error);
-        markPlaybackFailure("playback");
+        markPlaybackFailure({
+          reason: "playback",
+          origin: "start-call",
+          errorKind: classifyAudioPlaybackError(error),
+        });
         setHasPlaybackError(true);
       }
     })();
