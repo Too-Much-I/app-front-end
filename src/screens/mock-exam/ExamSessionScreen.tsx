@@ -10,6 +10,7 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { AudioWaveform } from "@/features/audio/components/AudioWaveform";
+import { useRecordingAudioSession } from "@/features/audio/use-recording-audio-session";
 import { getExamResponseCueKind } from "@/features/exam/exam-cue";
 import { getExamPartDirections } from "@/features/exam/part-directions";
 import { getQuestionAudioPlayCount } from "@/features/exam/question-audio";
@@ -31,7 +32,6 @@ import {
 } from "@/screens/mock-exam/components/ExamTimerCard";
 import { Part4TableLandscapeModal } from "@/screens/mock-exam/components/Part4TableLandscapeModal";
 import { emitExamBreadcrumb } from "@/screens/mock-exam/exam-breadcrumb";
-import { useExamAudioSession } from "@/screens/mock-exam/hooks/use-exam-audio-session";
 import { useExamSessionController } from "@/screens/mock-exam/hooks/use-exam-session-controller";
 import type {
   ExamPartPrelude,
@@ -108,9 +108,9 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
     retryRecording,
     retryRegistration,
   } = controller;
-  useExamAudioSession({
-    isExamActive,
-    suspendRecording: () => recorder.discard("exam-inactive"),
+  useRecordingAudioSession({
+    isActive: isExamActive,
+    suspendRecording: () => recorder.discard("owner-inactive"),
   });
   const activePart4Table = getActivePart4Table(question, partPrelude, phase);
   const isSubmissionState = phase === "submission-barrier" || phase === "completed";

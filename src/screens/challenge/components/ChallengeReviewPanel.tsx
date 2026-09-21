@@ -24,7 +24,12 @@ export function ChallengeReviewPanel({
   audioFileUri,
   recordedSeconds,
 }: ChallengeReviewPanelProps) {
-  const player = useAudioPlayer({ uri: audioFileUri }, { updateInterval: 200 });
+  // 들어본 뒤 곧바로 다시 녹음하는 경로가 있어, 이 player가 공유 AVAudioSession을 끄면
+  // 뒤따르는 recorder 준비와 부딪힌다. docs/decisions/2026-08-21-ios-시험-오디오-세션.md
+  const player = useAudioPlayer({ uri: audioFileUri }, {
+    updateInterval: 200,
+    keepAudioSessionActive: true,
+  });
   const status = useAudioPlayerStatus(player);
   const isPlaying = status.playing;
 

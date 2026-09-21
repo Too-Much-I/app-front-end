@@ -142,6 +142,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
                 questionNumber: activeQuestion.questionNumber,
                 retryCount: 0,
                 attempt: recordingAttemptRef.current,
+                cause: error,
               });
             }
           }
@@ -213,6 +214,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
             questionNumber: activeQuestion.questionNumber,
             retryCount: 0,
             attempt: recordingAttempt,
+            cause: result.error,
           });
         }
         recordingFailed();
@@ -235,6 +237,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
           questionNumber: activeQuestion.questionNumber,
           retryCount: 0,
           attempt: recordingAttempt,
+          cause: error,
         });
         recordingFailed();
       })

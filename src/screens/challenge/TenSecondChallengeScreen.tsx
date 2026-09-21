@@ -9,6 +9,8 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Text } from "@/components/ui/Text";
 import { AudioWaveform } from "@/features/audio/components/AudioWaveform";
 import { deleteRecordingFile } from "@/features/audio/recording-file";
+import { useIsScreenActive } from "@/features/audio/use-is-screen-active";
+import { useRecordingAudioSession } from "@/features/audio/use-recording-audio-session";
 import {
   isAttemptAlreadyTerminal,
   isProgressRefreshRequired,
@@ -115,10 +117,16 @@ export function TenSecondChallengeScreen({
     actions: {
       start: startRecorder,
       finish: finishRecorder,
+      discard: discardRecorder,
       resetForRetry: resetRecorderForRetry,
       transferOwnership: transferRecordingOwnership,
     },
   } = useChallengeRecorder();
+  const isScreenActive = useIsScreenActive();
+  useRecordingAudioSession({
+    isActive: isScreenActive,
+    suspendRecording: () => discardRecorder("owner-inactive"),
+  });
   /**
    * 서버가 확인해 준 날짜가 언제나 우선이다. route로 받은 값은 첫 조회의 힌트일 뿐이고,
    * 그마저 없으면 문제 조회가 오늘 진행도에서 날짜를 알아 온다.

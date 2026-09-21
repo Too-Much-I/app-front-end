@@ -32,7 +32,12 @@ export function ReanswerQuestionCard({
     () => (question.audioUrl ? getQuestionAudioSource(question.audioUrl) : null),
     [question.audioUrl],
   );
-  const player = useAudioPlayer(audioSource ?? null, { updateInterval: 200 });
+  // 같은 화면에서 답변 녹음이 돌기 때문에 이 player가 공유 AVAudioSession을 끄면 안 된다.
+  // docs/decisions/2026-08-21-ios-시험-오디오-세션.md
+  const player = useAudioPlayer(audioSource ?? null, {
+    updateInterval: 200,
+    keepAudioSessionActive: true,
+  });
   const playbackStatus = useAudioPlayerStatus(player);
   const isPlaying = playbackStatus.playing;
 

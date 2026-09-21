@@ -6,6 +6,8 @@ import { Image, Linking, View } from "react-native";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { AudioWaveform } from "@/features/audio/components/AudioWaveform";
+import { useIsScreenActive } from "@/features/audio/use-is-screen-active";
+import { useRecordingAudioSession } from "@/features/audio/use-recording-audio-session";
 import type { MockExamStackParamList } from "@/navigation/types";
 import { DeviceTestLayout } from "@/screens/mock-exam/components/DeviceTestLayout";
 import { useMicrophoneTest } from "@/screens/mock-exam/hooks/use-microphone-test";
@@ -35,8 +37,11 @@ export function MicrophoneTestScreen({ navigation }: MicrophoneTestScreenProps) 
     startRecording,
     togglePlayback,
     prepareToLeave,
+    suspendAudio,
     resetTest,
   } = useMicrophoneTest();
+  const isScreenActive = useIsScreenActive();
+  useRecordingAudioSession({ isActive: isScreenActive, suspendRecording: suspendAudio });
 
   const handleBack = useCallback(() => {
     prepareToLeave();
