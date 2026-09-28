@@ -11,7 +11,7 @@ import { colors, shadows, size } from "@/theme";
  * 배경색이 아니라 "화면에서 이 버튼이 무슨 무게인가"로 나눈다. 같은 주황이라도
  * 화면의 주 행동과 보조 행동은 다른 variant다.
  */
-type ButtonVariant = "primary" | "secondary" | "neutral" | "danger";
+type ButtonVariant = "primary" | "secondary" | "neutral" | "danger" | "text";
 
 /** 높이 단계. 값은 `tokens.js`의 `size.control`. */
 type ButtonSize = "sm" | "md" | "lg";
@@ -49,6 +49,12 @@ type ButtonProps = {
 };
 
 const VARIANT_STYLES = {
+  text: {
+    fill: "text",
+    container: "border border-transparent bg-transparent",
+    label: "!text-brand-text",
+    foreground: colors.brand.text,
+  },
   primary: {
     fill: "solid",
     container: "border border-transparent bg-brand-cta",
@@ -92,7 +98,7 @@ const VARIANT_STYLES = {
   },
 } as const satisfies Record<
   ButtonVariant,
-  { fill: "solid" | "outline"; container: string; label: string; foreground: string }
+  { fill: "solid" | "outline" | "text"; container: string; label: string; foreground: string }
 >;
 
 const SIZE_STYLES = {
@@ -117,6 +123,11 @@ const SIZE_STYLES = {
  * WCAG가 비활성 컨트롤을 대비 기준에서 빼주더라도 라벨은 정보다.
  */
 const DISABLED_STYLES = {
+  text: {
+    container: "border border-transparent bg-transparent",
+    label: "text-ink-disabled",
+    foreground: colors.ink.disabled,
+  },
   solid: {
     container: "border border-transparent bg-line",
     label: "text-ink-muted",

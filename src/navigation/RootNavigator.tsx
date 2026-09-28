@@ -1,4 +1,15 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import type { ReactElement } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useStore } from "zustand";
+
+import { useAuth } from "@/features/auth/auth-context";
+import type { createAuthCoordinatorDraft } from "@/features/auth/auth-coordinator.skeleton";
+import { useAuthBootstrap } from "@/features/auth/use-auth-bootstrap";
+import { LoginScreen, type LoginProviderChoice } from "@/screens/auth/LoginScreen";
+import { Text } from "@/components/ui/Text";
+import { colors } from "@/theme";
 
 import type { AuthBootstrapState } from "@/features/auth/types";
 import { MainTabNavigator } from "@/navigation/MainTabNavigator";
@@ -24,7 +35,7 @@ function isConsentFlow(state: AuthBootstrapState): boolean {
   );
 }
 
-export function RootNavigator({ state }: { state: AuthBootstrapState }) {
+function LegacyRootNavigator({ state }: { state: AuthBootstrapState }) {
   if (isConsentFlow(state)) {
     return (
       <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -39,13 +50,17 @@ export function RootNavigator({ state }: { state: AuthBootstrapState }) {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen
           name="AuthRecovery"
-          component={AuthRecoveryScreen}
+          component={LegacyAuthRecoveryRoute}
           options={{ gestureEnabled: false }}
         />
       </Stack.Navigator>
     );
   }
 
+  return <MemberRootNavigator />;
+}
+
+function MemberRootNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MainTabs" component={MainTabNavigator} />
@@ -67,4 +82,73 @@ export function RootNavigator({ state }: { state: AuthBootstrapState }) {
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
     </Stack.Navigator>
   );
+}
+
+function LegacyAuthRecoveryRoute() {
+  const { state, retry } = useAuth();
+  return (
+    <AuthRecoveryScreen
+      message={state.status === "RETRYABLE_ERROR" ? state.message : "인증 상태를 다시 확인하고 있습니다."}
+      isRetrying={state.status === "RETRYABLE_ERROR" && state.isRetrying === true}
+      onRetry={retry}
+    />
+  );
+}
+
+type CoordinatorNavigationProps = {
+  coordinator: ReturnType<typeof createAuthCoordinatorDraft>;
+  onSelectProvider: (provider: LoginProviderChoice) => void;
+  onBrowse: () => void;
+  onClose: () => void;
+};
+
+function CoordinatorRootNavigator({ coordinator, ...loginActions }: CoordinatorNavigationProps): ReactElement {
+  useAuthBootstrap(coordinator);
+  const state = useStore(coordinator, (snapshot) => snapshot.state);
+
+  switch (state.status) {
+    case "idle":
+    case "restoring":
+      return (
+        <View className="flex-1 items-center justify-center gap-content bg-surface-subtle">
+          <ActivityIndicator color={colors.brand.text} />
+          <Text accessibilityLiveRegion="polite">로그인 정보를 확인하고 있어요.</Text>
+        </View>
+      );
+    case "noSession":
+    case "guest":
+      return (
+        <Stack.Navigator key="login" screenOptions={{ headerShown: false, gestureEnabled: false }}>
+          <Stack.Screen name="AuthLogin">
+            {() => (
+              <SafeAreaView className="flex-1 bg-surface-subtle">
+                <LoginScreen {...loginActions} />
+              </SafeAreaView>
+            )}
+          </Stack.Screen>
+        </Stack.Navigator>
+      );
+    case "authenticated":
+      return <MemberRootNavigator />;
+    case "error":
+      return (
+        <Stack.Navigator key="recovery" screenOptions={{ headerShown: false, gestureEnabled: false }}>
+          <Stack.Screen name="AuthRecovery">
+            {() => (
+              <AuthRecoveryScreen
+                message={state.message}
+                isRetrying={state.isRetrying}
+                onRetry={coordinator.retry}
+              />
+            )}
+          </Stack.Screen>
+        </Stack.Navigator>
+      );
+  }
+}
+
+/** 기존 앱은 state 경로를 사용한다. 실제 복원 구현 준비 후 coordinator 경로로 전환한다. */
+export function RootNavigator(props: { state: AuthBootstrapState } | CoordinatorNavigationProps) {
+  if ("coordinator" in props) return <CoordinatorRootNavigator {...props} />;
+  return <LegacyRootNavigator state={props.state} />;
 }

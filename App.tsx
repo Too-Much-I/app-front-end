@@ -15,8 +15,10 @@ import { useAuth } from "@/features/auth/auth-context";
 import { AuthProvider } from "@/features/auth/AuthProvider";
 import { OrientationProvider } from "@/features/orientation/OrientationProvider";
 import { useOrientation } from "@/features/orientation/orientation-context";
+import { AuthPreviewNavigator } from "@/navigation/AuthPreviewNavigator";
 import { RootNavigator } from "@/navigation/RootNavigator";
 import type { RootStackParamList } from "@/navigation/types";
+import { IS_AUTH_UI_PREVIEW } from "@/lib/auth-ui-preview";
 import { trackScreenView } from "@/lib/amplitude";
 import { queryClient } from "@/lib/query-client";
 import { IS_SENTRY_VALIDATION_MODE } from "@/lib/sentry-validation-mode";
@@ -91,6 +93,8 @@ export default function App() {
     <SafeAreaProvider>
       {IS_SENTRY_VALIDATION_MODE ? (
         <SentryValidationAppContent />
+      ) : IS_AUTH_UI_PREVIEW ? (
+        <AuthPreviewNavigator />
       ) : (
         // 검증 모드는 화면 하나만 띄우고 서버 조회를 하지 않으므로 캐시도 필요 없다.
         <QueryClientProvider client={queryClient}>

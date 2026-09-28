@@ -3,6 +3,13 @@ import type { NavigatorScreenParams } from "@react-navigation/native";
 import type { ChallengeInitialResult } from "@/types/challenge";
 import type { ExamSession } from "@/types/exam";
 
+/** 개발용 화면 미리보기. 인증 정보와 전화번호는 navigation params에 넣지 않는다. */
+export type AuthPreviewStackParamList = {
+  LoginPreview: undefined;
+  SignupProfilePreview: undefined;
+  PhoneVerificationPreview: undefined;
+};
+
 export type MainTabParamList = {
   Home: undefined;
   MockExam: undefined;
@@ -25,6 +32,8 @@ export type MockExamStackParamList = {
 };
 
 export type RootStackParamList = {
+  /** 세션 없음·기존 Guest의 SNS 로그인 진입점. */
+  AuthLogin: undefined;
   /**
    * 신규 Guest 동의 또는 서버가 요구한 기존 사용자 재동의를 받는 인증 게이트.
    * 현재 AuthBootstrapState에 따라 controller가 이 route의 노출을 결정한다.
