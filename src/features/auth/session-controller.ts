@@ -11,10 +11,11 @@ import {
 } from "@/features/auth/auth-restoration-storage";
 import {
   SessionRestorationError,
+  SessionRequestError,
   type AuthRestorationRecord,
   type AuthSessionRestoreResult,
 } from "@/features/auth/session-restoration-types";
-import type { AuthSession } from "@/features/auth/types";
+import type { AuthSession, RequestAuthSnapshot } from "@/features/auth/types";
 
 // 기존 요청 경로와 동일하게 만료 1분 전부터 재발급한다.
 const RESTORE_REFRESH_WINDOW_MS = 60_000;
@@ -61,6 +62,8 @@ export function createSessionController(
   let progress: RestorationProgress = { step: "read" };
   let activeSession: AuthSession | null = null;
   let pending: Promise<AuthSessionRestoreResult> | null = null;
+  let generation = 0;
+  const listeners = new Set<(result: AuthSessionRestoreResult) => void>();
 
   function prepareRefresh(session: AuthSession): void {
     progress = {
@@ -163,6 +166,7 @@ export function createSessionController(
               session.accessToken,
             );
             activeSession = session;
+            generation += 1;
             return { kind: "ready", accountType };
           }
           case "clear-session":
@@ -190,11 +194,74 @@ export function createSessionController(
 
   function restore(): Promise<AuthSessionRestoreResult> {
     if (pending) return pending;
-    pending = runRestore().finally(() => {
-      pending = null;
-    });
+    pending = runRestore()
+      .then((result) => {
+        listeners.forEach((listener) => listener(result));
+        return result;
+      })
+      .finally(() => {
+        pending = null;
+      });
     return pending;
   }
 
-  return { restore, getSession: (): AuthSession | null => activeSession };
+  async function prepareRequest(): Promise<RequestAuthSnapshot> {
+    if (
+      pending ||
+      !activeSession ||
+      activeSession.accessTokenExpiresAt - dependencies.now() <=
+        RESTORE_REFRESH_WINDOW_MS
+    ) {
+      const result = await restore();
+      if (result.kind !== "ready") throw new SessionRequestError(result);
+    }
+    if (!activeSession)
+      throw new SessionRequestError({ kind: "login-required" });
+    return { accessToken: activeSession.accessToken, generation };
+  }
+
+  async function recoverUnauthorized(
+    usedGeneration: number,
+    code?: string,
+  ): Promise<RequestAuthSnapshot> {
+    if (pending) {
+      const result = await pending;
+      if (result.kind !== "ready") throw new SessionRequestError(result);
+    } else if (generation === usedGeneration && activeSession) {
+      if (
+        code === "ACCOUNT_MERGED_TOKEN_REJECTED" ||
+        code === "WITHDRAWAL_CLEANUP_PENDING"
+      ) {
+        progress = {
+          step: "blocked",
+          result: classifyAuthRecovery(
+            new SessionRestorationError("unexpected"),
+          ),
+        };
+      } else {
+        // 기존 읽기 API의 401 복구는 한 번만 허용한다. 동시에 실패한 요청은 세대를 공유한다.
+        prepareRefresh(activeSession);
+      }
+      const result = await restore();
+      if (result.kind !== "ready") throw new SessionRequestError(result);
+    }
+    return prepareRequest();
+  }
+
+  function subscribeRestoration(
+    listener: (result: AuthSessionRestoreResult) => void,
+  ): () => void {
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  }
+
+  return {
+    restore,
+    prepareRequest,
+    recoverUnauthorized,
+    subscribeRestoration,
+    getSession: (): AuthSession | null => activeSession,
+  };
 }

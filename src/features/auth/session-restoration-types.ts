@@ -38,3 +38,16 @@ export class SessionRestorationError extends Error {
     this.name = "SessionRestorationError";
   }
 }
+
+/** API 호출은 복구 결과를 전달하고, 토큰·서버 응답 원문은 오류에 담지 않는다. */
+export class SessionRequestError extends Error {
+  constructor(
+    public readonly result: Exclude<
+      AuthSessionRestoreResult,
+      { kind: "ready" }
+    >,
+  ) {
+    super("요청에 사용할 인증 세션이 준비되지 않았습니다.");
+    this.name = "SessionRequestError";
+  }
+}

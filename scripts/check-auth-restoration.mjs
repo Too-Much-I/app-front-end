@@ -14,7 +14,19 @@ const disk = new Map();
 let failRead = false;
 let failWrite = false;
 let failDelete = false;
+let failConsentWrite = false;
 const mocks = {
+  "@react-native-async-storage/async-storage": {
+    __esModule: true,
+    default: {
+      getItem: async (key) => disk.get(key) ?? null,
+      setItem: async (key, value) => {
+        if (key === "consent-record" && failConsentWrite)
+          throw new Error("write");
+        disk.set(key, value);
+      },
+    },
+  },
   "expo-crypto": { randomUUID: () => "test-request-id" },
   "react-native": { Platform: { OS: "ios" } },
   "expo-secure-store": {
@@ -60,7 +72,7 @@ const { createSessionController } = load(
   "src/features/auth/session-controller.ts",
 );
 const { createAuthCoordinator } = load("src/features/auth/auth-coordinator.ts");
-const { SessionRestorationError } = load(
+const { SessionRestorationError, SessionRequestError } = load(
   "src/features/auth/session-restoration-types.ts",
 );
 const { ApiError, TransportConnectionError, serviceFetch } = load(
@@ -368,7 +380,111 @@ await check("문의 입력 경계: 공백·선택 이메일·형식·길이", as
   );
 });
 
+await check("동시 401 및 늦은 401은 같은 재발급 결과를 공유", async () => {
+  const h = harness();
+  const c = h.create();
+  const initial = await c.prepareRequest();
+  const results = await Promise.all([
+    c.recoverUnauthorized(initial.generation),
+    c.recoverUnauthorized(initial.generation),
+  ]);
+  assert.deepEqual(results[0], results[1]);
+  assert.equal(results[0].accessToken, "new-access");
+  await c.recoverUnauthorized(initial.generation);
+  assert.equal(h.calls.reissue.length, 1);
+});
+await check("요청 준비 중 저장 실패는 새 토큰 저장부터 재개", async () => {
+  const h = harness();
+  const c = h.create();
+  await c.prepareRequest();
+  h.advance(70_000);
+  const write = h.deps.write;
+  h.deps.write = async (record) => {
+    if (record.phase === "active") throw new SessionRestorationError("storage");
+    return write(record);
+  };
+  await assert.rejects(
+    c.prepareRequest(),
+    (e) => e instanceof SessionRequestError && e.result.reason === "storage",
+  );
+  h.deps.write = write;
+  assert.equal((await c.prepareRequest()).accessToken, "new-access");
+  assert.equal(h.calls.reissue.length, 1);
+});
+const consentItem = {
+  currentVersion: "v2",
+  consentedVersion: "v1",
+  consentedAt: new Date(now).toISOString(),
+  requiresConsent: true,
+};
+const consentRequired = {
+  privacy: consentItem,
+  terms: consentItem,
+  qualityReview: { ...consentItem, consented: false },
+};
+const consentDone = {
+  ...consentRequired,
+  privacy: { ...consentItem, requiresConsent: false },
+  terms: { ...consentItem, requiresConsent: false },
+};
+await check("회원 복원 후 재동의와 조회 재시도 / 무효 세션 전파", async () => {
+  let calls = 0;
+  const c = createAuthCoordinator(
+    { restore: async () => ({ kind: "ready", accountType: "MEMBER" }) },
+    {
+      load: async () => {
+        if (++calls === 1) throw new TransportConnectionError();
+        return consentRequired;
+      },
+      accept: async () => consentDone,
+    },
+  );
+  await c.bootstrap();
+  assert.equal(c.getState().state.nextAction, "retry-consent-check");
+  await c.retry();
+  assert.equal(c.getState().state.status, "consent");
+  await c.acceptConsent(false);
+  assert.equal(c.getState().state.status, "authenticated");
+  c.handleSessionResult({ kind: "login-required" });
+  assert.equal(c.getState().state.status, "noSession");
+  const invalid = createAuthCoordinator(
+    { restore: async () => ({ kind: "ready", accountType: "MEMBER" }) },
+    {
+      load: async () => {
+        throw new SessionRequestError({ kind: "login-required" });
+      },
+      accept: async () => consentDone,
+    },
+  );
+  await invalid.bootstrap();
+  assert.equal(invalid.getState().state.status, "noSession");
+});
+await check(
+  "동의 제출 중 세션 무효화 뒤 늦은 성공이 메인을 열지 않음",
+  async () => {
+    let finish;
+    const c = createAuthCoordinator(
+      { restore: async () => ({ kind: "ready", accountType: "MEMBER" }) },
+      {
+        load: async () => consentRequired,
+        accept: () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          }),
+      },
+    );
+    await c.bootstrap();
+    const submission = c.acceptConsent(false);
+    c.handleSessionResult({ kind: "login-required" });
+    finish(consentDone);
+    await submission;
+    assert.equal(c.getState().state.status, "noSession");
+  },
+);
+
 const originalFetch = globalThis.fetch;
+const originalLearningBase = process.env.EXPO_PUBLIC_LEARNING_API_BASE_URL;
+process.env.EXPO_PUBLIC_LEARNING_API_BASE_URL = "https://learning.example.test";
 const originalBase = process.env.EXPO_PUBLIC_IDENTITY_API_BASE_URL;
 process.env.EXPO_PUBLIC_IDENTITY_API_BASE_URL = "https://identity.example.test";
 const envelope = (result) => ({
@@ -378,6 +494,66 @@ const envelope = (result) => ({
   result,
 });
 try {
+  await check(
+    "공용 API 읽기 401 한 번 재시도 / 쓰기는 자동 재전송하지 않음",
+    async () => {
+      const { createAuthenticatedApiClient } = load(
+        "src/lib/api/authenticated-client.ts",
+      );
+      const h = harness();
+      const client = createAuthenticatedApiClient(h.create());
+      let requests = 0;
+      globalThis.fetch = async (_url, init) => {
+        requests++;
+        if (init.headers.Authorization === "Bearer old-access")
+          return new Response("", { status: 401 });
+        return new Response(JSON.stringify(envelope({ ok: true })));
+      };
+      assert.equal(
+        (await client.apiFetchWithAuthRetry("/read")).result.ok,
+        true,
+      );
+      assert.equal(requests, 2);
+      assert.equal(h.calls.reissue.length, 1);
+      requests = 0;
+      globalThis.fetch = async () => {
+        requests++;
+        return new Response("", { status: 401 });
+      };
+      await assert.rejects(client.apiFetchWithAuthRetry("/read"));
+      assert.equal(requests, 2);
+      requests = 0;
+      await assert.rejects(client.apiFetch("/write", { method: "POST" }));
+      assert.equal(requests, 1);
+    },
+  );
+  await check(
+    "동의 PUT 성공 후 로컬 저장 실패는 PUT 반복 없이 복구",
+    async () => {
+      const { createAuthConsentController } = load(
+        "src/features/auth/auth-consent-controller.ts",
+      );
+      let status = consentRequired;
+      let puts = 0;
+      globalThis.fetch = async (_url, init) => {
+        if (init.method === "PUT") {
+          puts++;
+          status = consentDone;
+        }
+        return new Response(JSON.stringify(envelope(status)));
+      };
+      const consent = createAuthConsentController(harness().create());
+      await consent.load();
+      failConsentWrite = true;
+      await assert.rejects(
+        consent.accept(false),
+        (e) => e.reason === "storage",
+      );
+      failConsentWrite = false;
+      assert.deepEqual(await consent.accept(false), consentDone);
+      assert.equal(puts, 1);
+    },
+  );
   await check("재전달 절대 만료 헤더 사용 및 누락 감지", async () => {
     let sent;
     const pair = {
@@ -454,6 +630,9 @@ try {
   );
 } finally {
   globalThis.fetch = originalFetch;
+  if (originalLearningBase === undefined)
+    delete process.env.EXPO_PUBLIC_LEARNING_API_BASE_URL;
+  else process.env.EXPO_PUBLIC_LEARNING_API_BASE_URL = originalLearningBase;
   if (originalBase === undefined)
     delete process.env.EXPO_PUBLIC_IDENTITY_API_BASE_URL;
   else process.env.EXPO_PUBLIC_IDENTITY_API_BASE_URL = originalBase;

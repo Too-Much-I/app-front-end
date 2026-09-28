@@ -2,7 +2,7 @@ import {
   createNativeStackNavigator,
   type NativeStackScreenProps,
 } from "@react-navigation/native-stack";
-import type { ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useStore } from "zustand";
@@ -49,7 +49,7 @@ function LegacyRootNavigator({ state }: { state: AuthBootstrapState }) {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen
           name="Consent"
-          component={ConsentScreen}
+          component={LegacyConsentRoute}
           options={{ gestureEnabled: false }}
         />
         <Stack.Screen
@@ -97,6 +97,49 @@ function MemberRootNavigator() {
       <Stack.Screen name="SettingsWebView" component={SettingsWebViewScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
     </Stack.Navigator>
+  );
+}
+
+function LegacyConsentRoute(
+  props: NativeStackScreenProps<RootStackParamList, "Consent">,
+) {
+  const { state, acceptConsent, retry, setPendingQualityReviewConsent } =
+    useAuth();
+  const [requirements] = useState(() =>
+    state.status === "CONSENT_REQUIRED"
+      ? state.requiredItems
+      : { privacy: true, terms: true },
+  );
+  const [mode] = useState(() =>
+    state.status === "CONSENT_REQUIRED" ? state.mode : "new",
+  );
+  return (
+    <ConsentScreen
+      {...props}
+      mode={mode}
+      requiredItems={requirements}
+      isSubmitting={
+        state.status === "GUEST_RECOVERING" ||
+        state.status === "CONSENT_UPDATING" ||
+        (state.status === "RETRYABLE_ERROR" &&
+          state.source === "consent-submit" &&
+          state.isRetrying === true)
+      }
+      submitError={
+        state.status === "RETRYABLE_ERROR" && state.source === "consent-submit"
+          ? state.message
+          : null
+      }
+      onAccept={async (quality) => {
+        setPendingQualityReviewConsent(quality);
+        if (
+          state.status === "RETRYABLE_ERROR" &&
+          state.source === "consent-submit"
+        )
+          await retry();
+        else await acceptConsent();
+      }}
+    />
   );
 }
 
@@ -163,6 +206,35 @@ function CoordinatorRootNavigator({
       );
     case "authenticated":
       return <MemberRootNavigator />;
+    case "consent":
+      return (
+        <Stack.Navigator
+          key="consent"
+          screenOptions={{ headerShown: false, gestureEnabled: false }}
+        >
+          <Stack.Screen name="Consent">
+            {(props) => (
+              <ConsentScreen
+                {...props}
+                mode="existing"
+                requiredItems={state.requiredItems}
+                qualityReviewConsented={state.qualityReviewConsented}
+                isSubmitting={state.submission.status === "submitting"}
+                submitError={
+                  state.submission.status === "failed"
+                    ? state.submission.message
+                    : null
+                }
+                onAccept={coordinator.acceptConsent}
+              />
+            )}
+          </Stack.Screen>
+          <Stack.Screen
+            name="SettingsWebView"
+            component={SettingsWebViewScreen}
+          />
+        </Stack.Navigator>
+      );
     case "error":
       return (
         <Stack.Navigator

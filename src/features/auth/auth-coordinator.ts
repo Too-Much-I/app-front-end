@@ -1,12 +1,14 @@
+import type { ServerConsentStatus } from "@/features/auth/types";
 import { createStore } from "zustand/vanilla";
 
 import {
   AUTH_RECOVERY_MESSAGES,
   classifyAuthRecovery,
 } from "@/features/auth/auth-recovery";
-import type {
-  AuthRecoveryReason,
-  AuthSessionRestoreResult,
+import {
+  SessionRequestError,
+  type AuthRecoveryReason,
+  type AuthSessionRestoreResult,
 } from "@/features/auth/session-restoration-types";
 
 /**
@@ -27,10 +29,19 @@ export type AuthCoordinatorState =
   | { status: "guest" }
   | { status: "authenticated" }
   | {
+      status: "consent";
+      requiredItems: { privacy: boolean; terms: boolean };
+      qualityReviewConsented: boolean;
+      submission:
+        | { status: "idle" }
+        | { status: "submitting" }
+        | { status: "failed"; message: string };
+    }
+  | {
       status: "error";
       message: string;
       reason: AuthRecoveryReason;
-      nextAction: "retry-session-restore" | "get-help";
+      nextAction: "retry-session-restore" | "retry-consent-check" | "get-help";
       isRetrying: boolean;
     };
 
@@ -64,18 +75,122 @@ function resolveAuthRestoration(
   }
 }
 
-export function createAuthCoordinator(sessionController: AuthSessionRestorer) {
+interface MemberConsentGate {
+  load: () => Promise<ServerConsentStatus>;
+  accept: (qualityReview: boolean) => Promise<ServerConsentStatus>;
+}
+
+export function createAuthCoordinator(
+  sessionController: AuthSessionRestorer,
+  consentGate?: MemberConsentGate,
+) {
   // 상태는 한 벌만 두고, 외부에는 구독·읽기와 도메인 액션만 노출한다.
   const store = createStore<{ state: AuthCoordinatorState }>(() => ({
     state: { status: "idle" },
   }));
   let restorationPromise: Promise<void> | null = null;
+  let flowGeneration = 0;
+
+  function consentState(status: ServerConsentStatus): AuthCoordinatorState {
+    if (!status.privacy.requiresConsent && !status.terms.requiresConsent)
+      return { status: "authenticated" };
+    return {
+      status: "consent",
+      requiredItems: {
+        privacy: status.privacy.requiresConsent,
+        terms: status.terms.requiresConsent,
+      },
+      qualityReviewConsented: status.qualityReview.consented,
+      submission: { status: "idle" },
+    };
+  }
+
+  async function checkMemberConsent(run: number): Promise<void> {
+    if (!consentGate) {
+      store.setState({ state: { status: "authenticated" } });
+      return;
+    }
+    try {
+      const status = await consentGate.load();
+      if (run === flowGeneration)
+        store.setState({ state: consentState(status) });
+    } catch (error) {
+      if (run !== flowGeneration) return;
+      const state = resolveAuthRestoration(
+        error instanceof SessionRequestError
+          ? error.result
+          : classifyAuthRecovery(error),
+      );
+      store.setState({
+        state:
+          !(error instanceof SessionRequestError) &&
+          state.status === "error" &&
+          state.nextAction === "retry-session-restore"
+            ? { ...state, nextAction: "retry-consent-check" }
+            : state,
+      });
+    }
+  }
+
+  async function acceptConsent(qualityReview: boolean): Promise<void> {
+    const { state } = store.getState();
+    if (
+      !consentGate ||
+      state.status !== "consent" ||
+      state.submission.status === "submitting"
+    )
+      return;
+    const run = flowGeneration;
+    store.setState({
+      state: { ...state, submission: { status: "submitting" } },
+    });
+    try {
+      const status = await consentGate.accept(qualityReview);
+      if (run === flowGeneration)
+        store.setState({ state: consentState(status) });
+    } catch (error) {
+      if (run !== flowGeneration) return;
+      if (error instanceof SessionRequestError) {
+        store.setState({ state: resolveAuthRestoration(error.result) });
+        return;
+      }
+      const result = classifyAuthRecovery(error);
+      store.setState({
+        state:
+          result.action === "get-help"
+            ? resolveAuthRestoration(result)
+            : {
+                ...state,
+                submission: {
+                  status: "failed",
+                  message: AUTH_RECOVERY_MESSAGES[result.reason],
+                },
+              },
+      });
+    }
+  }
+
+  function handleSessionResult(result: AuthSessionRestoreResult): void {
+    const { state } = store.getState();
+    if (state.status !== "authenticated" && state.status !== "consent") return;
+    if (result.kind === "ready" && result.accountType === "MEMBER") return;
+    // 일시적인 요청 실패는 현재 화면에서 처리한다. 세션 무효·복구 불가는 루트로 전달한다.
+    if (result.kind === "recovery-required" && result.action === "retry")
+      return;
+    flowGeneration += 1;
+    store.setState({ state: resolveAuthRestoration(result) });
+  }
 
   async function restoreAndUpdate(): Promise<void> {
+    const run = flowGeneration;
     try {
       const result = await sessionController.restore();
-      store.setState({ state: resolveAuthRestoration(result) });
+      if (run !== flowGeneration) return;
+      if (result.kind === "ready" && result.accountType === "MEMBER")
+        await checkMemberConsent(run);
+      else store.setState({ state: resolveAuthRestoration(result) });
     } catch (error) {
+      if (run !== flowGeneration) return;
       store.setState({
         state: resolveAuthRestoration(classifyAuthRecovery(error)),
       });
@@ -108,6 +223,12 @@ export function createAuthCoordinator(sessionController: AuthSessionRestorer) {
     switch (action) {
       case "get-help":
         return Promise.resolve();
+      case "retry-consent-check":
+        store.setState({ state: { ...state, isRetrying: true } });
+        restorationPromise = checkMemberConsent(flowGeneration).finally(() => {
+          restorationPromise = null;
+        });
+        return restorationPromise;
       case "retry-session-restore":
         // 재시도 중에는 오류 화면을 유지하고 버튼을 비활성화하는 안이다.
         store.setState({ state: { ...state, isRetrying: true } });
@@ -124,6 +245,8 @@ export function createAuthCoordinator(sessionController: AuthSessionRestorer) {
     subscribe: store.subscribe,
     bootstrap,
     retry,
+    acceptConsent,
+    handleSessionResult,
   };
 }
 
@@ -131,6 +254,7 @@ export function createAuthCoordinator(sessionController: AuthSessionRestorer) {
  * RootNavigator에서 표현할 UI 대응(여기서 router.replace를 호출하지 않는다):
  * idle / restoring → 초기 로딩
  * noSession / guest → 로그인(이후 exchange/prepare 분기를 위해 상태는 구분)
+ * consent → 필수 약관 재동의
  * authenticated → 메인
  * error → 안내·재시도 버튼. isRetrying이면 진행 표시 및 버튼 비활성화
  *

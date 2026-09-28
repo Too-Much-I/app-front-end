@@ -2,12 +2,14 @@ import { Feather } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useRef, useState } from "react";
 import { Image, ScrollView, View } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
-import { useAuth } from "@/features/auth/auth-context";
 import {
   createOptionalConsentRecord,
   getStoredOptionalConsent,
@@ -20,37 +22,50 @@ import { colors, shadows } from "@/theme";
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
 const consentMascot = require("../../../public/mascots/start_rabbit.png");
 
-type ConsentScreenProps = NativeStackScreenProps<RootStackParamList, "Consent">;
+type ConsentScreenProps = NativeStackScreenProps<
+  RootStackParamList,
+  "Consent"
+> & {
+  mode: "new" | "existing";
+  requiredItems: { privacy: boolean; terms: boolean };
+  qualityReviewConsented?: boolean;
+  isSubmitting: boolean;
+  submitError: string | null;
+  onAccept: (qualityReviewConsented: boolean) => Promise<void>;
+};
 
 type RequiredItemKey = "privacy" | "terms";
 
 const COLLECTION_TABLE_ROWS: Array<{ label: string; value: string }> = [
   { label: "수집 항목", value: "기기 정보, 앱 사용 기록(점수, 녹음 기록 등)" },
   { label: "이용 목적", value: "모의고사 제공, 피드백 분석, 서비스 개선" },
-  { label: "보유 기간", value: "앱 삭제 시까지 (사용자가 데이터 삭제 시 즉시 삭제)" },
+  {
+    label: "보유 기간",
+    value: "앱 삭제 시까지 (사용자가 데이터 삭제 시 즉시 삭제)",
+  },
 ];
 
 const QUALITY_REVIEW_LABEL = "채점 품질 개선을 위한 답변 검토";
 const QUALITY_REVIEW_DESCRIPTION =
   "채점이 잘못되거나 오류가 났을 때 담당자가 해당 답변 음성과 전사문을 직접 확인해 원인을 찾습니다. 동의하지 않아도 모의고사 응시와 채점 결과 확인에는 제한이 없어요.";
 
-export function ConsentScreen({ navigation }: ConsentScreenProps) {
-  const { acceptConsent, retry, setPendingQualityReviewConsent, state } = useAuth();
-  // 하단 고정 영역이 SafeAreaView 밖에 있으므로 제스처 바 여백을 직접 먹는다.
+export function ConsentScreen({
+  navigation,
+  mode,
+  requiredItems,
+  qualityReviewConsented,
+  isSubmitting,
+  submitError,
+  onAccept,
+}: ConsentScreenProps) {
   const insets = useSafeAreaInsets();
-  const [mode] = useState(() =>
-    state.status === "CONSENT_REQUIRED" ? state.mode : "new",
-  );
-  const [requiredItems] = useState(() =>
-    state.status === "CONSENT_REQUIRED"
-      ? state.requiredItems
-      : { privacy: true, terms: true },
-  );
   const [checked, setChecked] = useState<Record<RequiredItemKey, boolean>>({
     privacy: !requiredItems.privacy,
     terms: !requiredItems.terms,
   });
-  const [qualityReviewChecked, setQualityReviewChecked] = useState(false);
+  const [qualityReviewChecked, setQualityReviewChecked] = useState(
+    qualityReviewConsented ?? false,
+  );
   // 저장값 로드가 늦게 도착해도 이용자가 이미 만진 선택을 덮지 않게 표시해 둔다.
   const hasUserChosenQualityReview = useRef(false);
   // `isSubmitting`은 acceptConsent가 setState를 부른 뒤에야 켜진다. 그전에 await가
@@ -71,6 +86,7 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
   // 그 선택을 유지한 채로 보여준다. 저장값이 없으면 기본값 false를 그대로 쓴다.
   // 읽기가 끝나기 전에 이용자가 먼저 선택했다면 그쪽이 최신이므로 건드리지 않는다.
   useEffect(() => {
+    if (qualityReviewConsented !== undefined) return;
     let cancelled = false;
     void getStoredOptionalConsent().then((record) => {
       if (!cancelled && record && !hasUserChosenQualityReview.current) {
@@ -80,18 +96,7 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
     return () => {
       cancelled = true;
     };
-  }, []);
-  const isSubmitting =
-    state.status === "GUEST_RECOVERING" ||
-    state.status === "CONSENT_UPDATING" ||
-    (state.status === "RETRYABLE_ERROR" &&
-      state.source === "consent-submit" &&
-      state.isRetrying === true);
-  const submitError =
-    state.status === "RETRYABLE_ERROR" && state.source === "consent-submit"
-      ? state.message
-      : null;
-
+  }, [qualityReviewConsented]);
   const toggle = (key: RequiredItemKey) => {
     setChecked((prev) => ({ ...prev, [key]: !prev[key] }));
   };
@@ -145,7 +150,9 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
    */
   const persistQualityReviewChoice = async () => {
     try {
-      await persistOptionalConsent(createOptionalConsentRecord(qualityReviewChecked));
+      await persistOptionalConsent(
+        createOptionalConsentRecord(qualityReviewChecked),
+      );
     } catch {
       // 선택 동의 저장 실패는 이용자에게 알리지 않고 넘어간다.
     }
@@ -167,14 +174,8 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
       }
       // 저장소가 아니라 컨트롤러 메모리로 선택을 넘긴다. 저장이 실패해도 이번
       // 제출에는 화면에 보이던 선택이 그대로 실린다.
-      setPendingQualityReviewConsent(qualityReviewChecked);
-      // acceptConsent()가 성공하면 화면이 곧바로 벗어나므로 그 전에 저장한다.
       await persistQualityReviewChoice();
-      if (submitError) {
-        await retry();
-        return;
-      }
-      await acceptConsent();
+      await onAccept(qualityReviewChecked);
     } finally {
       isSubmittingRef.current = false;
     }
@@ -182,15 +183,23 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
 
   // 선택 항목을 끄고도 시작할 수 있으므로 "모두 동의하고"라고 쓰지 않는다.
   // 일괄 동의는 위쪽 "약관 전체 동의" 행이 담당한다.
-  const idleButtonLabel = mode === "existing" ? "동의하고 계속하기" : "동의하고 시작하기";
-  const busyButtonLabel = mode === "existing" ? "동의 반영 중..." : "시작하는 중...";
+  const idleButtonLabel =
+    mode === "existing" ? "동의하고 계속하기" : "동의하고 시작하기";
+  const busyButtonLabel =
+    mode === "existing" ? "동의 반영 중..." : "시작하는 중...";
 
   return (
     // bottom edge는 SafeAreaView가 아니라 아래 고정 영역이 직접 처리한다.
     <SafeAreaView edges={["top"]} className="flex-1 bg-surface-subtle">
-      <ScrollView className="flex-1" contentContainerClassName="px-screen pb-6 pt-8">
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="px-screen pb-6 pt-8"
+      >
         <Text className="text-center text-lg">토선생과 함께하는</Text>
-        <Text className="text-center text-3xl" style={{ color: colors.brand.text }}>
+        <Text
+          className="text-center text-3xl"
+          style={{ color: colors.brand.text }}
+        >
           토익스피킹 연습
         </Text>
         <Text className="mt-2 text-center text-sm text-ink-muted">
@@ -258,8 +267,12 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
               <View className="mt-3 gap-2 rounded-2xl bg-surface-muted p-card">
                 {COLLECTION_TABLE_ROWS.map((row) => (
                   <View className="flex-row" key={row.label}>
-                    <Text className="w-20 text-xs text-ink-muted">{row.label}</Text>
-                    <Text className="flex-1 text-xs leading-5">{row.value}</Text>
+                    <Text className="w-20 text-xs text-ink-muted">
+                      {row.label}
+                    </Text>
+                    <Text className="flex-1 text-xs leading-5">
+                      {row.value}
+                    </Text>
                   </View>
                 ))}
               </View>
@@ -291,7 +304,6 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
             onToggle={() => chooseQualityReview(!qualityReviewChecked)}
           />
         </View>
-
       </ScrollView>
 
       {/*
@@ -317,14 +329,23 @@ export function ConsentScreen({ navigation }: ConsentScreenProps) {
         <View className="px-screen pb-3 pt-3">
           {/* 버튼 위에 둔다. 아래에 두면 에러가 뜰 때 버튼이 위로 밀려 누르던 자리가 바뀐다. */}
           {submitError ? (
-            <Text accessibilityRole="alert" className="mb-3 text-center text-sm text-ink-muted">
+            <Text
+              accessibilityRole="alert"
+              className="mb-3 text-center text-sm text-ink-muted"
+            >
               {submitError}
             </Text>
           ) : null}
           <Button
             accessibilityLabel={idleButtonLabel}
             disabled={!allChecked}
-            label={isSubmitting ? busyButtonLabel : submitError ? "다시 시도하기" : idleButtonLabel}
+            label={
+              isSubmitting
+                ? busyButtonLabel
+                : submitError
+                  ? "다시 시도하기"
+                  : idleButtonLabel
+            }
             loading={isSubmitting}
             size="lg"
             onPress={handleStart}
@@ -373,7 +394,9 @@ function OptionalRow({
           <Text className="text-xs text-ink-muted">(선택)</Text>
         </View>
       </View>
-      <Text className="mt-2 pl-7 text-xs leading-5 text-ink-muted">{description}</Text>
+      <Text className="mt-2 pl-7 text-xs leading-5 text-ink-muted">
+        {description}
+      </Text>
     </Pressable>
   );
 }
@@ -445,7 +468,11 @@ function RequiredRow({
           (필수)
         </Text>
       </View>
-      <Pressable accessibilityLabel={`${label} 자세히 보기`} hitSlop={8} onPress={onPressDetail}>
+      <Pressable
+        accessibilityLabel={`${label} 자세히 보기`}
+        hitSlop={8}
+        onPress={onPressDetail}
+      >
         <Feather color={colors.ink.disabled} name="chevron-right" size={20} />
       </Pressable>
     </View>
