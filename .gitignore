@@ -50,3 +50,6 @@ web-build
 .agents/*
 !.agents/skills/
 !.agents/skills/**
+
+# Firebase project files are local; EAS uses file environment variables.
+/config/firebase/
