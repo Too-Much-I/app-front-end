@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useStore } from "zustand";
 
 import { useAuth } from "@/features/auth/auth-context";
-import type { createAuthCoordinatorDraft } from "@/features/auth/auth-coordinator.skeleton";
+import type { createAuthCoordinator } from "@/features/auth/auth-coordinator";
 import { useAuthBootstrap } from "@/features/auth/use-auth-bootstrap";
 import { LoginScreen, type LoginProviderChoice } from "@/screens/auth/LoginScreen";
 import { Text } from "@/components/ui/Text";
@@ -96,7 +96,7 @@ function LegacyAuthRecoveryRoute() {
 }
 
 type CoordinatorNavigationProps = {
-  coordinator: ReturnType<typeof createAuthCoordinatorDraft>;
+  coordinator: ReturnType<typeof createAuthCoordinator>;
   onSelectProvider: (provider: LoginProviderChoice) => void;
   onBrowse: () => void;
   onClose: () => void;

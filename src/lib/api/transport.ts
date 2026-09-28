@@ -8,6 +8,13 @@ export type JsonRequestInit = Omit<RequestInit, "body"> & {
   body?: string;
 };
 
+export class TransportConnectionError extends Error {
+  constructor() {
+    super("서버에 연결하지 못했습니다.");
+    this.name = "TransportConnectionError";
+  }
+}
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -29,7 +36,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function parseEnvelope(value: unknown): ApiErrorPayload | ApiEnvelope<unknown> | null {
+function parseEnvelope(
+  value: unknown,
+): ApiErrorPayload | ApiEnvelope<unknown> | null {
   if (!isRecord(value) || typeof value.isSuccess !== "boolean") {
     return null;
   }
@@ -58,17 +67,24 @@ async function parseResponseBody(response: Response): Promise<unknown> {
 function createApiError(response: Response, body: unknown): ApiError {
   const envelope = parseEnvelope(body);
   const message =
-    envelope?.message || response.statusText || (typeof body === "string" ? body : "") ||
+    envelope?.message ||
+    response.statusText ||
+    (typeof body === "string" ? body : "") ||
     FALLBACK_ERROR_MESSAGE;
 
-  return new ApiError(response.status, message, envelope?.code, envelope?.result);
+  return new ApiError(
+    response.status,
+    message,
+    envelope?.code,
+    envelope?.result,
+  );
 }
 
-export async function serviceFetch<T>(
+export async function serviceFetchWithMetadata<T>(
   url: string,
   init: JsonRequestInit = {},
   timeoutMs: number = DEFAULT_TIMEOUT_MS,
-): Promise<ApiEnvelope<T>> {
+): Promise<{ envelope: ApiEnvelope<T>; headers: Headers }> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const callerSignal = init.signal;
@@ -84,7 +100,9 @@ export async function serviceFetch<T>(
     const response = await fetch(url, {
       ...init,
       headers: {
-        ...(init.body === undefined ? {} : { "Content-Type": "application/json" }),
+        ...(init.body === undefined
+          ? {}
+          : { "Content-Type": "application/json" }),
         ...init.headers,
       },
       signal: controller.signal,
@@ -110,12 +128,31 @@ export async function serviceFetch<T>(
           envelope.result,
         );
       }
-      throw new ApiError(response.status, "서버 응답 형식이 올바르지 않습니다.");
+      throw new ApiError(
+        response.status,
+        "서버 응답 형식이 올바르지 않습니다.",
+      );
     }
 
-    return envelope as ApiEnvelope<T>;
+    return { envelope: envelope as ApiEnvelope<T>, headers: response.headers };
+  } catch (error) {
+    if (callerSignal?.aborted) throw error;
+    if (error instanceof TypeError || controller.signal.aborted) {
+      throw new TransportConnectionError();
+    }
+    throw error;
   } finally {
     clearTimeout(timeoutId);
     callerSignal?.removeEventListener("abort", abortFromCaller);
   }
+}
+
+/** 일반 호출자는 기존처럼 envelope만 사용한다. 인증 재발급만 만료 헤더를 읽는다. */
+export async function serviceFetch<T>(
+  url: string,
+  init: JsonRequestInit = {},
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<ApiEnvelope<T>> {
+  const response = await serviceFetchWithMetadata<T>(url, init, timeoutMs);
+  return response.envelope;
 }
