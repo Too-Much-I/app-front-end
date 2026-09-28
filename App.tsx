@@ -74,6 +74,21 @@ function AppContent() {
   );
 }
 
+function FirebaseValidationAppContent() {
+  useRemScale();
+  const { ready, onLayoutRootView } = useAppFonts();
+  if (!ready) return null;
+  // 검증 모드에서만 모듈을 로드해 기존 앱 경로에 native 초기화가 섞이지 않게 한다.
+  const {
+    FirebaseAuthValidationScreen,
+  }: typeof import("./src/screens/diagnostics/FirebaseAuthValidationScreen") = require("./src/screens/diagnostics/FirebaseAuthValidationScreen");
+  return (
+    <View className="flex-1" onLayout={onLayoutRootView}>
+      <FirebaseAuthValidationScreen />
+    </View>
+  );
+}
+
 function SentryValidationAppContent() {
   useRemScale();
   const { ready: fontsReady, onLayoutRootView } = useAppFonts();
@@ -93,6 +108,9 @@ export default function App() {
     <SafeAreaProvider>
       {IS_SENTRY_VALIDATION_MODE ? (
         <SentryValidationAppContent />
+      ) : __DEV__ &&
+        process.env.EXPO_PUBLIC_FIREBASE_AUTH_VALIDATION === "true" ? (
+        <FirebaseValidationAppContent />
       ) : IS_AUTH_UI_PREVIEW ? (
         <AuthPreviewNavigator />
       ) : (

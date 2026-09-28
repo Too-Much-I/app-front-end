@@ -29,7 +29,7 @@ pnpm 설치 스크립트 정책에는 `@firebase/util`, `protobufjs`를 false로
 - Firebase 콘솔의 iOS/Android 앱을 `com.toteacher.app`에 맞춰 등록하고 `GoogleService-Info.plist` / `google-services.json`을 준비한다. 서버용 서비스 계정 private key를 앱에 넣는 작업이 아니다.
 - app config의 `ios.googleServicesFile`, `android.googleServicesFile`와 App/Auth config plugin을 연결한다. 현재 로컬 파일은 `config/firebase/`에 두고 `app.config.ts`에 연결했다.
 - 26.4.0의 기본 SPM은 dynamic frameworks를 요구한다. 이 앱은 native 의존성을 CocoaPods로 통일하도록 App plugin에 `ios.disableSPM: true`, build-properties에 static frameworks와 RNFBApp/RNFBAuth의 forceStaticLinking을 설정했다. SPM 기본 모드와 static을 섞지 않는다.
-- SNS별 Firebase Provider 활성화, Google OAuth client·Android 서명 설정, Apple 설정 등을 확인하고 필요한 Provider SDK를 그때 설치한다. App/Auth만 설치해 Google·Apple·Kakao 버튼이 자동 동작하지는 않는다. 이전에는 Kakao OIDC가 설정됐다는 전달을 받았으나, 2026-09-29 사용자가 확인한 현재 프로젝트 목록에는 Google·Apple·전화만 활성화돼 있다. Kakao는 미설정으로 취급한다.
+- SNS별 Firebase Provider 활성화, Google OAuth client·Android 서명 설정, Apple 설정 등을 확인하고 필요한 Provider SDK를 그때 설치한다. App/Auth만 설치해 Google·Apple·Kakao 버튼이 자동 동작하지는 않는다. 이전에는 Kakao OIDC가 설정됐다는 전달을 받았으나, 2026-09-29 사용자가 확인한 현재 프로젝트 목록에는 Google·Apple·전화만 활성화돼 있다. Kakao는 미설정으로 취급하고 검증 화면에서 비활성화한다.
 - Phone Auth의 iOS 앱 검증/APNs·reCAPTCHA, Android Play Integrity·reCAPTCHA 및 SMS 테스트 설정을 확인한다.
 - 설정 후 development build를 재생성·설치한다. 기존 개발 클라이언트에는 새 네이티브 모듈이 없다. Expo Go는 지원하지 않는다. `expo prebuild --no-install` 실행으로 native 프로젝트가 재생성되었다. 생성된 파일을 직접 수정하지 않는다.
 
@@ -37,7 +37,7 @@ pnpm 설치 스크립트 정책에는 `@firebase/util`, `protobufjs`를 false로
 
 스켈레톤을 [정식 컨트롤러](../src/features/auth/firebase-auth-controller.ts)로 대체했다. 사용자 결정과 뼈대 대비 차이는 [결정 기록](decisions/2026-09-28-Firebase-본인-인증-컨트롤러.md)에 정리했다.
 
-아래는 Firebase 프로젝트·네이티브 설정을 마친 뒤 앱 단위로 한 번 생성할 연결 예시다. 현재 기본 앱 경로에서는 생성하지 않는다. 값은 실제 환경의 설정을 사용한다.
+아래는 Firebase 프로젝트·네이티브 설정을 마친 뒤 앱 단위로 한 번 생성할 연결 예시다. 현재 기본 앱 경로에서는 생성하지 않고, 개발 인증 검증 화면에서만 생성한다. 값은 실제 환경의 설정을 사용한다.
 
 ```ts
 const firebase = createFirebaseAuthController(createFirebaseAuthSdk({
@@ -88,14 +88,24 @@ RNFirebase 26.4.0은 `OAuthProvider.providerId`의 private 선언과 modular API
 - 2026-09-28 SDK 설치 시점에는 Firebase 프로젝트 설정 파일·Provider 설정이 없어 네이티브 빌드와 실제 인증을 검증하지 않았다. 이후 연결 결과는 아래에 기록한다. 패키지 설치 완료를 실제 인증 연동 완료로 취급하지 않는다.
 
 
-## 로컬 파일과 네이티브 설정 (2026-09-29)
+## 로컬 파일과 개발 인증 검증 화면 (2026-09-29)
 
 - `config/firebase/GoogleService-Info.plist`, `config/firebase/google-services.json`: 사용자 제공 파일. 두 파일의 프로젝트 일치와 `com.toteacher.app` 식별자를 확인했다. Git·EAS 업로드에서 제외한다.
 - EAS에서는 `GOOGLE_SERVICES_IOS`, `GOOGLE_SERVICES_ANDROID`를 **file 환경변수**로 등록한다. 파일이 개발용 프로젝트이므로 production 환경에는 해당 환경의 파일을 별도 등록한다.
 - 로컬 Google Web/iOS Client ID는 제공 파일에서 추출해 추적하지 않는 `.env.local`에 반영했다. 실제 값은 문서·콘솔에 출력하지 않는다.
-- 사용자 확인에 따라 테스트 Identity 서버는 `https://identity-test.to-teacher.com`을 사용한다. `.env.local`과 `.env.local.example`의 `EXPO_PUBLIC_IDENTITY_API_BASE_URL`에 반영했다. 이 주소는 후속 Identity API 연동에 사용한다.
-- Google·Apple은 콘솔에서 활성화가 확인돼 검증 대상으로 둔다. 카카오는 `EXPO_PUBLIC_KAKAO_OIDC_PROVIDER_ID`가 없어 아직 연결하지 않았다. Apple Android Services ID·redirect 완료 여부는 미확인이다.
+- 사용자 확인에 따라 테스트 Identity 서버는 `https://identity-test.to-teacher.com`을 사용한다. `.env.local`과 `.env.local.example`의 `EXPO_PUBLIC_IDENTITY_API_BASE_URL`에 반영했다. 이 주소는 후속 Identity API 연동에 사용하며 Firebase 인증만 수행하는 검증 화면에서는 호출하지 않는다.
+- Google·Apple은 콘솔에서 활성화가 확인돼 검증 대상으로 둔다. 카카오는 `EXPO_PUBLIC_KAKAO_OIDC_PROVIDER_ID`가 없어 비활성화한다. Apple Android Services ID·redirect 완료 여부는 미확인이다.
 - `expo-build-properties` 57.0.22(57.0.x 호환 범위)를 설치했다. Firebase 플러그인이 iOS Encoded App ID·Google 복귀 scheme을 등록하는 것을 확인했다.
 - 생성된 Android debug 서명 SHA-1은 제공된 Google 설정 파일의 등록 지문과 일치한다.
-- iOS simulator Debug 빌드와 Android `assembleDebug`가 성공했다.
+- iOS simulator Debug 빌드와 Android `assembleDebug`가 성공했다. 두 플랫폼에 설치해 Firebase 초기화와 검증 화면 표시를 확인했다. Android Google 버튼은 Google 로그인 안내 화면을 열었다. iOS에는 개발 링크 열기 시스템 확인창이 남아 있다.
 - 실제 계정 인증·ID Token 획득, Apple 인증, Identity 테스트 서버 응답은 아직 검증하지 않았다. 계정 인증은 사용자 조작이 필요하다.
+
+검증 화면 실행:
+
+```sh
+EXPO_PUBLIC_FIREBASE_AUTH_VALIDATION=true EXPO_PUBLIC_AUTH_UI_PREVIEW=false EXPO_PUBLIC_SENTRY_VALIDATION_MODE=false pnpm start --dev-client
+```
+
+`__DEV__`에서만 활성화되며 AuthProvider를 거치지 않는다. Google·Apple 버튼으로 Firebase 인증과 ID Token 획득만 확인한다. Token·UID는 화면·로그에 표시하거나 저장하지 않는다. 기존 Identity 세션, 교환·가입·병합 API는 사용하지 않는다. 실행 중 취소와 실제 작업 종료 대기를 확인할 수 있다. 검증 종료 후 플래그 없이 Metro를 재시작하면 기존 앱 경로로 돌아간다.
+
+실제 계정 선택·동의·비밀번호 입력은 사용자가 수행해야 한다. Firebase 로그인 성공을 서비스 로그인 완료로 취급하지 않는다.
