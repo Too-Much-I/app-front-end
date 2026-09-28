@@ -1,26 +1,26 @@
 import { Feather } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Application from "expo-application";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Image, ScrollView, Switch, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Pressable } from "@/components/ui/Pressable";
 import { Text } from "@/components/ui/Text";
 import { getStoredConsent } from "@/features/consent/consent-storage";
-import { trackEvent } from "@/lib/amplitude";
 import type { RootStackParamList } from "@/navigation/types";
 import { SettingsRow } from "@/screens/settings/components/SettingsRow";
 import { SettingsSection } from "@/screens/settings/components/SettingsSection";
-import { useDeleteLearningRecords } from "@/screens/settings/use-delete-learning-records";
 import { useQualityReviewConsent } from "@/screens/settings/use-quality-review-consent";
 import { colors, shadows } from "@/theme";
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
 const encouragementMascot = require("../../../public/mascots/growing_rabbit.png");
 
-type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, "Settings">;
+type SettingsScreenProps = NativeStackScreenProps<
+  RootStackParamList,
+  "Settings"
+>;
 
 function formatConsentDate(iso: string): string {
   const date = new Date(iso);
@@ -37,17 +37,7 @@ function formatApplicationVersion(version: string | null): string {
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [consentAgreedAt, setConsentAgreedAt] = useState<string | null>(null);
-  const deletion = useDeleteLearningRecords();
   const qualityReview = useQualityReviewConsent();
-
-  /**
-   * 이탈을 가장 강하게 예고하는 행동이라 삭제 성공이 아니라 요청 시점에 남긴다.
-   * 확인 모달에서 취소하더라도 "지우고 싶다"는 의사는 이미 드러난 것이기 때문이다.
-   */
-  const requestDeletion = useCallback(() => {
-    trackEvent({ name: "learning_record_delete_requested" });
-    deletion.request();
-  }, [deletion]);
 
   useEffect(() => {
     getStoredConsent()
@@ -56,7 +46,10 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   }, []);
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-surface-subtle">
+    <SafeAreaView
+      edges={["top", "bottom"]}
+      className="flex-1 bg-surface-subtle"
+    >
       <View className="h-16 flex-row items-center px-screen">
         <Pressable
           accessibilityLabel="뒤로 가기"
@@ -143,7 +136,9 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               title="버전 정보"
               trailing={
                 <Text className="text-sm text-ink-muted">
-                  {formatApplicationVersion(Application.nativeApplicationVersion)}
+                  {formatApplicationVersion(
+                    Application.nativeApplicationVersion,
+                  )}
                 </Text>
               }
             />
@@ -178,35 +173,16 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
 
           <SettingsSection title="데이터 관리">
             <SettingsRow
-              description="삭제 후 복구할 수 없으니 신중히 선택해주세요."
-              destructive
+              description="학습 기록 삭제 기능을 준비하고 있어요."
               icon="trash-2"
-              onPress={requestDeletion}
+              // TODO: 회원의 기록 전용 삭제 API 확정 후 연결. 탈퇴 API를 재사용하지 않는다.
+              trailing={null}
               showDivider={false}
               title="모든 학습 기록 삭제"
             />
           </SettingsSection>
         </View>
       </ScrollView>
-
-      <ConfirmModal
-        cancelLabel="그대로 둘게요"
-        confirmHint="모든 학습 기록을 삭제하고 앱을 처음 상태로 되돌립니다"
-        confirmLabel="삭제하기"
-        confirmTone="danger"
-        errorMessage={
-          deletion.status === "error"
-            ? "삭제하지 못했어요. 잠시 후 다시 시도해주세요."
-            : undefined
-        }
-        message="지금까지의 시험 기록과 피드백이 모두 사라져요. 삭제하면 되돌릴 수 없어요."
-        onCancel={deletion.cancel}
-        onConfirm={deletion.confirm}
-        pending={deletion.status === "deleting"}
-        title="모든 학습 기록을 지울까요?"
-        visible={deletion.status !== "idle"}
-        warningBadge
-      />
     </SafeAreaView>
   );
 }
