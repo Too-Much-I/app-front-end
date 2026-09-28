@@ -336,6 +336,38 @@ await check("읽기·쓰기·삭제 실패는 storage로 분류", async () => {
   failDelete = false;
 });
 
+await check("문의 입력 경계: 공백·선택 이메일·형식·길이", async () => {
+  const { validateSupportInquiry, SUPPORT_MESSAGE_LIMIT } = load(
+    "src/features/support/support-inquiry.ts",
+  );
+  assert.notEqual(
+    validateSupportInquiry({ message: "   ", replyEmail: "" }),
+    null,
+  );
+  assert.equal(
+    validateSupportInquiry({ message: "로그인이 되지 않아요", replyEmail: "" }),
+    null,
+  );
+  assert.notEqual(
+    validateSupportInquiry({ message: "문의", replyEmail: "invalid" }),
+    null,
+  );
+  assert.equal(
+    validateSupportInquiry({
+      message: "문의",
+      replyEmail: " user@example.com ",
+    }),
+    null,
+  );
+  assert.notEqual(
+    validateSupportInquiry({
+      message: "x".repeat(SUPPORT_MESSAGE_LIMIT + 1),
+      replyEmail: "",
+    }),
+    null,
+  );
+});
+
 const originalFetch = globalThis.fetch;
 const originalBase = process.env.EXPO_PUBLIC_IDENTITY_API_BASE_URL;
 process.env.EXPO_PUBLIC_IDENTITY_API_BASE_URL = "https://identity.example.test";

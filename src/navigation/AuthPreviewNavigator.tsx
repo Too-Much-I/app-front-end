@@ -22,6 +22,7 @@ import {
   PhoneVerificationScreen,
   type PhoneVerificationViewState,
 } from "@/screens/auth/PhoneVerificationScreen";
+import { SupportInquiryScreen } from "@/screens/support/SupportInquiryScreen";
 import { SignupProfileScreen } from "@/screens/auth/SignupProfileScreen";
 import { useAppFonts } from "@/theme/use-app-fonts";
 import { useRemScale } from "@/theme/rem-scale";
@@ -39,11 +40,18 @@ function LoginPreviewRoute({
   navigation,
 }: NativeStackScreenProps<AuthPreviewStackParamList, "LoginPreview">) {
   return (
-    <LoginScreen
-      onSelectProvider={() => navigation.navigate("SignupProfilePreview")}
-      onBrowse={explainPreviewOnly}
-      onClose={explainPreviewOnly}
-    />
+    <View className="flex-1">
+      <LoginScreen
+        onSelectProvider={() => navigation.navigate("SignupProfilePreview")}
+        onBrowse={explainPreviewOnly}
+        onClose={explainPreviewOnly}
+      />
+      <Button
+        label="문의 화면 미리보기"
+        variant="text"
+        onPress={() => navigation.navigate("SupportInquiryPreview")}
+      />
+    </View>
   );
 }
 
@@ -170,6 +178,11 @@ export function AuthPreviewNavigator() {
         <NavigationContainer>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="LoginPreview" component={LoginPreviewRoute} />
+            <Stack.Screen name="SupportInquiryPreview">
+              {({ navigation }) => (
+                <SupportInquiryScreen onBack={navigation.goBack} />
+              )}
+            </Stack.Screen>
             <Stack.Screen
               name="SignupProfilePreview"
               component={SignupProfilePreviewRoute}
