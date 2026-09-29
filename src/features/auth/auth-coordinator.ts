@@ -592,10 +592,10 @@ export function createAuthCoordinator(
           : "settled";
       case "idle":
       case "restoring":
+      case "signingIn":
       case "submittingProof":
       case "activatingSession":
         return "busy";
-      case "signingIn":
       case "signingUp":
       case "mergeRequired":
       case "noSession":

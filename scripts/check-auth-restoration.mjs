@@ -1203,6 +1203,50 @@ await check("Identity 요청은 자동 복구하고 SNS 재로그인은 사용�
   }
 });
 
+await check("SNS 인증 대기 중 복귀 후 서버 요청·활성화 실패만 자동 복구", async () => {
+  for (const failure of ["submit", "activate", "provider"]) {
+    changeAppState("active");
+    const h = identityHarness();
+    let finishProvider;
+    h.login.firebase.signIn = async () => {
+      h.calls.firebase++;
+      return new Promise((resolve) => { finishProvider = resolve; });
+    };
+    h.login.exchange = async () => {
+      h.calls.exchange++;
+      if (failure === "submit" && h.calls.exchange === 1)
+        throw new TransportConnectionError();
+      return { kind: "authenticated", session: newSession };
+    };
+    h.login.session.acceptSession = async () => {
+      h.calls.activate++;
+      return failure !== "activate" || h.calls.activate > 1;
+    };
+    const stop = observeCoordinator(h.coordinator);
+    try {
+      await h.coordinator.bootstrap();
+      const pending = h.coordinator.signIn("google");
+      changeAppState("inactive");
+      changeAppState("active");
+      await nextTurn();
+      assert.equal(h.calls.exchange, 0);
+      assert.equal(h.coordinator.getForegroundRecoveryState(), "busy");
+      finishProvider(failure === "provider"
+        ? { kind: "failed", reason: "connection", nextAction: "retry" }
+        : h.proof);
+      await pending;
+      await nextTurn();
+      assert.equal(h.calls.firebase, 1);
+      assert.equal(h.calls.exchange, failure === "submit" ? 2 : failure === "provider" ? 0 : 1);
+      assert.equal(h.calls.activate, failure === "activate" ? 2 : failure === "provider" ? 0 : 1);
+      assert.equal(h.coordinator.getState().state.status, failure === "provider" ? "loginError" : "authenticated");
+    } finally {
+      stop();
+      h.coordinator.dispose();
+    }
+  }
+});
+
 await check("기존 앱 저장소 읽기 실패는 복귀 시 복원, 재발급 응답 유실은 자동 반복하지 않음", async () => {
   globalThis.__DEV__ = false;
   mocks["@/lib/operational-error-reporting"] = { reportOperationalError() {} };
