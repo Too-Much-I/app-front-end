@@ -159,6 +159,127 @@ await check("세션 없음 / MEMBER / Guest 및 중복 복원 공유", async () 
     assert.equal(h.calls.reissue.length, 0);
   }
 });
+await check("로컬 유효 세션의 계정 401은 한 번 재발급 후 복원", async () => {
+  const h = harness();
+  const tokens = [];
+  h.deps.getAccount = async (token) => {
+    tokens.push(token);
+    if (token === oldSession.accessToken) throw new ApiError(401, "expired");
+    return "MEMBER";
+  };
+  const c = h.create();
+  const first = c.restore();
+  assert.equal(c.restore(), first);
+  assert.deepEqual(await first, { kind: "ready", accountType: "MEMBER" });
+  assert.deepEqual(tokens, ["old-access", "new-access"]);
+  assert.equal(h.calls.reissue.length, 1);
+  assert.equal(c.getSession().accessToken, "new-access");
+});
+await check("계정 401 재발급도 refresh 무효 시 로그인으로 복귀", async () => {
+  const h = harness();
+  h.deps.getAccount = async () => {
+    throw new ApiError(401, "expired");
+  };
+  h.deps.reissue = async () => {
+    throw new ApiError(401, "invalid", "INVALID_REFRESH_TOKEN");
+  };
+  assert.deepEqual(await h.create().restore(), { kind: "login-required" });
+  assert.equal(h.record().phase, "signed-out");
+});
+await check("계정 401의 병합·탈퇴 코드는 재발급 없이 차단", async () => {
+  for (const code of [
+    "ACCOUNT_MERGED_TOKEN_REJECTED",
+    "WITHDRAWAL_CLEANUP_PENDING",
+  ]) {
+    const h = harness();
+    let calls = 0;
+    h.deps.getAccount = async () => {
+      calls++;
+      throw new ApiError(401, "blocked", code);
+    };
+    const c = h.create();
+    const result = await c.restore();
+    assert.equal(result.action, "get-help");
+    assert.deepEqual(await c.restore(), result);
+    assert.equal(calls, 1);
+    assert.equal(h.calls.reissue.length, 0);
+  }
+});
+await check("재발급 후 계정 401은 저장·조회 실패 재개에서도 반복하지 않음", async () => {
+  for (const interruption of ["none", "storage", "connection"]) {
+    for (const expired of [false, true]) {
+      const h = harness(
+        active({
+          ...oldSession,
+          accessTokenExpiresAt: expired ? now - 1 : oldSession.accessTokenExpiresAt,
+        }),
+      );
+      const write = h.deps.write;
+      let interrupted = false;
+      h.deps.write = async (record) => {
+        if (
+          interruption === "storage" &&
+          !interrupted &&
+          record.phase === "active" &&
+          record.session.accessToken === "new-access"
+        ) {
+          interrupted = true;
+          throw new SessionRestorationError("storage");
+        }
+        return write(record);
+      };
+      const tokens = [];
+      h.deps.getAccount = async (token) => {
+        tokens.push(token);
+        if (
+          interruption === "connection" &&
+          !interrupted &&
+          token === "new-access"
+        ) {
+          interrupted = true;
+          throw new TransportConnectionError();
+        }
+        throw new ApiError(401, "expired");
+      };
+      const c = h.create();
+      if (interruption !== "none")
+        assert.equal((await c.restore()).reason, interruption);
+      const result = await c.restore();
+      assert.equal(result.action, "get-help");
+      assert.equal(h.calls.reissue.length, 1);
+      assert.equal(c.getSession(), null);
+      const count = tokens.length;
+      assert.deepEqual(await c.restore(), result);
+      assert.equal(tokens.length, count);
+    }
+  }
+});
+await check("계정 조회의 403·503은 401 재발급 대상으로 보지 않음", async () => {
+  for (const status of [403, 503]) {
+    const h = harness();
+    h.deps.getAccount = async () => {
+      throw new ApiError(status, "failure");
+    };
+    assert.equal((await h.create().restore()).kind, "recovery-required");
+    assert.equal(h.calls.reissue.length, 0);
+  }
+});
+await check("복원 완료 뒤 새 복원은 다시 한 번 재발급 가능", async () => {
+  const h = harness();
+  let reject = true;
+  h.deps.getAccount = async () => {
+    if (reject) {
+      reject = false;
+      throw new ApiError(401, "expired");
+    }
+    return "MEMBER";
+  };
+  const c = h.create();
+  assert.equal((await c.restore()).kind, "ready");
+  reject = true;
+  assert.equal((await c.restore()).kind, "ready");
+  assert.equal(h.calls.reissue.length, 2);
+});
 await check("재발급 성공 후 저장 실패는 새 토큰 저장부터 재개", async () => {
   const h = harness(active({ ...oldSession, accessTokenExpiresAt: now - 1 }));
   const write = h.deps.write;

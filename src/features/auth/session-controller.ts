@@ -16,6 +16,7 @@ import {
   type AuthSessionRestoreResult,
 } from "@/features/auth/session-restoration-types";
 import type { AuthSession, RequestAuthSnapshot } from "@/features/auth/types";
+import { ApiError } from "@/lib/api/transport";
 
 // 기존 요청 경로와 동일하게 만료 1분 전부터 재발급한다.
 const RESTORE_REFRESH_WINDOW_MS = 60_000;
@@ -27,8 +28,8 @@ type RestorationProgress =
   | { step: "read" }
   | { step: "save-refresh"; record: PendingRefresh }
   | { step: "refresh"; record: PendingRefresh }
-  | { step: "save-session"; session: AuthSession }
-  | { step: "check-account"; session: AuthSession }
+  | { step: "save-session"; session: AuthSession; refreshed: boolean }
+  | { step: "check-account"; session: AuthSession; refreshed: boolean }
   | { step: "clear-session" }
   | { step: "remove-legacy" }
   | {
@@ -44,6 +45,13 @@ interface SessionControllerDependencies {
   getAccount: typeof getCurrentAccount;
   createRequestId: () => string;
   now: () => number;
+}
+
+function blocksUnauthorizedRefresh(code?: string): boolean {
+  return (
+    code === "ACCOUNT_MERGED_TOKEN_REJECTED" ||
+    code === "WITHDRAWAL_CLEANUP_PENDING"
+  );
 }
 
 /** 앱 전체에서 한 인스턴스를 공유한다. 기존 authController와 동시에 활성화하지 않는다. */
@@ -79,8 +87,6 @@ export function createSessionController(
   }
 
   async function runRestore(): Promise<AuthSessionRestoreResult> {
-    // 한 복원 실행에서 재발급을 반복하지 않는다.
-    let refreshed = false;
     activeSession = null;
     try {
       while (true) {
@@ -99,7 +105,11 @@ export function createSessionController(
               progress = { step: "refresh", record };
             } else {
               // v1에서도 읽을 수 있으므로 먼저 v2로 안전하게 보존한다.
-              progress = { step: "save-session", session: record.session };
+              progress = {
+                step: "save-session",
+                session: record.session,
+                refreshed: false,
+              };
             }
             break;
           }
@@ -116,8 +126,8 @@ export function createSessionController(
                 record.replaySupported,
               );
               // 저장 실패에도 이 상태에 새 토큰이 남는다.
-              progress = { step: "save-session", session };
-              refreshed = true;
+              // 저장·계정 조회 실패 뒤 재개할 때도 재발급 성공 이력을 유지한다.
+              progress = { step: "save-session", session, refreshed: true };
             } catch (error) {
               if (isDefinitiveRefreshFailure(error)) {
                 activeSession = null;
@@ -144,10 +154,10 @@ export function createSessionController(
               phase: "active",
               session: progress.session,
             });
-            progress = { step: "check-account", session: progress.session };
+            progress = { ...progress, step: "check-account" };
             break;
           case "check-account": {
-            const { session } = progress;
+            const { session, refreshed } = progress;
             if (session.refreshTokenExpiresAt <= dependencies.now()) {
               activeSession = null;
               progress = { step: "clear-session" };
@@ -162,11 +172,25 @@ export function createSessionController(
               prepareRefresh(session);
               break;
             }
-            const accountType = await dependencies.getAccount(
-              session.accessToken,
-            );
+            let accountType: Awaited<ReturnType<typeof getCurrentAccount>>;
+            try {
+              accountType = await dependencies.getAccount(session.accessToken);
+            } catch (error) {
+              if (
+                error instanceof ApiError &&
+                error.status === 401 &&
+                !blocksUnauthorizedRefresh(error.code) &&
+                !refreshed
+              ) {
+                prepareRefresh(session);
+                break;
+              }
+              throw error;
+            }
             activeSession = session;
             generation += 1;
+            // 복원 완료 후 시작되는 별도 복원에는 다시 한 번 재발급을 허용한다.
+            progress = { step: "check-account", session, refreshed: false };
             return { kind: "ready", accountType };
           }
           case "clear-session":
@@ -228,10 +252,7 @@ export function createSessionController(
       const result = await pending;
       if (result.kind !== "ready") throw new SessionRequestError(result);
     } else if (generation === usedGeneration && activeSession) {
-      if (
-        code === "ACCOUNT_MERGED_TOKEN_REJECTED" ||
-        code === "WITHDRAWAL_CLEANUP_PENDING"
-      ) {
+      if (blocksUnauthorizedRefresh(code)) {
         progress = {
           step: "blocked",
           result: classifyAuthRecovery(
