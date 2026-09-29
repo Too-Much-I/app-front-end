@@ -9,16 +9,17 @@ import { useStore } from "zustand";
 
 import { SupportInquiryScreen } from "@/screens/support/SupportInquiryScreen";
 import { useAuth } from "@/features/auth/auth-context";
-import type { createAuthCoordinator } from "@/features/auth/auth-coordinator";
+import type {
+  AuthCoordinatorState,
+  createAuthCoordinator,
+} from "@/features/auth/auth-coordinator";
 import { useAuthBootstrap } from "@/features/auth/use-auth-bootstrap";
-import {
-  LoginScreen,
-  type LoginProviderChoice,
-} from "@/screens/auth/LoginScreen";
+import { LoginScreen } from "@/screens/auth/LoginScreen";
 import { Text } from "@/components/ui/Text";
+import { Button } from "@/components/ui/Button";
 import { colors } from "@/theme";
 
-import type { AuthBootstrapState } from "@/features/auth/types";
+import type { AuthSession, AuthBootstrapState } from "@/features/auth/types";
 import { MainTabNavigator } from "@/navigation/MainTabNavigator";
 import type { RootStackParamList } from "@/navigation/types";
 import { AuthRecoveryScreen } from "@/screens/auth/AuthRecoveryScreen";
@@ -165,13 +166,23 @@ function LegacyAuthRecoveryRoute({
 
 type CoordinatorNavigationProps = {
   coordinator: ReturnType<typeof createAuthCoordinator>;
-  onSelectProvider: (provider: LoginProviderChoice) => void;
+  renderEnrollment: (
+    state: Extract<
+      AuthCoordinatorState,
+      { status: "signingUp" | "mergeRequired" }
+    >,
+    actions: {
+      onComplete: (session: AuthSession) => Promise<void>;
+      onCancel: () => void;
+    },
+  ) => ReactElement;
   onBrowse: () => void;
   onClose: () => void;
 };
 
 function CoordinatorRootNavigator({
   coordinator,
+  renderEnrollment,
   ...loginActions
 }: CoordinatorNavigationProps): ReactElement {
   useAuthBootstrap(coordinator);
@@ -180,12 +191,29 @@ function CoordinatorRootNavigator({
   switch (state.status) {
     case "idle":
     case "restoring":
+    case "signingIn":
+    case "submittingProof":
+    case "activatingSession":
       return (
         <View className="flex-1 items-center justify-center gap-content bg-surface-subtle">
           <ActivityIndicator color={colors.brand.text} />
           <Text accessibilityLiveRegion="polite">
-            로그인 정보를 확인하고 있어요.
+            {state.status === "signingIn"
+              ? "소셜 인증을 진행하고 있어요."
+              : state.status === "submittingProof"
+                ? "로그인을 확인하고 있어요."
+                : state.status === "activatingSession"
+                  ? "로그인을 마무리하고 있어요."
+                  : "로그인 정보를 확인하고 있어요."}
           </Text>
+          {state.status === "signingIn" ||
+          state.status === "submittingProof" ? (
+            <Button
+              label="취소"
+              variant="secondary"
+              onPress={coordinator.cancelLogin}
+            />
+          ) : null}
         </View>
       );
     case "noSession":
@@ -198,12 +226,24 @@ function CoordinatorRootNavigator({
           <Stack.Screen name="AuthLogin">
             {() => (
               <SafeAreaView className="flex-1 bg-surface-subtle">
-                <LoginScreen {...loginActions} />
+                <LoginScreen
+                  {...loginActions}
+                  onSelectProvider={(provider) =>
+                    void coordinator.signIn(provider)
+                  }
+                />
               </SafeAreaView>
             )}
           </Stack.Screen>
         </Stack.Navigator>
       );
+    case "signingUp":
+    case "mergeRequired":
+      return renderEnrollment(state, {
+        onComplete: (session) =>
+          coordinator.completeEnrollment(state.flowId, session),
+        onCancel: coordinator.cancelLogin,
+      });
     case "authenticated":
       return <MemberRootNavigator />;
     case "consent":
@@ -235,6 +275,7 @@ function CoordinatorRootNavigator({
           />
         </Stack.Navigator>
       );
+    case "loginError":
     case "error":
       return (
         <Stack.Navigator
@@ -245,8 +286,13 @@ function CoordinatorRootNavigator({
             {({ navigation }) => (
               <AuthRecoveryScreen
                 message={state.message}
-                isRetrying={state.isRetrying}
+                isRetrying={state.status === "error" && state.isRetrying}
                 onRetry={coordinator.retry}
+                onCancel={
+                  state.status === "loginError"
+                    ? coordinator.cancelLogin
+                    : undefined
+                }
                 recoveryAction={
                   state.nextAction === "get-help" ? "get-help" : "retry"
                 }

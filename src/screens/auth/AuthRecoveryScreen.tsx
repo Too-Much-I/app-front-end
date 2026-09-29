@@ -10,6 +10,7 @@ interface AuthRecoveryScreenProps {
   onRetry: () => Promise<void>;
   recoveryAction?: "retry" | "get-help";
   onHelp?: () => void;
+  onCancel?: () => void;
 }
 
 export function AuthRecoveryScreen({
@@ -18,6 +19,7 @@ export function AuthRecoveryScreen({
   onRetry,
   recoveryAction = "retry",
   onHelp,
+  onCancel,
 }: AuthRecoveryScreenProps) {
   const handleRetry = async () => {
     if (isRetrying) return;
@@ -43,6 +45,14 @@ export function AuthRecoveryScreen({
               loading={isRetrying}
               size="lg"
               onPress={handleRetry}
+            />
+          ) : null}
+          {onCancel ? (
+            <Button
+              className="mt-content w-full"
+              label="로그인 화면으로"
+              variant="text"
+              onPress={onCancel}
             />
           ) : null}
           {onHelp ? (

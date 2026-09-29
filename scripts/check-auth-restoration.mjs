@@ -758,4 +758,316 @@ try {
     delete process.env.EXPO_PUBLIC_IDENTITY_API_BASE_URL;
   else process.env.EXPO_PUBLIC_IDENTITY_API_BASE_URL = originalBase;
 }
+const settleIdentityWork = () =>
+  new Promise((resolve) => setImmediate(resolve));
+function identityHarness(origin = "noSession") {
+  const calls = {
+    firebase: 0,
+    exchange: 0,
+    prepare: 0,
+    activate: 0,
+    refresh: 0,
+  };
+  const proof = {
+    kind: "proof-ready",
+    uid: "member-uid",
+    firebaseIdToken: "firebase-proof",
+  };
+  const login = {
+    firebase: {
+      signIn: async () => {
+        calls.firebase++;
+        return proof;
+      },
+      retry: async () => proof,
+      refreshProof: async () => {
+        calls.refresh++;
+        return { ...proof, firebaseIdToken: "fresh-proof" };
+      },
+      cancel: () => {},
+    },
+    session: {
+      prepareRequest: async () => ({
+        accessToken: "guest-token",
+        generation: 1,
+      }),
+      acceptSession: async () => {
+        calls.activate++;
+        return true;
+      },
+    },
+    exchange: async () => {
+      calls.exchange++;
+      return { kind: "authenticated", session: newSession };
+    },
+    prepare: async (_proof, token) => {
+      calls.prepare++;
+      assert.equal(token, "guest-token");
+      return { kind: "merge-required" };
+    },
+  };
+  const coordinator = createAuthCoordinator(
+    {
+      restore: async () =>
+        origin === "guest"
+          ? { kind: "ready", accountType: "GUEST" }
+          : { kind: "login-required" },
+    },
+    undefined,
+    login,
+  );
+  return { calls, proof, login, coordinator };
+}
+
+await check("Identity 로그인 상태 전이 / Guest prepare 분기", async () => {
+  const h = identityHarness();
+  const states = [];
+  h.coordinator.subscribe(({ state }) => states.push(state.status));
+  await h.coordinator.bootstrap();
+  await h.coordinator.signIn("google");
+  assert.deepEqual(states, [
+    "restoring",
+    "noSession",
+    "signingIn",
+    "submittingProof",
+    "activatingSession",
+    "authenticated",
+  ]);
+  assert.equal(h.calls.exchange, 1);
+  assert.equal(h.calls.prepare, 0);
+  const guest = identityHarness("guest");
+  await guest.coordinator.bootstrap();
+  await guest.coordinator.signIn("google");
+  assert.equal(guest.coordinator.getState().state.status, "mergeRequired");
+  assert.equal(guest.calls.exchange, 0);
+  assert.equal(guest.calls.prepare, 1);
+});
+
+await check(
+  "Firebase 취소·실패·ignored는 Identity 요청을 보내지 않음",
+  async () => {
+    for (const result of [
+      { kind: "cancelled" },
+      { kind: "ignored", reason: "busy" },
+      { kind: "failed", reason: "connection", nextAction: "retry" },
+    ]) {
+      const h = identityHarness();
+      h.login.firebase.signIn = async () => result;
+      await h.coordinator.bootstrap();
+      await h.coordinator.signIn("google");
+      assert.equal(h.calls.exchange, 0);
+      assert.equal(
+        h.coordinator.getState().state.status,
+        result.kind === "failed" ? "loginError" : "noSession",
+      );
+    }
+  },
+);
+
+await check(
+  "Identity 응답 대기 중 중복 로그인 차단 / 취소 뒤 늦은 토큰 폐기",
+  async () => {
+    const h = identityHarness();
+    let respond;
+    h.login.exchange = () =>
+      new Promise((resolve) => {
+        respond = resolve;
+      });
+    await h.coordinator.bootstrap();
+    const first = h.coordinator.signIn("google");
+    await settleIdentityWork();
+    await h.coordinator.signIn("apple");
+    assert.equal(h.calls.firebase, 1);
+    h.coordinator.cancelLogin();
+    respond({ kind: "authenticated", session: newSession });
+    await first;
+    assert.equal(h.calls.activate, 0);
+    assert.equal(h.coordinator.getState().state.status, "noSession");
+  },
+);
+
+await check(
+  "Identity 503 수동 재시도는 SNS 로그인 반복 없이 제출부터",
+  async () => {
+    const h = identityHarness();
+    let requests = 0;
+    h.login.exchange = async () => {
+      if (++requests === 1) throw new ApiError(503, "private server detail");
+      return { kind: "authenticated", session: newSession };
+    };
+    await h.coordinator.bootstrap();
+    await h.coordinator.signIn("google");
+    assert.equal(h.coordinator.getState().state.status, "loginError");
+    assert.ok(
+      !JSON.stringify(h.coordinator.getState()).includes(
+        "private server detail",
+      ),
+    );
+    await h.coordinator.retry();
+    assert.equal(h.calls.firebase, 1);
+    assert.equal(requests, 2);
+    assert.equal(h.coordinator.getState().state.status, "authenticated");
+  },
+);
+
+await check(
+  "잘못된 Firebase 증명은 한 번 갱신, 재실패는 재로그인",
+  async () => {
+    const h = identityHarness();
+    h.login.exchange = async () => {
+      throw new ApiError(401, "invalid", "INVALID_FIREBASE_ID_TOKEN");
+    };
+    await h.coordinator.bootstrap();
+    await h.coordinator.signIn("google");
+    assert.equal(h.calls.refresh, 1);
+    assert.equal(h.coordinator.getState().state.nextAction, "sign-in-again");
+  },
+);
+
+await check("가입 요구사항 전달 및 이전 가입 흐름의 완료 무시", async () => {
+  const h = identityHarness();
+  const enrollment = {
+    origin: "noSession",
+    enrollmentId: "enrollment",
+    missingRequirements: ["PROFILE"],
+    expiresAt: now + 1000,
+  };
+  h.login.exchange = async () => ({ kind: "enrollment-required", enrollment });
+  await h.coordinator.bootstrap();
+  await h.coordinator.signIn("google");
+  const old = h.coordinator.getState().state;
+  assert.deepEqual(old.enrollment, enrollment);
+  h.coordinator.cancelLogin();
+  await h.coordinator.signIn("apple");
+  await h.coordinator.completeEnrollment(old.flowId, newSession);
+  assert.equal(h.calls.activate, 0);
+  const current = h.coordinator.getState().state;
+  await h.coordinator.completeEnrollment(current.flowId, newSession);
+  assert.equal(h.calls.activate, 1);
+  assert.equal(h.coordinator.getState().state.status, "authenticated");
+});
+
+await check(
+  "저장 실패에도 새 세션으로 API 사용 / 재활성화 시 저장만 재시도",
+  async () => {
+    const h = harness(null);
+    let fail = true;
+    const write = h.deps.write;
+    h.deps.write = async (record) => {
+      if (fail) throw new Error("disk unavailable");
+      await write(record);
+    };
+    const c = h.create();
+    try {
+      assert.equal(await c.acceptSession(newSession), true);
+      await settleIdentityWork();
+      assert.equal(
+        (await c.prepareRequest()).accessToken,
+        newSession.accessToken,
+      );
+      assert.equal(h.calls.reissue.length, 0);
+      fail = false;
+      c.retryPersistence();
+      await settleIdentityWork();
+      assert.equal(h.record().session.accessToken, newSession.accessToken);
+    } finally {
+      c.dispose();
+    }
+  },
+);
+
+await check(
+  "느린 이전 세션 저장 뒤 최신 세션이 마지막으로 저장됨",
+  async () => {
+    const h = harness(null);
+    const write = h.deps.write;
+    let release;
+    h.deps.write = async (record) => {
+      if (record.session.accessToken === oldSession.accessToken)
+        await new Promise((resolve) => {
+          release = resolve;
+        });
+      await write(record);
+    };
+    const c = h.create();
+    try {
+      await c.acceptSession(oldSession);
+      await settleIdentityWork();
+      await c.acceptSession(newSession);
+      release();
+      await settleIdentityWork();
+      assert.equal(h.record().session.accessToken, newSession.accessToken);
+      assert.equal(
+        (await c.prepareRequest()).accessToken,
+        newSession.accessToken,
+      );
+    } finally {
+      c.dispose();
+    }
+  },
+);
+
+await check(
+  "진행 중인 복원의 늦은 결과가 새 로그인 세션을 덮어쓰지 않음",
+  async () => {
+    const h = harness();
+    let release;
+    h.deps.getAccount = () =>
+      new Promise((resolve) => {
+        release = resolve;
+      });
+    const c = h.create();
+    try {
+      const restoring = c.restore();
+      await settleIdentityWork();
+      const accepting = c.acceptSession(newSession);
+      release("GUEST");
+      await restoring;
+      await accepting;
+      assert.equal(
+        (await c.prepareRequest()).accessToken,
+        newSession.accessToken,
+      );
+    } finally {
+      c.dispose();
+    }
+  },
+);
+
+await check("취소된 세션 확정은 토큰을 활성화·저장하지 않음", async () => {
+  const h = harness(null);
+  const c = h.create();
+  const abort = new AbortController();
+  abort.abort();
+  assert.equal(await c.acceptSession(newSession, abort.signal), false);
+  assert.equal(c.getSession(), null);
+  assert.equal(h.calls.write.length, 0);
+  c.dispose();
+});
+
+const { mapIdentityExchange, mapIdentityGuestPreparation } = load(
+  "src/features/auth/identity-login-mapper.ts",
+);
+await check("Identity 응답 경계: 가입 요구사항·정책·만료 검증", async () => {
+  const value = {
+    type: "ENROLLMENT_REQUIRED",
+    enrollmentId: "id",
+    missingRequirements: ["PHONE_VERIFICATION"],
+    expiresIn: 600000,
+  };
+  assert.equal(
+    mapIdentityExchange(value, now).enrollment.expiresAt,
+    now + 600000,
+  );
+  assert.throws(() => mapIdentityGuestPreparation(value, now));
+  assert.throws(() =>
+    mapIdentityExchange({ ...value, missingRequirements: ["UNKNOWN"] }, now),
+  );
+  assert.throws(() => mapIdentityExchange({ type: "MERGE_REQUIRED" }));
+  assert.equal(
+    mapIdentityGuestPreparation({ type: "MERGE_REQUIRED" }).kind,
+    "merge-required",
+  );
+});
+
 console.log(`인증 복원 회귀 검사 ${passed}개 통과`);
