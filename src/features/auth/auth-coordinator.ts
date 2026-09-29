@@ -141,6 +141,7 @@ type IdentityAttempt = {
 };
 type IdentityRetry =
   | { step: "sign-in" }
+  | { step: "activate-session"; session: AuthSession }
   | { step: "firebase"; canRefreshProof: boolean }
   | {
       step: "submit";
@@ -318,11 +319,25 @@ export function createAuthCoordinator(
   ): Promise<void> {
     if (!login || !isCurrent(attempt)) return;
     store.setState({ state: { status: "activatingSession" } });
-    const accepted = await login.session.acceptSession(
-      session,
-      attempt.abort.signal,
-    );
-    if (!accepted || !isCurrent(attempt)) return;
+    let accepted: boolean;
+    try {
+      accepted = await login.session.acceptSession(
+        session,
+        attempt.abort.signal,
+      );
+    } catch {
+      accepted = false;
+    }
+    if (!isCurrent(attempt)) return;
+    if (!accepted) {
+      showLoginFailure(
+        attempt,
+        "로그인을 마무리하지 못했어요. 다시 시도해 주세요.",
+        "retry",
+        { step: "activate-session", session },
+      );
+      return;
+    }
     // 로그인 성공과 가입 완료 모두 같은 메모리 세션·약관 확인 경로를 사용한다.
     identityRetry = null;
     await checkMemberConsent(attempt.run);
@@ -531,6 +546,9 @@ export function createAuthCoordinator(
     identityRetry = null;
     if (!isCurrent(attempt)) return;
     switch (step.step) {
+      case "activate-session":
+        await activateIdentitySession(attempt, step.session);
+        return;
       case "submit":
         await submitIdentityProof(attempt, step.proof, step.canRefreshProof);
         return;
