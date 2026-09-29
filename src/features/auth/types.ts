@@ -116,6 +116,7 @@ export type AuthBootstrapState =
       retry: BootstrapRetry;
       message: string;
       isRetrying?: boolean;
+      autoRetryable: boolean;
     };
 
 export type RequestAuthSnapshot = {

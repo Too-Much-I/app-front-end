@@ -15,6 +15,18 @@ let failRead = false;
 let failWrite = false;
 let failDelete = false;
 let failConsentWrite = false;
+const appStateListeners = new Set();
+const appState = {
+  currentState: "active",
+  addEventListener: (_event, listener) => {
+    appStateListeners.add(listener);
+    return { remove: () => appStateListeners.delete(listener) };
+  },
+};
+function changeAppState(next) {
+  appState.currentState = next;
+  appStateListeners.forEach((listener) => listener(next));
+}
 const mocks = {
   "@react-native-async-storage/async-storage": {
     __esModule: true,
@@ -28,7 +40,7 @@ const mocks = {
     },
   },
   "expo-crypto": { randomUUID: () => "test-request-id" },
-  "react-native": { Platform: { OS: "ios" } },
+  "react-native": { Platform: { OS: "ios" }, AppState: appState },
   "expo-secure-store": {
     getItemAsync: async (key) => {
       if (failRead) throw new Error("storage read");
@@ -1070,4 +1082,174 @@ await check("Identity 응답 경계: 가입 요구사항·정책·만료 검증"
   );
 });
 
+const { observeAuthForegroundRecovery } = load(
+  "src/features/auth/auth-foreground-recovery.ts",
+);
+const nextTurn = () => new Promise((resolve) => setTimeout(resolve, 10));
+function observeCoordinator(coordinator) {
+  return observeAuthForegroundRecovery({
+    getState: coordinator.getForegroundRecoveryState,
+    subscribe: coordinator.subscribe,
+    retry: coordinator.retry,
+  });
+}
+
+await check("복귀당 한 번 복원, 반복 active·지속 장애는 자동 반복하지 않음", async () => {
+  changeAppState("active");
+  let calls = 0;
+  const coordinator = createAuthCoordinator({ restore: async () => {
+    calls++;
+    throw new SessionRestorationError("storage");
+  } });
+  const stop = observeCoordinator(coordinator);
+  await coordinator.bootstrap();
+  await nextTurn();
+  assert.equal(calls, 1);
+  changeAppState("background");
+  changeAppState("active");
+  await nextTurn();
+  assert.equal(calls, 2);
+  changeAppState("active");
+  await nextTurn();
+  assert.equal(calls, 2);
+  changeAppState("inactive");
+  changeAppState("active");
+  await nextTurn();
+  assert.equal(calls, 3);
+  stop();
+  coordinator.dispose();
+});
+
+await check("백그라운드 복원이 복귀 후 실패해도 finally 이후 한 번 복구", async () => {
+  changeAppState("background");
+  let reject;
+  let calls = 0;
+  const coordinator = createAuthCoordinator({ restore: async () => {
+    calls++;
+    if (calls === 1) return new Promise((_resolve, fail) => { reject = fail; });
+    return { kind: "ready", accountType: "MEMBER" };
+  } });
+  const stop = observeCoordinator(coordinator);
+  const pending = coordinator.bootstrap();
+  changeAppState("active");
+  await nextTurn();
+  assert.equal(calls, 1);
+  reject(new SessionRestorationError("storage"));
+  await pending;
+  await nextTurn();
+  assert.equal(calls, 2);
+  assert.equal(coordinator.getState().state.status, "authenticated");
+  stop();
+  coordinator.dispose();
+});
+
+await check("자동 재시도 예약 후 수동 재시도 성공·구독 해제·다시 background 보호", async () => {
+  for (const action of ["manual", "dispose", "background"]) {
+    changeAppState("background");
+    let calls = 0;
+    const coordinator = createAuthCoordinator({ restore: async () => {
+      if (++calls === 1) throw new TransportConnectionError();
+      return { kind: "ready", accountType: "MEMBER" };
+    } });
+    const stop = observeCoordinator(coordinator);
+    await coordinator.bootstrap();
+    changeAppState("active");
+    if (action === "manual") await coordinator.retry();
+    if (action === "dispose") stop();
+    if (action === "background") changeAppState("background");
+    await nextTurn();
+    assert.equal(calls, action === "manual" ? 2 : 1);
+    stop();
+    coordinator.dispose();
+  }
+});
+
+await check("복구 불가 오류는 포그라운드에서도 자동 요청하지 않음", async () => {
+  for (const reason of ["session-format", "response-format", "refresh-uncertain", "unexpected"]) {
+    changeAppState("background");
+    let calls = 0;
+    const coordinator = createAuthCoordinator({ restore: async () => {
+      calls++;
+      throw new SessionRestorationError(reason);
+    } });
+    const stop = observeCoordinator(coordinator);
+    await coordinator.bootstrap();
+    changeAppState("active");
+    await nextTurn();
+    assert.equal(calls, 1);
+    stop();
+    coordinator.dispose();
+  }
+});
+
+await check("Identity 요청은 자동 복구하고 SNS 재로그인은 사용자에게 남김", async () => {
+  for (const error of [new TransportConnectionError(), new ApiError(401, "recent", "FIREBASE_RECENT_AUTH_REQUIRED")]) {
+    changeAppState("active");
+    let exchanges = 0;
+    const h = identityHarness();
+    h.login.exchange = async () => {
+      if (++exchanges === 1) throw error;
+      return { kind: "authenticated", session: newSession };
+    };
+    const stop = observeCoordinator(h.coordinator);
+    await h.coordinator.bootstrap();
+    await h.coordinator.signIn("google");
+    changeAppState("background");
+    changeAppState("active");
+    await nextTurn();
+    assert.equal(exchanges, error instanceof TransportConnectionError ? 2 : 1);
+    stop();
+    h.coordinator.dispose();
+  }
+});
+
+await check("기존 앱 저장소 읽기 실패는 복귀 시 복원, 재발급 응답 유실은 자동 반복하지 않음", async () => {
+  globalThis.__DEV__ = false;
+  mocks["@/lib/operational-error-reporting"] = { reportOperationalError() {} };
+  mocks["@/lib/query-client"] = { queryClient: { clear() {} } };
+  let rotations = 0;
+  let failRotation = false;
+  mocks["@/features/auth/api/reissue-tokens"] = {
+    reissueTokens: async () => {
+      rotations++;
+      if (failRotation) throw new TransportConnectionError();
+      return newSession;
+    },
+    isDefinitiveRefreshFailure: () => false,
+  };
+  mocks["@/features/auth/api/get-consent-status"] = {
+    getConsentStatus: async () => consentDone,
+  };
+  const { authController } = load("src/features/auth/auth-controller.ts");
+  disk.set("auth-session.v1", JSON.stringify(oldSession));
+  failRead = true;
+  changeAppState("background");
+  const stop = observeAuthForegroundRecovery({
+    getState: authController.getForegroundRecoveryState,
+    subscribe: authController.subscribe,
+    retry: () => authController.retry(),
+  });
+  try {
+    await authController.bootstrap();
+    assert.equal(authController.getForegroundRecoveryState(), "retryable");
+    failRead = false;
+    changeAppState("active");
+    await nextTurn();
+    assert.equal(authController.getState().status, "AUTHENTICATED");
+    assert.equal(rotations, 1);
+    failRotation = true;
+    await authController.bootstrap();
+    assert.equal(authController.getState().status, "RETRYABLE_ERROR");
+    assert.equal(authController.getForegroundRecoveryState(), "settled");
+    changeAppState("background");
+    changeAppState("active");
+    await nextTurn();
+    assert.equal(rotations, 2);
+  } finally {
+    stop();
+    failRead = false;
+  }
+});
+
+assert.equal(appStateListeners.size, 0);
 console.log(`인증 복원 회귀 검사 ${passed}개 통과`);

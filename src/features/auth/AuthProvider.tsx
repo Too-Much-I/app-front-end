@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useMemo, useSyncExternalStore } from "react"
 
 import { authController } from "@/features/auth/auth-controller";
 import { AuthContext, type AuthContextValue } from "@/features/auth/auth-context";
+import { observeAuthForegroundRecovery } from "@/features/auth/auth-foreground-recovery";
 
 /**
  * 컨트롤러로 위임하는 액션들. 컴포넌트 밖에 한 번만 만든다.
@@ -30,7 +31,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authController.getState,
   );
 
-  useEffect(() => authController.startBootstrap(), []);
+  useEffect(() => {
+    const stopRecovery = observeAuthForegroundRecovery({
+      getState: authController.getForegroundRecoveryState,
+      subscribe: authController.subscribe,
+      retry: AUTH_ACTIONS.retry,
+    });
+    const stopBootstrap = authController.startBootstrap();
+    return () => {
+      stopRecovery();
+      stopBootstrap();
+    };
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({ state, ...AUTH_ACTIONS }),
