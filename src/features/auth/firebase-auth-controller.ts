@@ -23,6 +23,8 @@ export function createFirebaseAuthController(sdk: FirebaseAuthSdk) {
     operation: { status: "idle" },
   }));
   let progress: FirebaseProgress = { step: "idle" };
+  let retryForceRefresh = false;
+  let provedUser: { user: User; provider: FirebaseLoginProvider } | null = null;
   let pending: {
     abort: AbortController;
     resolve: (result: FirebaseProofResult) => void;
@@ -36,6 +38,7 @@ export function createFirebaseAuthController(sdk: FirebaseAuthSdk) {
   async function execute(
     initial: ActiveFirebaseProgress,
     signal: AbortSignal,
+    forceRefresh: boolean,
   ): Promise<FirebaseProofResult> {
     try {
       if (signal.aborted) return { kind: "cancelled" };
@@ -60,12 +63,19 @@ export function createFirebaseAuthController(sdk: FirebaseAuthSdk) {
       }
       if (signal.aborted) return { kind: "cancelled" };
       assertCurrentUser(tokenProgress.user);
-      const firebaseIdToken = await sdk.getIdToken(tokenProgress.user, false);
+      const firebaseIdToken = await sdk.getIdToken(
+        tokenProgress.user,
+        forceRefresh,
+      );
       if (signal.aborted) return { kind: "cancelled" };
       // 토큰 획득 중 발생한 로그아웃·계정 변경도 확인한다.
       assertCurrentUser(tokenProgress.user);
       if (!firebaseIdToken.trim())
         throw new FirebaseAuthenticationError("unexpected");
+      provedUser = {
+        user: tokenProgress.user,
+        provider: tokenProgress.provider,
+      };
       return {
         kind: "proof-ready",
         uid: tokenProgress.user.uid,
@@ -80,6 +90,7 @@ export function createFirebaseAuthController(sdk: FirebaseAuthSdk) {
 
   function start(
     initial: ActiveFirebaseProgress,
+    forceRefresh = false,
   ): Promise<FirebaseProofResult> {
     // 다른 Provider여도 이전 네이티브 작업이 끝날 때까지 중복 실행하지 않는다.
     if (pending) return Promise.resolve({ kind: "ignored", reason: "busy" });
@@ -88,6 +99,7 @@ export function createFirebaseAuthController(sdk: FirebaseAuthSdk) {
       const attempt = { abort, resolve };
       pending = attempt;
       progress = initial;
+      retryForceRefresh = forceRefresh;
       store.setState({
         operation: {
           status: "running",
@@ -95,7 +107,7 @@ export function createFirebaseAuthController(sdk: FirebaseAuthSdk) {
           step: initial.step,
         },
       });
-      void execute(initial, abort.signal).then((result) => {
+      void execute(initial, abort.signal, forceRefresh).then((result) => {
         // cancel()은 호출자에게 즉시 반환하지만, 이 지점까지 실제 작업의 잠금을 유지한다.
         if (abort.signal.aborted) result = { kind: "cancelled" };
         if (result.kind !== "failed" || result.nextAction !== "retry")
@@ -132,10 +144,25 @@ export function createFirebaseAuthController(sdk: FirebaseAuthSdk) {
     ) {
       return Promise.resolve({ kind: "ignored", reason: "no-retry" });
     }
-    return start(progress);
+    return start(progress, retryForceRefresh);
+  }
+
+  function refreshProof(uid: string): Promise<FirebaseProofResult> {
+    if (
+      !provedUser ||
+      provedUser.user.uid !== uid ||
+      sdk.getCurrentUid() !== uid
+    )
+      return Promise.resolve({
+        kind: "failed",
+        reason: "reauthentication-required",
+        nextAction: "sign-in-again",
+      });
+    return start({ step: "get-id-token", ...provedUser }, true);
   }
 
   function cancel(): void {
+    provedUser = null;
     progress = { step: "idle" };
     if (!pending) {
       store.setState({ operation: { status: "idle" } });
@@ -152,6 +179,7 @@ export function createFirebaseAuthController(sdk: FirebaseAuthSdk) {
     getInitialState: store.getInitialState,
     subscribe: store.subscribe,
     signIn,
+    refreshProof,
     retry,
     cancel,
   };

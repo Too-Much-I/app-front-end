@@ -470,4 +470,23 @@ await check("미설정 Provider는 native 호출 없이 명시적 설정 오류"
   }
   assert.equal(nativeCalls.length, 0);
 });
+await check(
+  "Identity용 강제 갱신 실패 재시도에도 forceRefresh 유지 / UID 변경 차단",
+  async () => {
+    const h = harness();
+    const c = h.create();
+    await c.signIn("google");
+    let count = 0;
+    h.sdk.getIdToken = async (_user, forceRefresh) => {
+      assert.equal(forceRefresh, true);
+      if (++count === 1) throw { code: "auth/network-request-failed" };
+      return "fresh-proof";
+    };
+    assert.equal((await c.refreshProof("a")).kind, "failed");
+    assert.equal((await c.retry()).firebaseIdToken, "fresh-proof");
+    assert.equal(h.calls.signIn.length, 1);
+    h.setUid("b");
+    assert.equal((await c.refreshProof("a")).nextAction, "sign-in-again");
+  },
+);
 console.log(`Firebase 인증 회귀 검사 ${passed}개 통과`);
