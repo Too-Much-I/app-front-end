@@ -1,5 +1,7 @@
 import * as Crypto from "expo-crypto";
 
+import { createSessionPersistence } from "@/features/auth/session-persistence";
+
 import { getCurrentAccount } from "@/features/auth/api/get-current-account";
 import { reissueSession } from "@/features/auth/api/reissue-session";
 import { isDefinitiveRefreshFailure } from "@/features/auth/api/reissue-tokens";
@@ -67,6 +69,11 @@ export function createSessionController(
     now: Date.now,
   },
 ) {
+  const persistence = createSessionPersistence((record) =>
+    dependencies.write(record),
+  );
+  let activationVersion = 0;
+  let disposed = false;
   let progress: RestorationProgress = { step: "read" };
   let activeSession: AuthSession | null = null;
   let pending: Promise<AuthSessionRestoreResult> | null = null;
@@ -114,7 +121,7 @@ export function createSessionController(
             break;
           }
           case "save-refresh":
-            await dependencies.write(progress.record);
+            await persistence.writeRequired(progress.record);
             progress = { step: "refresh", record: progress.record };
             break;
           case "refresh": {
@@ -149,7 +156,7 @@ export function createSessionController(
             break;
           }
           case "save-session":
-            await dependencies.write({
+            await persistence.writeRequired({
               schemaVersion: 2,
               phase: "active",
               session: progress.session,
@@ -194,7 +201,10 @@ export function createSessionController(
             return { kind: "ready", accountType };
           }
           case "clear-session":
-            await dependencies.write({ schemaVersion: 2, phase: "signed-out" });
+            await persistence.writeRequired({
+              schemaVersion: 2,
+              phase: "signed-out",
+            });
             progress = { step: "remove-legacy" };
             break;
           case "remove-legacy":
@@ -218,15 +228,53 @@ export function createSessionController(
 
   function restore(): Promise<AuthSessionRestoreResult> {
     if (pending) return pending;
-    pending = runRestore()
+    const restoration = runRestore()
       .then((result) => {
-        listeners.forEach((listener) => listener(result));
+        if (!disposed) listeners.forEach((listener) => listener(result));
         return result;
       })
       .finally(() => {
-        pending = null;
+        if (pending === restoration) pending = null;
       });
-    return pending;
+    pending = restoration;
+    return restoration;
+  }
+
+  /** 서버가 발급한 MEMBER 세션을 활성화한다. 디스크 저장 성공을 기다리지 않는다. */
+  async function acceptSession(
+    session: AuthSession,
+    signal?: AbortSignal,
+  ): Promise<boolean> {
+    const version = ++activationVersion;
+    const previous = pending;
+    let accepted = false;
+    const activation = (async (): Promise<AuthSessionRestoreResult> => {
+      const previousResult: AuthSessionRestoreResult = previous
+        ? await previous
+        : { kind: "login-required" };
+      if (disposed || signal?.aborted || version !== activationVersion)
+        return previousResult;
+      activeSession = session;
+      generation += 1;
+      progress = { step: "check-account", session, refreshed: false };
+      persistence.saveInBackground(session);
+      accepted = true;
+      return { kind: "ready", accountType: "MEMBER" };
+    })();
+    pending = activation;
+    try {
+      await activation;
+      return accepted;
+    } finally {
+      if (pending === activation) pending = null;
+    }
+  }
+
+  function dispose(): void {
+    disposed = true;
+    activationVersion += 1;
+    persistence.dispose();
+    listeners.clear();
   }
 
   async function prepareRequest(): Promise<RequestAuthSnapshot> {
@@ -280,6 +328,9 @@ export function createSessionController(
 
   return {
     restore,
+    acceptSession,
+    retryPersistence: persistence.retryPersistence,
+    dispose,
     prepareRequest,
     recoverUnauthorized,
     subscribeRestoration,
