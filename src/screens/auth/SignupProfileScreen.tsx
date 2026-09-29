@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { Image, TextInput, View } from "react-native";
+import { useStore } from "zustand";
 
 import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
 import { AuthScreenFrame } from "@/screens/auth/components/AuthScreenFrame";
 import { SignupConsentRow } from "@/screens/auth/components/SignupConsentRow";
 import { colors, FONT_FAMILY } from "@/theme";
+import type { createSignupDraftStore } from "@/features/auth/signup-draft-store";
 
 interface SignupProfileScreenProps {
-  initialNickname?: string;
+  draftStore: ReturnType<typeof createSignupDraftStore>;
   validateNickname?: (nickname: string) => string | null;
   onBack: () => void;
   onContinue: () => void;
@@ -16,17 +18,17 @@ interface SignupProfileScreenProps {
 }
 
 export function SignupProfileScreen({
-  initialNickname = "",
+  draftStore,
   validateNickname,
   onBack,
   onContinue,
   onOpenPolicy,
 }: SignupProfileScreenProps) {
-  const [nickname, setNickname] = useState(initialNickname);
+  const nickname = useStore(draftStore, (draft) => draft.nickname);
+  const consents = useStore(draftStore, (draft) => draft.consents);
   const [nicknameError, setNicknameError] = useState<string | null>(null);
-  const [consents, setConsents] = useState({ terms: false, privacy: false });
   const length = Array.from(nickname.trim()).length;
-  const allChecked = consents.terms && consents.privacy;
+  const allChecked = consents.terms.agreed && consents.privacy.agreed;
   const canContinue = length >= 2 && length <= 20 && allChecked;
 
   return (
@@ -80,7 +82,7 @@ export function SignupProfileScreen({
           placeholderTextColor={colors.ink.disabled}
           value={nickname}
           onChangeText={(value) => {
-            setNickname(value);
+            draftStore.setNickname(value);
             setNicknameError(null);
           }}
           returnKeyType="done"
@@ -110,26 +112,23 @@ export function SignupProfileScreen({
           all
           checked={allChecked}
           onToggle={() =>
-            setConsents({ terms: !allChecked, privacy: !allChecked })
+            draftStore.setAllConsents(!allChecked)
           }
         />
         <View>
           <SignupConsentRow
             label="서비스 이용약관 동의"
-            checked={consents.terms}
+            checked={consents.terms.agreed}
             onToggle={() =>
-              setConsents((current) => ({ ...current, terms: !current.terms }))
+              draftStore.setConsent("terms", !consents.terms.agreed)
             }
             onDetail={() => onOpenPolicy("terms")}
           />
           <SignupConsentRow
             label="개인정보 수집·이용 동의"
-            checked={consents.privacy}
+            checked={consents.privacy.agreed}
             onToggle={() =>
-              setConsents((current) => ({
-                ...current,
-                privacy: !current.privacy,
-              }))
+              draftStore.setConsent("privacy", !consents.privacy.agreed)
             }
             onDetail={() => onOpenPolicy("privacy")}
           />

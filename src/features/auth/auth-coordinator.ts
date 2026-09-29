@@ -1,4 +1,5 @@
 import type { createFirebaseAuthController } from "@/features/auth/firebase-auth-controller";
+import { createSignupDraftStore } from "@/features/auth/signup-draft-store";
 import type { AuthForegroundRecoveryState } from "@/features/auth/auth-foreground-recovery";
 import type {
   FirebaseLoginProvider,
@@ -159,6 +160,7 @@ export function createAuthCoordinator(
   const store = createStore<{ state: AuthCoordinatorState }>(() => ({
     state: { status: "idle" },
   }));
+  const signupDraft = createSignupDraftStore();
   let restorationPromise: Promise<void> | null = null;
   let flowGeneration = 0;
   let loginAttempt: IdentityAttempt | null = null;
@@ -340,6 +342,7 @@ export function createAuthCoordinator(
       return;
     }
     // 로그인 성공과 가입 완료 모두 같은 메모리 세션·약관 확인 경로를 사용한다.
+    signupDraft.reset();
     identityRetry = null;
     await checkMemberConsent(attempt.run);
   }
@@ -377,6 +380,14 @@ export function createAuthCoordinator(
           await activateIdentitySession(attempt, result.session);
           return;
         case "enrollment-required":
+          signupDraft.setPolicyVersions(
+            result.enrollment.origin === "guest"
+              ? {
+                  terms: result.enrollment.termConsentVersion,
+                  privacy: result.enrollment.privacyConsentVersion,
+                }
+              : { terms: null, privacy: null },
+          );
           store.setState({
             state: {
               status: "signingUp",
@@ -485,6 +496,7 @@ export function createAuthCoordinator(
       abort: new AbortController(),
     };
     loginAttempt = attempt;
+    signupDraft.reset();
     identityRetry = null;
     store.setState({
       state: { status: "signingIn", origin: attempt.origin, provider },
@@ -513,6 +525,7 @@ export function createAuthCoordinator(
     flowGeneration += 1;
     loginAttempt = null;
     identityRetry = null;
+    signupDraft.reset();
     store.setState({ state: { status: attempt.origin } });
   }
 
@@ -577,6 +590,7 @@ export function createAuthCoordinator(
     login?.firebase.cancel();
     loginAttempt = null;
     identityRetry = null;
+    signupDraft.reset();
   }
 
   function getForegroundRecoveryState(): AuthForegroundRecoveryState {
@@ -633,6 +647,7 @@ export function createAuthCoordinator(
   }
 
   return {
+    signupDraft,
     getForegroundRecoveryState,
     signIn,
     cancelLogin,
