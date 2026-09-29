@@ -1,4 +1,5 @@
 import type { createFirebaseAuthController } from "@/features/auth/firebase-auth-controller";
+import type { AuthForegroundRecoveryState } from "@/features/auth/auth-foreground-recovery";
 import type {
   FirebaseLoginProvider,
   FirebaseProofResult,
@@ -578,6 +579,33 @@ export function createAuthCoordinator(
     identityRetry = null;
   }
 
+  function getForegroundRecoveryState(): AuthForegroundRecoveryState {
+    const { state } = store.getState();
+    switch (state.status) {
+      case "error":
+        if (state.isRetrying) return "busy";
+        return state.nextAction === "get-help" ? "settled" : "retryable";
+      case "loginError":
+        return state.nextAction === "retry" &&
+          (identityRetry?.step === "submit" || identityRetry?.step === "activate-session")
+          ? "retryable"
+          : "settled";
+      case "idle":
+      case "restoring":
+      case "signingIn":
+      case "submittingProof":
+      case "activatingSession":
+        return "busy";
+      case "signingUp":
+      case "mergeRequired":
+      case "noSession":
+      case "guest":
+      case "authenticated":
+      case "consent":
+        return "settled";
+    }
+  }
+
   function retry(): Promise<void> {
     if (restorationPromise) return restorationPromise;
     const { state } = store.getState();
@@ -605,6 +633,7 @@ export function createAuthCoordinator(
   }
 
   return {
+    getForegroundRecoveryState,
     signIn,
     cancelLogin,
     completeEnrollment,

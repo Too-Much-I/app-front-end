@@ -6,6 +6,7 @@ import type { FirebaseAuthSdk } from "@/features/auth/firebase-auth-types";
 
 import { createAuthConsentController } from "@/features/auth/auth-consent-controller";
 import { createAuthCoordinator } from "@/features/auth/auth-coordinator";
+import { observeAuthForegroundRecovery } from "@/features/auth/auth-foreground-recovery";
 import { createSessionController } from "@/features/auth/session-controller";
 import { createAuthenticatedApiClient } from "@/lib/api/authenticated-client";
 
@@ -35,7 +36,13 @@ export function createAuthRuntime(options: {
   const appState = AppState.addEventListener("change", (state) => {
     if (state === "active") session.retryPersistence();
   });
+  const stopRecovery = observeAuthForegroundRecovery({
+    getState: coordinator.getForegroundRecoveryState,
+    subscribe: coordinator.subscribe,
+    retry: coordinator.retry,
+  });
   const dispose = () => {
+    stopRecovery();
     coordinator.dispose();
     unsubscribe();
     appState.remove();

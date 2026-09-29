@@ -1,8 +1,9 @@
-import { View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
+import { colors } from "@/theme";
 
 interface AuthRecoveryScreenProps {
   message: string;
@@ -26,6 +27,15 @@ export function AuthRecoveryScreen({
     await onRetry();
   };
 
+  if (isRetrying) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center gap-content bg-surface-subtle">
+        <ActivityIndicator color={colors.brand.text} />
+        <Text accessibilityLiveRegion="polite">로그인 정보를 다시 확인하고 있어요.</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView
       className="flex-1 bg-surface-subtle"
@@ -41,8 +51,7 @@ export function AuthRecoveryScreen({
             <Button
               accessibilityLabel="인증 준비 다시 시도하기"
               className="mt-section w-full"
-              label={isRetrying ? "다시 시도하는 중..." : "다시 시도하기"}
-              loading={isRetrying}
+              label="다시 시도하기"
               size="lg"
               onPress={handleRetry}
             />

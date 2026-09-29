@@ -7,6 +7,7 @@ import {
 } from "@/features/auth/api/reissue-tokens";
 import { updateConsents } from "@/features/auth/api/update-consents";
 import {
+  AuthStorageError,
   clearAuthSession,
   readAuthSession,
   writeAuthSession,
@@ -43,6 +44,8 @@ import {
 import { ApiError } from "@/lib/api/transport";
 import { reportOperationalError } from "@/lib/operational-error-reporting";
 import { queryClient } from "@/lib/query-client";
+import { classifyAuthRecovery } from "@/features/auth/auth-recovery";
+import type { AuthForegroundRecoveryState } from "@/features/auth/auth-foreground-recovery";
 
 const PROACTIVE_REFRESH_WINDOW_MS = 60_000;
 const RETRY_MESSAGE = "인증을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.";
@@ -96,6 +99,25 @@ class AuthController {
 
   getState = (): AuthBootstrapState => this.state;
 
+  getForegroundRecoveryState = (): AuthForegroundRecoveryState => {
+    const state = this.state;
+    switch (state.status) {
+      case "RETRYABLE_ERROR":
+        if (state.isRetrying) return "busy";
+        return state.autoRetryable ? "retryable" : "settled";
+      case "CHECKING_LOCAL":
+      case "REISSUING":
+      case "CHECKING_SERVER_CONSENT":
+        return "busy";
+      case "GUEST_RECOVERING":
+        return state.source === "startup" ? "busy" : "settled";
+      case "CONSENT_UPDATING":
+      case "CONSENT_REQUIRED":
+      case "AUTHENTICATED":
+        return "settled";
+    }
+  };
+
   subscribe = (listener: AuthStateListener): (() => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -126,7 +148,25 @@ class AuthController {
         cause,
       });
     }
-    this.setState({ status: "RETRYABLE_ERROR", source, retry, message: RETRY_MESSAGE }, run);
+    const autoRetryable = source === "startup" && ((): boolean => {
+      switch (retry.operation) {
+        case "read-local":
+          return cause instanceof AuthStorageError || cause instanceof InstallationIdError;
+        case "persist-installation":
+        case "persist-session":
+          return true;
+        case "persist-consent":
+          return retry.continuation === "authenticated";
+        case "check-consent":
+          return classifyAuthRecovery(cause).action === "retry";
+        // 구버전 재발급은 응답 유실 후 replay를 보장하지 않는다.
+        case "reissue":
+        case "guest":
+        case "update-consent":
+          return false;
+      }
+    })();
+    this.setState({ status: "RETRYABLE_ERROR", source, retry, message: RETRY_MESSAGE, autoRetryable }, run);
   }
 
   startBootstrap(): () => void {
@@ -199,7 +239,12 @@ class AuthController {
       consent = await getStoredConsent();
     } catch (error) {
       logAuthDebug("stored consent read failed", error);
-      this.setRetry("startup", { operation: "read-local" }, run, error);
+      this.setRetry(
+        "startup",
+        { operation: "read-local" },
+        run,
+        new AuthStorageError("저장된 약관 동의를 읽지 못했습니다."),
+      );
       return;
     }
 
