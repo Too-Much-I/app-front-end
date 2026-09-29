@@ -5,6 +5,7 @@ export const AUTH_PREVIEW_FIXTURE = {
   nickname: "토스마스터",
   phone: "01012345678",
   code: "123456",
+  policyVersions: { terms: "preview-terms-v1", privacy: "preview-privacy-v1" },
 } as const;
 
 export function validatePreviewNickname(nickname: string): string | null {

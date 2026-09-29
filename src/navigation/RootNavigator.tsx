@@ -172,6 +172,7 @@ type CoordinatorNavigationProps = {
       { status: "signingUp" | "mergeRequired" }
     >,
     actions: {
+      draftStore: ReturnType<typeof createAuthCoordinator>["signupDraft"];
       onComplete: (session: AuthSession) => Promise<void>;
       onCancel: () => void;
     },
@@ -240,6 +241,7 @@ function CoordinatorRootNavigator({
     case "signingUp":
     case "mergeRequired":
       return renderEnrollment(state, {
+        draftStore: coordinator.signupDraft,
         onComplete: (session) =>
           coordinator.completeEnrollment(state.flowId, session),
         onCancel: coordinator.cancelLogin,

@@ -1295,5 +1295,108 @@ await check("기존 앱 저장소 읽기 실패는 복귀 시 복원, 재발급 
   }
 });
 
+const { createSignupDraftStore } = load("src/features/auth/signup-draft-store.ts");
+
+await check("가입 초안 구독 해제·재구독은 입력 유지, 인스턴스·reset은 입력 분리", async () => {
+  const draft = createSignupDraftStore();
+  const unsubscribe = draft.subscribe(() => {});
+  draft.setNickname("가입자");
+  draft.setPhone("01012345678");
+  draft.setPolicyVersions({ terms: "terms-v1", privacy: "privacy-v1" });
+  draft.setAllConsents(true);
+  const saved = draft.getState();
+  unsubscribe();
+  const resubscribe = draft.subscribe(() => {});
+  assert.deepEqual(draft.getState(), saved);
+  assert.equal(createSignupDraftStore().getState().nickname, "");
+  draft.reset();
+  assert.equal(draft.getState().nickname, "");
+  assert.equal(draft.getState().phone, "");
+  assert.deepEqual(draft.getState().consents, {
+    terms: { version: null, agreed: false },
+    privacy: { version: null, agreed: false },
+  });
+  assert.equal(saved.nickname, "가입자");
+  resubscribe();
+});
+
+await check("약관 버전 미확인 시 동의 불가, 변경된 약관만 재동의", async () => {
+  const draft = createSignupDraftStore();
+  draft.setAllConsents(true);
+  draft.setConsent("terms", true);
+  assert.equal(draft.getState().consents.terms.agreed, false);
+  draft.setPolicyVersions({ terms: "terms-v1", privacy: "privacy-v1" });
+  draft.setAllConsents(true);
+  draft.setPolicyVersions({ terms: "terms-v2", privacy: "privacy-v1" });
+  assert.deepEqual(draft.getState().consents, {
+    terms: { version: "terms-v2", agreed: false },
+    privacy: { version: "privacy-v1", agreed: true },
+  });
+  draft.setPolicyVersions({ terms: "terms-v2", privacy: null });
+  assert.deepEqual(draft.getState().consents.privacy, { version: null, agreed: false });
+});
+
+await check("전화번호 변경·reset은 이전 인증 시도 무효화, 같은 값 설정은 유지", async () => {
+  const draft = createSignupDraftStore();
+  draft.setPhone("01012345678");
+  const revision = draft.getState().phoneRevision;
+  draft.setPhone("01012345678");
+  assert.equal(draft.getState().phoneRevision, revision);
+  draft.setPhone("01098765432");
+  draft.setPhone("01012345678");
+  assert.ok(draft.getState().phoneRevision > revision);
+  const beforeReset = draft.getState().phoneRevision;
+  draft.reset();
+  assert.ok(draft.getState().phoneRevision > beforeReset);
+});
+
+await check("가입 취소·새 로그인·완료·dispose에서 초안 초기화, 활성화 실패는 유지", async () => {
+  const h = identityHarness();
+  h.login.exchange = async () => ({ kind: "enrollment-required", enrollment: {
+    origin: "noSession", enrollmentId: "signup", missingRequirements: ["PROFILE"], expiresAt: now + 1000,
+  } });
+  const draft = h.coordinator.signupDraft;
+  await h.coordinator.bootstrap();
+  draft.setNickname("이전 계정");
+  await h.coordinator.signIn("google");
+  assert.equal(draft.getState().nickname, "");
+  const oldFlow = h.coordinator.getState().state.flowId;
+  draft.setNickname("취소할 입력");
+  h.coordinator.cancelLogin();
+  assert.equal(draft.getState().nickname, "");
+  await h.coordinator.signIn("apple");
+  draft.setNickname("새 계정");
+  draft.setPhone("01012345678");
+  await h.coordinator.completeEnrollment(oldFlow, newSession);
+  assert.equal(draft.getState().nickname, "새 계정");
+  h.login.session.acceptSession = async () => false;
+  await h.coordinator.completeEnrollment(h.coordinator.getState().state.flowId, newSession);
+  assert.equal(h.coordinator.getState().state.status, "loginError");
+  assert.equal(draft.getState().nickname, "새 계정");
+  h.login.session.acceptSession = async () => true;
+  await h.coordinator.retry();
+  assert.equal(h.coordinator.getState().state.status, "authenticated");
+  assert.equal(draft.getState().nickname, "");
+  assert.equal(draft.getState().phone, "");
+  draft.setNickname("종료할 입력");
+  h.coordinator.dispose();
+  assert.equal(draft.getState().nickname, "");
+});
+
+await check("Guest prepare의 정책 버전을 가입 초안에 전달", async () => {
+  const h = identityHarness("guest");
+  h.login.prepare = async () => ({ kind: "enrollment-required", enrollment: {
+    origin: "guest", enrollmentId: "guest-signup", missingRequirements: ["CONSENTS"],
+    expiresAt: now + 1000, termConsentVersion: "server-terms", privacyConsentVersion: "server-privacy",
+  } });
+  await h.coordinator.bootstrap();
+  await h.coordinator.signIn("google");
+  assert.deepEqual(h.coordinator.signupDraft.getState().consents, {
+    terms: { version: "server-terms", agreed: false },
+    privacy: { version: "server-privacy", agreed: false },
+  });
+  h.coordinator.dispose();
+});
+
 assert.equal(appStateListeners.size, 0);
 console.log(`인증 복원 회귀 검사 ${passed}개 통과`);
