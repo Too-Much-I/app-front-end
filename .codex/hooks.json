@@ -1,0 +1,30 @@
+{
+  "description": "구현 완료·검사 통과 후 구조 리뷰를 한 번 요청하고 사용자 평가를 기록한다.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/scripts/code-review/cli.mjs\" hook",
+            "timeout": 10,
+            "statusMessage": "코드 리뷰 세션 안내"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/scripts/code-review/cli.mjs\" hook",
+            "timeout": 210,
+            "statusMessage": "구현 검사와 리뷰 준비"
+          }
+        ]
+      }
+    ]
+  }
+}
