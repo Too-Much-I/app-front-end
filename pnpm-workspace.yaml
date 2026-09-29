@@ -1,7 +1,11 @@
 # @sentry/cli의 postinstall은 소스맵·디버그 심볼 업로드에 쓰는 네이티브 바이너리를 내려받는다.
 # 차단하면 릴리스 빌드에서 업로드 단계가 실패한다.
 allowBuilds:
+  # 네이티브 Firebase 설정을 사용하므로 Web App Hosting 자동 설정 생성은 불필요하다.
+  '@firebase/util': false
   '@sentry/cli': true
+  # 배포본에 런타임이 포함되어 있으며 postinstall은 버전 표기 경고만 출력한다.
+  protobufjs: false
 
 # @amplitude/analytics-react-native는 async-storage를 peer가 아닌 dependency로 잡고
 # `^1.17.11`을 요구한다. 그대로 두면 1.x가 중첩 설치되어 같은 네이티브 모듈이 두 벌
