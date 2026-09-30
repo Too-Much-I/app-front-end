@@ -1,16 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { notifyAnswerUploadComplete } from "@/features/exam/api/exam-answer-submit";
-import { getAnswerUploadUrl } from "@/features/exam/api/exam-answer-upload-url";
-import { getExamQuestionStatus } from "@/features/exam/api/exam-question-status";
-import { AnswerAudioUploadError, uploadAnswerAudio } from "@/features/exam/upload-answer-audio";
-import { reportOperationalError } from "@/lib/operational-error-reporting";
-import type { AnswerKey } from "@/types/exam";
+import { notifyAnswerUploadComplete } from '@/features/exam/api/exam-answer-submit';
+import { getAnswerUploadUrl } from '@/features/exam/api/exam-answer-upload-url';
+import { getExamQuestionStatus } from '@/features/exam/api/exam-question-status';
+import { AnswerAudioUploadError, uploadAnswerAudio } from '@/features/exam/upload-answer-audio';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
+import type { AnswerKey } from '@/types/exam';
 
-export type ReanswerSubmissionStatus = "idle" | "submitting" | "grading" | "failed";
+export type ReanswerSubmissionStatus = 'idle' | 'submitting' | 'grading' | 'failed';
 
 /** 실패가 제출에서 났는지 채점 확인에서 났는지 — 화면이 내줄 복구 행동이 다르다. */
-export type ReanswerFailureStage = "submit" | "grading";
+export type ReanswerFailureStage = 'submit' | 'grading';
 
 /** 웹의 재답변 폴링과 같은 주기. 이전 요청이 끝난 뒤에 다음 요청을 예약한다. */
 const POLL_INTERVAL_MS = 3_000;
@@ -31,11 +31,11 @@ function getGradingTimeoutMs(questionNumber: number): number {
     : GRADING_TIMEOUT_MS;
 }
 
-const SUBMIT_FAILURE_MESSAGE = "제출 중 문제가 생겼어요. 다시 시도해 주세요.";
+const SUBMIT_FAILURE_MESSAGE = '제출 중 문제가 생겼어요. 다시 시도해 주세요.';
 const SUBMIT_PROCESSING_FAILURE_MESSAGE =
-  "서버가 답변을 처리하지 못했어요. 피드백 화면에서 다시 시작해 주세요.";
-const GRADING_FAILURE_MESSAGE = "채점 결과를 확인하지 못했어요.";
-const GRADING_TIMEOUT_MESSAGE = "채점이 예상보다 오래 걸리고 있어요.";
+  '서버가 답변을 처리하지 못했어요. 피드백 화면에서 다시 시작해 주세요.';
+const GRADING_FAILURE_MESSAGE = '채점 결과를 확인하지 못했어요.';
+const GRADING_TIMEOUT_MESSAGE = '채점이 예상보다 오래 걸리고 있어요.';
 
 interface UseReanswerSubmissionInput {
   key: AnswerKey;
@@ -55,7 +55,7 @@ interface UseReanswerSubmissionInput {
  * 상태를 관리하는 것보다 흐름을 끊고 원래 자리로 보내는 편이 단순하고 안전하다.
  */
 export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionInput) {
-  const [status, setStatus] = useState<ReanswerSubmissionStatus>("idle");
+  const [status, setStatus] = useState<ReanswerSubmissionStatus>('idle');
   const [failureStage, setFailureStage] = useState<ReanswerFailureStage | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -90,31 +90,31 @@ export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionIn
     (
       stage: ReanswerFailureStage,
       message: string,
-      reason: "request-failed" | "server-processing" | "server-failed" | "timeout",
+      reason: 'request-failed' | 'server-processing' | 'server-failed' | 'timeout',
       cause?: unknown,
     ) => {
       if (!mountedRef.current) return;
       if (!hasReportedFailureRef.current) {
         hasReportedFailureRef.current = true;
         const activeKey = keyRef.current;
-        if (stage === "submit") {
+        if (stage === 'submit') {
           reportOperationalError({
-            code: "REANSWER_SUBMISSION_FAILED",
-            reason: reason === "server-processing" ? reason : "request-failed",
+            code: 'REANSWER_SUBMISSION_FAILED',
+            reason: reason === 'server-processing' ? reason : 'request-failed',
             questionNumber: activeKey.questionNumber,
             retryCount: activeKey.retryCount,
             cause,
           });
         } else {
           reportOperationalError({
-            code: "REANSWER_GRADING_FAILED",
-            reason: reason === "timeout" ? "timeout" : "server-failed",
+            code: 'REANSWER_GRADING_FAILED',
+            reason: reason === 'timeout' ? 'timeout' : 'server-failed',
             questionNumber: activeKey.questionNumber,
             retryCount: activeKey.retryCount,
           });
         }
       }
-      setStatus("failed");
+      setStatus('failed');
       setFailureStage(stage);
       setErrorMessage(message);
     },
@@ -132,23 +132,23 @@ export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionIn
           const result = await getExamQuestionStatus(keyRef.current, signal);
           if (signal.aborted || !mountedRef.current) return;
 
-          if (result.status === "COMPLETED") {
+          if (result.status === 'COMPLETED') {
             onGradedRef.current();
             return;
           }
-          if (result.status === "FAILED") {
-            fail("grading", GRADING_FAILURE_MESSAGE, "server-failed");
+          if (result.status === 'FAILED') {
+            fail('grading', GRADING_FAILURE_MESSAGE, 'server-failed');
             return;
           }
         } catch (error) {
           if (signal.aborted || !mountedRef.current) return;
           // 일시적인 네트워크 오류로 보고 상한까지는 조용히 다시 물어본다 —
           // 제출은 이미 성공했으므로 잠깐 끊겼다고 실패로 만들 이유가 없다.
-          console.error("[Reanswer] 회차 채점 상태 조회 실패", error);
+          console.error('[Reanswer] 회차 채점 상태 조회 실패', error);
         }
 
         if (Date.now() >= deadline) {
-          fail("grading", GRADING_TIMEOUT_MESSAGE, "timeout");
+          fail('grading', GRADING_TIMEOUT_MESSAGE, 'timeout');
           return;
         }
 
@@ -168,7 +168,7 @@ export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionIn
       const controller = new AbortController();
       abortRef.current = controller;
 
-      setStatus("submitting");
+      setStatus('submitting');
       hasReportedFailureRef.current = false;
       setFailureStage(null);
       setErrorMessage(null);
@@ -182,27 +182,27 @@ export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionIn
           controller.signal,
         );
         let submitResult = await notifyAnswerUploadComplete(keyRef.current, controller.signal);
-        if (submitResult.status === "FAILED") {
+        if (submitResult.status === 'FAILED') {
           submitResult = await notifyAnswerUploadComplete(keyRef.current, controller.signal);
         }
-        if (submitResult.status === "FAILED") {
-          fail("submit", SUBMIT_PROCESSING_FAILURE_MESSAGE, "server-processing");
+        if (submitResult.status === 'FAILED') {
+          fail('submit', SUBMIT_PROCESSING_FAILURE_MESSAGE, 'server-processing');
           return;
         }
       } catch (error) {
         if (controller.signal.aborted || !mountedRef.current) return;
-        console.error("[Reanswer] 답변 제출 실패", error);
+        console.error('[Reanswer] 답변 제출 실패', error);
         fail(
-          "submit",
+          'submit',
           error instanceof AnswerAudioUploadError ? error.message : SUBMIT_FAILURE_MESSAGE,
-          "request-failed",
+          'request-failed',
           error,
         );
         return;
       }
 
       if (controller.signal.aborted || !mountedRef.current) return;
-      setStatus("grading");
+      setStatus('grading');
       startPolling(controller.signal);
     },
     [clearPollTimer, fail, startPolling],
@@ -214,7 +214,7 @@ export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionIn
     abortRef.current?.abort();
     abortRef.current = null;
     clearPollTimer();
-    setStatus("idle");
+    setStatus('idle');
     hasReportedFailureRef.current = false;
     setFailureStage(null);
     setErrorMessage(null);

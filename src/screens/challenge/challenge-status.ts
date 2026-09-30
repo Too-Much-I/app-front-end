@@ -1,5 +1,5 @@
-import type { AudioRecordingStatus } from "@/features/audio/use-timed-audio-recorder";
-import { CHALLENGE_RECORDING_DURATION_SEC } from "@/features/challenge/use-challenge-recorder";
+import type { AudioRecordingStatus } from '@/features/audio/use-timed-audio-recorder';
+import { CHALLENGE_RECORDING_DURATION_SEC } from '@/features/challenge/use-challenge-recorder';
 
 /**
  * 10초 챌린지 화면이 그리는 상태와 타이머 표기.
@@ -10,11 +10,7 @@ import { CHALLENGE_RECORDING_DURATION_SEC } from "@/features/challenge/use-chall
 
 /** 녹음 진행에 따라 화면이 직접 관리하는 단계. 문제 조회 상태는 훅이 따로 들고 있다. */
 export type RecordingPhase =
-  | "preparing"
-  | "recording"
-  | "reviewing"
-  | "record-failed"
-  | "permission-denied";
+  'preparing' | 'recording' | 'reviewing' | 'record-failed' | 'permission-denied';
 
 /**
  * 10초 챌린지 문제 화면이 그리는 상태.
@@ -23,32 +19,32 @@ export type RecordingPhase =
  * 모은 값이라, 어떤 조합이 어떤 화면으로 보이는지 여기서만 보면 된다.
  */
 export type ChallengeUiStatus =
-  | "loading"
-  | "question-failed"
-  | "preparing"
-  | "recording"
-  | "reviewing"
-  | "record-failed"
-  | "permission-denied"
-  | "submitting"
-  | "submit-failed";
+  | 'loading'
+  | 'question-failed'
+  | 'preparing'
+  | 'recording'
+  | 'reviewing'
+  | 'record-failed'
+  | 'permission-denied'
+  | 'submitting'
+  | 'submit-failed';
 
 /** 노트 카드와 타이머를 함께 그리는 상태. */
 export type ChallengeNoteStatus = Extract<
   ChallengeUiStatus,
-  "preparing" | "recording" | "reviewing"
+  'preparing' | 'recording' | 'reviewing'
 >;
 
 /** 노트 카드 대신 안내 화면 한 장만 그리는 상태. */
 export type ChallengeStatusOnly = Exclude<ChallengeUiStatus, ChallengeNoteStatus>;
 
 export function isChallengeStatusOnly(status: ChallengeUiStatus): status is ChallengeStatusOnly {
-  return status !== "preparing" && status !== "recording" && status !== "reviewing";
+  return status !== 'preparing' && status !== 'recording' && status !== 'reviewing';
 }
 
 /** 나가기 전에 확인을 받아야 하는 상태 — 녹음 중이거나 아직 제출하지 않은 녹음본이 있다. */
 export function hasUnsavedChallengeRecording(status: ChallengeUiStatus): boolean {
-  return status === "recording" || status === "reviewing" || status === "submit-failed";
+  return status === 'recording' || status === 'reviewing' || status === 'submit-failed';
 }
 
 /**
@@ -56,7 +52,7 @@ export function hasUnsavedChallengeRecording(status: ChallengeUiStatus): boolean
  * 중간에 나가면 S3에 올라간 파일만 남고 서버는 접수를 모르는 상태가 된다.
  */
 export function isChallengeSubmissionLocked(status: ChallengeUiStatus): boolean {
-  return status === "submitting";
+  return status === 'submitting';
 }
 
 /**
@@ -70,20 +66,20 @@ export function resolveRecordingPhase(
   status: AudioRecordingStatus,
   hasFinalizedRecording: boolean,
 ): RecordingPhase {
-  if (hasFinalizedRecording) return "reviewing";
+  if (hasFinalizedRecording) return 'reviewing';
 
   switch (status) {
-    case "permission-denied":
-      return "permission-denied";
-    case "error":
-    case "interrupted":
-      return "record-failed";
-    case "recording":
-    case "finalizing":
-      return "recording";
-    case "idle":
-    case "preparing":
-      return "preparing";
+    case 'permission-denied':
+      return 'permission-denied';
+    case 'error':
+    case 'interrupted':
+      return 'record-failed';
+    case 'recording':
+    case 'finalizing':
+      return 'recording';
+    case 'idle':
+    case 'preparing':
+      return 'preparing';
   }
 }
 
@@ -100,14 +96,14 @@ export function resolveChallengeUiStatus({
   submissionStatus,
 }: {
   phase: RecordingPhase;
-  questionStatus: "loading" | "ready" | "failed";
-  attemptStatus: "idle" | "creating" | "ready" | "failed";
-  submissionStatus: "idle" | "submitting" | "failed";
+  questionStatus: 'loading' | 'ready' | 'failed';
+  attemptStatus: 'idle' | 'creating' | 'ready' | 'failed';
+  submissionStatus: 'idle' | 'submitting' | 'failed';
 }): ChallengeUiStatus {
-  if (submissionStatus === "submitting") return "submitting";
-  if (submissionStatus === "failed") return "submit-failed";
-  if (questionStatus === "loading") return "loading";
-  if (questionStatus === "failed") return "question-failed";
+  if (submissionStatus === 'submitting') return 'submitting';
+  if (submissionStatus === 'failed') return 'submit-failed';
+  if (questionStatus === 'loading') return 'loading';
+  if (questionStatus === 'failed') return 'question-failed';
   /*
    * attempt 발급 실패도 사용자에게는 "화면을 준비하지 못했다"는 같은 사실이라 조회 실패와
    * 같은 화면을 쓴다. 다시 시도 버튼이 무엇을 다시 부를지는 화면이 정한다.
@@ -115,7 +111,7 @@ export function resolveChallengeUiStatus({
    * 발급 중에는 `phase`가 아직 `preparing`이라 그대로 둔다 — 녹음은 발급이 끝난 뒤에
    * 시작하므로 그동안 보이는 "마이크를 준비하고 있어요"가 사실과 어긋나지 않는다.
    */
-  if (attemptStatus === "failed") return "question-failed";
+  if (attemptStatus === 'failed') return 'question-failed';
   return phase;
 }
 
@@ -129,8 +125,8 @@ export function getChallengeRemainingSeconds(
   status: ChallengeUiStatus,
   remainingMs: number,
 ): number | null {
-  if (status === "preparing") return CHALLENGE_RECORDING_DURATION_SEC;
-  if (status === "recording") return remainingMs / 1_000;
+  if (status === 'preparing') return CHALLENGE_RECORDING_DURATION_SEC;
+  if (status === 'recording') return remainingMs / 1_000;
   return null;
 }
 
@@ -152,5 +148,5 @@ export function formatCountdown(seconds: number): string {
   const safeSeconds = Math.max(0, Math.ceil(seconds));
   const minutes = Math.floor(safeSeconds / 60);
   const remainder = safeSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+  return `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
 }

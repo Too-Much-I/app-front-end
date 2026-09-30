@@ -1,16 +1,16 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from 'react';
 
-import { getChallengeToday } from "@/features/challenge/api/challenge-today";
-import { getChallengeErrorCode } from "@/features/challenge/challenge-error-codes";
-import { DEV_MOCK_CHALLENGE_QUESTION } from "@/features/challenge/dev-mock-challenge";
-import { getChallengeTodayQuestion } from "@/features/challenge/api/challenge-today-question";
-import type { ChallengeQuestion } from "@/types/challenge";
+import { getChallengeToday } from '@/features/challenge/api/challenge-today';
+import { getChallengeErrorCode } from '@/features/challenge/challenge-error-codes';
+import { DEV_MOCK_CHALLENGE_QUESTION } from '@/features/challenge/dev-mock-challenge';
+import { getChallengeTodayQuestion } from '@/features/challenge/api/challenge-today-question';
+import type { ChallengeQuestion } from '@/types/challenge';
 
 type ChallengeQuestionState =
-  | { status: "loading"; question: null; errorCode: null }
-  | { status: "ready"; question: ChallengeQuestion; errorCode: null }
+  | { status: 'loading'; question: null; errorCode: null }
+  | { status: 'ready'; question: ChallengeQuestion; errorCode: null }
   | {
-      status: "failed";
+      status: 'failed';
       question: null;
       /** 화면이 재시도와 진행도 새로 조회를 구분한다. 서버 코드가 없을 수도 있다. */
       errorCode: string | null;
@@ -31,7 +31,7 @@ export function useChallengeQuestion(
   questionNumber: number,
 ) {
   const [state, setState] = useState<ChallengeQuestionState>({
-    status: "loading",
+    status: 'loading',
     question: null,
     errorCode: null,
   });
@@ -40,7 +40,7 @@ export function useChallengeQuestion(
   useEffect(() => {
     if (__DEV__) {
       setState({
-        status: "ready",
+        status: 'ready',
         question: { ...DEV_MOCK_CHALLENGE_QUESTION, questionNumber },
         errorCode: null,
       });
@@ -48,18 +48,18 @@ export function useChallengeQuestion(
     }
 
     const controller = new AbortController();
-    setState({ status: "loading", question: null, errorCode: null });
+    setState({ status: 'loading', question: null, errorCode: null });
 
     resolveQuestion(challengeDate, questionNumber, controller.signal)
       .then((question) => {
         if (controller.signal.aborted) return;
-        setState({ status: "ready", question, errorCode: null });
+        setState({ status: 'ready', question, errorCode: null });
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        console.error("[Challenge] 문제 조회 실패", error);
+        console.error('[Challenge] 문제 조회 실패', error);
         setState({
-          status: "failed",
+          status: 'failed',
           question: null,
           errorCode: getChallengeErrorCode(error),
         });

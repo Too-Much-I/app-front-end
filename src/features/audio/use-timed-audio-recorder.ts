@@ -1,48 +1,28 @@
-import {
-  setAudioModeAsync,
-  useAudioRecorder,
-  useAudioRecorderState,
-} from "expo-audio";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppState } from "react-native";
+import { setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 import {
   AUDIO_METER_UPDATE_INTERVAL_MS,
   PLAYBACK_AUDIO_MODE,
   RECORDING_AUDIO_MODE,
   VOICE_RECORDING_OPTIONS,
-} from "@/features/audio/audio-session";
-import {
-  deleteRecordingFile,
-  getValidRecordingFile,
-} from "@/features/audio/recording-file";
+} from '@/features/audio/audio-session';
+import { deleteRecordingFile, getValidRecordingFile } from '@/features/audio/recording-file';
 import {
   RecordingPermissionError,
   resolveRecordingPermissionAsync,
   type RecordingPermissionFailureOperation,
-} from "@/features/audio/recording-permission";
+} from '@/features/audio/recording-permission';
 
 export type AudioRecordingStatus =
-  | "idle"
-  | "preparing"
-  | "recording"
-  | "finalizing"
-  | "interrupted"
-  | "permission-denied"
-  | "error";
+  'idle' | 'preparing' | 'recording' | 'finalizing' | 'interrupted' | 'permission-denied' | 'error';
 
 export type AudioRecordingFailureStage =
-  | "permission"
-  | "prepare"
-  | "stop"
-  | "file-validation"
-  | "interruption";
+  'permission' | 'prepare' | 'stop' | 'file-validation' | 'interruption';
 
 export type AudioRecordingStartOperation =
-  | RecordingPermissionFailureOperation
-  | "audio-mode"
-  | "recorder-prepare"
-  | "record-start";
+  RecordingPermissionFailureOperation | 'audio-mode' | 'recorder-prepare' | 'record-start';
 
 interface AudioRecordingErrorOptions extends ErrorOptions {
   operation?: AudioRecordingStartOperation;
@@ -59,7 +39,7 @@ export class AudioRecordingError extends Error {
     options?: AudioRecordingErrorOptions,
   ) {
     super(message, options);
-    this.name = "AudioRecordingError";
+    this.name = 'AudioRecordingError';
     this.operation = options?.operation;
     this.permissionGranted = options?.permissionGranted;
   }
@@ -80,14 +60,14 @@ interface RecordingGeneration<TContext> {
    * 경과 시간의 기준으로 쓸 수 없다.
    */
   startedAtMs: number;
-  terminalIntent: "finalize" | "discard" | null;
+  terminalIntent: 'finalize' | 'discard' | null;
   ownsAudioMode: boolean;
   hasOpenRecording: boolean;
 }
 
 export interface StartAudioRecordingResult {
   started: boolean;
-  reason?: "permission-denied" | "interrupted" | "error";
+  reason?: 'permission-denied' | 'interrupted' | 'error';
   error?: AudioRecordingError;
 }
 
@@ -97,17 +77,10 @@ export interface FinalizedAudioRecording<TContext> {
   audioFileUri: string;
 }
 
-export type AudioRecordingFinishReason =
-  | "user"
-  | "native-timeout"
-  | "fallback-timeout";
+export type AudioRecordingFinishReason = 'user' | 'native-timeout' | 'fallback-timeout';
 
 export type AudioRecordingDiscardReason =
-  | "app-state"
-  | "owner-inactive"
-  | "media-reset"
-  | "unexpected-stop"
-  | "dispose";
+  'app-state' | 'owner-inactive' | 'media-reset' | 'unexpected-stop' | 'dispose';
 
 const NATIVE_FINISH_TOLERANCE_MS = 300;
 const FALLBACK_FINISH_DELAY_MS = 500;
@@ -121,11 +94,11 @@ function getElapsedMs<TContext>(generation: RecordingGeneration<TContext>): numb
 export function useTimedAudioRecorder<TContext>() {
   const recorder = useAudioRecorder(VOICE_RECORDING_OPTIONS);
   const recorderState = useAudioRecorderState(recorder, AUDIO_METER_UPDATE_INTERVAL_MS);
-  const [status, setStatus] = useState<AudioRecordingStatus>("idle");
+  const [status, setStatus] = useState<AudioRecordingStatus>('idle');
   const [canAskPermissionAgain, setCanAskPermissionAgain] = useState(true);
   const [lastError, setLastError] = useState<AudioRecordingError | null>(null);
   const mountedRef = useRef(true);
-  const statusRef = useRef<AudioRecordingStatus>("idle");
+  const statusRef = useRef<AudioRecordingStatus>('idle');
   const generationSequenceRef = useRef(0);
   const activeGenerationRef = useRef<RecordingGeneration<TContext> | null>(null);
   const terminalPromiseRef = useRef<Promise<FinalizedAudioRecording<TContext> | null> | null>(null);
@@ -161,7 +134,7 @@ export function useTimedAudioRecorder<TContext>() {
           await recorder.stop();
         } catch (error) {
           stopError = error;
-          console.error("[TimedAudioRecorder] 녹음기 정지 실패", error);
+          console.error('[TimedAudioRecorder] 녹음기 정지 실패', error);
         } finally {
           generation.hasOpenRecording = false;
         }
@@ -171,7 +144,7 @@ export function useTimedAudioRecorder<TContext>() {
         try {
           await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
         } catch (error) {
-          console.error("[TimedAudioRecorder] 재생 오디오 모드 복원 실패", error);
+          console.error('[TimedAudioRecorder] 재생 오디오 모드 복원 실패', error);
           stopError ??= error;
         } finally {
           generation.ownsAudioMode = false;
@@ -183,12 +156,12 @@ export function useTimedAudioRecorder<TContext>() {
         try {
           deleteRecordingFile(audioFileUri);
         } catch (error) {
-          console.error("[TimedAudioRecorder] 부분 녹음 파일 삭제 실패", error);
+          console.error('[TimedAudioRecorder] 부분 녹음 파일 삭제 실패', error);
         }
       }
 
       if (stopError !== null) {
-        throw new AudioRecordingError("stop", "녹음을 종료하지 못했어요.", {
+        throw new AudioRecordingError('stop', '녹음을 종료하지 못했어요.', {
           cause: stopError,
         });
       }
@@ -206,22 +179,19 @@ export function useTimedAudioRecorder<TContext>() {
       if (activePromise !== null) return activePromise;
 
       const terminalPromise = (async () => {
-        const shouldFinalize = generation.terminalIntent === "finalize";
-        if (shouldFinalize) updateStatus("finalizing");
+        const shouldFinalize = generation.terminalIntent === 'finalize';
+        if (shouldFinalize) updateStatus('finalizing');
 
         try {
           const audioFileUri = await cleanupGeneration(generation, !shouldFinalize);
 
           if (!shouldFinalize) {
-            updateStatus("interrupted");
+            updateStatus('interrupted');
             return null;
           }
 
           if (!audioFileUri) {
-            throw new AudioRecordingError(
-              "file-validation",
-              "완성된 녹음 파일을 찾지 못했어요.",
-            );
+            throw new AudioRecordingError('file-validation', '완성된 녹음 파일을 찾지 못했어요.');
           }
 
           try {
@@ -230,14 +200,11 @@ export function useTimedAudioRecorder<TContext>() {
             try {
               deleteRecordingFile(audioFileUri);
             } catch (deleteError) {
-              console.error(
-                "[TimedAudioRecorder] 유효하지 않은 파일 삭제 실패",
-                deleteError,
-              );
+              console.error('[TimedAudioRecorder] 유효하지 않은 파일 삭제 실패', deleteError);
             }
             throw new AudioRecordingError(
-              "file-validation",
-              "완성된 녹음 파일이 유효하지 않아요.",
+              'file-validation',
+              '완성된 녹음 파일이 유효하지 않아요.',
               { cause: error },
             );
           }
@@ -246,12 +213,9 @@ export function useTimedAudioRecorder<TContext>() {
             try {
               deleteRecordingFile(audioFileUri);
             } catch (error) {
-              console.error("[TimedAudioRecorder] 화면 이탈 후 녹음 파일 삭제 실패", error);
+              console.error('[TimedAudioRecorder] 화면 이탈 후 녹음 파일 삭제 실패', error);
             }
-            throw new AudioRecordingError(
-              "interruption",
-              "화면을 벗어나 녹음을 취소했어요.",
-            );
+            throw new AudioRecordingError('interruption', '화면을 벗어나 녹음을 취소했어요.');
           }
 
           const finalizedRecording: FinalizedAudioRecording<TContext> = {
@@ -266,11 +230,11 @@ export function useTimedAudioRecorder<TContext>() {
           const recordingError =
             error instanceof AudioRecordingError
               ? error
-              : new AudioRecordingError("stop", "녹음을 확정하지 못했어요.", {
+              : new AudioRecordingError('stop', '녹음을 확정하지 못했어요.', {
                   cause: error,
                 });
           if (mountedRef.current) setLastError(recordingError);
-          updateStatus("error");
+          updateStatus('error');
           throw recordingError;
         } finally {
           if (activeGenerationRef.current?.id === generation.id) {
@@ -280,9 +244,11 @@ export function useTimedAudioRecorder<TContext>() {
       })();
 
       terminalPromiseRef.current = terminalPromise;
-      void terminalPromise.finally(() => {
-        if (terminalPromiseRef.current === terminalPromise) terminalPromiseRef.current = null;
-      }).catch(() => undefined);
+      void terminalPromise
+        .finally(() => {
+          if (terminalPromiseRef.current === terminalPromise) terminalPromiseRef.current = null;
+        })
+        .catch(() => undefined);
       return terminalPromise;
     },
     [cleanupGeneration, updateStatus],
@@ -303,13 +269,13 @@ export function useTimedAudioRecorder<TContext>() {
         if (lastFinalized && ownedFinalizedUriRef.current === lastFinalized.audioFileUri) {
           return lastFinalized;
         }
-        throw new AudioRecordingError("stop", "종료할 녹음이 없어요.");
+        throw new AudioRecordingError('stop', '종료할 녹음이 없어요.');
       }
 
-      if (generation.terminalIntent === null) generation.terminalIntent = "finalize";
+      if (generation.terminalIntent === null) generation.terminalIntent = 'finalize';
       const finalizedRecording = await runTerminal(generation);
       if (finalizedRecording) return finalizedRecording;
-      throw new AudioRecordingError("interruption", "녹음이 중단되어 다시 녹음해야 해요.");
+      throw new AudioRecordingError('interruption', '녹음이 중단되어 다시 녹음해야 해요.');
     },
     [runTerminal],
   );
@@ -321,8 +287,8 @@ export function useTimedAudioRecorder<TContext>() {
         await terminalPromiseRef.current?.catch(() => null);
         return;
       }
-      if (generation.terminalIntent === null) generation.terminalIntent = "discard";
-      if (generation.terminalIntent === "discard") {
+      if (generation.terminalIntent === null) generation.terminalIntent = 'discard';
+      if (generation.terminalIntent === 'discard') {
         await runTerminal(generation);
         return;
       }
@@ -338,14 +304,14 @@ export function useTimedAudioRecorder<TContext>() {
       context,
       maxDurationMs,
     }: StartAudioRecordingInput<TContext>): Promise<StartAudioRecordingResult> => {
-      if (statusRef.current === "preparing" || statusRef.current === "recording") {
-        return { started: false, reason: "error" };
+      if (statusRef.current === 'preparing' || statusRef.current === 'recording') {
+        return { started: false, reason: 'error' };
       }
       if (!Number.isFinite(maxDurationMs) || maxDurationMs <= 0) {
-        const error = new AudioRecordingError("prepare", "녹음 제한 시간이 올바르지 않아요.");
+        const error = new AudioRecordingError('prepare', '녹음 제한 시간이 올바르지 않아요.');
         setLastError(error);
-        updateStatus("error");
-        return { started: false, reason: "error", error };
+        updateStatus('error');
+        return { started: false, reason: 'error', error };
       }
 
       const previousTerminal = terminalPromiseRef.current;
@@ -355,7 +321,7 @@ export function useTimedAudioRecorder<TContext>() {
         try {
           deleteRecordingFile(ownedFinalizedUriRef.current);
         } catch (error) {
-          console.error("[TimedAudioRecorder] 이전 미등록 녹음 파일 삭제 실패", error);
+          console.error('[TimedAudioRecorder] 이전 미등록 녹음 파일 삭제 실패', error);
         }
         ownedFinalizedUriRef.current = null;
       }
@@ -373,8 +339,8 @@ export function useTimedAudioRecorder<TContext>() {
       generationSequenceRef.current = generation.id;
       activeGenerationRef.current = generation;
       if (mountedRef.current) setLastError(null);
-      updateStatus("preparing");
-      let failureOperation: AudioRecordingStartOperation = "permission-check";
+      updateStatus('preparing');
+      let failureOperation: AudioRecordingStartOperation = 'permission-check';
       let permissionGranted = false;
 
       try {
@@ -387,17 +353,17 @@ export function useTimedAudioRecorder<TContext>() {
           },
         });
         if (activeGenerationRef.current?.id !== generation.id || generation.terminalIntent) {
-          return { started: false, reason: "interrupted" };
+          return { started: false, reason: 'interrupted' };
         }
         permissionGranted = permission.granted;
         setCanAskPermissionAgain(permission.canAskAgain);
         if (!permission.granted) {
           activeGenerationRef.current = null;
-          updateStatus("permission-denied");
-          return { started: false, reason: "permission-denied" };
+          updateStatus('permission-denied');
+          return { started: false, reason: 'permission-denied' };
         }
 
-        failureOperation = "audio-mode";
+        failureOperation = 'audio-mode';
         generation.ownsAudioMode = true;
         await setAudioModeAsync(RECORDING_AUDIO_MODE);
         if (activeGenerationRef.current?.id !== generation.id || generation.terminalIntent) {
@@ -406,81 +372,77 @@ export function useTimedAudioRecorder<TContext>() {
           } finally {
             generation.ownsAudioMode = false;
           }
-          return { started: false, reason: "interrupted" };
+          return { started: false, reason: 'interrupted' };
         }
 
-        failureOperation = "recorder-prepare";
+        failureOperation = 'recorder-prepare';
         await recorder.prepareToRecordAsync();
         if (activeGenerationRef.current?.id !== generation.id || generation.terminalIntent) {
-          await discard("app-state");
-          return { started: false, reason: "interrupted" };
+          await discard('app-state');
+          return { started: false, reason: 'interrupted' };
         }
 
-        failureOperation = "record-start";
+        failureOperation = 'record-start';
         recorder.record({ forDuration: maxDurationMs / 1_000 });
         generation.hasOpenRecording = true;
         generation.startedAtMs = Date.now();
-        updateStatus("recording");
+        updateStatus('recording');
         fallbackTimerRef.current = setTimeout(() => {
-          void finish("fallback-timeout").catch(() => undefined);
+          void finish('fallback-timeout').catch(() => undefined);
         }, maxDurationMs + FALLBACK_FINISH_DELAY_MS);
         return { started: true };
       } catch (error) {
-        if (generation.terminalIntent === "discard") {
+        if (generation.terminalIntent === 'discard') {
           await runTerminal(generation).catch(() => undefined);
-          return { started: false, reason: "interrupted" };
+          return { started: false, reason: 'interrupted' };
         }
 
-        generation.terminalIntent = "discard";
+        generation.terminalIntent = 'discard';
         await runTerminal(generation).catch(() => undefined);
-        const recordingError = new AudioRecordingError(
-          "prepare",
-          "마이크를 준비하지 못했어요.",
-          {
-            cause: error,
-            operation:
-              error instanceof RecordingPermissionError
-                ? error.operation
-                : failureOperation,
-            permissionGranted,
-          },
-        );
+        const recordingError = new AudioRecordingError('prepare', '마이크를 준비하지 못했어요.', {
+          cause: error,
+          operation: error instanceof RecordingPermissionError ? error.operation : failureOperation,
+          permissionGranted,
+        });
         if (mountedRef.current) setLastError(recordingError);
-        updateStatus("error");
-        return { started: false, reason: "error", error: recordingError };
+        updateStatus('error');
+        return { started: false, reason: 'error', error: recordingError };
       }
     },
     [discard, finish, recorder, runTerminal, updateStatus],
   );
 
-  const transferOwnership = useCallback((audioFileUri: string) => {
-    if (ownedFinalizedUriRef.current !== audioFileUri) return false;
-    ownedFinalizedUriRef.current = null;
-    lastFinalizedRef.current = null;
-    updateStatus("idle");
-    return true;
-  }, [updateStatus]);
+  const transferOwnership = useCallback(
+    (audioFileUri: string) => {
+      if (ownedFinalizedUriRef.current !== audioFileUri) return false;
+      ownedFinalizedUriRef.current = null;
+      lastFinalizedRef.current = null;
+      updateStatus('idle');
+      return true;
+    },
+    [updateStatus],
+  );
 
   const resetForRetry = useCallback(() => {
-    if (statusRef.current === "preparing" || statusRef.current === "recording") return false;
+    if (statusRef.current === 'preparing' || statusRef.current === 'recording') return false;
     if (ownedFinalizedUriRef.current) {
       try {
         deleteRecordingFile(ownedFinalizedUriRef.current);
       } catch (error) {
-        console.error("[TimedAudioRecorder] 재녹음 전 파일 삭제 실패", error);
+        console.error('[TimedAudioRecorder] 재녹음 전 파일 삭제 실패', error);
       }
       ownedFinalizedUriRef.current = null;
     }
     lastFinalizedRef.current = null;
     setLastError(null);
-    updateStatus("idle");
+    updateStatus('idle');
     return true;
   }, [updateStatus]);
 
   const dispose = useCallback(() => {
     mountedRef.current = false;
     isPermissionRequestInFlightRef.current = false;
-    void discard("dispose").catch(() => undefined);
+    void discard('dispose').catch(() => undefined);
     const ownedUri = ownedFinalizedUriRef.current;
     ownedFinalizedUriRef.current = null;
     lastFinalizedRef.current = null;
@@ -488,7 +450,7 @@ export function useTimedAudioRecorder<TContext>() {
       try {
         deleteRecordingFile(ownedUri);
       } catch (error) {
-        console.error("[TimedAudioRecorder] 화면 이탈 파일 삭제 실패", error);
+        console.error('[TimedAudioRecorder] 화면 이탈 파일 삭제 실패', error);
       }
     }
   }, [discard]);
@@ -498,9 +460,9 @@ export function useTimedAudioRecorder<TContext>() {
   }, [dispose]);
 
   useEffect(() => {
-    const subscription = AppState.addEventListener("change", (nextState) => {
-      if (nextState !== "active" && !isPermissionRequestInFlightRef.current) {
-        void discard("app-state").catch(() => undefined);
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState !== 'active' && !isPermissionRequestInFlightRef.current) {
+        void discard('app-state').catch(() => undefined);
       }
     });
     return () => subscription.remove();
@@ -510,15 +472,15 @@ export function useTimedAudioRecorder<TContext>() {
     const generation = activeGenerationRef.current;
     if (!generation || generation.terminalIntent !== null) return;
     if (recorderState.mediaServicesDidReset) {
-      void discard("media-reset").catch(() => undefined);
+      void discard('media-reset').catch(() => undefined);
       return;
     }
-    if (statusRef.current !== "recording" || recorderState.isRecording) return;
+    if (statusRef.current !== 'recording' || recorderState.isRecording) return;
 
     if (getElapsedMs(generation) >= generation.maxDurationMs - NATIVE_FINISH_TOLERANCE_MS) {
-      void finish("native-timeout").catch(() => undefined);
+      void finish('native-timeout').catch(() => undefined);
     } else if (generation.hasOpenRecording) {
-      void discard("unexpected-stop").catch(() => undefined);
+      void discard('unexpected-stop').catch(() => undefined);
     }
   }, [discard, finish, recorderState.isRecording, recorderState.mediaServicesDidReset]);
 
@@ -529,7 +491,7 @@ export function useTimedAudioRecorder<TContext>() {
 
   // recorderState 폴링이 렌더를 유발하므로 wall-clock 경과도 매 tick 갱신된다.
   const activeGeneration = activeGenerationRef.current;
-  const isTimingActive = status === "recording" || status === "finalizing";
+  const isTimingActive = status === 'recording' || status === 'finalizing';
   const elapsedMs = isTimingActive && activeGeneration ? getElapsedMs(activeGeneration) : 0;
   const maxDurationMs = activeGeneration?.maxDurationMs ?? 0;
 

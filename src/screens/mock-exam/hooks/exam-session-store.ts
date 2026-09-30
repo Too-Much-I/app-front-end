@@ -1,30 +1,30 @@
-import { createStore } from "zustand/vanilla";
+import { createStore } from 'zustand/vanilla';
 
-import { getExamPartDirections } from "@/features/exam/part-directions";
-import { decidePartPrelude } from "@/features/exam/part-prelude";
-import { getPlayableQuestionAudioUrl } from "@/features/exam/question-audio";
-import { reportOperationalError } from "@/lib/operational-error-reporting";
-import { emitExamBreadcrumb } from "@/screens/mock-exam/exam-breadcrumb";
+import { getExamPartDirections } from '@/features/exam/part-directions';
+import { decidePartPrelude } from '@/features/exam/part-prelude';
+import { getPlayableQuestionAudioUrl } from '@/features/exam/question-audio';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
+import { emitExamBreadcrumb } from '@/screens/mock-exam/exam-breadcrumb';
 import type {
   ExamPartPrelude,
   ExamQuestion,
   ExamSession,
   ExamSessionPhase,
   FinalizedAnswer,
-} from "@/types/exam";
+} from '@/types/exam';
 
 function getQuestionStartPhase(partNumber: number | undefined): ExamSessionPhase {
   return partNumber !== undefined && getExamPartDirections(partNumber)
-    ? "directions"
-    : "preparation-cue";
+    ? 'directions'
+    : 'preparation-cue';
 }
 
 /** 무언가 실패해 복구 대기로 빠진 phase. breadcrumb level을 warning으로 올려 눈에 띄게 한다. */
 const WARNING_PHASES: ReadonlySet<ExamSessionPhase> = new Set([
-  "part-prelude-error",
-  "interrupted",
-  "recording-recovery",
-  "registration-recovery",
+  'part-prelude-error',
+  'interrupted',
+  'recording-recovery',
+  'registration-recovery',
 ]);
 
 export function getPartPrelude(
@@ -102,8 +102,7 @@ export function createExamSessionStore(session: ExamSession) {
 
   const store = createStore<ExamSessionStore>()((set, get) => {
     // 클로저 안의 헬퍼는 스토어 표면에 올라가지 않는다 — 위 주석의 "원시 조작 숨기기".
-    const currentQuestion = (): ExamQuestion | undefined =>
-      session.questions[get().currentIndex];
+    const currentQuestion = (): ExamQuestion | undefined => session.questions[get().currentIndex];
 
     /**
      * phase가 바뀐 직후 호출한다. `data`는 enum·숫자만 담는다 — breadcrumb의
@@ -114,27 +113,27 @@ export function createExamSessionStore(session: ExamSession) {
       const { phase, currentIndex } = get();
       const question = currentQuestion();
       emitExamBreadcrumb(
-        "exam.phase",
+        'exam.phase',
         {
           phase,
           currentIndex,
           ...(question ? { partNumber: question.partNumber } : {}),
         },
-        WARNING_PHASES.has(phase) ? "warning" : "info",
+        WARNING_PHASES.has(phase) ? 'warning' : 'info',
       );
     };
 
     const enterPreparationCue = (question: ExamQuestion) => {
       set({
         preparationRemainingMs: question.prepTimeSec * 1_000,
-        phase: "preparation-cue",
+        phase: 'preparation-cue',
       });
       emitPhaseBreadcrumb();
     };
 
     const enterQuestionStart = (question: ExamQuestion) => {
       if (getPlayableQuestionAudioUrl(question)) {
-        set({ phase: "question-cue" });
+        set({ phase: 'question-cue' });
         emitPhaseBreadcrumb();
         return;
       }
@@ -151,41 +150,41 @@ export function createExamSessionStore(session: ExamSession) {
 
       completeDirections: () => {
         // get()은 항상 지금 값이다. phaseRef가 하던 일을 여기가 대신한다.
-        if (get().phase !== "directions") return;
+        if (get().phase !== 'directions') return;
         const question = currentQuestion();
         if (!question) return;
 
         const partPrelude = getPartPrelude(session.partPreludes, question.partNumber);
         const decision = decidePartPrelude(question.partNumber, partPrelude);
         switch (decision.kind) {
-          case "none":
+          case 'none':
             enterQuestionStart(question);
             return;
-          case "part3-intro":
-            set({ phase: "part3-intro" });
+          case 'part3-intro':
+            set({ phase: 'part3-intro' });
             emitPhaseBreadcrumb();
             return;
-          case "part4-reading":
+          case 'part4-reading':
             set({
               readingRemainingMs: decision.durationMs,
               isReadingTableReady: false,
-              phase: "part4-reading",
+              phase: 'part4-reading',
             });
             emitPhaseBreadcrumb();
             return;
-          case "failed":
+          case 'failed':
             reportOperationalError({
-              code: "EXAM_PRELUDE_FAILED",
+              code: 'EXAM_PRELUDE_FAILED',
               partNumber: decision.partNumber,
               reason: decision.reason,
             });
-            set({ phase: "part-prelude-error" });
+            set({ phase: 'part-prelude-error' });
             emitPhaseBreadcrumb();
             return;
           default: {
             const unhandled: never = decision;
-            console.error("[ExamSession] 처리되지 않은 서두 판정", unhandled);
-            set({ phase: "part-prelude-error" });
+            console.error('[ExamSession] 처리되지 않은 서두 판정', unhandled);
+            set({ phase: 'part-prelude-error' });
             emitPhaseBreadcrumb();
             return;
           }
@@ -193,14 +192,14 @@ export function createExamSessionStore(session: ExamSession) {
       },
 
       completePart3Intro: () => {
-        if (get().phase !== "part3-intro") return;
+        if (get().phase !== 'part3-intro') return;
         const question = currentQuestion();
         if (question) enterQuestionStart(question);
       },
 
       completePart4Reading: () => {
         const { phase, isReadingTableReady } = get();
-        if (phase !== "part4-reading" || !isReadingTableReady) return;
+        if (phase !== 'part4-reading' || !isReadingTableReady) return;
         const question = currentQuestion();
         if (!question) return;
         set({ readingRemainingMs: 0 });
@@ -208,46 +207,46 @@ export function createExamSessionStore(session: ExamSession) {
       },
 
       completeQuestionCue: () => {
-        if (get().phase !== "question-cue") return;
+        if (get().phase !== 'question-cue') return;
         const question = currentQuestion();
         if (question) enterPreparationCue(question);
       },
 
       completePreparationCue: () => {
-        if (get().phase !== "preparation-cue") return;
+        if (get().phase !== 'preparation-cue') return;
         const question = currentQuestion();
         if (!question) return;
         set({
           preparationRemainingMs: question.prepTimeSec * 1_000,
-          phase: "preparation",
+          phase: 'preparation',
         });
         emitPhaseBreadcrumb();
       },
 
       markPart4TableReady: () => {
-        if (get().phase !== "part4-reading") return;
+        if (get().phase !== 'part4-reading') return;
         set({ isReadingTableReady: true });
       },
 
       beginResponse: () => {
         const { phase } = get();
-        if (phase !== "preparation" && phase !== "interrupted" && phase !== "recording-recovery") {
+        if (phase !== 'preparation' && phase !== 'interrupted' && phase !== 'recording-recovery') {
           return;
         }
-        set({ phase: "response-cue" });
+        set({ phase: 'response-cue' });
         emitPhaseBreadcrumb();
       },
 
       retryRecording: () => get().beginResponse(),
 
       tickPreparation: (remainingMs) => {
-        if (get().phase !== "preparation") return;
+        if (get().phase !== 'preparation') return;
         set({ preparationRemainingMs: remainingMs });
         if (remainingMs === 0) get().beginResponse();
       },
 
       tickReading: (remainingMs) => {
-        if (get().phase !== "part4-reading") return;
+        if (get().phase !== 'part4-reading') return;
         set({ readingRemainingMs: remainingMs });
         if (remainingMs === 0) get().completePart4Reading();
       },
@@ -256,29 +255,29 @@ export function createExamSessionStore(session: ExamSession) {
       suspendReading: (remainingMs) => set({ readingRemainingMs: remainingMs }),
 
       beginRecordingAttempt: () => {
-        if (get().phase !== "response-cue") return false;
-        set({ phase: "starting-response" });
+        if (get().phase !== 'response-cue') return false;
+        set({ phase: 'starting-response' });
         emitPhaseBreadcrumb();
         return true;
       },
 
       recordingStarted: () => {
-        set({ phase: "response" });
+        set({ phase: 'response' });
         emitPhaseBreadcrumb();
       },
       recordingInterrupted: () => {
-        set({ phase: "interrupted" });
+        set({ phase: 'interrupted' });
         emitPhaseBreadcrumb();
       },
       recordingFailed: () => {
-        set({ phase: "recording-recovery" });
+        set({ phase: 'recording-recovery' });
         emitPhaseBreadcrumb();
       },
 
       beginFinalizing: () => {
         const { phase } = get();
-        if (phase !== "response" && phase !== "finalizing") return false;
-        set({ phase: "finalizing" });
+        if (phase !== 'response' && phase !== 'finalizing') return false;
+        set({ phase: 'finalizing' });
         emitPhaseBreadcrumb();
         return true;
       },
@@ -289,25 +288,25 @@ export function createExamSessionStore(session: ExamSession) {
       },
 
       answerRegistrationFailed: (answer) => {
-        set({ pendingFinalizedAnswer: answer, phase: "registration-recovery" });
+        set({ pendingFinalizedAnswer: answer, phase: 'registration-recovery' });
         emitPhaseBreadcrumb();
       },
 
       answerFileInvalid: () => {
-        set({ pendingFinalizedAnswer: null, phase: "recording-recovery" });
+        set({ pendingFinalizedAnswer: null, phase: 'recording-recovery' });
         emitPhaseBreadcrumb();
       },
 
       examCompleted: () => {
-        if (get().phase !== "submission-barrier") return;
-        set({ phase: "completed" });
+        if (get().phase !== 'submission-barrier') return;
+        set({ phase: 'completed' });
         emitPhaseBreadcrumb();
       },
 
       advanceAfterRegistration: () => {
         const activeIndex = get().currentIndex;
         if (activeIndex >= session.questions.length - 1) {
-          set({ phase: "submission-barrier" });
+          set({ phase: 'submission-barrier' });
           emitPhaseBreadcrumb();
           return;
         }
@@ -332,7 +331,7 @@ export function createExamSessionStore(session: ExamSession) {
 
   // creator 안의 emitPhaseBreadcrumb은 store가 완성된 뒤에야 get()을 쓸 수 있어
   // 초기 상태 자체는 못 찍는다. 트레일의 첫 항목이 비지 않도록 여기서 한 번 찍는다.
-  emitExamBreadcrumb("exam.phase", {
+  emitExamBreadcrumb('exam.phase', {
     phase: initialPhase,
     currentIndex: 0,
     ...(firstQuestion ? { partNumber: firstQuestion.partNumber } : {}),

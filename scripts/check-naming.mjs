@@ -16,12 +16,12 @@
  * 규칙을 바꾸려면 그 문서와 이 파일을 함께 고친다.
  */
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative, basename, extname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative, basename, extname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");
-const SRC = join(ROOT, "src");
+const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
+const SRC = join(ROOT, 'src');
 
 /**
  * 규칙을 어기지만 그대로 두기로 한 것들. 새로 추가할 때는 반드시 이유를 함께 적는다.
@@ -45,7 +45,7 @@ function walk(dir) {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) {
       entries.push(...walk(path));
-    } else if (extname(path) === ".ts" || extname(path) === ".tsx") {
+    } else if (extname(path) === '.ts' || extname(path) === '.tsx') {
       entries.push(path);
     }
   }
@@ -79,7 +79,7 @@ function readTopLevelExports(source) {
 const exportOwners = new Map();
 
 for (const file of files) {
-  const source = readFileSync(file, "utf8");
+  const source = readFileSync(file, 'utf8');
   const relPath = relative(ROOT, file);
   const ext = extname(file);
   const base = basename(file, ext);
@@ -91,26 +91,34 @@ for (const file of files) {
   }
 
   // ── 규칙 2: 컴포넌트 파일은 PascalCase이고, 파일명이 곧 컴포넌트 이름이다.
-  if (ext === ".tsx") {
+  if (ext === '.tsx') {
     const component = source.match(/^export\s+(?:function|const)\s+([A-Z][A-Za-z0-9_$]*)/m)?.[1];
     if (component && !ALLOWLIST.componentFileName.has(relPath)) {
       if (!/^[A-Z]/.test(base)) {
-        report("component-file-name", file, `컴포넌트 ${component}를 내보내는데 파일명이 PascalCase가 아니다`);
+        report(
+          'component-file-name',
+          file,
+          `컴포넌트 ${component}를 내보내는데 파일명이 PascalCase가 아니다`,
+        );
       } else if (base !== component) {
-        report("component-file-name", file, `파일명과 컴포넌트 이름이 다르다 (export: ${component})`);
+        report(
+          'component-file-name',
+          file,
+          `파일명과 컴포넌트 이름이 다르다 (export: ${component})`,
+        );
       }
     }
   }
 
   // ── 규칙 3: use-*.ts 는 파일명과 같은 이름의 훅을 내보낸다.
-  if (base.startsWith("use-") && !ALLOWLIST.hookFileName.has(relPath)) {
+  if (base.startsWith('use-') && !ALLOWLIST.hookFileName.has(relPath)) {
     const expected = toCamelCase(base);
     if (!exports.includes(expected)) {
-      const found = exports.filter((name) => name.startsWith("use"));
+      const found = exports.filter((name) => name.startsWith('use'));
       report(
-        "hook-file-name",
+        'hook-file-name',
         file,
-        `${expected}를 내보내지 않는다${found.length ? ` (있는 훅: ${found.join(", ")})` : ""}`,
+        `${expected}를 내보내지 않는다${found.length ? ` (있는 훅: ${found.join(', ')})` : ''}`,
       );
     }
   }
@@ -118,15 +126,19 @@ for (const file of files) {
   // ── 규칙 4: 재수출하며 이름을 바꾸지 않는다. 한 대상에 두 이름이 생긴다.
   if (!ALLOWLIST.aliasedReExport.has(relPath)) {
     for (const match of source.matchAll(/^export\s*\{[^}]*\bas\b[^}]*\}/gms)) {
-      report("aliased-re-export", file, `이름을 바꾸는 재수출: ${match[0].replace(/\s+/g, " ").slice(0, 80)}`);
+      report(
+        'aliased-re-export',
+        file,
+        `이름을 바꾸는 재수출: ${match[0].replace(/\s+/g, ' ').slice(0, 80)}`,
+      );
     }
   }
 
   // ── 규칙 5: map-*.ts 하나에 매퍼 하나.
-  if (base.startsWith("map-") && !ALLOWLIST.mapperPerFile.has(relPath)) {
-    const mappers = exports.filter((name) => name.startsWith("map"));
+  if (base.startsWith('map-') && !ALLOWLIST.mapperPerFile.has(relPath)) {
+    const mappers = exports.filter((name) => name.startsWith('map'));
     if (mappers.length > 1) {
-      report("mapper-per-file", file, `매퍼가 ${mappers.length}개다: ${mappers.join(", ")}`);
+      report('mapper-per-file', file, `매퍼가 ${mappers.length}개다: ${mappers.join(', ')}`);
     }
   }
 }
@@ -136,19 +148,19 @@ for (const file of files) {
 for (const [name, owners] of exportOwners) {
   if (owners.length > 1 && !ALLOWLIST.duplicateExport.has(name)) {
     problems.push({
-      rule: "duplicate-export",
+      rule: 'duplicate-export',
       file: owners[0],
-      message: `${name}를 ${owners.length}개 파일이 내보낸다:\n      ${owners.join("\n      ")}`,
+      message: `${name}를 ${owners.length}개 파일이 내보낸다:\n      ${owners.join('\n      ')}`,
     });
   }
 }
 
 const RULE_TITLES = {
-  "duplicate-export": "서로 다른 파일이 같은 이름을 내보낸다",
-  "component-file-name": "컴포넌트 파일명 규칙",
-  "hook-file-name": "훅 파일명 규칙",
-  "aliased-re-export": "이름을 바꾸는 재수출",
-  "mapper-per-file": "map-*.ts 하나에 매퍼 하나",
+  'duplicate-export': '서로 다른 파일이 같은 이름을 내보낸다',
+  'component-file-name': '컴포넌트 파일명 규칙',
+  'hook-file-name': '훅 파일명 규칙',
+  'aliased-re-export': '이름을 바꾸는 재수출',
+  'mapper-per-file': 'map-*.ts 하나에 매퍼 하나',
 };
 
 if (problems.length === 0) {
@@ -164,8 +176,8 @@ for (const rule of Object.keys(RULE_TITLES)) {
   for (const { file, message } of matched) {
     console.error(`    ${file}\n      ${message}`);
   }
-  console.error("");
+  console.error('');
 }
-console.error("규칙의 근거: docs/architecture/01-naming-dictionary.md");
-console.error("그대로 두기로 했다면 scripts/check-naming.mjs 의 ALLOWLIST에 이유와 함께 적는다.");
+console.error('규칙의 근거: docs/architecture/01-naming-dictionary.md');
+console.error('그대로 두기로 했다면 scripts/check-naming.mjs 의 ALLOWLIST에 이유와 함께 적는다.');
 process.exit(1);

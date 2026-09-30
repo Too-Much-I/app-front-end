@@ -1,11 +1,11 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo } from 'react';
 
 import {
   useTimedAudioRecorder,
   type AudioRecordingFinishReason,
   type StartAudioRecordingResult,
-} from "@/features/audio/use-timed-audio-recorder";
-import type { AnswerKey, FinalizedAnswer } from "@/types/exam";
+} from '@/features/audio/use-timed-audio-recorder';
+import type { AnswerKey, FinalizedAnswer } from '@/types/exam';
 
 interface StartAnswerRecordingInput {
   key: AnswerKey;

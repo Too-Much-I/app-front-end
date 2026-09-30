@@ -1,30 +1,27 @@
-import "./global.css";
+import './global.css';
 
-import {
-  NavigationContainer,
-  useNavigationContainerRef,
-} from "@react-navigation/native";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { StatusBar } from "expo-status-bar";
-import { useRef } from "react";
-import { View } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { StatusBar } from 'expo-status-bar';
+import { useRef } from 'react';
+import { View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { PortraitOnlyNotice } from "@/components/ui/PortraitOnlyNotice";
-import { useAuth } from "@/features/auth/auth-context";
-import { AuthProvider } from "@/features/auth/AuthProvider";
-import { OrientationProvider } from "@/features/orientation/OrientationProvider";
-import { useOrientation } from "@/features/orientation/orientation-context";
-import { AuthPreviewNavigator } from "@/navigation/AuthPreviewNavigator";
-import { RootNavigator } from "@/navigation/RootNavigator";
-import type { RootStackParamList } from "@/navigation/types";
-import { IS_AUTH_UI_PREVIEW } from "@/lib/auth-ui-preview";
-import { trackScreenView } from "@/lib/amplitude";
-import { queryClient } from "@/lib/query-client";
-import { IS_SENTRY_VALIDATION_MODE } from "@/lib/sentry-validation-mode";
-import { SentryValidationScreen } from "@/screens/diagnostics/SentryValidationScreen";
-import { useRemScale } from "@/theme/rem-scale";
-import { useAppFonts } from "@/theme/use-app-fonts";
+import { PortraitOnlyNotice } from '@/components/ui/PortraitOnlyNotice';
+import { useAuth } from '@/features/auth/auth-context';
+import { AuthProvider } from '@/features/auth/AuthProvider';
+import { OrientationProvider } from '@/features/orientation/OrientationProvider';
+import { useOrientation } from '@/features/orientation/orientation-context';
+import { AuthPreviewNavigator } from '@/navigation/AuthPreviewNavigator';
+import { RootNavigator } from '@/navigation/RootNavigator';
+import type { RootStackParamList } from '@/navigation/types';
+import { IS_AUTH_UI_PREVIEW } from '@/lib/auth-ui-preview';
+import { trackScreenView } from '@/lib/amplitude';
+import { queryClient } from '@/lib/query-client';
+import { IS_SENTRY_VALIDATION_MODE } from '@/lib/sentry-validation-mode';
+import { SentryValidationScreen } from '@/screens/diagnostics/SentryValidationScreen';
+import { useRemScale } from '@/theme/rem-scale';
+import { useAppFonts } from '@/theme/use-app-fonts';
 
 function AppContent() {
   const { isLandscapeTableRequested } = useOrientation();
@@ -37,11 +34,11 @@ function AppContent() {
   const { ready: fontsReady, onLayoutRootView } = useAppFonts();
   const { state } = useAuth();
   const authHasRenderableState =
-    state.status === "AUTHENTICATED" ||
-    state.status === "CONSENT_REQUIRED" ||
-    state.status === "CONSENT_UPDATING" ||
-    state.status === "RETRYABLE_ERROR" ||
-    (state.status === "GUEST_RECOVERING" && state.source === "consent-submit");
+    state.status === 'AUTHENTICATED' ||
+    state.status === 'CONSENT_REQUIRED' ||
+    state.status === 'CONSENT_UPDATING' ||
+    state.status === 'RETRYABLE_ERROR' ||
+    (state.status === 'GUEST_RECOVERING' && state.source === 'consent-submit');
 
   if (!fontsReady || !authHasRenderableState) {
     return null;
@@ -81,7 +78,7 @@ function FirebaseValidationAppContent() {
   // 검증 모드에서만 모듈을 로드해 기존 앱 경로에 native 초기화가 섞이지 않게 한다.
   const {
     FirebaseAuthValidationScreen,
-  }: typeof import("./src/screens/diagnostics/FirebaseAuthValidationScreen") = require("./src/screens/diagnostics/FirebaseAuthValidationScreen");
+  }: typeof import('./src/screens/diagnostics/FirebaseAuthValidationScreen') = require('./src/screens/diagnostics/FirebaseAuthValidationScreen');
   return (
     <View className="flex-1" onLayout={onLayoutRootView}>
       <FirebaseAuthValidationScreen />
@@ -108,8 +105,7 @@ export default function App() {
     <SafeAreaProvider>
       {IS_SENTRY_VALIDATION_MODE ? (
         <SentryValidationAppContent />
-      ) : __DEV__ &&
-        process.env.EXPO_PUBLIC_FIREBASE_AUTH_VALIDATION === "true" ? (
+      ) : __DEV__ && process.env.EXPO_PUBLIC_FIREBASE_AUTH_VALIDATION === 'true' ? (
         <FirebaseValidationAppContent />
       ) : IS_AUTH_UI_PREVIEW ? (
         <AuthPreviewNavigator />

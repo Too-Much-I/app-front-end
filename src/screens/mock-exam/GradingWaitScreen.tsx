@@ -1,26 +1,20 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useCallback, useEffect, useRef } from "react";
-import { AccessibilityInfo, Platform, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useCallback, useEffect, useRef } from 'react';
+import { AccessibilityInfo, Platform, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Text } from "@/components/ui/Text";
-import { GradingRabbitBanner } from "@/features/exam/components/GradingRabbitBanner";
-import {
-  GRADING_PART_COUNT,
-  useGradingStatus,
-} from "@/features/exam/use-grading-status";
-import type { MainTabParamList, MockExamStackParamList } from "@/navigation/types";
-import { GradingFailedNotice } from "@/screens/mock-exam/components/GradingFailedNotice";
-import { GradingRetryNotice } from "@/screens/mock-exam/components/GradingRetryNotice";
-import { GradingSheet } from "@/screens/mock-exam/components/GradingSheet";
-import { colors } from "@/theme";
+import { Text } from '@/components/ui/Text';
+import { GradingRabbitBanner } from '@/features/exam/components/GradingRabbitBanner';
+import { GRADING_PART_COUNT, useGradingStatus } from '@/features/exam/use-grading-status';
+import type { MainTabParamList, MockExamStackParamList } from '@/navigation/types';
+import { GradingFailedNotice } from '@/screens/mock-exam/components/GradingFailedNotice';
+import { GradingRetryNotice } from '@/screens/mock-exam/components/GradingRetryNotice';
+import { GradingSheet } from '@/screens/mock-exam/components/GradingSheet';
+import { colors } from '@/theme';
 
-type GradingWaitScreenProps = NativeStackScreenProps<
-  MockExamStackParamList,
-  "GradingWait"
->;
+type GradingWaitScreenProps = NativeStackScreenProps<MockExamStackParamList, 'GradingWait'>;
 
 /**
  * 채점 대기 화면.
@@ -38,36 +32,34 @@ export function GradingWaitScreen({ navigation, route }: GradingWaitScreenProps)
   const goToHome = useCallback(() => {
     const tabNavigation = navigation.getParent<BottomTabNavigationProp<MainTabParamList>>();
     navigation.popToTop();
-    tabNavigation?.navigate("Home");
+    tabNavigation?.navigate('Home');
   }, [navigation]);
 
   const handleComplete = useCallback(() => {
     const tabNavigation = navigation.getParent<BottomTabNavigationProp<MainTabParamList>>();
     navigation.popToTop();
-    tabNavigation?.navigate("Feedback", { examId });
+    tabNavigation?.navigate('Feedback', { examId });
   }, [examId, navigation]);
 
   const { phase, gradedPartCount, retry } = useGradingStatus(examId, handleComplete);
   const lastAnnouncementRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (Platform.OS !== "ios") return;
+    if (Platform.OS !== 'ios') return;
 
     let announcement: string;
     switch (phase) {
-      case "retry-ready":
-        announcement =
-          "채점이 예상보다 오래 걸리고 있어요. 채점을 한 번 다시 요청해주세요.";
+      case 'retry-ready':
+        announcement = '채점이 예상보다 오래 걸리고 있어요. 채점을 한 번 다시 요청해주세요.';
         break;
-      case "retry-requesting":
-        announcement = "채점을 다시 요청하고 있어요.";
+      case 'retry-requesting':
+        announcement = '채점을 다시 요청하고 있어요.';
         break;
-      case "terminal-error":
-        announcement =
-          "채점을 마치지 못했어요. 홈으로 돌아간 뒤 잠시 후 다시 확인해주세요.";
+      case 'terminal-error':
+        announcement = '채점을 마치지 못했어요. 홈으로 돌아간 뒤 잠시 후 다시 확인해주세요.';
         break;
-      case "polling":
-      case "completing":
+      case 'polling':
+      case 'completing':
         announcement = `채점 진행, ${GRADING_PART_COUNT}개 중 ${gradedPartCount}개 완료`;
         break;
     }
@@ -77,22 +69,19 @@ export function GradingWaitScreen({ navigation, route }: GradingWaitScreenProps)
     AccessibilityInfo.announceForAccessibility(announcement);
   }, [gradedPartCount, phase]);
 
-  const isRetryPhase = phase === "retry-ready" || phase === "retry-requesting";
-  if (phase === "terminal-error" || isRetryPhase) {
+  const isRetryPhase = phase === 'retry-ready' || phase === 'retry-requesting';
+  if (phase === 'terminal-error' || isRetryPhase) {
     return (
-      <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-surface-subtle">
+      <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-surface-subtle">
         <ScrollView
           bounces={false}
           contentContainerClassName="flex-grow justify-center px-screen py-5"
           showsVerticalScrollIndicator={false}
         >
-          {phase === "terminal-error" ? (
+          {phase === 'terminal-error' ? (
             <GradingFailedNotice onGoHome={goToHome} />
           ) : (
-            <GradingRetryNotice
-              isRequesting={phase === "retry-requesting"}
-              onRetry={retry}
-            />
+            <GradingRetryNotice isRequesting={phase === 'retry-requesting'} onRetry={retry} />
           )}
         </ScrollView>
       </SafeAreaView>
@@ -100,7 +89,7 @@ export function GradingWaitScreen({ navigation, route }: GradingWaitScreenProps)
   }
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-surface-subtle">
+    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-surface-subtle">
       <GradingRabbitBanner />
 
       <View className="flex-1 px-screen pt-6">

@@ -1,7 +1,7 @@
-import { queryOptions, skipToken } from "@tanstack/react-query";
+import { queryOptions, skipToken } from '@tanstack/react-query';
 
-import { getExamHistory } from "@/features/exam/api/exam-history";
-import { getExamRetries } from "@/features/exam/api/exam-retries";
+import { getExamHistory } from '@/features/exam/api/exam-history';
+import { getExamRetries } from '@/features/exam/api/exam-retries';
 
 /**
  * 이력을 신선하다고 보는 시간.
@@ -14,7 +14,7 @@ const EXAM_HISTORY_STALE_TIME_MS = 30_000;
 
 export function examHistoryQueryOptions() {
   return queryOptions({
-    queryKey: ["exam", "history"],
+    queryKey: ['exam', 'history'],
     queryFn: ({ signal }) => getExamHistory(signal),
     staleTime: EXAM_HISTORY_STALE_TIME_MS,
   });
@@ -29,7 +29,7 @@ export function examHistoryQueryOptions() {
  */
 export function examRetriesQueryOptions(examId: string | null) {
   return queryOptions({
-    queryKey: ["exam", "retries", examId],
+    queryKey: ['exam', 'retries', examId],
     queryFn:
       examId === null
         ? skipToken

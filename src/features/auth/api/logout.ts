@@ -1,5 +1,5 @@
-import { getIdentityApiBaseUrl } from "@/lib/api/service-base-url";
-import { serviceFetch } from "@/lib/api/transport";
+import { getIdentityApiBaseUrl } from '@/lib/api/service-base-url';
+import { serviceFetch } from '@/lib/api/transport';
 
 /**
  * 회원 탈퇴 — 이 게스트 계정 자체를 삭제한다.
@@ -15,12 +15,9 @@ import { serviceFetch } from "@/lib/api/transport";
  *
  * 명세상 `password`는 LOCAL 사용자만 필수다. 이 앱은 게스트 계정만 다루므로 보내지 않는다.
  */
-export async function logout(
-  accessToken: string,
-  refreshToken: string,
-): Promise<void> {
+export async function logout(accessToken: string, refreshToken: string): Promise<void> {
   await serviceFetch<unknown>(`${getIdentityApiBaseUrl()}/api/v1/users/withdraw`, {
-    method: "POST",
+    method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
     body: JSON.stringify({ refreshToken }),
   });

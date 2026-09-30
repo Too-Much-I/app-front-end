@@ -1,22 +1,22 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from 'react';
 
-import { createChallengeAttempt } from "@/features/challenge/api/challenge-attempt";
-import { getChallengeErrorCode } from "@/features/challenge/challenge-error-codes";
-import { createDevMockAttempt } from "@/features/challenge/dev-mock-challenge";
-import type { ChallengeAttempt, ChallengeQuestion } from "@/types/challenge";
+import { createChallengeAttempt } from '@/features/challenge/api/challenge-attempt';
+import { getChallengeErrorCode } from '@/features/challenge/challenge-error-codes';
+import { createDevMockAttempt } from '@/features/challenge/dev-mock-challenge';
+import type { ChallengeAttempt, ChallengeQuestion } from '@/types/challenge';
 
 type ChallengeAttemptState =
-  | { status: "idle"; attempt: null; errorCode: null }
-  | { status: "creating"; attempt: null; errorCode: null }
-  | { status: "ready"; attempt: ChallengeAttempt; errorCode: null }
+  | { status: 'idle'; attempt: null; errorCode: null }
+  | { status: 'creating'; attempt: null; errorCode: null }
+  | { status: 'ready'; attempt: ChallengeAttempt; errorCode: null }
   | {
-      status: "failed";
+      status: 'failed';
       attempt: null;
       /** 화면이 결과·스테이지 중 어디로 보낼지 판단한다. 서버 코드가 없을 수도 있다. */
       errorCode: string | null;
     };
 
-export type ChallengeAttemptRequestStatus = ChallengeAttemptState["status"];
+export type ChallengeAttemptRequestStatus = ChallengeAttemptState['status'];
 
 /**
  * 문제가 도착하면 곧바로 attempt를 발급받는다. 녹음은 이게 성공한 뒤에만 시작한다.
@@ -31,7 +31,7 @@ export type ChallengeAttemptRequestStatus = ChallengeAttemptState["status"];
  */
 export function useChallengeAttempt(question: ChallengeQuestion | null) {
   const [state, setState] = useState<ChallengeAttemptState>({
-    status: "idle",
+    status: 'idle',
     attempt: null,
     errorCode: null,
   });
@@ -44,11 +44,11 @@ export function useChallengeAttempt(question: ChallengeQuestion | null) {
   useEffect(() => {
     if (date === undefined || questionNumber === undefined) return;
     // 이미 끝난 응시면 서버가 409로 거절한다. 화면이 결과로 보낼 참이라 부르지 않는다.
-    if (question?.attemptStatus === "submitted") return;
+    if (question?.attemptStatus === 'submitted') return;
 
     if (__DEV__) {
       setState({
-        status: "ready",
+        status: 'ready',
         attempt: createDevMockAttempt(date, questionNumber),
         errorCode: null,
       });
@@ -56,18 +56,18 @@ export function useChallengeAttempt(question: ChallengeQuestion | null) {
     }
 
     const controller = new AbortController();
-    setState({ status: "creating", attempt: null, errorCode: null });
+    setState({ status: 'creating', attempt: null, errorCode: null });
 
     createChallengeAttempt(date, questionNumber, controller.signal)
       .then((attempt) => {
         if (controller.signal.aborted) return;
-        setState({ status: "ready", attempt, errorCode: null });
+        setState({ status: 'ready', attempt, errorCode: null });
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        console.error("[Challenge] attempt 생성 실패", error);
+        console.error('[Challenge] attempt 생성 실패', error);
         setState({
-          status: "failed",
+          status: 'failed',
           attempt: null,
           errorCode: getChallengeErrorCode(error),
         });

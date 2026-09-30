@@ -11,14 +11,14 @@ export interface ReanswerRequest {
   nextRetryCount: number;
 }
 
-const MESSAGE_TYPE = "REANSWER_REQUESTED";
+const MESSAGE_TYPE = 'REANSWER_REQUESTED';
 
 function isPositiveInteger(value: unknown): value is number {
-  return typeof value === "number" && Number.isInteger(value) && value > 0;
+  return typeof value === 'number' && Number.isInteger(value) && value > 0;
 }
 
 function isNonNegativeInteger(value: unknown): value is number {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
 }
 
 /**
@@ -39,15 +39,12 @@ export function parseReanswerRequest(
     return null;
   }
 
-  if (typeof parsed !== "object" || parsed === null) return null;
+  if (typeof parsed !== 'object' || parsed === null) return null;
 
-  const { type, examId, questionNumber, nextRetryCount } = parsed as Record<
-    string,
-    unknown
-  >;
+  const { type, examId, questionNumber, nextRetryCount } = parsed as Record<string, unknown>;
 
   if (type !== MESSAGE_TYPE) return null;
-  if (typeof examId !== "string" || examId.length === 0) return null;
+  if (typeof examId !== 'string' || examId.length === 0) return null;
   if (examId !== currentExamId) return null;
   if (!isPositiveInteger(questionNumber)) return null;
   if (!isNonNegativeInteger(nextRetryCount)) return null;

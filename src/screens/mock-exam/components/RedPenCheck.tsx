@@ -1,14 +1,14 @@
-import { useEffect } from "react";
-import { View } from "react-native";
+import { useEffect } from 'react';
+import { View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withTiming,
-} from "react-native-reanimated";
+} from 'react-native-reanimated';
 
-import { colors } from "@/theme";
+import { colors } from '@/theme';
 
 /** 기준 크기. 다른 크기를 주면 아래 좌표가 같은 비율로 늘어난다. */
 const BASE_SIZE = 26;
@@ -72,7 +72,7 @@ function Stroke({ degrees, delayMs, durationMs, length, scale, x, y }: StrokePro
       <Animated.View
         style={[
           {
-            position: "absolute",
+            position: 'absolute',
             left: 0,
             top: -thickness / 2,
             height: thickness,
@@ -95,17 +95,11 @@ export interface RedPenCheckProps {
 }
 
 /** 답안지 여백에 빨간펜으로 그은 체크 자국. */
-export function RedPenCheck({
-  delayMs = 0,
-  size = BASE_SIZE,
-  tiltDegrees = 0,
-}: RedPenCheckProps) {
+export function RedPenCheck({ delayMs = 0, size = BASE_SIZE, tiltDegrees = 0 }: RedPenCheckProps) {
   const scale = size / BASE_SIZE;
 
   return (
-    <View
-      style={{ width: size, height: size, transform: [{ rotate: `${tiltDegrees}deg` }] }}
-    >
+    <View style={{ width: size, height: size, transform: [{ rotate: `${tiltDegrees}deg` }] }}>
       <Stroke
         degrees={SHORT_STROKE.degrees}
         delayMs={delayMs}

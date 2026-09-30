@@ -1,6 +1,6 @@
-import { useIsFocused } from "@react-navigation/native";
-import { useEffect, useState } from "react";
-import { AppState } from "react-native";
+import { useIsFocused } from '@react-navigation/native';
+import { useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 
 /**
  * 화면이 focus되어 있고 앱이 foreground인 구간.
@@ -14,11 +14,11 @@ import { AppState } from "react-native";
  */
 export function useIsScreenActive(): boolean {
   const isFocused = useIsFocused();
-  const [isAppActive, setIsAppActive] = useState(AppState.currentState === "active");
+  const [isAppActive, setIsAppActive] = useState(AppState.currentState === 'active');
 
   useEffect(() => {
-    const subscription = AppState.addEventListener("change", (nextState) => {
-      setIsAppActive(nextState === "active");
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      setIsAppActive(nextState === 'active');
     });
     return () => subscription.remove();
   }, []);

@@ -1,6 +1,6 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-import type { ChallengeQuestion } from "@/types/challenge";
+import type { ChallengeQuestion } from '@/types/challenge';
 
 /**
  * `GET /api/v1/challenges/today/questions/{questionNumber}` 응답의 와이어 모양.
@@ -19,14 +19,8 @@ export const challengeQuestionSchema = z.object({
   totalQuestionCount: z.number().int(),
   /** 10초 안에 영어로 바꿔 말할 한국어 문장. */
   promptKo: z.string(),
-  attemptStatus: z.enum(["not_started", "submitted"]),
-  gradingStatus: z.enum([
-    "not_requested",
-    "pending",
-    "processing",
-    "completed",
-    "failed",
-  ]),
+  attemptStatus: z.enum(['not_started', 'submitted']),
+  gradingStatus: z.enum(['not_requested', 'pending', 'processing', 'completed', 'failed']),
 });
 
 /**

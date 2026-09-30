@@ -1,47 +1,42 @@
-import * as Sentry from "@sentry/react-native";
-import type { Breadcrumb, ErrorEvent } from "@sentry/react-native";
-import type { ComponentType } from "react";
+import * as Sentry from '@sentry/react-native';
+import type { Breadcrumb, ErrorEvent } from '@sentry/react-native';
+import type { ComponentType } from 'react';
 
-import {
-  isOperationalErrorCode,
-  type OperationalErrorCode,
-} from "@/lib/operational-error-codes";
+import { isOperationalErrorCode, type OperationalErrorCode } from '@/lib/operational-error-codes';
 import {
   IS_SENTRY_VALIDATION_MODE,
   SENTRY_VALIDATION_ENVIRONMENT,
   SENTRY_VALIDATION_TAG_KEY,
   SENTRY_VALIDATION_TAG_VALUE,
-} from "@/lib/sentry-validation-mode";
+} from '@/lib/sentry-validation-mode';
 
 /**
  * DSN은 앱 번들에 실려 배포되는 공개 값이라 코드에 둔다.
  * 비밀은 소스맵 업로드용 SENTRY_AUTH_TOKEN 쪽이며, 빌드 타임에만 쓰인다.
  */
 const SENTRY_DSN =
-  "https://3d807f42b655d91761cc0d872414e7ef@o4511885627228160.ingest.us.sentry.io/4511885661569024";
-const SENTRY_ENABLED = process.env.EXPO_PUBLIC_ENABLE_SENTRY === "true";
-const FILTERED = "[Filtered]";
+  'https://3d807f42b655d91761cc0d872414e7ef@o4511885627228160.ingest.us.sentry.io/4511885661569024';
+const SENTRY_ENABLED = process.env.EXPO_PUBLIC_ENABLE_SENTRY === 'true';
+const FILTERED = '[Filtered]';
 const SENSITIVE_EXACT_KEY_PATTERN =
   /^(id|authorization|cookie|set-cookie|access_?token|refresh_?token|token|url|uri|path|body|request|response|result|message|user|username|email|phone)$/i;
-const SENSITIVE_SUFFIX_KEY_PATTERN =
-  /(?:id|ids|url|uri|path|token|tokens)$/i;
+const SENSITIVE_SUFFIX_KEY_PATTERN = /(?:id|ids|url|uri|path|token|tokens)$/i;
 const SAFE_STACK_FILENAMES: ReadonlySet<string> = new Set([
-  "index.android.bundle",
-  "index.ios.bundle",
-  "index.bundle",
-  "main.jsbundle",
+  'index.android.bundle',
+  'index.ios.bundle',
+  'index.bundle',
+  'main.jsbundle',
 ]);
-const SENTRY_DEBUG_ID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SENTRY_DEBUG_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-type SentryTags = NonNullable<ErrorEvent["tags"]>;
+type SentryTags = NonNullable<ErrorEvent['tags']>;
 type SentryTagValue = SentryTags[string];
-type SentryContexts = NonNullable<ErrorEvent["contexts"]>;
-type SentryException = NonNullable<ErrorEvent["exception"]>;
-type SentryExceptionValue = NonNullable<SentryException["values"]>[number];
-type SentryMechanism = NonNullable<SentryExceptionValue["mechanism"]>;
-type SentryStacktrace = NonNullable<SentryExceptionValue["stacktrace"]>;
-type SentryStackFrame = NonNullable<SentryStacktrace["frames"]>[number];
+type SentryContexts = NonNullable<ErrorEvent['contexts']>;
+type SentryException = NonNullable<ErrorEvent['exception']>;
+type SentryExceptionValue = NonNullable<SentryException['values']>[number];
+type SentryMechanism = NonNullable<SentryExceptionValue['mechanism']>;
+type SentryStacktrace = NonNullable<SentryExceptionValue['stacktrace']>;
+type SentryStackFrame = NonNullable<SentryStacktrace['frames']>[number];
 
 function isSensitiveKey(key: string): boolean {
   return SENSITIVE_EXACT_KEY_PATTERN.test(key) || SENSITIVE_SUFFIX_KEY_PATTERN.test(key);
@@ -51,7 +46,10 @@ function redactIdentifiers(value: string): string {
   return value
     .replace(/https?:\/\/[^\s"']+/gi, FILTERED)
     .replace(/(?:file:\/\/\/|content:\/\/|\/)[^\s"']+\.(?:aac|caf|m4a|mp3|wav)/gi, FILTERED)
-    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, FILTERED)
+    .replace(
+      /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi,
+      FILTERED,
+    )
     .replace(/([?&]examId=)[^&#\s]*/gi, `$1${FILTERED}`)
     .replace(/(\/api\/v1\/exams\/)[^/?#\s]+/gi, `$1${FILTERED}`)
     .replace(/("[A-Za-z0-9_]*(?:Id|_id)"\s*:\s*")[^"]*(")/g, `$1${FILTERED}$2`)
@@ -59,12 +57,12 @@ function redactIdentifiers(value: string): string {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function scrubValue(value: unknown, seen = new WeakSet<object>()): unknown {
-  if (typeof value === "string") return redactIdentifiers(value);
-  if (!value || typeof value !== "object") return value;
+  if (typeof value === 'string') return redactIdentifiers(value);
+  if (!value || typeof value !== 'object') return value;
   if (seen.has(value)) return FILTERED;
   seen.add(value);
 
@@ -83,9 +81,7 @@ function scrubRecordEntries(
   return Object.fromEntries(
     Object.entries(value).map(([key, nestedValue]) => [
       key,
-      isSensitiveKey(key)
-        ? FILTERED
-        : scrubValue(nestedValue, seen),
+      isSensitiveKey(key) ? FILTERED : scrubValue(nestedValue, seen),
     ]),
   );
 }
@@ -100,11 +96,11 @@ function isSentryTagValue(value: unknown): value is SentryTagValue {
   return (
     value === null ||
     value === undefined ||
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean" ||
-    typeof value === "bigint" ||
-    typeof value === "symbol"
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'bigint' ||
+    typeof value === 'symbol'
   );
 }
 
@@ -115,7 +111,7 @@ function scrubTags(value: unknown): SentryTags | undefined {
   for (const [key, tagValue] of Object.entries(value)) {
     if (isSensitiveKey(key)) {
       tags[key] = FILTERED;
-    } else if (typeof tagValue === "string") {
+    } else if (typeof tagValue === 'string') {
       tags[key] = redactIdentifiers(tagValue);
     } else if (isSentryTagValue(tagValue)) {
       tags[key] = tagValue;
@@ -143,7 +139,7 @@ function scrubContexts(value: unknown): SentryContexts | undefined {
  * SDK가 터치 breadcrumb에 쓰는 category. 이 값일 때만 아래 `path` 예외가 적용된다.
  * (@sentry/react-native의 TouchEventBoundary 기본값)
  */
-const TOUCH_BREADCRUMB_CATEGORY = "touch";
+const TOUCH_BREADCRUMB_CATEGORY = 'touch';
 
 /**
  * 터치 breadcrumb의 `data.path` 항목에서 살려두는 필드.
@@ -154,7 +150,7 @@ const TOUCH_BREADCRUMB_CATEGORY = "touch";
  * `label`만 `sentry-label` prop에서 오는 런타임 값이라 화면에 보이는 텍스트
  * — 사용자 이름 같은 것 — 이 들어올 수 있어 통째로 버린다.
  */
-const TOUCH_PATH_SAFE_KEYS = ["name", "element", "file"] as const;
+const TOUCH_PATH_SAFE_KEYS = ['name', 'element', 'file'] as const;
 
 type TouchPathEntry = Partial<Record<(typeof TOUCH_PATH_SAFE_KEYS)[number], string>>;
 
@@ -165,7 +161,7 @@ function scrubTouchPathEntry(value: unknown): TouchPathEntry | undefined {
   for (const key of TOUCH_PATH_SAFE_KEYS) {
     const nested = value[key];
     // 소스 식별자라도 redactIdentifiers는 그대로 통과시킨다 — 방어선을 우회하지 않기 위해.
-    if (typeof nested === "string" && nested.length > 0) {
+    if (typeof nested === 'string' && nested.length > 0) {
       entry[key] = redactIdentifiers(nested);
     }
   }
@@ -206,53 +202,47 @@ function scrubBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb {
 
 function getStableOperationalMessage(event: ErrorEvent): string | undefined {
   const errorCode = event.tags?.error_code;
-  return isOperationalErrorCode(errorCode) && event.message === errorCode
-    ? errorCode
-    : undefined;
+  return isOperationalErrorCode(errorCode) && event.message === errorCode ? errorCode : undefined;
 }
 
 function scrubOptionalString(value: unknown): string | undefined {
-  return typeof value === "string" ? redactIdentifiers(value) : undefined;
+  return typeof value === 'string' ? redactIdentifiers(value) : undefined;
 }
 
 function scrubOptionalNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
 function scrubOptionalBoolean(value: unknown): boolean | undefined {
-  return typeof value === "boolean" ? value : undefined;
+  return typeof value === 'boolean' ? value : undefined;
 }
 
 function scrubStackFilename(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const filename = value.replaceAll("\\", "/").split("/").at(-1);
+  if (typeof value !== 'string') return undefined;
+  const filename = value.replaceAll('\\', '/').split('/').at(-1);
   return filename && SAFE_STACK_FILENAMES.has(filename) ? filename : FILTERED;
 }
 
 function scrubSentryDebugId(value: unknown): string | undefined {
-  return typeof value === "string" && SENTRY_DEBUG_ID_PATTERN.test(value)
-    ? value
-    : undefined;
+  return typeof value === 'string' && SENTRY_DEBUG_ID_PATTERN.test(value) ? value : undefined;
 }
 
 function scrubStringArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined;
-  return value
-    .filter((item): item is string => typeof item === "string")
-    .map(redactIdentifiers);
+  return value.filter((item): item is string => typeof item === 'string').map(redactIdentifiers);
 }
 
 function scrubMechanism(value: unknown): SentryMechanism | undefined {
-  if (!isRecord(value) || typeof value.type !== "string") return undefined;
-  const data: NonNullable<SentryMechanism["data"]> = {};
+  if (!isRecord(value) || typeof value.type !== 'string') return undefined;
+  const data: NonNullable<SentryMechanism['data']> = {};
 
   if (isRecord(value.data)) {
     for (const [key, dataValue] of Object.entries(value.data)) {
       if (isSensitiveKey(key)) {
         data[key] = FILTERED;
-      } else if (typeof dataValue === "string") {
+      } else if (typeof dataValue === 'string') {
         data[key] = redactIdentifiers(dataValue);
-      } else if (typeof dataValue === "boolean") {
+      } else if (typeof dataValue === 'boolean') {
         data[key] = dataValue;
       }
     }
@@ -295,9 +285,7 @@ function scrubStackFrame(value: unknown): SentryStackFrame | undefined {
 function scrubFramesOmitted(value: unknown): [number, number] | undefined {
   if (!Array.isArray(value) || value.length !== 2) return undefined;
   const [start, end] = value;
-  return typeof start === "number" && typeof end === "number"
-    ? [start, end]
-    : undefined;
+  return typeof start === 'number' && typeof end === 'number' ? [start, end] : undefined;
 }
 
 function scrubStacktrace(value: unknown): SentryStacktrace | undefined {
@@ -323,7 +311,7 @@ function scrubExceptionValue(
   return {
     type: scrubOptionalString(value.type),
     value:
-      typeof value.value === "string" && value.value === stableOperationalMessage
+      typeof value.value === 'string' && value.value === stableOperationalMessage
         ? stableOperationalMessage
         : value.value === undefined
           ? undefined
@@ -342,12 +330,9 @@ function scrubException(
   if (!isRecord(value)) return undefined;
   const values = Array.isArray(value.values)
     ? value.values
-        .map((exceptionValue) =>
-          scrubExceptionValue(exceptionValue, stableOperationalMessage),
-        )
+        .map((exceptionValue) => scrubExceptionValue(exceptionValue, stableOperationalMessage))
         .filter(
-          (exceptionValue): exceptionValue is SentryExceptionValue =>
-            exceptionValue !== undefined,
+          (exceptionValue): exceptionValue is SentryExceptionValue => exceptionValue !== undefined,
         )
     : undefined;
 
@@ -361,7 +346,7 @@ function scrubEvent(event: ErrorEvent): ErrorEvent {
     ...event,
     message: stableOperationalMessage,
     transaction:
-      typeof event.transaction === "string"
+      typeof event.transaction === 'string'
         ? redactIdentifiers(event.transaction)
         : event.transaction,
     fingerprint: event.fingerprint?.map(redactIdentifiers),
@@ -391,9 +376,7 @@ export function initializeSentry(): void {
 
   Sentry.init({
     dsn: SENTRY_DSN,
-    environment: IS_SENTRY_VALIDATION_MODE
-      ? SENTRY_VALIDATION_ENVIRONMENT
-      : undefined,
+    environment: IS_SENTRY_VALIDATION_MODE ? SENTRY_VALIDATION_ENVIRONMENT : undefined,
     // 학습자 답안과 계정 정보가 오가는 앱이므로 자동 PII 수집을 켜지 않는다.
     sendDefaultPii: false,
     beforeSend: scrubEvent,
@@ -415,7 +398,7 @@ export function withSentry<P extends Record<string, unknown>>(
 
 export type OperationalContextValue = string | number | boolean;
 
-export type BreadcrumbLevel = "info" | "warning";
+export type BreadcrumbLevel = 'info' | 'warning';
 
 /**
  * `beforeBreadcrumb`(위 scrubBreadcrumb)이 message를 항상 지우므로, 실제로 Sentry에
@@ -427,7 +410,7 @@ export type BreadcrumbLevel = "info" | "warning";
 export function emitBreadcrumb(
   category: string,
   data: Record<string, OperationalContextValue>,
-  level: BreadcrumbLevel = "info",
+  level: BreadcrumbLevel = 'info',
 ): void {
   if (!SENTRY_ENABLED) return;
 
@@ -447,11 +430,11 @@ export interface OperationalEventPayload {
 
 export interface OperationalCaptureResult {
   eventId: string | null;
-  status: "captured" | "capture-failed" | "disabled";
+  status: 'captured' | 'capture-failed' | 'disabled';
 }
 
 export interface OperationalFlushResult {
-  status: "flushed" | "flush-failed" | "disabled";
+  status: 'flushed' | 'flush-failed' | 'disabled';
 }
 
 export interface SentryRuntimeState {
@@ -463,9 +446,7 @@ export interface SentryRuntimeState {
 export function getSentryRuntimeState(): SentryRuntimeState {
   return {
     enabled: SENTRY_ENABLED,
-    environment: IS_SENTRY_VALIDATION_MODE
-      ? SENTRY_VALIDATION_ENVIRONMENT
-      : null,
+    environment: IS_SENTRY_VALIDATION_MODE ? SENTRY_VALIDATION_ENVIRONMENT : null,
     validationMode: IS_SENTRY_VALIDATION_MODE,
   };
 }
@@ -474,11 +455,11 @@ export function getSentryRuntimeState(): SentryRuntimeState {
 export function captureOperationalEvent(
   payload: OperationalEventPayload,
 ): OperationalCaptureResult {
-  if (!SENTRY_ENABLED) return { eventId: null, status: "disabled" };
+  if (!SENTRY_ENABLED) return { eventId: null, status: 'disabled' };
 
   try {
     const eventId = Sentry.withScope((scope) => {
-      scope.setLevel("error");
+      scope.setLevel('error');
       scope.setTags({
         feature: payload.feature,
         error_code: payload.code,
@@ -487,28 +468,24 @@ export function captureOperationalEvent(
           ? { [SENTRY_VALIDATION_TAG_KEY]: SENTRY_VALIDATION_TAG_VALUE }
           : {}),
       });
-      scope.setFingerprint(["operational-error", payload.code]);
-      scope.setContext("operational_error", payload.context);
+      scope.setFingerprint(['operational-error', payload.code]);
+      scope.setContext('operational_error', payload.context);
       return Sentry.captureMessage(payload.code);
     });
-    return eventId
-      ? { eventId, status: "captured" }
-      : { eventId: null, status: "capture-failed" };
+    return eventId ? { eventId, status: 'captured' } : { eventId: null, status: 'capture-failed' };
   } catch {
     // 관측 도구 실패가 원래 사용자 오류 처리나 복구 행동을 가로막으면 안 된다.
-    return { eventId: null, status: "capture-failed" };
+    return { eventId: null, status: 'capture-failed' };
   }
 }
 
 /** 진단 화면이 pending event 처리 여부를 확인하되 SDK 오류를 사용자 흐름으로 전파하지 않는다. */
 export async function flushOperationalEvents(): Promise<OperationalFlushResult> {
-  if (!SENTRY_ENABLED) return { status: "disabled" };
+  if (!SENTRY_ENABLED) return { status: 'disabled' };
 
   try {
-    return (await Sentry.flush())
-      ? { status: "flushed" }
-      : { status: "flush-failed" };
+    return (await Sentry.flush()) ? { status: 'flushed' } : { status: 'flush-failed' };
   } catch {
-    return { status: "flush-failed" };
+    return { status: 'flush-failed' };
   }
 }

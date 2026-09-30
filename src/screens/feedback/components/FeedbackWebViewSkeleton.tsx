@@ -1,13 +1,16 @@
-import { View } from "react-native";
-import Animated from "react-native-reanimated";
+import { View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
-import { SkeletonBlock } from "@/components/ui/SkeletonBlock";
-import { useSkeletonPulseStyle } from "@/components/ui/use-skeleton-pulse-style";
-import { colors, shadows } from "@/theme";
+import { SkeletonBlock } from '@/components/ui/SkeletonBlock';
+import { useSkeletonPulseStyle } from '@/components/ui/use-skeleton-pulse-style';
+import { colors, shadows } from '@/theme';
 
 function InsightSkeleton() {
   return (
-    <View className="min-w-36 flex-1 rounded-card border border-line bg-surface p-card" style={shadows.card}>
+    <View
+      className="min-w-36 flex-1 rounded-card border border-line bg-surface p-card"
+      style={shadows.card}
+    >
       <View className="flex-row items-center gap-2">
         <SkeletonBlock className="h-9 w-9" />
         <SkeletonBlock className="h-5 w-20" />

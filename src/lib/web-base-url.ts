@@ -1,8 +1,5 @@
 /** 끝 슬래시를 제거한 웹 서비스 베이스 URL. 없으면 빈 문자열이다. */
-export const WEB_BASE_URL = (process.env.EXPO_PUBLIC_WEB_BASE_URL ?? "").replace(
-  /\/+$/,
-  "",
-);
+export const WEB_BASE_URL = (process.env.EXPO_PUBLIC_WEB_BASE_URL ?? '').replace(/\/+$/, '');
 
 /**
  * 웹뷰 URL에 앱의 rem 스케일을 실어 보낸다.
@@ -16,6 +13,6 @@ export const WEB_BASE_URL = (process.env.EXPO_PUBLIC_WEB_BASE_URL ?? "").replace
  */
 export function withRemScale(url: string, scale: number): string {
   const parsedUrl = new URL(url);
-  parsedUrl.searchParams.set("scale", scale.toFixed(3));
+  parsedUrl.searchParams.set('scale', scale.toFixed(3));
   return parsedUrl.toString();
 }

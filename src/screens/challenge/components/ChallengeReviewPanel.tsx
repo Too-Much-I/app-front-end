@@ -1,13 +1,13 @@
-import { Feather } from "@expo/vector-icons";
-import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { useCallback } from "react";
-import { View } from "react-native";
+import { Feather } from '@expo/vector-icons';
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useCallback } from 'react';
+import { View } from 'react-native';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
-import { formatCountdown } from "@/screens/challenge/challenge-status";
-import { colors } from "@/theme";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import { PLAYBACK_AUDIO_MODE } from '@/features/audio/audio-session';
+import { formatCountdown } from '@/screens/challenge/challenge-status';
+import { colors } from '@/theme';
 
 interface ChallengeReviewPanelProps {
   audioFileUri: string;
@@ -20,16 +20,16 @@ interface ChallengeReviewPanelProps {
  * 녹음본마다 새로 마운트되도록 호출부가 `key`에 파일 경로를 넘긴다 — `useAudioPlayer`는
  * 마운트 시점의 소스를 들고 있어서, 다시 녹음한 파일을 같은 인스턴스로 재생할 수 없다.
  */
-export function ChallengeReviewPanel({
-  audioFileUri,
-  recordedSeconds,
-}: ChallengeReviewPanelProps) {
+export function ChallengeReviewPanel({ audioFileUri, recordedSeconds }: ChallengeReviewPanelProps) {
   // 들어본 뒤 곧바로 다시 녹음하는 경로가 있어, 이 player가 공유 AVAudioSession을 끄면
   // 뒤따르는 recorder 준비와 부딪힌다. docs/decisions/2026-08-21-ios-시험-오디오-세션.md
-  const player = useAudioPlayer({ uri: audioFileUri }, {
-    updateInterval: 200,
-    keepAudioSessionActive: true,
-  });
+  const player = useAudioPlayer(
+    { uri: audioFileUri },
+    {
+      updateInterval: 200,
+      keepAudioSessionActive: true,
+    },
+  );
   const status = useAudioPlayerStatus(player);
   const isPlaying = status.playing;
 
@@ -59,7 +59,7 @@ export function ChallengeReviewPanel({
       if (player.currentTime > 0) await player.seekTo(0);
       player.play();
     } catch (error) {
-      console.error("[Challenge] 녹음본 재생 실패", error);
+      console.error('[Challenge] 녹음본 재생 실패', error);
     }
   }, [isPlaying, player]);
 
@@ -67,16 +67,12 @@ export function ChallengeReviewPanel({
     <View className="flex-row items-center gap-3">
       <Pressable
         accessibilityHint="방금 녹음한 답변을 처음부터 들려줍니다"
-        accessibilityLabel={isPlaying ? "재생 멈추기" : "내 녹음 들어보기"}
+        accessibilityLabel={isPlaying ? '재생 멈추기' : '내 녹음 들어보기'}
         accessibilityRole="button"
         className="h-11 w-11 items-center justify-center rounded-full bg-brand-cta"
         onPress={() => void togglePlayback()}
       >
-        <Feather
-          color={colors.surface.DEFAULT}
-          name={isPlaying ? "pause" : "play"}
-          size={20}
-        />
+        <Feather color={colors.surface.DEFAULT} name={isPlaying ? 'pause' : 'play'} size={20} />
       </Pressable>
 
       <View className="flex-1">

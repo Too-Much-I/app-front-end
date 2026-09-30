@@ -1,8 +1,8 @@
-import { type ReactNode, useEffect, useMemo, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useMemo, useSyncExternalStore } from 'react';
 
-import { authController } from "@/features/auth/auth-controller";
-import { AuthContext, type AuthContextValue } from "@/features/auth/auth-context";
-import { observeAuthForegroundRecovery } from "@/features/auth/auth-foreground-recovery";
+import { authController } from '@/features/auth/auth-controller';
+import { AuthContext, type AuthContextValue } from '@/features/auth/auth-context';
+import { observeAuthForegroundRecovery } from '@/features/auth/auth-foreground-recovery';
 
 /**
  * 컨트롤러로 위임하는 액션들. 컴포넌트 밖에 한 번만 만든다.
@@ -22,7 +22,7 @@ const AUTH_ACTIONS = {
     authController.setQualityReviewConsent(consented),
   setPendingQualityReviewConsent: (consented: boolean) =>
     authController.setPendingQualityReviewConsent(consented),
-} as const satisfies Omit<AuthContextValue, "state">;
+} as const satisfies Omit<AuthContextValue, 'state'>;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const state = useSyncExternalStore(
@@ -44,10 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const value = useMemo<AuthContextValue>(
-    () => ({ state, ...AUTH_ACTIONS }),
-    [state],
-  );
+  const value = useMemo<AuthContextValue>(() => ({ state, ...AUTH_ACTIONS }), [state]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

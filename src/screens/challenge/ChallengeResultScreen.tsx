@@ -1,37 +1,34 @@
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
-import { Image, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { StatusBar } from 'expo-status-bar';
+import { useState } from 'react';
+import { Image, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from "@/components/ui/Button";
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
+import { Button } from '@/components/ui/Button';
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
 import {
   useChallengeResult,
   type ChallengeResultStatus,
-} from "@/features/challenge/use-challenge-result";
-import type { RootStackParamList } from "@/navigation/types";
-import { SkeletonBlock } from "@/components/ui/SkeletonBlock";
-import { findCorrectionSpans } from "@/screens/challenge/challenge-corrections";
-import { ChallengeCelebration } from "@/screens/challenge/components/ChallengeCelebration";
-import { ChallengeCorrectionSheet } from "@/screens/challenge/components/ChallengeCorrectionSheet";
-import { ChallengeSentenceCard } from "@/screens/challenge/components/ChallengeSentenceCard";
-import { ChallengeVerdictCard } from "@/screens/challenge/components/ChallengeVerdictCard";
-import { Tape } from "@/screens/challenge/components/paper/Tape";
-import { ChallengeMarkedTranscript } from "@/screens/challenge/components/ChallengeMarkedTranscript";
-import { ChallengeHeader } from "@/screens/challenge/components/ChallengeHeader";
-import { ChallengeResultSkeleton } from "@/screens/challenge/components/ChallengeResultSkeleton";
+} from '@/features/challenge/use-challenge-result';
+import type { RootStackParamList } from '@/navigation/types';
+import { SkeletonBlock } from '@/components/ui/SkeletonBlock';
+import { findCorrectionSpans } from '@/screens/challenge/challenge-corrections';
+import { ChallengeCelebration } from '@/screens/challenge/components/ChallengeCelebration';
+import { ChallengeCorrectionSheet } from '@/screens/challenge/components/ChallengeCorrectionSheet';
+import { ChallengeSentenceCard } from '@/screens/challenge/components/ChallengeSentenceCard';
+import { ChallengeVerdictCard } from '@/screens/challenge/components/ChallengeVerdictCard';
+import { Tape } from '@/screens/challenge/components/paper/Tape';
+import { ChallengeMarkedTranscript } from '@/screens/challenge/components/ChallengeMarkedTranscript';
+import { ChallengeHeader } from '@/screens/challenge/components/ChallengeHeader';
+import { ChallengeResultSkeleton } from '@/screens/challenge/components/ChallengeResultSkeleton';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
-const graduateTurtle = require("../../../public/mascots/graduate_turtle.png");
-const waitingRabbit = require("../../../public/mascots/waiting_rabbit_tight.png");
-const errorRabbit = require("../../../public/mascots/error.png");
+const graduateTurtle = require('../../../public/mascots/graduate_turtle.png');
+const waitingRabbit = require('../../../public/mascots/waiting_rabbit_tight.png');
+const errorRabbit = require('../../../public/mascots/error.png');
 
-type ChallengeResultScreenProps = NativeStackScreenProps<
-  RootStackParamList,
-  "ChallengeResult"
->;
+type ChallengeResultScreenProps = NativeStackScreenProps<RootStackParamList, 'ChallengeResult'>;
 
 /**
  * 채점을 기다리고 결과를 보여주는 화면.
@@ -44,10 +41,7 @@ type ChallengeResultScreenProps = NativeStackScreenProps<
  * 참고 답안은 제출 접수 즉시 서버에 생기므로 AI 피드백을 기다리는 동안에도 보여준다 —
  * 사용자가 이 화면에서 얻어갈 것이 "기다리세요" 하나뿐인 순간을 만들지 않는다.
  */
-export function ChallengeResultScreen({
-  navigation,
-  route,
-}: ChallengeResultScreenProps) {
+export function ChallengeResultScreen({ navigation, route }: ChallengeResultScreenProps) {
   const { challengeDate, questionNumber, initialResult, nextQuestionNumber } = route.params;
   const { status, question, retry } = useChallengeResult(
     challengeDate,
@@ -68,7 +62,7 @@ export function ChallengeResultScreen({
    */
   const goToNextQuestion = () => {
     if (nextQuestionNumber === undefined) return;
-    navigation.replace("TenSecondChallenge", {
+    navigation.replace('TenSecondChallenge', {
       challengeDate,
       questionNumber: nextQuestionNumber,
     });
@@ -88,7 +82,7 @@ export function ChallengeResultScreen({
    * 항목이 많아야 서너 개라 매 렌더 다시 계산한다. 두 값이 같은 배열에서 나와야
    * 시트의 인덱스와 밑줄이 어긋나지 않으므로 한자리에서 함께 만든다.
    */
-  const spans = findCorrectionSpans(question?.transcript ?? "", corrections);
+  const spans = findCorrectionSpans(question?.transcript ?? '', corrections);
   const markedIndexes = new Set(spans.map((span) => span.index));
   const unmarkedIndexes = corrections
     .map((_, index) => index)
@@ -102,7 +96,7 @@ export function ChallengeResultScreen({
    */
   const missedSpeech = (question?.hasAiResult ?? false) && question?.transcript == null;
 
-  if (status === "loading") {
+  if (status === 'loading') {
     return (
       <View className="flex-1 bg-surface-subtle">
         <StatusBar style="dark" />
@@ -119,7 +113,7 @@ export function ChallengeResultScreen({
       <StatusBar style="dark" />
       <ChallengeHeader onClose={goToStage} title="토선생의 한마디" />
 
-      <SafeAreaView className="flex-1" edges={["bottom"]}>
+      <SafeAreaView className="flex-1" edges={['bottom']}>
         <ScrollView
           className="flex-1"
           contentContainerClassName="flex-grow gap-4 px-screen pb-4 pt-4"
@@ -129,7 +123,7 @@ export function ChallengeResultScreen({
             채점이 끝난 화면만 축하한다. 기다리는 중이거나 실패한 화면은 마스코트와
             안내 문구가 상황을 설명해야 해서 색종이가 낄 자리가 아니다.
           */}
-          {status === "completed" ? (
+          {status === 'completed' ? (
             /*
               잘린 하반신이 판정 카드 윗변에 맞물려야 "카드 뒤에 서 있는" 것으로 보인다.
               `-mb-4`는 스크롤 컨테이너의 `gap-4`를 상쇄해 둘 사이를 0으로 만든다.
@@ -160,12 +154,11 @@ export function ChallengeResultScreen({
                 <ChallengeVerdictCard
                   decoration={<Tape side="right" tone="mint" />}
                   message={
-                    question.feedbackSummary ??
-                    getFeedbackNotice(status, question.hasAiResult)
+                    question.feedbackSummary ?? getFeedbackNotice(status, question.hasAiResult)
                   }
                 >
                   {/* 채점 중에는 곧 채워질 본문의 자리를 잡아둔다. */}
-                  {status === "grading" ? (
+                  {status === 'grading' ? (
                     <View className="gap-2">
                       <SkeletonBlock className="h-4 w-full" />
                       <SkeletonBlock className="h-4 w-4/5" />
@@ -176,7 +169,7 @@ export function ChallengeResultScreen({
 
               {question.transcript ? (
                 <ChallengeSentenceCard
-                  hint={spans.length > 0 ? "밑줄을 누르면 설명이 나와요" : undefined}
+                  hint={spans.length > 0 ? '밑줄을 누르면 설명이 나와요' : undefined}
                   label="내 문장"
                   tone="mint"
                 >
@@ -294,59 +287,59 @@ export function ChallengeResultScreen({
   );
 }
 
-function getStatusNotice(status: Exclude<ChallengeResultStatus, "loading">) {
+function getStatusNotice(status: Exclude<ChallengeResultStatus, 'loading'>) {
   switch (status) {
-    case "completed":
+    case 'completed':
       return {
         mascot: graduateTurtle,
-        title: "오늘의 문장 완료!",
-        description: "참고 답안과 비교해 보세요.",
+        title: '오늘의 문장 완료!',
+        description: '참고 답안과 비교해 보세요.',
         canRetry: false,
       };
-    case "grading":
+    case 'grading':
       return {
         mascot: waitingRabbit,
-        title: "채점 중이에요",
-        description: "먼저 참고 답안부터 볼 수 있어요. 피드백은 끝나는 대로 채워져요.",
+        title: '채점 중이에요',
+        description: '먼저 참고 답안부터 볼 수 있어요. 피드백은 끝나는 대로 채워져요.',
         canRetry: false,
       };
-    case "grading-failed":
+    case 'grading-failed':
       return {
         mascot: waitingRabbit,
-        title: "피드백을 만들지 못했어요",
-        description: "제출한 답변은 그대로 남아 있어요. 참고 답안은 아래에서 볼 수 있어요.",
+        title: '피드백을 만들지 못했어요',
+        description: '제출한 답변은 그대로 남아 있어요. 참고 답안은 아래에서 볼 수 있어요.',
         canRetry: true,
       };
-    case "timed-out":
+    case 'timed-out':
       return {
         mascot: waitingRabbit,
-        title: "채점이 예상보다 오래 걸리고 있어요",
-        description: "답변은 접수됐어요. 잠시 뒤 다시 확인해 주세요.",
+        title: '채점이 예상보다 오래 걸리고 있어요',
+        description: '답변은 접수됐어요. 잠시 뒤 다시 확인해 주세요.',
         canRetry: true,
       };
-    case "not-attempted":
+    case 'not-attempted':
       return {
         mascot: waitingRabbit,
-        title: "아직 풀지 않은 문장이에요",
-        description: "오늘의 진행도에서 이 문장을 열어 도전해 보세요.",
+        title: '아직 풀지 않은 문장이에요',
+        description: '오늘의 진행도에서 이 문장을 열어 도전해 보세요.',
         canRetry: false,
       };
-    case "load-failed":
+    case 'load-failed':
       return {
         mascot: errorRabbit,
-        title: "결과를 불러오지 못했어요",
-        description: "잠시 뒤 다시 시도해 주세요.",
+        title: '결과를 불러오지 못했어요',
+        description: '잠시 뒤 다시 시도해 주세요.',
         canRetry: true,
       };
   }
 }
 
 function getFeedbackNotice(
-  status: Exclude<ChallengeResultStatus, "loading">,
+  status: Exclude<ChallengeResultStatus, 'loading'>,
   hasAiResult: boolean,
 ): string {
-  if (status === "grading") return "피드백을 준비하고 있어요...";
-  if (status === "grading-failed") return "피드백 생성에 실패했어요. 답변은 그대로 남아 있어요.";
-  if (status === "timed-out") return "아직 준비 중이에요. 다시 확인해 주세요.";
-  return hasAiResult ? "피드백이 준비됐어요." : "이번 문장에는 개인화 피드백이 없어요.";
+  if (status === 'grading') return '피드백을 준비하고 있어요...';
+  if (status === 'grading-failed') return '피드백 생성에 실패했어요. 답변은 그대로 남아 있어요.';
+  if (status === 'timed-out') return '아직 준비 중이에요. 다시 확인해 주세요.';
+  return hasAiResult ? '피드백이 준비됐어요.' : '이번 문장에는 개인화 피드백이 없어요.';
 }

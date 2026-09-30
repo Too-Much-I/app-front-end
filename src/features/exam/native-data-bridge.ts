@@ -1,6 +1,6 @@
-import { getRawExamGradingSummary } from "@/features/exam/api/exam-grading-summary";
-import { getRawExamQuestionFeedback } from "@/features/exam/api/exam-question-feedback";
-import { SUMMARY_FEEDBACK_RETRY_VERSION } from "@/features/exam/summary-feedback-retry-message";
+import { getRawExamGradingSummary } from '@/features/exam/api/exam-grading-summary';
+import { getRawExamQuestionFeedback } from '@/features/exam/api/exam-question-feedback';
+import { SUMMARY_FEEDBACK_RETRY_VERSION } from '@/features/exam/summary-feedback-retry-message';
 
 /**
  * 웹 피드백 화면이 데이터를 요청할 때 쓰는 메시지.
@@ -11,16 +11,16 @@ import { SUMMARY_FEEDBACK_RETRY_VERSION } from "@/features/exam/summary-feedback
  * 계약: `window.ReactNativeWebView.postMessage(JSON.stringify({
  *   type: "NATIVE_DATA_REQUEST", requestId, resource, params }))`.
  */
-const REQUEST_TYPE = "NATIVE_DATA_REQUEST";
+const REQUEST_TYPE = 'NATIVE_DATA_REQUEST';
 const FEEDBACK_BRIDGE_VERSION = 1;
 
-const FALLBACK_ERROR_MESSAGE = "데이터를 불러오지 못했어요.";
+const FALLBACK_ERROR_MESSAGE = '데이터를 불러오지 못했어요.';
 
 export type NativeDataRequest =
-  | { requestId: string; resource: "EXAM_SUMMARY"; examId: string }
+  | { requestId: string; resource: 'EXAM_SUMMARY'; examId: string }
   | {
       requestId: string;
-      resource: "QUESTION_FEEDBACK";
+      resource: 'QUESTION_FEEDBACK';
       examId: string;
       questionNumber: number;
       retryCount: number;
@@ -48,19 +48,19 @@ export function buildNativeCapabilitiesScript(): string {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
 function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0;
+  return typeof value === 'string' && value.length > 0;
 }
 
 function isPositiveInteger(value: unknown): value is number {
-  return typeof value === "number" && Number.isInteger(value) && value > 0;
+  return typeof value === 'number' && Number.isInteger(value) && value > 0;
 }
 
 function isNonNegativeInteger(value: unknown): value is number {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
 }
 
 /**
@@ -97,11 +97,11 @@ export function parseNativeDataRequest(
   if (!isNonEmptyString(examId)) return null;
   if (examId !== currentExamId) return null;
 
-  if (resource === "EXAM_SUMMARY") {
+  if (resource === 'EXAM_SUMMARY') {
     return { requestId, resource, examId };
   }
 
-  if (resource === "QUESTION_FEEDBACK") {
+  if (resource === 'QUESTION_FEEDBACK') {
     const { questionNumber, retryCount } = params;
     if (!isPositiveInteger(questionNumber)) return null;
     if (!isNonNegativeInteger(retryCount)) return null;
@@ -112,18 +112,12 @@ export function parseNativeDataRequest(
 }
 
 /** 요청된 리소스를 인증된 상태로 조회해 서버 원본 result를 돌려준다. */
-export function resolveNativeDataRequest(
-  request: NativeDataRequest,
-): Promise<unknown> {
+export function resolveNativeDataRequest(request: NativeDataRequest): Promise<unknown> {
   switch (request.resource) {
-    case "EXAM_SUMMARY":
+    case 'EXAM_SUMMARY':
       return getRawExamGradingSummary(request.examId);
-    case "QUESTION_FEEDBACK":
-      return getRawExamQuestionFeedback(
-        request.examId,
-        request.questionNumber,
-        request.retryCount,
-      );
+    case 'QUESTION_FEEDBACK':
+      return getRawExamQuestionFeedback(request.examId, request.questionNumber, request.retryCount);
   }
 }
 
@@ -153,7 +147,7 @@ export function buildNativeDataScript(payload: NativeDataResponse): string {
  * 먼저 배포되면 그 구간에서는 조용한 no-op이 된다.
  */
 export function buildNativeDataRefreshScript(): string {
-  return "window.__nativeDataBridge && window.__nativeDataBridge.refresh && window.__nativeDataBridge.refresh(); true;";
+  return 'window.__nativeDataBridge && window.__nativeDataBridge.refresh && window.__nativeDataBridge.refresh(); true;';
 }
 
 /** 조회 실패를 사용자에게 보여줄 수 있는 문구로 바꾼다. */

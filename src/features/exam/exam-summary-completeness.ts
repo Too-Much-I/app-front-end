@@ -2,17 +2,15 @@ const COMPLETE_EXAM_QUESTION_COUNT = 11;
 const PART_NUMBERS = [1, 2, 3, 4, 5] as const;
 
 function asRecord(value: unknown): Record<string, unknown> {
-  return typeof value === "object" && value !== null
-    ? (value as Record<string, unknown>)
-    : {};
+  return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {};
 }
 
 function isNonBlankString(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0;
+  return typeof value === 'string' && value.trim().length > 0;
 }
 
 function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
+  return typeof value === 'number' && Number.isFinite(value);
 }
 
 function hasNonBlankString(value: unknown): boolean {
@@ -36,10 +34,7 @@ export function isRawExamSummaryComplete(value: unknown): boolean {
     hasNonBlankString(raw.recommendedPractice) &&
     PART_NUMBERS.every((partNumber) => {
       const key = `part${partNumber}`;
-      return (
-        isNonBlankString(partFeedback[key]) &&
-        isFiniteNumber(partScores[key])
-      );
+      return isNonBlankString(partFeedback[key]) && isFiniteNumber(partScores[key]);
     })
   );
 }

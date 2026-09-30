@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { View } from "react-native";
+import { useEffect } from 'react';
+import { View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -7,9 +7,9 @@ import Animated, {
   withRepeat,
   withSequence,
   withTiming,
-} from "react-native-reanimated";
+} from 'react-native-reanimated';
 
-import { colors } from "@/theme";
+import { colors } from '@/theme';
 
 const STEP_DEGREES = 30;
 const STEPS_PER_LOOP = 360 / STEP_DEGREES;

@@ -1,36 +1,36 @@
-import { useQueryClient } from "@tanstack/react-query";
-import * as Crypto from "expo-crypto";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useQueryClient } from '@tanstack/react-query';
+import * as Crypto from 'expo-crypto';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { submitChallengeAnswer } from "@/features/challenge/api/challenge-answer";
-import { CHALLENGE_TODAY_QUERY_KEY } from "@/features/challenge/challenge-today-queries";
-import { issueChallengeUploadUrl } from "@/features/challenge/api/challenge-upload-url";
+import { submitChallengeAnswer } from '@/features/challenge/api/challenge-answer';
+import { CHALLENGE_TODAY_QUERY_KEY } from '@/features/challenge/challenge-today-queries';
+import { issueChallengeUploadUrl } from '@/features/challenge/api/challenge-upload-url';
 import {
   createDevMockAccepted,
   DEV_SUBMIT_DELAY_MS,
-} from "@/features/challenge/dev-mock-challenge";
+} from '@/features/challenge/dev-mock-challenge';
 import {
   getChallengeErrorCode,
   isAttemptAlreadyTerminal,
   isProgressRefreshRequired,
-} from "@/features/challenge/challenge-error-codes";
+} from '@/features/challenge/challenge-error-codes';
 import {
   ANSWER_AUDIO_CONTENT_TYPE,
   AnswerAudioUploadError,
   getValidAnswerAudioFile,
   uploadAnswerAudio,
-} from "@/features/exam/upload-answer-audio";
+} from '@/features/exam/upload-answer-audio';
 import type {
   ChallengeAnswerAccepted,
   ChallengeAttempt,
   ChallengeUploadUrl,
-} from "@/types/challenge";
+} from '@/types/challenge';
 
-export type ChallengeSubmissionStatus = "idle" | "submitting" | "failed";
+export type ChallengeSubmissionStatus = 'idle' | 'submitting' | 'failed';
 
-const SUBMIT_FAILURE_MESSAGE = "제출 중 문제가 생겼어요. 다시 시도해 주세요.";
-const AUDIO_TOO_LARGE_MESSAGE = "녹음 파일이 너무 커서 올릴 수 없어요. 다시 녹음해 주세요.";
-const DEADLINE_PASSED_MESSAGE = "제출 가능한 시간이 지났어요.";
+const SUBMIT_FAILURE_MESSAGE = '제출 중 문제가 생겼어요. 다시 시도해 주세요.';
+const AUDIO_TOO_LARGE_MESSAGE = '녹음 파일이 너무 커서 올릴 수 없어요. 다시 녹음해 주세요.';
+const DEADLINE_PASSED_MESSAGE = '제출 가능한 시간이 지났어요.';
 
 interface UseChallengeSubmissionInput {
   /**
@@ -72,7 +72,7 @@ export function useChallengeSubmission({
   onProgressStale,
 }: UseChallengeSubmissionInput) {
   const queryClient = useQueryClient();
-  const [status, setStatus] = useState<ChallengeSubmissionStatus>("idle");
+  const [status, setStatus] = useState<ChallengeSubmissionStatus>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const mountedRef = useRef(true);
   const abortRef = useRef<AbortController | null>(null);
@@ -94,7 +94,7 @@ export function useChallengeSubmission({
 
   const fail = useCallback((message: string) => {
     if (!mountedRef.current) return;
-    setStatus("failed");
+    setStatus('failed');
     setErrorMessage(message);
   }, []);
 
@@ -113,7 +113,7 @@ export function useChallengeSubmission({
   const markProgressStale = useCallback(() => {
     void queryClient.invalidateQueries({
       queryKey: CHALLENGE_TODAY_QUERY_KEY,
-      refetchType: "none",
+      refetchType: 'none',
     });
   }, [queryClient]);
 
@@ -130,7 +130,7 @@ export function useChallengeSubmission({
       const controller = new AbortController();
       abortRef.current = controller;
 
-      setStatus("submitting");
+      setStatus('submitting');
       setErrorMessage(null);
 
       /*
@@ -141,11 +141,9 @@ export function useChallengeSubmission({
       if (__DEV__) {
         await new Promise((resolve) => setTimeout(resolve, DEV_SUBMIT_DELAY_MS));
         if (controller.signal.aborted || !mountedRef.current) return;
-        setStatus("idle");
+        setStatus('idle');
         markProgressStale();
-        inputRef.current.onSubmitted(
-          createDevMockAccepted(target.date, target.questionNumber),
-        );
+        inputRef.current.onSubmitted(createDevMockAccepted(target.date, target.questionNumber));
         return;
       }
 
@@ -173,7 +171,7 @@ export function useChallengeSubmission({
         );
       } catch (error) {
         if (controller.signal.aborted || !mountedRef.current) return;
-        console.error("[Challenge] 답변 제출 실패", error);
+        console.error('[Challenge] 답변 제출 실패', error);
 
         const code = getChallengeErrorCode(error);
         if (isAttemptAlreadyTerminal(code)) {
@@ -196,7 +194,7 @@ export function useChallengeSubmission({
 
       if (controller.signal.aborted || !mountedRef.current) return;
       idempotencyKeyRef.current = null;
-      setStatus("idle");
+      setStatus('idle');
       markProgressStale();
       inputRef.current.onSubmitted(accepted);
     },
@@ -210,7 +208,7 @@ export function useChallengeSubmission({
     abortRef.current?.abort();
     abortRef.current = null;
     idempotencyKeyRef.current = null;
-    setStatus("idle");
+    setStatus('idle');
     setErrorMessage(null);
   }, []);
 
@@ -244,20 +242,12 @@ function putRecording(
     throw new AnswerAudioUploadError(DEADLINE_PASSED_MESSAGE, false, 403);
   }
 
-  return uploadAnswerAudio(
-    upload.url,
-    audioFileUri,
-    deadlineMs,
-    signal,
-    upload.contentType,
-  );
+  return uploadAnswerAudio(upload.url, audioFileUri, deadlineMs, signal, upload.contentType);
 }
 
 /** presigned URL이 만료돼 실패했는가 — 다시 발급받으면 회복되는 유일한 경우. */
 function isExpiredUploadUrl(error: unknown): boolean {
-  return (
-    error instanceof AnswerAudioUploadError && !error.retryable && error.status === 403
-  );
+  return error instanceof AnswerAudioUploadError && !error.retryable && error.status === 403;
 }
 
 function resolveFailureMessage(error: unknown): string {

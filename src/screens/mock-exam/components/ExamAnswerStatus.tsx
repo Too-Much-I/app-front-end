@@ -1,20 +1,20 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { ActivityIndicator, Image, Linking, View } from "react-native";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ActivityIndicator, Image, Linking, View } from 'react-native';
 
-import { Button } from "@/components/ui/Button";
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import type { AudioRecordingStatus } from "@/features/audio/use-timed-audio-recorder";
-import { colors } from "@/theme";
+import { Button } from '@/components/ui/Button';
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import type { AudioRecordingStatus } from '@/features/audio/use-timed-audio-recorder';
+import { colors } from '@/theme';
 import type {
   AnswerKey,
   AnswerSubmissionJob,
   AnswerSubmissionSummary,
   ExamSessionPhase,
-} from "@/types/exam";
+} from '@/types/exam';
 
-const errorMascot = require("../../../../public/mascots/error.png");
-const scoringMascot = require("../../../../public/mascots/scoring.png");
+const errorMascot = require('../../../../public/mascots/error.png');
+const scoringMascot = require('../../../../public/mascots/scoring.png');
 
 interface ExamAnswerStatusProps {
   phase: ExamSessionPhase;
@@ -45,11 +45,14 @@ export function ExamAnswerStatus({
   onRetrySubmission,
   onGoHome,
 }: ExamAnswerStatusProps) {
-  const permissionDenied = recordingStatus === "permission-denied";
+  const permissionDenied = recordingStatus === 'permission-denied';
 
-  if (phase === "completed") {
+  if (phase === 'completed') {
     return (
-      <View accessibilityLiveRegion="polite" className="items-center rounded-2xl bg-sky-surface p-6">
+      <View
+        accessibilityLiveRegion="polite"
+        className="items-center rounded-2xl bg-sky-surface p-6"
+      >
         <Image
           accessible
           accessibilityLabel="답변 채점 시작을 알리는 고양이 캐릭터"
@@ -65,11 +68,11 @@ export function ExamAnswerStatus({
     );
   }
 
-  if (phase === "submission-barrier") {
-    const failedJobs = jobs.filter((job) => job.stage === "failed");
+  if (phase === 'submission-barrier') {
+    const failedJobs = jobs.filter((job) => job.stage === 'failed');
     const retryableFailedJobs = failedJobs.filter((job) => job.lastError?.retryable);
     const processingFailedJobs = failedJobs.filter(
-      (job) => job.lastError?.kind === "server-processing",
+      (job) => job.lastError?.kind === 'server-processing',
     );
     const onlyProcessingFailed =
       failedJobs.length > 0 && processingFailedJobs.length === failedJobs.length;
@@ -88,14 +91,14 @@ export function ExamAnswerStatus({
             source={errorMascot}
           />
           <Text className="mt-4 text-center text-xl text-exam-danger">
-            {onlyProcessingFailed ? "답변 처리에 실패했어요" : "답변을 제출하지 못했어요"}
+            {onlyProcessingFailed ? '답변 처리에 실패했어요' : '답변을 제출하지 못했어요'}
           </Text>
           <Text className="mt-2 text-center text-sm leading-6 text-ink-muted">
             {retryableFailedJobs.length > 0
-              ? "네트워크나 서버 연결이 안정된 뒤 다시 시도하거나 홈으로 돌아가주세요."
+              ? '네트워크나 서버 연결이 안정된 뒤 다시 시도하거나 홈으로 돌아가주세요.'
               : onlyProcessingFailed
-                ? "답변 파일은 전송됐지만 서버가 처리하지 못했어요. 자동으로 한 번 더 시도했지만 같은 결과가 돌아왔습니다."
-              : "현재 요청은 다시 보내도 해결되지 않아요. 홈으로 돌아간 뒤 다시 시작해주세요."}
+                ? '답변 파일은 전송됐지만 서버가 처리하지 못했어요. 자동으로 한 번 더 시도했지만 같은 결과가 돌아왔습니다.'
+                : '현재 요청은 다시 보내도 해결되지 않아요. 홈으로 돌아간 뒤 다시 시작해주세요.'}
           </Text>
 
           {retryableFailedJobs.length > 0 ? (
@@ -110,7 +113,7 @@ export function ExamAnswerStatus({
           ) : null}
 
           <Button
-            className={`${retryableFailedJobs.length > 0 ? "mt-element" : "mt-section"} w-full`}
+            className={`${retryableFailedJobs.length > 0 ? 'mt-element' : 'mt-section'} w-full`}
             label="홈으로 돌아가기"
             size="lg"
             variant="secondary"
@@ -121,12 +124,19 @@ export function ExamAnswerStatus({
     }
 
     return (
-      <View accessibilityLiveRegion="polite" className="w-full rounded-2xl border border-line bg-surface p-card">
+      <View
+        accessibilityLiveRegion="polite"
+        className="w-full rounded-2xl border border-line bg-surface p-card"
+      >
         <View className="flex-row items-center gap-3">
           {summary.pendingCount > 0 ? (
             <ActivityIndicator color={colors.brand.cta} />
           ) : (
-            <MaterialCommunityIcons name="alert-circle-outline" size={24} color={colors.brand.text} />
+            <MaterialCommunityIcons
+              name="alert-circle-outline"
+              size={24}
+              color={colors.brand.text}
+            />
           )}
           <View className="flex-1">
             <Text className="text-lg">답변을 제출하고 있어요</Text>
@@ -143,7 +153,7 @@ export function ExamAnswerStatus({
           >
             <Text className="text-sm text-ink-muted">문항 {job.key.questionNumber}</Text>
             <Text className="mt-1 text-sm text-exam-danger">
-              {job.lastError?.message ?? "제출 상태를 확인하지 못했어요."}
+              {job.lastError?.message ?? '제출 상태를 확인하지 못했어요.'}
             </Text>
             {job.lastError?.retryable ? (
               <Pressable
@@ -160,10 +170,15 @@ export function ExamAnswerStatus({
     );
   }
 
-  if (phase === "registration-recovery") {
+  if (phase === 'registration-recovery') {
     return (
-      <View accessibilityLiveRegion="assertive" className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-card">
-        <Text className="text-center text-lg text-exam-danger">답변 파일 등록이 끝나지 않았어요</Text>
+      <View
+        accessibilityLiveRegion="assertive"
+        className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-card"
+      >
+        <Text className="text-center text-lg text-exam-danger">
+          답변 파일 등록이 끝나지 않았어요
+        </Text>
         <Text className="mt-2 text-center text-sm leading-5 text-ink-muted">
           녹음 파일은 그대로 보관 중이에요. 다시 녹음하지 않고 등록만 재시도합니다.
         </Text>
@@ -172,9 +187,12 @@ export function ExamAnswerStatus({
     );
   }
 
-  if (phase === "interrupted") {
+  if (phase === 'interrupted') {
     return (
-      <View accessibilityLiveRegion="assertive" className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-card">
+      <View
+        accessibilityLiveRegion="assertive"
+        className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-card"
+      >
         <Text className="text-center text-lg text-exam-danger">녹음이 중단됐어요</Text>
         <Text className="mt-2 text-center text-sm leading-5 text-ink-muted">
           부분 녹음은 제출하지 않았습니다. 현재 문항을 전체 시간으로 다시 녹음해주세요.
@@ -184,23 +202,26 @@ export function ExamAnswerStatus({
     );
   }
 
-  if (phase === "recording-recovery") {
+  if (phase === 'recording-recovery') {
     return (
-      <View accessibilityLiveRegion="assertive" className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-card">
+      <View
+        accessibilityLiveRegion="assertive"
+        className="w-full rounded-2xl border border-exam-dangerLine bg-surface p-card"
+      >
         <Text className="text-center text-lg text-exam-danger">
-          {permissionDenied ? "마이크 권한이 필요해요" : "답변 녹음을 완료하지 못했어요"}
+          {permissionDenied ? '마이크 권한이 필요해요' : '답변 녹음을 완료하지 못했어요'}
         </Text>
         <Text className="mt-2 text-center text-sm leading-5 text-ink-muted">
           {permissionDenied
-            ? "마이크 권한을 허용한 뒤 현재 문항을 다시 시작해주세요."
-            : recordingErrorMessage ?? "유효한 파일이 없어 현재 문항에 머물러 있어요."}
+            ? '마이크 권한을 허용한 뒤 현재 문항을 다시 시작해주세요.'
+            : (recordingErrorMessage ?? '유효한 파일이 없어 현재 문항에 머물러 있어요.')}
         </Text>
         {permissionDenied && !canAskPermissionAgain ? (
           <RecoveryButton
             label="앱 설정에서 권한 허용"
             onPress={() => {
               void Linking.openSettings().catch((error: unknown) => {
-                console.error("[ExamSession] 앱 설정 화면 열기 실패", error);
+                console.error('[ExamSession] 앱 설정 화면 열기 실패', error);
               });
             }}
           />
@@ -211,18 +232,20 @@ export function ExamAnswerStatus({
     );
   }
 
-  if (phase === "starting-response" || phase === "finalizing") {
+  if (phase === 'starting-response' || phase === 'finalizing') {
     return (
       <View accessibilityLiveRegion="polite" className="flex-row items-center gap-2 py-2">
         <ActivityIndicator color={colors.brand.cta} />
         <Text className="text-sm text-ink-muted">
-          {phase === "starting-response" ? "마이크를 준비하고 있어요" : "답변 파일을 확정하고 있어요"}
+          {phase === 'starting-response'
+            ? '마이크를 준비하고 있어요'
+            : '답변 파일을 확정하고 있어요'}
         </Text>
       </View>
     );
   }
 
-  if (phase === "response") {
+  if (phase === 'response') {
     return (
       <View accessibilityLiveRegion="polite" className="flex-row items-center gap-2 py-1">
         <View className="h-2.5 w-2.5 rounded-full bg-exam-danger" />

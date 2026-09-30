@@ -1,6 +1,6 @@
-import { View } from "react-native";
+import { View } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
+import { Text } from '@/components/ui/Text';
 
 interface ExamQuestionProgressProps {
   currentIndex: number;
@@ -20,10 +20,7 @@ export function ExamQuestionProgress({ currentIndex, total }: ExamQuestionProgre
       accessibilityValue={{ min: 1, max: total, now: currentIndex + 1 }}
       className="relative flex-row items-center"
     >
-      <View
-        className="absolute h-0.5 bg-line"
-        style={{ left: edgeInset, right: edgeInset }}
-      />
+      <View className="absolute h-0.5 bg-line" style={{ left: edgeInset, right: edgeInset }} />
 
       {Array.from({ length: total }, (_, index) => {
         const isCurrent = index === currentIndex;
@@ -34,10 +31,10 @@ export function ExamQuestionProgress({ currentIndex, total }: ExamQuestionProgre
             <View
               className={`items-center justify-center rounded-full ${
                 isCurrent
-                  ? "h-7 w-7 bg-brand-cta"
+                  ? 'h-7 w-7 bg-brand-cta'
                   : isComplete
-                    ? "h-2.5 w-2.5 bg-brand-cta"
-                    : "h-2.5 w-2.5 bg-line"
+                    ? 'h-2.5 w-2.5 bg-brand-cta'
+                    : 'h-2.5 w-2.5 bg-line'
               }`}
             >
               {isCurrent ? <Text className="text-sm text-white">{index + 1}</Text> : null}

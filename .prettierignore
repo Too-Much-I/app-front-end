@@ -1,0 +1,19 @@
+node_modules/
+.expo/
+ios/
+android/
+dist/
+build/
+web-build/
+output/
+tmp/
+assets/
+public/
+config/firebase/
+specs/
+docs/architecture/generated/
+pnpm-lock.yaml
+*.skeleton.*
+
+# Keep active code-review tool revisions stable.
+scripts/code-review/

@@ -1,9 +1,9 @@
-import { View, type DimensionValue } from "react-native";
+import { View, type DimensionValue } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
-import type { ReanswerQuestionItem } from "@/features/exam/map-exam-retries";
-import { formatCompletedDate } from "@/screens/feedback/exam-history-format";
-import { colors, shadows } from "@/theme";
+import { Text } from '@/components/ui/Text';
+import type { ReanswerQuestionItem } from '@/features/exam/map-exam-retries';
+import { formatCompletedDate } from '@/screens/feedback/exam-history-format';
+import { colors, shadows } from '@/theme';
 
 /** 달성 게이지 두께. */
 const GAUGE_HEIGHT = 14;
@@ -14,9 +14,7 @@ function gaugeWidth(score: number, maxScore: number): DimensionValue {
 }
 
 function GaugeLegendDot({ color }: { color: string }) {
-  return (
-    <View className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-  );
+  return <View className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />;
 }
 
 /**
@@ -46,10 +44,10 @@ export function ReanswerGrowthCard({ item }: { item: ReanswerQuestionItem }) {
           {item.questionNumber}번 문제
         </Text>
         <View
-          className={`rounded-full px-3 py-1 ${hasGrown ? "bg-brand-100" : "bg-surface-muted"}`}
+          className={`rounded-full px-3 py-1 ${hasGrown ? 'bg-brand-100' : 'bg-surface-muted'}`}
         >
-          <Text className={`text-sm ${hasGrown ? "text-brand-text" : "text-ink-muted"}`}>
-            {hasGrown ? "+" : ""}
+          <Text className={`text-sm ${hasGrown ? 'text-brand-text' : 'text-ink-muted'}`}>
+            {hasGrown ? '+' : ''}
             {delta.toFixed(1)}점
           </Text>
         </View>
@@ -67,10 +65,7 @@ export function ReanswerGrowthCard({ item }: { item: ReanswerQuestionItem }) {
         위에 덮이는 최초 막대가 더 넓어 실제 최신 점수보다 많이 찬 것처럼 보이면
         배지의 숫자와 달리 게이지만 성과를 부풀리게 된다.
       */}
-      <View
-        className="mt-4 rounded-full bg-brand-100"
-        style={{ height: GAUGE_HEIGHT }}
-      >
+      <View className="mt-4 rounded-full bg-brand-100" style={{ height: GAUGE_HEIGHT }}>
         {hasGrown && (
           <View
             className="absolute bottom-0 left-0 top-0 rounded-full"
@@ -92,9 +87,7 @@ export function ReanswerGrowthCard({ item }: { item: ReanswerQuestionItem }) {
             <GaugeLegendDot color={colors.brand[300]} />
             <Text className="text-xs text-ink-muted">최초 답변</Text>
           </View>
-          <Text className="mt-1 text-base text-ink-muted">
-            {item.initialScore.toFixed(1)}점
-          </Text>
+          <Text className="mt-1 text-base text-ink-muted">{item.initialScore.toFixed(1)}점</Text>
         </View>
 
         <View className="items-end">
@@ -103,12 +96,8 @@ export function ReanswerGrowthCard({ item }: { item: ReanswerQuestionItem }) {
             <Text className="text-xs text-ink-muted">최신 답변</Text>
           </View>
           <View className="mt-1 flex-row items-end">
-            <Text className="text-xl text-brand-text">
-              {item.latestScore.toFixed(1)}
-            </Text>
-            <Text className="mb-0.5 ml-1 text-xs text-ink-muted">
-              /{item.maxScore}점
-            </Text>
+            <Text className="text-xl text-brand-text">{item.latestScore.toFixed(1)}</Text>
+            <Text className="mb-0.5 ml-1 text-xs text-ink-muted">/{item.maxScore}점</Text>
           </View>
         </View>
       </View>

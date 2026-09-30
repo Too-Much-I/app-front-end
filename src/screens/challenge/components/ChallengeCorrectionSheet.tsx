@@ -1,16 +1,16 @@
-import { Modal, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Modal, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
 import {
   CORRECTION_SEVERITY_LABEL,
   getCorrectionSeverityColor,
   getCorrectionTypeLabel,
   normalizeCorrectionSeverity,
-} from "@/screens/challenge/challenge-corrections";
-import { shadows } from "@/theme";
-import type { ChallengeCorrectionItem } from "@/types/challenge";
+} from '@/screens/challenge/challenge-corrections';
+import { shadows } from '@/theme';
+import type { ChallengeCorrectionItem } from '@/types/challenge';
 
 interface ChallengeCorrectionSheetProps {
   /** 이 문장의 첨삭 전체. 밑줄을 못 그은 항목도 여기 그대로 들어 있다. */
@@ -52,13 +52,7 @@ export function ChallengeCorrectionSheet({
   const hasNext = index < items.length - 1;
 
   return (
-    <Modal
-      animationType="slide"
-      onRequestClose={onClose}
-      statusBarTranslucent
-      transparent
-      visible
-    >
+    <Modal animationType="slide" onRequestClose={onClose} statusBarTranslucent transparent visible>
       <View className="flex-1 justify-end bg-ink/40">
         {/* 시트 위 빈 곳을 눌러 닫는다. 시각적 요소가 아니라 닫기 영역이라 라벨만 준다. */}
         <Pressable
@@ -111,7 +105,7 @@ export function ChallengeCorrectionSheet({
               disabled={!hasPrevious}
               onPress={() => onIndexChange(index - 1)}
             >
-              <Text className={`text-sm ${hasPrevious ? "text-brand-text" : "text-line"}`}>
+              <Text className={`text-sm ${hasPrevious ? 'text-brand-text' : 'text-line'}`}>
                 ‹ 이전
               </Text>
             </Pressable>
@@ -128,9 +122,7 @@ export function ChallengeCorrectionSheet({
               disabled={!hasNext}
               onPress={() => onIndexChange(index + 1)}
             >
-              <Text className={`text-sm ${hasNext ? "text-brand-text" : "text-line"}`}>
-                다음 ›
-              </Text>
+              <Text className={`text-sm ${hasNext ? 'text-brand-text' : 'text-line'}`}>다음 ›</Text>
             </Pressable>
           </View>
         </View>

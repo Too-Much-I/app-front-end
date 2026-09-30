@@ -1,23 +1,20 @@
-import { Feather } from "@expo/vector-icons";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Image, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Feather } from '@expo/vector-icons';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Image, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { StartMockExamButton } from "@/components/ui/StartMockExamButton";
-import { Text } from "@/components/ui/Text";
-import type { MockExamStackParamList } from "@/navigation/types";
-import { ExamReadyNoticeCard } from "@/screens/mock-exam/components/ExamReadyNoticeCard";
-import { colors } from "@/theme";
+import { Pressable } from '@/components/ui/Pressable';
+import { StartMockExamButton } from '@/components/ui/StartMockExamButton';
+import { Text } from '@/components/ui/Text';
+import type { MockExamStackParamList } from '@/navigation/types';
+import { ExamReadyNoticeCard } from '@/screens/mock-exam/components/ExamReadyNoticeCard';
+import { colors } from '@/theme';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
 // "조용히" 몸짓의 마스코트 — 안내 목록 첫 항목(조용한 곳에서 응시)과 그림이 그대로 맞는다.
-const readyMascot = require("../../../public/mascots/shh.png");
+const readyMascot = require('../../../public/mascots/shh.png');
 
-type MockExamReadyScreenProps = NativeStackScreenProps<
-  MockExamStackParamList,
-  "MockExamReady"
->;
+type MockExamReadyScreenProps = NativeStackScreenProps<MockExamStackParamList, 'MockExamReady'>;
 
 /**
  * 모의고사 준비(안내) 화면 — 모의고사 탭 자체가 이 화면이다.
@@ -30,11 +27,11 @@ type MockExamReadyScreenProps = NativeStackScreenProps<
  */
 export function MockExamReadyScreen({ navigation }: MockExamReadyScreenProps) {
   const handleStartExam = () => {
-    navigation.navigate("MicrophoneTest");
+    navigation.navigate('MicrophoneTest');
   };
 
   return (
-    <SafeAreaView edges={["top"]} className="flex-1 bg-surface-subtle">
+    <SafeAreaView edges={['top']} className="flex-1 bg-surface-subtle">
       <View className="h-16 flex-row items-center justify-between px-screen">
         <Text className="text-xl">모의고사</Text>
         <Pressable
@@ -42,7 +39,7 @@ export function MockExamReadyScreen({ navigation }: MockExamReadyScreenProps) {
           accessibilityLabel="파트별 진행 방식 보기"
           accessibilityRole="button"
           className="h-11 w-11 items-center justify-center rounded-full"
-          onPress={() => navigation.navigate("ExamPartGuide")}
+          onPress={() => navigation.navigate('ExamPartGuide')}
         >
           <Feather name="help-circle" size={24} color={colors.ink.muted} />
         </Pressable>
@@ -57,7 +54,7 @@ export function MockExamReadyScreen({ navigation }: MockExamReadyScreenProps) {
           {/* 헤드라인 — 아래 목록 전체가 무엇을 위한 것인지 한 줄로 묶어준다 */}
           <View className="flex-row items-center gap-2">
             <View className="flex-1">
-              <Text className="text-2xl leading-8">시작하기 전에{"\n"}확인해주세요</Text>
+              <Text className="text-2xl leading-8">시작하기 전에{'\n'}확인해주세요</Text>
               <Text className="mt-1.5 text-sm text-ink-muted">
                 한 번 시작하면 중간에 멈출 수 없어요
               </Text>

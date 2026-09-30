@@ -18,6 +18,8 @@ pnpm ios
 pnpm android
 pnpm web
 pnpm lint
+pnpm format
+pnpm format:check
 pnpm exec tsc --noEmit
 pnpm check:architecture
 pnpm check:naming
@@ -46,7 +48,8 @@ No automated test runner is configured yet. For code changes, run `pnpm lint`, `
 
 - Preserve strict TypeScript. Avoid `any`, unsafe casts, and type suppression unless there is a documented external boundary that requires them.
 - Keep components and functions focused. Put reusable behavior in the existing feature, theme, or UI layers rather than duplicating it in screens.
-- Follow the existing formatting and import style. Prefer type-only imports where applicable.
+- Run `pnpm format` to format code and `pnpm format:check` to verify it. Prettier uses Airbnb-inspired formatting (2 spaces, single quotes in JS/TS, double quotes in JSX, semicolons, trailing commas, 100-column target). Oxlint remains the semantic linter; the full Airbnb ESLint rule set is not installed. Frozen specs, generated files, assets, skeleton files, and versioned code-review tooling are excluded.
+- Follow the existing import style. Prefer type-only imports where applicable.
 - Keep navigation parameter types in `src/navigation/types.ts` and type every new route.
 - Do not add dependencies unless the task genuinely requires one. Prefer Expo-compatible packages and verify compatibility with the installed Expo SDK.
 - Never expose secrets in client code. Only `EXPO_PUBLIC_*` variables are intended to be bundled, and those values must be treated as public.

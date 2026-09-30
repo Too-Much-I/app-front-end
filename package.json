@@ -13,7 +13,9 @@
     "typecheck": "tsc --noEmit",
     "check:architecture": "node scripts/check-architecture.mjs",
     "check:naming": "node scripts/check-naming.mjs",
-    "deps:graph": "depcruise index.ts App.tsx src --config .dependency-cruiser.cjs --output-type mermaid --collapse '^(?:src/(?:features|screens|components)/[^/]+|src/(?:navigation|lib|theme|types))' --output-to docs/architecture/generated/dependency-graph.mmd"
+    "deps:graph": "depcruise index.ts App.tsx src --config .dependency-cruiser.cjs --output-type mermaid --collapse '^(?:src/(?:features|screens|components)/[^/]+|src/(?:navigation|lib|theme|types))' --output-to docs/architecture/generated/dependency-graph.mmd",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js}\" \"scripts/**/*.{js,mjs,cjs}\" \"*.{js,cjs,mjs,ts,tsx,json}\" \".github/**/*.{yml,yaml}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js}\" \"scripts/**/*.{js,mjs,cjs}\" \"*.{js,cjs,mjs,ts,tsx,json}\" \".github/**/*.{yml,yaml}\""
   },
   "dependencies": {
     "@amplitude/analytics-react-native": "^1.6.9",
@@ -65,6 +67,7 @@
     "babel-preset-expo": "57.0.6",
     "dependency-cruiser": "^18.2.0",
     "oxlint": "^1.71.0",
+    "prettier": "3.9.9",
     "tailwindcss": "3.4.19",
     "typescript": "~6.0.3"
   }

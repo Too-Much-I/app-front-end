@@ -1,10 +1,10 @@
-import { Feather } from "@expo/vector-icons";
-import { View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Feather } from '@expo/vector-icons';
+import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import { colors } from "@/theme";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import { colors } from '@/theme';
 
 interface ChallengeHeaderProps {
   /** 없으면 닫기 버튼을 숨긴다 — 제출 중처럼 화면을 벗어날 수 없는 동안. */
@@ -20,7 +20,7 @@ interface ChallengeHeaderProps {
  * 시작됐다는 신호이고, 챌린지는 크림 배경 위에서 노트 한 장만 보이는 화면이라
  * 위쪽에 강한 색면이 들어오면 노트가 주인공 자리를 뺏긴다.
  */
-export function ChallengeHeader({ onClose, title = "10초 챌린지" }: ChallengeHeaderProps) {
+export function ChallengeHeader({ onClose, title = '10초 챌린지' }: ChallengeHeaderProps) {
   const { top: topInset } = useSafeAreaInsets();
 
   return (

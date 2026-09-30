@@ -1,7 +1,7 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-import { getLevelAbbreviation } from "@/features/exam/level-estimate";
-import type { RawExamHistoryResult } from "@/types/exam";
+import { getLevelAbbreviation } from '@/features/exam/level-estimate';
+import type { RawExamHistoryResult } from '@/types/exam';
 
 /**
  * `GET /api/v1/exams/history` 응답에 대한 우리 쪽 계약. 아직 관찰 전용이다.
@@ -41,7 +41,7 @@ export const examHistorySchema = z.object({
  */
 export const EXAM_TOTAL_MAX_SCORE = 200;
 
-export type ExamHistoryTone = "green" | "blue" | "purple" | "orange";
+export type ExamHistoryTone = 'green' | 'blue' | 'purple' | 'orange';
 
 export type ExamHistoryItem = {
   examId: string;
@@ -58,21 +58,21 @@ export type ExamHistoryItem = {
 /** 응답 형식이 계약과 다를 때 던진다. 빈 목록으로 바꾸지 않는다. */
 export class ExamHistoryContractError extends Error {
   constructor() {
-    super("시험 이력 응답 형식이 올바르지 않습니다.");
-    this.name = "ExamHistoryContractError";
+    super('시험 이력 응답 형식이 올바르지 않습니다.');
+    this.name = 'ExamHistoryContractError';
   }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
 function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0;
+  return typeof value === 'string' && value.length > 0;
 }
 
 function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
+  return typeof value === 'number' && Number.isFinite(value);
 }
 
 function isValidDateString(value: unknown): value is string {
@@ -92,10 +92,10 @@ function chartDateLabel(completedAt: string): string {
  */
 function toneForLevel(level: string): ExamHistoryTone {
   const normalizedLevel = level.trim().toUpperCase();
-  if (["AH", "AM", "AL"].includes(normalizedLevel)) return "purple";
-  if (normalizedLevel === "IH") return "blue";
-  if (["IM3", "IM2", "IM1"].includes(normalizedLevel)) return "green";
-  return "orange";
+  if (['AH', 'AM', 'AL'].includes(normalizedLevel)) return 'purple';
+  if (normalizedLevel === 'IH') return 'blue';
+  if (['IM3', 'IM2', 'IM1'].includes(normalizedLevel)) return 'green';
+  return 'orange';
 }
 
 /**
@@ -109,15 +109,14 @@ function mapItem(value: unknown): ExamHistoryItem {
     throw new ExamHistoryContractError();
   }
 
-  const { examId, title, completedAt, totalScore, levelEstimate, retriedQuestionCount } =
-    value;
+  const { examId, title, completedAt, totalScore, levelEstimate, retriedQuestionCount } = value;
 
   if (
     !isNonEmptyString(examId) ||
-    typeof title !== "string" ||
+    typeof title !== 'string' ||
     !isValidDateString(completedAt) ||
     !isFiniteNumber(totalScore) ||
-    typeof levelEstimate !== "string"
+    typeof levelEstimate !== 'string'
   ) {
     throw new ExamHistoryContractError();
   }
@@ -134,9 +133,7 @@ function mapItem(value: unknown): ExamHistoryItem {
     maxTotalScore: EXAM_TOTAL_MAX_SCORE,
     // 없으면 재답변이 없는 것으로 본다 — 부제에서 문구 하나가 빠질 뿐이라
     // 이력 전체를 계약 오류로 버릴 만한 필드가 아니다.
-    retriedQuestionCount: isFiniteNumber(retriedQuestionCount)
-      ? retriedQuestionCount
-      : 0,
+    retriedQuestionCount: isFiniteNumber(retriedQuestionCount) ? retriedQuestionCount : 0,
     tone: toneForLevel(level),
   };
 }
@@ -150,8 +147,7 @@ export function mapExamHistory(raw: RawExamHistoryResult): ExamHistoryItem[] {
   return raw.histories
     .map((item) => mapItem(item))
     .sort(
-      (left, right) =>
-        new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime(),
+      (left, right) => new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime(),
     );
 }
 

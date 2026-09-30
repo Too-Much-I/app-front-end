@@ -1,29 +1,29 @@
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useQueryClient } from "@tanstack/react-query";
-import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import { Linking, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useQueryClient } from '@tanstack/react-query';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { Linking, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { Text } from "@/components/ui/Text";
-import { AudioWaveform } from "@/features/audio/components/AudioWaveform";
-import { deleteRecordingFile } from "@/features/audio/recording-file";
-import { useIsScreenActive } from "@/features/audio/use-is-screen-active";
-import { useRecordingAudioSession } from "@/features/audio/use-recording-audio-session";
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { Text } from '@/components/ui/Text';
+import { AudioWaveform } from '@/features/audio/components/AudioWaveform';
+import { deleteRecordingFile } from '@/features/audio/recording-file';
+import { useIsScreenActive } from '@/features/audio/use-is-screen-active';
+import { useRecordingAudioSession } from '@/features/audio/use-recording-audio-session';
 import {
   isAttemptAlreadyTerminal,
   isProgressRefreshRequired,
-} from "@/features/challenge/challenge-error-codes";
-import { CHALLENGE_TODAY_QUERY_KEY } from "@/features/challenge/challenge-today-queries";
-import { useChallengeAttempt } from "@/features/challenge/use-challenge-attempt";
-import { useChallengeQuestion } from "@/features/challenge/use-challenge-question";
+} from '@/features/challenge/challenge-error-codes';
+import { CHALLENGE_TODAY_QUERY_KEY } from '@/features/challenge/challenge-today-queries';
+import { useChallengeAttempt } from '@/features/challenge/use-challenge-attempt';
+import { useChallengeQuestion } from '@/features/challenge/use-challenge-question';
 import {
   CHALLENGE_RECORDING_DURATION_SEC,
   useChallengeRecorder,
-} from "@/features/challenge/use-challenge-recorder";
-import { useChallengeSubmission } from "@/features/challenge/use-challenge-submission";
-import type { RootStackParamList } from "@/navigation/types";
+} from '@/features/challenge/use-challenge-recorder';
+import { useChallengeSubmission } from '@/features/challenge/use-challenge-submission';
+import type { RootStackParamList } from '@/navigation/types';
 import {
   getChallengeRemainingSeconds,
   hasUnsavedChallengeRecording,
@@ -31,19 +31,19 @@ import {
   isChallengeSubmissionLocked,
   resolveChallengeUiStatus,
   resolveRecordingPhase,
-} from "@/screens/challenge/challenge-status";
-import { ChallengeActionBar } from "@/screens/challenge/components/ChallengeActionBar";
-import { ChallengeHeader } from "@/screens/challenge/components/ChallengeHeader";
-import { ChallengeNoteCard } from "@/screens/challenge/components/ChallengeNoteCard";
-import { ChallengeNoteSkeleton } from "@/screens/challenge/components/ChallengeNoteSkeleton";
-import { ChallengeReviewPanel } from "@/screens/challenge/components/ChallengeReviewPanel";
-import { ChallengeStatusPanel } from "@/screens/challenge/components/ChallengeStatusPanel";
-import { ChallengeTimerHeader } from "@/screens/challenge/components/ChallengeTimerHeader";
-import type { ChallengeAnswerAccepted, ChallengeQuestion } from "@/types/challenge";
+} from '@/screens/challenge/challenge-status';
+import { ChallengeActionBar } from '@/screens/challenge/components/ChallengeActionBar';
+import { ChallengeHeader } from '@/screens/challenge/components/ChallengeHeader';
+import { ChallengeNoteCard } from '@/screens/challenge/components/ChallengeNoteCard';
+import { ChallengeNoteSkeleton } from '@/screens/challenge/components/ChallengeNoteSkeleton';
+import { ChallengeReviewPanel } from '@/screens/challenge/components/ChallengeReviewPanel';
+import { ChallengeStatusPanel } from '@/screens/challenge/components/ChallengeStatusPanel';
+import { ChallengeTimerHeader } from '@/screens/challenge/components/ChallengeTimerHeader';
+import type { ChallengeAnswerAccepted, ChallengeQuestion } from '@/types/challenge';
 
 type TenSecondChallengeScreenProps = NativeStackScreenProps<
   RootStackParamList,
-  "TenSecondChallenge"
+  'TenSecondChallenge'
 >;
 
 interface RecordingReviewState {
@@ -52,8 +52,8 @@ interface RecordingReviewState {
 }
 
 type RecordingReviewAction =
-  | { type: "recording-started" }
-  | { type: "recording-finalized"; audioFileUri: string; recordedSeconds: number };
+  | { type: 'recording-started' }
+  | { type: 'recording-finalized'; audioFileUri: string; recordedSeconds: number };
 
 const INITIAL_RECORDING_REVIEW_STATE: RecordingReviewState = {
   finalizedAudioUri: null,
@@ -65,9 +65,9 @@ function recordingReviewReducer(
   action: RecordingReviewAction,
 ): RecordingReviewState {
   switch (action.type) {
-    case "recording-started":
+    case 'recording-started':
       return INITIAL_RECORDING_REVIEW_STATE;
-    case "recording-finalized":
+    case 'recording-finalized':
       return {
         finalizedAudioUri: action.audioFileUri,
         recordedSeconds: action.recordedSeconds,
@@ -85,10 +85,7 @@ function recordingReviewReducer(
  * 시작 버튼이 따로 없다. 문제를 읽는 순간이 곧 10초의 시작이라, 문제가 도착하면
  * 바로 녹음을 켜고 사용자는 끝내는 결정("완료")만 한다.
  */
-export function TenSecondChallengeScreen({
-  navigation,
-  route,
-}: TenSecondChallengeScreenProps) {
+export function TenSecondChallengeScreen({ navigation, route }: TenSecondChallengeScreenProps) {
   const { challengeDate, questionNumber } = route.params;
   const queryClient = useQueryClient();
   const {
@@ -108,12 +105,7 @@ export function TenSecondChallengeScreen({
     retry: retryAttempt,
   } = useChallengeAttempt(question);
   const {
-    snapshot: {
-      status: recordingStatus,
-      elapsedMs,
-      remainingMs,
-      meteringDb,
-    },
+    snapshot: { status: recordingStatus, elapsedMs, remainingMs, meteringDb },
     actions: {
       start: startRecorder,
       finish: finishRecorder,
@@ -125,13 +117,13 @@ export function TenSecondChallengeScreen({
   const isScreenActive = useIsScreenActive();
   useRecordingAudioSession({
     isActive: isScreenActive,
-    suspendRecording: () => discardRecorder("owner-inactive"),
+    suspendRecording: () => discardRecorder('owner-inactive'),
   });
   /**
    * 서버가 확인해 준 날짜가 언제나 우선이다. route로 받은 값은 첫 조회의 힌트일 뿐이고,
    * 그마저 없으면 문제 조회가 오늘 진행도에서 날짜를 알아 온다.
    */
-  const resolvedDate = attempt?.date ?? question?.date ?? challengeDate ?? "";
+  const resolvedDate = attempt?.date ?? question?.date ?? challengeDate ?? '';
 
   const [{ finalizedAudioUri, recordedSeconds }, dispatchRecordingReview] = useReducer(
     recordingReviewReducer,
@@ -156,7 +148,7 @@ export function TenSecondChallengeScreen({
         try {
           deleteRecordingFile(finalizedAudioUri);
         } catch (error) {
-          console.error("[Challenge] 제출한 녹음 파일 삭제 실패", error);
+          console.error('[Challenge] 제출한 녹음 파일 삭제 실패', error);
         }
       }
       /*
@@ -169,7 +161,7 @@ export function TenSecondChallengeScreen({
           : null;
 
       leavingRef.current = true;
-      navigation.replace("ChallengeResult", {
+      navigation.replace('ChallengeResult', {
         challengeDate: accepted?.date ?? resolvedDate,
         questionNumber,
         ...(nextQuestionNumber === null ? {} : { nextQuestionNumber }),
@@ -215,7 +207,7 @@ export function TenSecondChallengeScreen({
   const abortToStage = useCallback(() => {
     void queryClient.invalidateQueries({
       queryKey: CHALLENGE_TODAY_QUERY_KEY,
-      refetchType: "none",
+      refetchType: 'none',
     });
     leavingRef.current = true;
     navigation.goBack();
@@ -250,7 +242,7 @@ export function TenSecondChallengeScreen({
   const startRecording = useCallback(
     async (target: ChallengeQuestion) => {
       resetRecorderForRetry();
-      dispatchRecordingReview({ type: "recording-started" });
+      dispatchRecordingReview({ type: 'recording-started' });
       lastElapsedSecondsRef.current = 0;
 
       // 실패는 리코더의 status가 이미 말해준다(permission-denied / error / interrupted).
@@ -259,8 +251,8 @@ export function TenSecondChallengeScreen({
         date: target.date,
         questionNumber: target.questionNumber,
       });
-      if (result.reason === "error") {
-        console.error("[Challenge] 녹음 시작 실패", result.error);
+      if (result.reason === 'error') {
+        console.error('[Challenge] 녹음 시작 실패', result.error);
       }
     },
     [resetRecorderForRetry, startRecorder],
@@ -276,9 +268,9 @@ export function TenSecondChallengeScreen({
      * 경우다 — 명세대로 `attemptStatus`만 보고 결과 화면으로 보낸다. 문제마다 응시는
      * 한 번뿐이라 여기서 녹음을 켜면 사용자가 올릴 수 없는 답을 만들게 된다.
      */
-    if (question.attemptStatus === "submitted") {
+    if (question.attemptStatus === 'submitted') {
       leavingRef.current = true;
-      navigation.replace("ChallengeResult", {
+      navigation.replace('ChallengeResult', {
         challengeDate: question.date,
         questionNumber: question.questionNumber,
       });
@@ -287,7 +279,7 @@ export function TenSecondChallengeScreen({
 
     // 명세 6.3 — attempt 발급이 성공한 뒤에만 녹음을 시작한다. 발급 전에 켜면 사용자가
     // 올릴 곳 없는 답을 만들게 되고, 자정을 넘긴 경우가 정확히 그 상황이다.
-    if (attemptStatus !== "ready") return;
+    if (attemptStatus !== 'ready') return;
 
     const questionKey = `${question.date}#${question.questionNumber}`;
     if (autoStartedKeyRef.current === questionKey) return;
@@ -302,7 +294,7 @@ export function TenSecondChallengeScreen({
    * 스테이지는 포커스를 되찾으면서 만료된 진행도를 다시 읽고, 새 날짜로 시작한다.
    */
   useEffect(() => {
-    if (questionStatus !== "failed") return;
+    if (questionStatus !== 'failed') return;
     if (isProgressRefreshRequired(questionErrorCode)) abortToStage();
   }, [abortToStage, questionErrorCode, questionStatus]);
 
@@ -314,29 +306,22 @@ export function TenSecondChallengeScreen({
    * 짧은 루프에 왕복이 붙는다.
    */
   useEffect(() => {
-    if (attemptStatus !== "failed" || attemptErrorCode === null) return;
+    if (attemptStatus !== 'failed' || attemptErrorCode === null) return;
 
     if (isAttemptAlreadyTerminal(attemptErrorCode)) {
       leavingRef.current = true;
-      navigation.replace("ChallengeResult", {
+      navigation.replace('ChallengeResult', {
         challengeDate: resolvedDate,
         questionNumber,
       });
       return;
     }
     if (isProgressRefreshRequired(attemptErrorCode)) abortToStage();
-  }, [
-    attemptErrorCode,
-    attemptStatus,
-    abortToStage,
-    navigation,
-    questionNumber,
-    resolvedDate,
-  ]);
+  }, [attemptErrorCode, attemptStatus, abortToStage, navigation, questionNumber, resolvedDate]);
 
   // 녹음 중 마지막으로 관찰한 경과 시간. 확정 직후에는 recorder가 0으로 되돌린다.
   useEffect(() => {
-    if (recordingStatus !== "recording") return;
+    if (recordingStatus !== 'recording') return;
     lastElapsedSecondsRef.current = elapsedMs / 1_000;
   }, [elapsedMs, recordingStatus]);
 
@@ -345,18 +330,15 @@ export function TenSecondChallengeScreen({
     finishingRef.current = true;
 
     try {
-      const recording = await finishRecorder("user");
+      const recording = await finishRecorder('user');
       dispatchRecordingReview({
-        type: "recording-finalized",
+        type: 'recording-finalized',
         audioFileUri: recording.audioFileUri,
-        recordedSeconds: Math.min(
-          lastElapsedSecondsRef.current,
-          CHALLENGE_RECORDING_DURATION_SEC,
-        ),
+        recordedSeconds: Math.min(lastElapsedSecondsRef.current, CHALLENGE_RECORDING_DURATION_SEC),
       });
     } catch (error) {
       // 확정에 실패하면 리코더가 error나 interrupted로 넘어가 있다. 단계는 거기서 읽힌다.
-      console.error("[Challenge] 녹음 확정 실패", error);
+      console.error('[Challenge] 녹음 확정 실패', error);
     } finally {
       finishingRef.current = false;
     }
@@ -370,9 +352,9 @@ export function TenSecondChallengeScreen({
    * 신호로 삼아 같은 종료 약속을 이어받는다 — 두 경로 모두 같은 녹음본 하나로 끝난다.
    */
   useEffect(() => {
-    if (phase !== "recording") return;
-    const hasRunOut = recordingStatus === "recording" && remainingMs <= 0;
-    if (!hasRunOut && recordingStatus !== "finalizing") return;
+    if (phase !== 'recording') return;
+    const hasRunOut = recordingStatus === 'recording' && remainingMs <= 0;
+    if (!hasRunOut && recordingStatus !== 'finalizing') return;
     void finishRecording();
   }, [finishRecording, phase, recordingStatus, remainingMs]);
 
@@ -387,7 +369,7 @@ export function TenSecondChallengeScreen({
    * 실패한 쪽을 다시 부른다. 조회가 실패했다면 attempt는 아직 시작도 안 했다.
    */
   const retryPreparation = useCallback(() => {
-    if (questionStatus === "failed") {
+    if (questionStatus === 'failed') {
       retryQuestion();
       return;
     }
@@ -416,7 +398,7 @@ export function TenSecondChallengeScreen({
 
   // 안드로이드 하드웨어 뒤로가기와 스택 제스처도 같은 확인을 거치게 한다.
   useEffect(() => {
-    const unsubscribe = navigation.addListener("beforeRemove", (event) => {
+    const unsubscribe = navigation.addListener('beforeRemove', (event) => {
       if (leavingRef.current) return;
       if (isChallengeSubmissionLocked(uiStatus)) {
         event.preventDefault();
@@ -434,12 +416,10 @@ export function TenSecondChallengeScreen({
   return (
     <View className="flex-1 bg-surface-subtle">
       <StatusBar style="dark" />
-      <ChallengeHeader
-        onClose={isChallengeSubmissionLocked(uiStatus) ? undefined : requestClose}
-      />
+      <ChallengeHeader onClose={isChallengeSubmissionLocked(uiStatus) ? undefined : requestClose} />
 
-      <SafeAreaView className="flex-1" edges={["bottom"]}>
-        {uiStatus === "loading" || !question ? (
+      <SafeAreaView className="flex-1" edges={['bottom']}>
+        {uiStatus === 'loading' || !question ? (
           <ChallengeNoteSkeleton />
         ) : isChallengeStatusOnly(uiStatus) ? (
           <ChallengeStatusPanel
@@ -469,19 +449,19 @@ export function TenSecondChallengeScreen({
                 remainingSeconds={remainingSeconds}
                 totalSeconds={CHALLENGE_RECORDING_DURATION_SEC}
               >
-                {uiStatus === "preparing" ? (
+                {uiStatus === 'preparing' ? (
                   <Text className="text-center text-sm text-ink-muted">
                     마이크를 준비하고 있어요...
                   </Text>
                 ) : null}
 
-                {uiStatus === "recording" ? (
+                {uiStatus === 'recording' ? (
                   <View className="items-center">
                     <AudioWaveform active meteringDb={meteringDb} variant="answer" />
                   </View>
                 ) : null}
 
-                {uiStatus === "reviewing" && finalizedAudioUri ? (
+                {uiStatus === 'reviewing' && finalizedAudioUri ? (
                   <ChallengeReviewPanel
                     audioFileUri={finalizedAudioUri}
                     key={finalizedAudioUri}

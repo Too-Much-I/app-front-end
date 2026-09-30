@@ -1,5 +1,5 @@
-import type { ExamHistoryTone } from "@/features/exam/map-exam-history";
-import { colors } from "@/theme";
+import type { ExamHistoryTone } from '@/features/exam/map-exam-history';
+import { colors } from '@/theme';
 
 /**
  * 이력 도메인 값을 표시값으로 바꾸는 규칙.

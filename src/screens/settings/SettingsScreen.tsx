@@ -1,38 +1,35 @@
-import { Feather } from "@expo/vector-icons";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import * as Application from "expo-application";
-import { useEffect, useState } from "react";
-import { Image, ScrollView, Switch, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Feather } from '@expo/vector-icons';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as Application from 'expo-application';
+import { useEffect, useState } from 'react';
+import { Image, ScrollView, Switch, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import { getStoredConsent } from "@/features/consent/consent-storage";
-import type { RootStackParamList } from "@/navigation/types";
-import { SettingsRow } from "@/screens/settings/components/SettingsRow";
-import { SettingsSection } from "@/screens/settings/components/SettingsSection";
-import { useQualityReviewConsent } from "@/screens/settings/use-quality-review-consent";
-import { colors, shadows } from "@/theme";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import { getStoredConsent } from '@/features/consent/consent-storage';
+import type { RootStackParamList } from '@/navigation/types';
+import { SettingsRow } from '@/screens/settings/components/SettingsRow';
+import { SettingsSection } from '@/screens/settings/components/SettingsSection';
+import { useQualityReviewConsent } from '@/screens/settings/use-quality-review-consent';
+import { colors, shadows } from '@/theme';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
-const encouragementMascot = require("../../../public/mascots/growing_rabbit.png");
+const encouragementMascot = require('../../../public/mascots/growing_rabbit.png');
 
-type SettingsScreenProps = NativeStackScreenProps<
-  RootStackParamList,
-  "Settings"
->;
+type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
 function formatConsentDate(iso: string): string {
   const date = new Date(iso);
   const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
   return `${yyyy}.${mm}.${dd}`;
 }
 
 function formatApplicationVersion(version: string | null): string {
-  if (!version) return "확인 불가";
-  return version.startsWith("v") ? version : `v${version}`;
+  if (!version) return '확인 불가';
+  return version.startsWith('v') ? version : `v${version}`;
 }
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
@@ -46,10 +43,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   }, []);
 
   return (
-    <SafeAreaView
-      edges={["top", "bottom"]}
-      className="flex-1 bg-surface-subtle"
-    >
+    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-surface-subtle">
       <View className="h-16 flex-row items-center px-screen">
         <Pressable
           accessibilityLabel="뒤로 가기"
@@ -73,11 +67,9 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
                 토선생의 한마디
               </Text>
               <Text className="mt-1 text-lg leading-7">
-                오늘도 꾸준히 연습하면{"\n"}점수는 반드시 올라가요!
+                오늘도 꾸준히 연습하면{'\n'}점수는 반드시 올라가요!
               </Text>
-              <Text className="mt-2 text-sm text-ink-muted">
-                토선생이 항상 응원할게요 🧡
-              </Text>
+              <Text className="mt-2 text-sm text-ink-muted">토선생이 항상 응원할게요 🧡</Text>
             </View>
             <Image
               source={encouragementMascot}
@@ -91,9 +83,9 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
             <SettingsRow
               icon="file-text"
               onPress={() =>
-                navigation.navigate("SettingsWebView", {
-                  path: "/app-settings/privacy",
-                  title: "개인정보 처리방침",
+                navigation.navigate('SettingsWebView', {
+                  path: '/app-settings/privacy',
+                  title: '개인정보 처리방침',
                 })
               }
               title="개인정보 처리방침"
@@ -101,9 +93,9 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
             <SettingsRow
               icon="clipboard"
               onPress={() =>
-                navigation.navigate("SettingsWebView", {
-                  path: "/app-settings/terms",
-                  title: "이용약관",
+                navigation.navigate('SettingsWebView', {
+                  path: '/app-settings/terms',
+                  title: '이용약관',
                 })
               }
               title="이용약관"
@@ -123,9 +115,9 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               description="버그 제보 및 기능 제안을 할 수 있어요."
               icon="message-circle"
               onPress={() =>
-                navigation.navigate("SettingsWebView", {
-                  path: "/app-settings/contact",
-                  title: "문의하기",
+                navigation.navigate('SettingsWebView', {
+                  path: '/app-settings/contact',
+                  title: '문의하기',
                 })
               }
               title="문의하기"
@@ -136,9 +128,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               title="버전 정보"
               trailing={
                 <Text className="text-sm text-ink-muted">
-                  {formatApplicationVersion(
-                    Application.nativeApplicationVersion,
-                  )}
+                  {formatApplicationVersion(Application.nativeApplicationVersion)}
                 </Text>
               }
             />
@@ -148,8 +138,8 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
             <SettingsRow
               description={
                 qualityReview.hasError
-                  ? "설정을 바꾸지 못했어요. 잠시 후 다시 시도해주세요."
-                  : "채점이 잘못됐을 때 담당자가 답변 음성을 확인해 원인을 찾아요. 꺼도 응시와 채점에는 영향이 없어요."
+                  ? '설정을 바꾸지 못했어요. 잠시 후 다시 시도해주세요.'
+                  : '채점이 잘못됐을 때 담당자가 답변 음성을 확인해 원인을 찾아요. 꺼도 응시와 채점에는 영향이 없어요.'
               }
               icon="shield"
               showDivider={false}

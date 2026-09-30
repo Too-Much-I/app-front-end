@@ -1,6 +1,6 @@
-import { apiFetchWithAuthRetry } from "@/lib/api/client";
-import type { ApiEnvelope } from "@/types/api";
-import type { AnswerKey, ExamQuestionPollResult } from "@/types/exam";
+import { apiFetchWithAuthRetry } from '@/lib/api/client';
+import type { ApiEnvelope } from '@/types/api';
+import type { AnswerKey, ExamQuestionPollResult } from '@/types/exam';
 
 /**
  * 문제 하나의 특정 회차 채점이 끝났는지 조회한다.

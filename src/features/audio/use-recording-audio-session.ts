@@ -1,6 +1,6 @@
-import { setIsAudioActiveAsync } from "expo-audio";
-import { useCallback, useEffect, useRef } from "react";
-import { Platform } from "react-native";
+import { setIsAudioActiveAsync } from 'expo-audio';
+import { useCallback, useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 
 interface UseRecordingAudioSessionInput {
   /** 세션을 잡고 있어야 하는 구간. 보통 `useIsScreenActive()`를 그대로 넘긴다. */
@@ -34,14 +34,14 @@ export function useRecordingAudioSession({
     const transition = transitionQueueRef.current
       .catch(() => undefined)
       .then(async () => {
-        if (Platform.OS !== "ios") return;
+        if (Platform.OS !== 'ios') return;
 
         if (!shouldBeActive) {
           try {
             await suspendRecordingRef.current();
           } catch (error) {
             // 정리가 일부 실패해도 background/이탈 시 전역 세션은 best-effort로 끈다.
-            console.error("[RecordingAudioSession] 비활성화 전 녹음 정리 실패", error);
+            console.error('[RecordingAudioSession] 비활성화 전 녹음 정리 실패', error);
           }
         }
 
@@ -55,7 +55,7 @@ export function useRecordingAudioSession({
 
     transitionQueueRef.current = transition.catch((error: unknown) => {
       console.error(
-        `[RecordingAudioSession] 오디오 세션 ${shouldBeActive ? "활성화" : "비활성화"} 실패`,
+        `[RecordingAudioSession] 오디오 세션 ${shouldBeActive ? '활성화' : '비활성화'} 실패`,
         error,
       );
     });

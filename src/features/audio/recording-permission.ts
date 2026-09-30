@@ -1,19 +1,14 @@
-import {
-  getRecordingPermissionsAsync,
-  requestRecordingPermissionsAsync,
-} from "expo-audio";
+import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync } from 'expo-audio';
 
-export type RecordingPermissionFailureOperation =
-  | "permission-check"
-  | "permission-request";
+export type RecordingPermissionFailureOperation = 'permission-check' | 'permission-request';
 
 export class RecordingPermissionError extends Error {
   constructor(
     public readonly operation: RecordingPermissionFailureOperation,
     cause: unknown,
   ) {
-    super("마이크 권한 상태를 확인하지 못했습니다.", { cause });
-    this.name = "RecordingPermissionError";
+    super('마이크 권한 상태를 확인하지 못했습니다.', { cause });
+    this.name = 'RecordingPermissionError';
   }
 }
 
@@ -34,7 +29,7 @@ export async function resolveRecordingPermissionAsync(
   try {
     currentPermission = await getRecordingPermissionsAsync();
   } catch (error) {
-    throw new RecordingPermissionError("permission-check", error);
+    throw new RecordingPermissionError('permission-check', error);
   }
 
   if (currentPermission.granted || !currentPermission.canAskAgain) {
@@ -45,7 +40,7 @@ export async function resolveRecordingPermissionAsync(
   try {
     return await requestRecordingPermissionsAsync();
   } catch (error) {
-    throw new RecordingPermissionError("permission-request", error);
+    throw new RecordingPermissionError('permission-request', error);
   } finally {
     options.onRequestEnd?.();
   }

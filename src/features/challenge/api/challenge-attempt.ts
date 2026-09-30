@@ -1,11 +1,11 @@
 import {
   challengeAttemptSchema,
   mapChallengeAttempt,
-} from "@/features/challenge/map-challenge-attempt";
-import { apiFetch } from "@/lib/api/client";
-import { parseApiResult } from "@/lib/api/parse-api-result";
-import type { ApiEnvelope } from "@/types/api";
-import type { ChallengeAttempt } from "@/types/challenge";
+} from '@/features/challenge/map-challenge-attempt';
+import { apiFetch } from '@/lib/api/client';
+import { parseApiResult } from '@/lib/api/parse-api-result';
+import type { ApiEnvelope } from '@/types/api';
+import type { ChallengeAttempt } from '@/types/challenge';
 
 /**
  * 녹음을 시작하기 전에 attempt를 만든다(명세 6.3).
@@ -30,12 +30,10 @@ export async function createChallengeAttempt(
   const { result } = await apiFetch<ApiEnvelope<unknown>>(
     `/api/v1/challenges/today/questions/${questionNumber}/attempt`,
     {
-      method: "POST",
-      headers: { "X-Challenge-Date": challengeDate },
+      method: 'POST',
+      headers: { 'X-Challenge-Date': challengeDate },
       signal,
     },
   );
-  return mapChallengeAttempt(
-    parseApiResult(challengeAttemptSchema, result, "CHALLENGE_ATTEMPT"),
-  );
+  return mapChallengeAttempt(parseApiResult(challengeAttemptSchema, result, 'CHALLENGE_ATTEMPT'));
 }

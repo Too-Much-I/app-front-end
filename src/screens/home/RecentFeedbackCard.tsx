@@ -1,30 +1,30 @@
-import { Feather } from "@expo/vector-icons";
-import { useState } from "react";
-import { ActivityIndicator, Image, View, type LayoutChangeEvent } from "react-native";
+import { Feather } from '@expo/vector-icons';
+import { useState } from 'react';
+import { ActivityIndicator, Image, View, type LayoutChangeEvent } from 'react-native';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Sparkle, type SparkleProps } from "@/components/ui/Sparkle";
-import { Text } from "@/components/ui/Text";
-import type { ExamHistoryItem } from "@/features/exam/map-exam-history";
-import type { RecentFeedbackState } from "@/screens/home/use-recent-feedback";
-import { colors, shadows } from "@/theme";
+import { Pressable } from '@/components/ui/Pressable';
+import { Sparkle, type SparkleProps } from '@/components/ui/Sparkle';
+import { Text } from '@/components/ui/Text';
+import type { ExamHistoryItem } from '@/features/exam/map-exam-history';
+import type { RecentFeedbackState } from '@/screens/home/use-recent-feedback';
+import { colors, shadows } from '@/theme';
 
-const feedbackMascot = require("../../../public/mascots/paper_rabbit.png");
+const feedbackMascot = require('../../../public/mascots/paper_rabbit.png');
 /** paper_rabbit.png를 내용 기준으로 타이트 크롭한 실제 가로/세로 비율. */
 const FEEDBACK_MASCOT_ASPECT_RATIO = 1329 / 1918;
 const FEEDBACK_MASCOT_MAX_HEIGHT = 136;
 
 /** 피드백 카드 마스코트 주변의 반짝임. 카드 강조용으로 노란 계열을 쓴다. */
 const FEEDBACK_SPARKLES: SparkleProps[] = [
-  { className: "-top-2 left-2", colorClassName: "text-yellow-400" },
-  { className: "-right-3 top-8", size: "base", colorClassName: "text-yellow-300" },
-  { className: "-bottom-2 left-6", colorClassName: "text-yellow-400" },
+  { className: '-top-2 left-2', colorClassName: 'text-yellow-400' },
+  { className: '-right-3 top-8', size: 'base', colorClassName: 'text-yellow-300' },
+  { className: '-bottom-2 left-6', colorClassName: 'text-yellow-400' },
 ];
 
 function completedDateLabel(completedAt: string): string {
   const date = new Date(completedAt);
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
   return `${date.getFullYear()}.${month}.${day}`;
 }
 
@@ -57,7 +57,7 @@ function ReadyFeedbackCard({
   onOpenFeedback: (examId: string) => void;
 }) {
   const [textHeight, setTextHeight] = useState(0);
-  const title = item.title.trim() || "토선생 모의고사";
+  const title = item.title.trim() || '토선생 모의고사';
 
   return (
     <Pressable
@@ -151,8 +151,8 @@ export function RecentFeedbackCard({
   onOpenFeedback: (examId: string) => void;
   onRetry: () => void;
 }) {
-  if (state.status === "loading") return <LoadingFeedbackCard />;
-  if (state.status === "error") return <ErrorFeedbackCard onRetry={onRetry} />;
+  if (state.status === 'loading') return <LoadingFeedbackCard />;
+  if (state.status === 'error') return <ErrorFeedbackCard onRetry={onRetry} />;
   if (!state.item) return <EmptyFeedbackCard />;
 
   return <ReadyFeedbackCard item={state.item} onOpenFeedback={onOpenFeedback} />;

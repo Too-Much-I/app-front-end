@@ -1,16 +1,16 @@
-import { ApiError } from "@/lib/api/transport";
+import { ApiError } from '@/lib/api/transport';
 import {
   previewOperationalError,
   reportOperationalError,
   type OperationalErrorCode,
   type OperationalErrorInput,
   type OperationalReportReceipt,
-} from "@/lib/operational-error-reporting";
+} from '@/lib/operational-error-reporting';
 import {
   flushOperationalEvents,
   type OperationalEventPayload,
   type OperationalFlushResult,
-} from "@/lib/sentry";
+} from '@/lib/sentry';
 
 type InputForCode<Code extends OperationalErrorCode> = Extract<
   OperationalErrorInput,
@@ -26,8 +26,8 @@ type ValidationDefinitions = {
 
 const SYNTHETIC_API_CAUSE = new ApiError(
   503,
-  "Synthetic validation cause must not be transmitted",
-  "SYNTHETIC_VALIDATION",
+  'Synthetic validation cause must not be transmitted',
+  'SYNTHETIC_VALIDATION',
 );
 
 /**
@@ -36,60 +36,60 @@ const SYNTHETIC_API_CAUSE = new ApiError(
  */
 const SYNTHETIC_NATIVE_AUDIO_CAUSE = Object.assign(
   new Error(
-    "Audio recording error: Failed to configure audio session: file:///var/mobile/Containers/Data/recording-synthetic.m4a (OSStatus error 561017449.)",
+    'Audio recording error: Failed to configure audio session: file:///var/mobile/Containers/Data/recording-synthetic.m4a (OSStatus error 561017449.)',
   ),
-  { code: "ERR_AUDIO_RECORDING" },
+  { code: 'ERR_AUDIO_RECORDING' },
 );
 
 const DEFINITIONS = {
   AUTH_BOOTSTRAP_FAILED: {
-    title: "인증 초기화 실패",
+    title: '인증 초기화 실패',
     input: {
-      code: "AUTH_BOOTSTRAP_FAILED",
-      source: "startup",
-      operation: "read-local",
-      attempt: "initial",
+      code: 'AUTH_BOOTSTRAP_FAILED',
+      source: 'startup',
+      operation: 'read-local',
+      attempt: 'initial',
       cause: SYNTHETIC_API_CAUSE,
     },
   },
   EXAM_SESSION_CREATE_FAILED: {
-    title: "시험 세션 생성 실패",
+    title: '시험 세션 생성 실패',
     input: {
-      code: "EXAM_SESSION_CREATE_FAILED",
-      stage: "session-create",
-      attempt: "initial",
+      code: 'EXAM_SESSION_CREATE_FAILED',
+      stage: 'session-create',
+      attempt: 'initial',
       cause: SYNTHETIC_API_CAUSE,
     },
   },
   EXAM_REQUIRED_AUDIO_FAILED: {
-    title: "필수 음성 실패",
+    title: '필수 음성 실패',
     input: {
-      code: "EXAM_REQUIRED_AUDIO_FAILED",
-      cueKind: "question",
+      code: 'EXAM_REQUIRED_AUDIO_FAILED',
+      cueKind: 'question',
       // playback 변형이 필드를 가장 많이 채운다. partNumber·questionNumber는 숫자가
       // 태그로 올라가는지까지 함께 확인한다.
-      reason: "playback",
-      origin: "player-status",
-      errorKind: "forbidden",
+      reason: 'playback',
+      origin: 'player-status',
+      errorKind: 'forbidden',
       partNumber: 2,
       questionNumber: 3,
     },
   },
   EXAM_PRELUDE_FAILED: {
-    title: "파트 사전 자료 실패",
+    title: '파트 사전 자료 실패',
     input: {
-      code: "EXAM_PRELUDE_FAILED",
+      code: 'EXAM_PRELUDE_FAILED',
       partNumber: 4,
-      reason: "missing-part4-table",
+      reason: 'missing-part4-table',
     },
   },
   ANSWER_RECORDING_FAILED: {
-    title: "답변 녹음 실패",
+    title: '답변 녹음 실패',
     input: {
-      code: "ANSWER_RECORDING_FAILED",
-      surface: "live",
-      stage: "prepare",
-      operation: "recorder-prepare",
+      code: 'ANSWER_RECORDING_FAILED',
+      surface: 'live',
+      stage: 'prepare',
+      operation: 'recorder-prepare',
       permissionGranted: true,
       questionNumber: 1,
       retryCount: 0,
@@ -98,11 +98,11 @@ const DEFINITIONS = {
     },
   },
   ANSWER_SUBMISSION_FAILED: {
-    title: "답변 제출 실패",
+    title: '답변 제출 실패',
     input: {
-      code: "ANSWER_SUBMISSION_FAILED",
-      stage: "upload",
-      reason: "request",
+      code: 'ANSWER_SUBMISSION_FAILED',
+      stage: 'upload',
+      reason: 'request',
       retryable: true,
       questionNumber: 1,
       retryCount: 0,
@@ -111,98 +111,98 @@ const DEFINITIONS = {
     },
   },
   EXAM_GRADING_FAILED: {
-    title: "시험 채점 실패",
+    title: '시험 채점 실패',
     input: {
-      code: "EXAM_GRADING_FAILED",
-      stage: "polling",
-      reason: "timeout",
-      attempt: "retry",
+      code: 'EXAM_GRADING_FAILED',
+      stage: 'polling',
+      reason: 'timeout',
+      attempt: 'retry',
     },
   },
   FEEDBACK_PAGE_LOAD_FAILED: {
-    title: "피드백 페이지 로드 실패",
+    title: '피드백 페이지 로드 실패',
     input: {
-      code: "FEEDBACK_PAGE_LOAD_FAILED",
-      reason: "http",
+      code: 'FEEDBACK_PAGE_LOAD_FAILED',
+      reason: 'http',
       attempt: 1,
     },
   },
   FEEDBACK_DATA_LOAD_FAILED: {
-    title: "피드백 데이터 로드 실패",
+    title: '피드백 데이터 로드 실패',
     input: {
-      code: "FEEDBACK_DATA_LOAD_FAILED",
-      resource: "QUESTION_FEEDBACK",
+      code: 'FEEDBACK_DATA_LOAD_FAILED',
+      resource: 'QUESTION_FEEDBACK',
       cause: SYNTHETIC_API_CAUSE,
     },
   },
   FEEDBACK_HISTORY_LOAD_FAILED: {
-    title: "피드백 이력 로드 실패",
+    title: '피드백 이력 로드 실패',
     input: {
-      code: "FEEDBACK_HISTORY_LOAD_FAILED",
-      surface: "exam-history",
+      code: 'FEEDBACK_HISTORY_LOAD_FAILED',
+      surface: 'exam-history',
       attempt: 1,
       cause: SYNTHETIC_API_CAUSE,
     },
   },
   SUMMARY_FEEDBACK_RETRY_FAILED: {
-    title: "종합 피드백 재생성 실패",
+    title: '종합 피드백 재생성 실패',
     input: {
-      code: "SUMMARY_FEEDBACK_RETRY_FAILED",
-      stage: "retry-polling",
-      reason: "poll-timeout",
+      code: 'SUMMARY_FEEDBACK_RETRY_FAILED',
+      stage: 'retry-polling',
+      reason: 'poll-timeout',
     },
   },
   REANSWER_QUESTION_LOAD_FAILED: {
-    title: "재답변 문제 로드 실패",
+    title: '재답변 문제 로드 실패',
     input: {
-      code: "REANSWER_QUESTION_LOAD_FAILED",
+      code: 'REANSWER_QUESTION_LOAD_FAILED',
       questionNumber: 1,
       cause: SYNTHETIC_API_CAUSE,
     },
   },
   REANSWER_SUBMISSION_FAILED: {
-    title: "재답변 제출 실패",
+    title: '재답변 제출 실패',
     input: {
-      code: "REANSWER_SUBMISSION_FAILED",
-      reason: "request-failed",
+      code: 'REANSWER_SUBMISSION_FAILED',
+      reason: 'request-failed',
       questionNumber: 1,
       retryCount: 1,
       cause: SYNTHETIC_API_CAUSE,
     },
   },
   REANSWER_GRADING_FAILED: {
-    title: "재답변 채점 실패",
+    title: '재답변 채점 실패',
     input: {
-      code: "REANSWER_GRADING_FAILED",
-      reason: "timeout",
+      code: 'REANSWER_GRADING_FAILED',
+      reason: 'timeout',
       questionNumber: 1,
       retryCount: 1,
     },
   },
   LEARNING_RECORD_DELETE_FAILED: {
-    title: "학습 기록 삭제 실패",
+    title: '학습 기록 삭제 실패',
     input: {
-      code: "LEARNING_RECORD_DELETE_FAILED",
-      operation: "delete-learning-records",
+      code: 'LEARNING_RECORD_DELETE_FAILED',
+      operation: 'delete-learning-records',
       cause: SYNTHETIC_API_CAUSE,
     },
   },
   QUALITY_REVIEW_CONSENT_UPDATE_FAILED: {
-    title: "채점 품질 개선 선택 동의 변경 실패",
+    title: '채점 품질 개선 선택 동의 변경 실패',
     input: {
-      code: "QUALITY_REVIEW_CONSENT_UPDATE_FAILED",
-      operation: "set-quality-review-consent",
+      code: 'QUALITY_REVIEW_CONSENT_UPDATE_FAILED',
+      operation: 'set-quality-review-consent',
       cause: SYNTHETIC_API_CAUSE,
     },
   },
   API_RESPONSE_VALIDATION_FAILED: {
-    title: "서버 응답 형식 불일치",
+    title: '서버 응답 형식 불일치',
     input: {
-      code: "API_RESPONSE_VALIDATION_FAILED",
-      resource: "CHALLENGE_TODAY",
-      mode: "enforced",
-      issuePath: "questions.0.attemptStatus",
-      issueCode: "invalid_value",
+      code: 'API_RESPONSE_VALIDATION_FAILED',
+      resource: 'CHALLENGE_TODAY',
+      mode: 'enforced',
+      issuePath: 'questions.0.attemptStatus',
+      issueCode: 'invalid_value',
     },
   },
 } satisfies ValidationDefinitions;
@@ -247,6 +247,6 @@ export async function captureSentryValidationCatalog(
 
   const flush = shouldContinue()
     ? await flushOperationalEvents()
-    : { status: "flush-failed" as const };
+    : { status: 'flush-failed' as const };
   return { receipts, flush };
 }

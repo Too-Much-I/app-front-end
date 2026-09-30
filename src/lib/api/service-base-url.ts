@@ -1,8 +1,8 @@
-type ServiceName = "identity" | "learning";
+type ServiceName = 'identity' | 'learning';
 
 function getConfiguredUrl(service: ServiceName): string {
   const serviceUrl =
-    service === "identity"
+    service === 'identity'
       ? process.env.EXPO_PUBLIC_IDENTITY_API_BASE_URL
       : process.env.EXPO_PUBLIC_LEARNING_API_BASE_URL;
   const url = serviceUrl ?? process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -17,17 +17,17 @@ function getConfiguredUrl(service: ServiceName): string {
   } catch {
     throw new Error(`${service} API 주소 형식이 올바르지 않습니다.`);
   }
-  if (parsedUrl.protocol !== "https:") {
+  if (parsedUrl.protocol !== 'https:') {
     throw new Error(`${service} API 주소는 HTTPS여야 합니다.`);
   }
 
-  return url.replace(/\/$/, "");
+  return url.replace(/\/$/, '');
 }
 
 export function getIdentityApiBaseUrl(): string {
-  return getConfiguredUrl("identity");
+  return getConfiguredUrl('identity');
 }
 
 export function getLearningApiBaseUrl(): string {
-  return getConfiguredUrl("learning");
+  return getConfiguredUrl('learning');
 }

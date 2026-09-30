@@ -1,11 +1,11 @@
 import {
   challengeQuestionSchema,
   mapChallengeQuestion,
-} from "@/features/challenge/map-challenge-question";
-import { apiFetchWithAuthRetry } from "@/lib/api/client";
-import { parseApiResult } from "@/lib/api/parse-api-result";
-import type { ApiEnvelope } from "@/types/api";
-import type { ChallengeQuestion } from "@/types/challenge";
+} from '@/features/challenge/map-challenge-question';
+import { apiFetchWithAuthRetry } from '@/lib/api/client';
+import { parseApiResult } from '@/lib/api/parse-api-result';
+import type { ApiEnvelope } from '@/types/api';
+import type { ChallengeQuestion } from '@/types/challenge';
 
 /**
  * 오늘 챌린지의 문제 하나를 가져온다. 조회만으로는 attempt도 응시 횟수도 소비하지 않는다.
@@ -21,9 +21,9 @@ export async function getChallengeTodayQuestion(
 ): Promise<ChallengeQuestion> {
   const { result } = await apiFetchWithAuthRetry<ApiEnvelope<unknown>>(
     `/api/v1/challenges/today/questions/${questionNumber}`,
-    { headers: { "X-Challenge-Date": challengeDate }, signal },
+    { headers: { 'X-Challenge-Date': challengeDate }, signal },
   );
   return mapChallengeQuestion(
-    parseApiResult(challengeQuestionSchema, result, "CHALLENGE_QUESTION"),
+    parseApiResult(challengeQuestionSchema, result, 'CHALLENGE_QUESTION'),
   );
 }

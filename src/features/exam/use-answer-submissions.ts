@@ -1,17 +1,17 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
-import { AppState } from "react-native";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { AppState } from 'react-native';
 
-import { notifyAnswerUploadComplete } from "@/features/exam/api/exam-answer-submit";
-import { getAnswerUploadUrl } from "@/features/exam/api/exam-answer-upload-url";
+import { notifyAnswerUploadComplete } from '@/features/exam/api/exam-answer-submit';
+import { getAnswerUploadUrl } from '@/features/exam/api/exam-answer-upload-url';
 import {
   AnswerAudioUploadError,
   deleteAnswerAudioFile,
   getEqualJitterDelayMs,
   getValidAnswerAudioFile,
   uploadAnswerAudio,
-} from "@/features/exam/upload-answer-audio";
-import { ApiError } from "@/lib/api/client";
-import { reportOperationalError } from "@/lib/operational-error-reporting";
+} from '@/features/exam/upload-answer-audio';
+import { ApiError } from '@/lib/api/client';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 import type {
   AnswerKey,
   AnswerSubmissionFailure,
@@ -19,17 +19,17 @@ import type {
   AnswerSubmissionStage,
   AnswerSubmissionSummary,
   FinalizedAnswer,
-} from "@/types/exam";
+} from '@/types/exam';
 
 type SubmissionRegistry = Record<string, AnswerSubmissionJob>;
 
 type RegistryAction =
-  | { type: "register"; id: string; job: AnswerSubmissionJob }
-  | { type: "patch"; id: string; patch: Partial<AnswerSubmissionJob> };
+  | { type: 'register'; id: string; job: AnswerSubmissionJob }
+  | { type: 'patch'; id: string; patch: Partial<AnswerSubmissionJob> };
 
 interface RegisterAnswerResult {
   accepted: boolean;
-  reason?: "disposed" | "invalid-file" | "uri-conflict";
+  reason?: 'disposed' | 'invalid-file' | 'uri-conflict';
 }
 
 const NOTIFICATION_RETRY_DELAYS_MS = [1_000, 2_000, 4_000] as const;
@@ -40,7 +40,7 @@ function serializeAnswerKey(key: AnswerKey): string {
 }
 
 function registryReducer(state: SubmissionRegistry, action: RegistryAction): SubmissionRegistry {
-  if (action.type === "register") {
+  if (action.type === 'register') {
     if (state[action.id]) return state;
     return { ...state, [action.id]: action.job };
   }
@@ -51,7 +51,7 @@ function registryReducer(state: SubmissionRegistry, action: RegistryAction): Sub
 }
 
 function isAbortError(error: unknown): boolean {
-  return error instanceof Error && error.name === "AbortError";
+  return error instanceof Error && error.name === 'AbortError';
 }
 
 function isRetryableRequestError(error: unknown): boolean {
@@ -62,10 +62,10 @@ function isRetryableRequestError(error: unknown): boolean {
 }
 
 function failure(
-  stage: AnswerSubmissionFailure["stage"],
+  stage: AnswerSubmissionFailure['stage'],
   message: string,
   retryable: boolean,
-  kind: AnswerSubmissionFailure["kind"] = "request",
+  kind: AnswerSubmissionFailure['kind'] = 'request',
 ): AnswerSubmissionFailure {
   return { stage, kind, message, retryable };
 }
@@ -77,20 +77,20 @@ function wait(ms: number, signal: AbortSignal): Promise<void> {
       return;
     }
     const timeoutId = setTimeout(() => {
-      signal.removeEventListener("abort", handleAbort);
+      signal.removeEventListener('abort', handleAbort);
       resolve();
     }, ms);
     const handleAbort = () => {
       clearTimeout(timeoutId);
-      signal.removeEventListener("abort", handleAbort);
+      signal.removeEventListener('abort', handleAbort);
       reject(signal.reason);
     };
-    signal.addEventListener("abort", handleAbort, { once: true });
+    signal.addEventListener('abort', handleAbort, { once: true });
   });
 }
 
 function isPendingStage(stage: AnswerSubmissionStage): boolean {
-  return !["succeeded", "failed", "cancelled"].includes(stage);
+  return !['succeeded', 'failed', 'cancelled'].includes(stage);
 }
 
 export function useAnswerSubmissions(expectedAnswerCount: number) {
@@ -98,7 +98,7 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
   const registryRef = useRef<SubmissionRegistry>({});
   const mountedRef = useRef(true);
   const disposedRef = useRef(false);
-  const appIsActiveRef = useRef(AppState.currentState === "active");
+  const appIsActiveRef = useRef(AppState.currentState === 'active');
   const runnersRef = useRef(new Map<string, Promise<void>>());
   const runnerControllersRef = useRef(new Map<string, AbortController>());
   const startRunnerRef = useRef<(id: string) => void>(() => undefined);
@@ -112,22 +112,22 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
 
   const patchJob = useCallback(
     (id: string, patch: Partial<AnswerSubmissionJob>) => {
-      applyAction({ type: "patch", id, patch });
+      applyAction({ type: 'patch', id, patch });
     },
     [applyAction],
   );
 
   const markSucceeded = useCallback(
-    (id: string, acceptedStatus: "PENDING" | "PROCESSING" | "COMPLETED") => {
+    (id: string, acceptedStatus: 'PENDING' | 'PROCESSING' | 'COMPLETED') => {
       const job = registryRef.current[id];
       if (!job) return;
       try {
         deleteAnswerAudioFile(job.audioFileUri);
       } catch (error) {
-        console.error("[AnswerSubmissions] 성공한 답변 파일 삭제 실패", error);
+        console.error('[AnswerSubmissions] 성공한 답변 파일 삭제 실패', error);
       }
       patchJob(id, {
-        stage: "succeeded",
+        stage: 'succeeded',
         acceptedStatus,
         stageAttempt: 0,
         nextRetryAt: null,
@@ -140,12 +140,11 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
   const markFailed = useCallback(
     (id: string, lastError: AnswerSubmissionFailure, cause?: unknown) => {
       const job = registryRef.current[id];
-      const attempt =
-        reportingAttemptsRef.current.get(id) ?? INITIAL_REPORTING_ATTEMPT;
+      const attempt = reportingAttemptsRef.current.get(id) ?? INITIAL_REPORTING_ATTEMPT;
       if (job && reportedFailureAttemptsRef.current.get(id) !== attempt) {
         reportedFailureAttemptsRef.current.set(id, attempt);
         reportOperationalError({
-          code: "ANSWER_SUBMISSION_FAILED",
+          code: 'ANSWER_SUBMISSION_FAILED',
           stage: lastError.stage,
           reason: lastError.kind,
           retryable: lastError.retryable,
@@ -156,7 +155,7 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
         });
       }
       patchJob(id, {
-        stage: "failed",
+        stage: 'failed',
         nextRetryAt: null,
         lastError,
       });
@@ -171,7 +170,7 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
 
       if (!job.uploadUrl || job.uploadExpiresAt === null || !job.fileKey) {
         patchJob(id, {
-          stage: "uploading",
+          stage: 'uploading',
           stageAttempt: 0,
           nextRetryAt: null,
           lastError: null,
@@ -186,15 +185,15 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
           job = registryRef.current[id];
         } catch (error) {
           if (signal.aborted && !appIsActiveRef.current) {
-            patchJob(id, { stage: "queued-upload", nextRetryAt: null });
+            patchJob(id, { stage: 'queued-upload', nextRetryAt: null });
             return;
           }
           if (signal.aborted) throw error;
           markFailed(
             id,
             failure(
-              "upload",
-              "답변 업로드 정보를 준비하지 못했어요.",
+              'upload',
+              '답변 업로드 정보를 준비하지 못했어요.',
               isRetryableRequestError(error),
             ),
             error,
@@ -204,37 +203,32 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
       }
 
       if (!job?.uploadUrl || job.uploadExpiresAt === null || !job.fileKey) {
-        markFailed(id, failure("upload", "답변 업로드 정보가 올바르지 않아요.", false));
+        markFailed(id, failure('upload', '답변 업로드 정보가 올바르지 않아요.', false));
         return;
       }
 
       if (!job.uploadCompleted) {
         patchJob(id, {
-          stage: "uploading",
+          stage: 'uploading',
           stageAttempt: 0,
           nextRetryAt: null,
           lastError: null,
         });
         try {
-          await uploadAnswerAudio(
-            job.uploadUrl,
-            job.audioFileUri,
-            job.uploadExpiresAt,
-            signal,
-          );
+          await uploadAnswerAudio(job.uploadUrl, job.audioFileUri, job.uploadExpiresAt, signal);
         } catch (error) {
           if (signal.aborted && !appIsActiveRef.current) {
-            patchJob(id, { stage: "queued-upload", nextRetryAt: null });
+            patchJob(id, { stage: 'queued-upload', nextRetryAt: null });
             return;
           }
           if (signal.aborted) throw error;
           markFailed(
             id,
             failure(
-              "upload",
+              'upload',
               error instanceof AnswerAudioUploadError
                 ? error.message
-                : "답변 파일을 업로드하지 못했어요.",
+                : '답변 파일을 업로드하지 못했어요.',
               isRetryableRequestError(error),
             ),
             error,
@@ -244,7 +238,7 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
 
         patchJob(id, {
           uploadCompleted: true,
-          stage: "queued-notify",
+          stage: 'queued-notify',
           stageAttempt: 0,
           nextRetryAt: null,
           lastError: null,
@@ -252,39 +246,34 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
         try {
           deleteAnswerAudioFile(job.audioFileUri);
         } catch (error) {
-          console.error("[AnswerSubmissions] S3 업로드 완료 파일 삭제 실패", error);
+          console.error('[AnswerSubmissions] S3 업로드 완료 파일 삭제 실패', error);
         }
         job = registryRef.current[id];
       }
 
       if (!job?.uploadCompleted || !job.fileKey) {
-        markFailed(id, failure("notify", "답변 업로드 정보가 올바르지 않아요.", false));
+        markFailed(id, failure('notify', '답변 업로드 정보가 올바르지 않아요.', false));
         return;
       }
 
       let retriedFailedStatus = false;
       for (let attempt = 0; ; attempt += 1) {
         patchJob(id, {
-          stage: "notifying",
+          stage: 'notifying',
           stageAttempt: attempt,
           nextRetryAt: null,
           lastError: null,
         });
         try {
           let result = await notifyAnswerUploadComplete(job.key, signal);
-          if (result.status === "FAILED" && !retriedFailedStatus) {
+          if (result.status === 'FAILED' && !retriedFailedStatus) {
             retriedFailedStatus = true;
             result = await notifyAnswerUploadComplete(job.key, signal);
           }
-          if (result.status === "FAILED") {
+          if (result.status === 'FAILED') {
             markFailed(
               id,
-              failure(
-                "notify",
-                "서버가 답변을 처리하지 못했어요.",
-                false,
-                "server-processing",
-              ),
+              failure('notify', '서버가 답변을 처리하지 못했어요.', false, 'server-processing'),
             );
             return;
           }
@@ -292,17 +281,17 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
           return;
         } catch (error) {
           if (signal.aborted && !appIsActiveRef.current) {
-            patchJob(id, { stage: "queued-notify", nextRetryAt: null });
+            patchJob(id, { stage: 'queued-notify', nextRetryAt: null });
             return;
           }
           if (signal.aborted) throw error;
 
           const retryable = isRetryableRequestError(error);
           const notificationFailure = failure(
-            "notify",
+            'notify',
             retryable
-              ? "답변 업로드 사실을 서버에 알리지 못했어요."
-              : "서버가 답변 업로드 고지를 거부했어요.",
+              ? '답변 업로드 사실을 서버에 알리지 못했어요.'
+              : '서버가 답변 업로드 고지를 거부했어요.',
             retryable,
           );
           const baseDelay = NOTIFICATION_RETRY_DELAYS_MS[attempt];
@@ -313,7 +302,7 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
 
           const delay = getEqualJitterDelayMs(baseDelay);
           patchJob(id, {
-            stage: "retry-wait",
+            stage: 'retry-wait',
             stageAttempt: attempt + 1,
             nextRetryAt: Date.now() + delay,
             lastError: notificationFailure,
@@ -322,7 +311,7 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
             await wait(delay, signal);
           } catch (waitError) {
             if (signal.aborted && !appIsActiveRef.current) {
-              patchJob(id, { stage: "queued-notify", nextRetryAt: null });
+              patchJob(id, { stage: 'queued-notify', nextRetryAt: null });
               return;
             }
             throw waitError;
@@ -349,10 +338,10 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
           markFailed(
             id,
             failure(
-              current.uploadCompleted ? "notify" : "upload",
+              current.uploadCompleted ? 'notify' : 'upload',
               current.uploadCompleted
-                ? "답변 업로드 사실을 서버에 알리지 못했어요."
-                : "답변 파일을 업로드하지 못했어요.",
+                ? '답변 업로드 사실을 서버에 알리지 못했어요.'
+                : '답변 파일을 업로드하지 못했어요.',
               true,
             ),
             error,
@@ -366,7 +355,7 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
             !disposedRef.current &&
             appIsActiveRef.current &&
             current &&
-            ["queued-upload", "queued-notify"].includes(current.stage)
+            ['queued-upload', 'queued-notify'].includes(current.stage)
           ) {
             queueMicrotask(() => startRunnerRef.current(id));
           }
@@ -379,20 +368,20 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
 
   const register = useCallback(
     (answer: FinalizedAnswer): RegisterAnswerResult => {
-      if (disposedRef.current) return { accepted: false, reason: "disposed" };
+      if (disposedRef.current) return { accepted: false, reason: 'disposed' };
 
       const id = serializeAnswerKey(answer.key);
       const existing = registryRef.current[id];
       if (existing) {
         return existing.audioFileUri === answer.audioFileUri
           ? { accepted: true }
-          : { accepted: false, reason: "uri-conflict" };
+          : { accepted: false, reason: 'uri-conflict' };
       }
 
       try {
         getValidAnswerAudioFile(answer.audioFileUri);
       } catch {
-        return { accepted: false, reason: "invalid-file" };
+        return { accepted: false, reason: 'invalid-file' };
       }
 
       const job: AnswerSubmissionJob = {
@@ -402,13 +391,13 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
         uploadExpiresAt: null,
         fileKey: null,
         uploadCompleted: false,
-        stage: "queued-upload",
+        stage: 'queued-upload',
         stageAttempt: 0,
         nextRetryAt: null,
         lastError: null,
         acceptedStatus: null,
       };
-      applyAction({ type: "register", id, job });
+      applyAction({ type: 'register', id, job });
       reportingAttemptsRef.current.set(id, INITIAL_REPORTING_ATTEMPT);
       queueMicrotask(() => startRunner(id));
       return { accepted: true };
@@ -420,13 +409,13 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
     (key: AnswerKey) => {
       const id = serializeAnswerKey(key);
       const job = registryRef.current[id];
-      if (!job || job.stage === "succeeded" || job.stage === "cancelled") return;
+      if (!job || job.stage === 'succeeded' || job.stage === 'cancelled') return;
       if (job.lastError && !job.lastError.retryable) return;
       reportingAttemptsRef.current.set(
         id,
         (reportingAttemptsRef.current.get(id) ?? INITIAL_REPORTING_ATTEMPT) + 1,
       );
-      const nextStage = job.uploadCompleted ? "queued-notify" : "queued-upload";
+      const nextStage = job.uploadCompleted ? 'queued-notify' : 'queued-upload';
       patchJob(id, {
         stage: nextStage,
         stageAttempt: 0,
@@ -455,24 +444,24 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
     mountedRef.current = false;
     for (const [id, controller] of runnerControllersRef.current.entries()) {
       controller.abort();
-      patchJob(id, { stage: "cancelled", nextRetryAt: null });
+      patchJob(id, { stage: 'cancelled', nextRetryAt: null });
     }
     const runners = [...runnersRef.current.values()];
     void Promise.allSettled(runners).then(() => {
       for (const job of Object.values(registryRef.current)) {
-        if (job.stage === "succeeded") continue;
+        if (job.stage === 'succeeded') continue;
         try {
           deleteAnswerAudioFile(job.audioFileUri);
         } catch (error) {
-          console.error("[AnswerSubmissions] 화면 이탈 파일 삭제 실패", error);
+          console.error('[AnswerSubmissions] 화면 이탈 파일 삭제 실패', error);
         }
       }
     });
   }, [patchJob]);
 
   useEffect(() => {
-    const subscription = AppState.addEventListener("change", (nextState) => {
-      if (nextState === "active") {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
         appIsActiveRef.current = true;
         resumePending();
       } else {
@@ -491,8 +480,8 @@ export function useAnswerSubmissions(expectedAnswerCount: number) {
   const jobs = useMemo(() => Object.values(registry), [registry]);
   const summary = useMemo<AnswerSubmissionSummary>(() => {
     const registeredCount = jobs.length;
-    const succeededCount = jobs.filter((job) => job.stage === "succeeded").length;
-    const failedCount = jobs.filter((job) => job.stage === "failed").length;
+    const succeededCount = jobs.filter((job) => job.stage === 'succeeded').length;
+    const failedCount = jobs.filter((job) => job.stage === 'failed').length;
     const pendingCount = jobs.filter((job) => isPendingStage(job.stage)).length;
     return {
       registeredCount,

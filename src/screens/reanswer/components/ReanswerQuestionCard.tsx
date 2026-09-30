@@ -1,15 +1,15 @@
-import { Feather } from "@expo/vector-icons";
-import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { useCallback, useEffect, useMemo } from "react";
-import { Image, View } from "react-native";
+import { Feather } from '@expo/vector-icons';
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useCallback, useEffect, useMemo } from 'react';
+import { Image, View } from 'react-native';
 
-import { Part4Table } from "@/components/exam/Part4Table";
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
-import { getQuestionAudioSource } from "@/features/exam/question-audio";
-import { colors, shadows } from "@/theme";
-import type { ExamQuestionInfo } from "@/types/exam";
+import { Part4Table } from '@/components/exam/Part4Table';
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import { PLAYBACK_AUDIO_MODE } from '@/features/audio/audio-session';
+import { getQuestionAudioSource } from '@/features/exam/question-audio';
+import { colors, shadows } from '@/theme';
+import type { ExamQuestionInfo } from '@/types/exam';
 
 interface ReanswerQuestionCardProps {
   question: ExamQuestionInfo;
@@ -24,10 +24,7 @@ interface ReanswerQuestionCardProps {
  * 모의고사 응시 규칙이고, 여기는 이미 채점받은 답을 다시 연습하는 자리다.
  * 같은 이유로 문제 음성도 횟수 제한 없이 다시 들을 수 있다.
  */
-export function ReanswerQuestionCard({
-  question,
-  isAudioLocked,
-}: ReanswerQuestionCardProps) {
+export function ReanswerQuestionCard({ question, isAudioLocked }: ReanswerQuestionCardProps) {
   const audioSource = useMemo(
     () => (question.audioUrl ? getQuestionAudioSource(question.audioUrl) : null),
     [question.audioUrl],
@@ -54,7 +51,7 @@ export function ReanswerQuestionCard({
       if (player.currentTime > 0) await player.seekTo(0);
       player.play();
     } catch (error) {
-      console.error("[Reanswer] 문제 음성 재생 실패", error);
+      console.error('[Reanswer] 문제 음성 재생 실패', error);
     }
   }, [audioSource, player]);
 
@@ -65,9 +62,7 @@ export function ReanswerQuestionCard({
       <View className="mt-3 gap-3">
         {question.referenceText ? (
           <View className="rounded-2xl border border-line bg-surface-muted px-4 py-3">
-            <Text className="text-base leading-7 text-exam-navy">
-              {question.referenceText}
-            </Text>
+            <Text className="text-base leading-7 text-exam-navy">{question.referenceText}</Text>
           </View>
         ) : null}
 
@@ -82,9 +77,7 @@ export function ReanswerQuestionCard({
           </View>
         ) : null}
 
-        {question.tableContext ? (
-          <Part4Table table={question.tableContext} />
-        ) : null}
+        {question.tableContext ? <Part4Table table={question.tableContext} /> : null}
 
         {question.text ? (
           <View className="border-l-4 border-brand-300 pl-3">
@@ -99,41 +92,35 @@ export function ReanswerQuestionCard({
       <View className="mt-4 flex-row items-center justify-between gap-3">
         {audioSource ? (
           <Pressable
-            accessibilityHint={
-              isAudioLocked ? undefined : "문제 음성을 처음부터 다시 재생합니다"
-            }
+            accessibilityHint={isAudioLocked ? undefined : '문제 음성을 처음부터 다시 재생합니다'}
             accessibilityLabel={
-              isAudioLocked ? "녹음 중에는 문제를 들을 수 없어요" : "문제 다시 듣기"
+              isAudioLocked ? '녹음 중에는 문제를 들을 수 없어요' : '문제 다시 듣기'
             }
             accessibilityRole="button"
             accessibilityState={{ disabled: isAudioLocked }}
             className={`flex-row items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-3 ${
-              isAudioLocked
-                ? "border-line bg-surface-muted"
-                : "border-sky-line bg-sky-surface"
+              isAudioLocked ? 'border-line bg-surface-muted' : 'border-sky-line bg-sky-surface'
             }`}
             disabled={isAudioLocked}
             onPress={() => void replayQuestion()}
           >
             <View
               className={`h-6 w-6 items-center justify-center rounded-full ${
-                isAudioLocked ? "bg-ink-disabled" : "bg-sky-text"
+                isAudioLocked ? 'bg-ink-disabled' : 'bg-sky-text'
               }`}
             >
               <Feather
-                name={isPlaying ? "volume-2" : "play"}
+                name={isPlaying ? 'volume-2' : 'play'}
                 size={11}
                 color={colors.surface.DEFAULT}
               />
             </View>
-            <Text
-              className={`text-xs ${isAudioLocked ? "text-ink-disabled" : "text-sky-text"}`}
-            >
+            <Text className={`text-xs ${isAudioLocked ? 'text-ink-disabled' : 'text-sky-text'}`}>
               {isAudioLocked
-                ? "녹음 중에는 들을 수 없어요"
+                ? '녹음 중에는 들을 수 없어요'
                 : isPlaying
-                  ? "재생 중이에요"
-                  : "문제 다시 듣기"}
+                  ? '재생 중이에요'
+                  : '문제 다시 듣기'}
             </Text>
           </Pressable>
         ) : (

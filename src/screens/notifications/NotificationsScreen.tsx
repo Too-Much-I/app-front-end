@@ -1,80 +1,83 @@
-import { Feather } from "@expo/vector-icons";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import type { ComponentProps } from "react";
-import { useMemo, useState } from "react";
-import { Image, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Feather } from '@expo/vector-icons';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { ComponentProps } from 'react';
+import { useMemo, useState } from 'react';
+import { Image, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import type { RootStackParamList } from "@/navigation/types";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import type { RootStackParamList } from '@/navigation/types';
 import {
   MOCK_NOTIFICATIONS,
   type NotificationCategory,
   type NotificationItem,
   type NotificationType,
-} from "@/screens/notifications/mocks/mock-notifications";
-import { colors, shadows } from "@/theme";
+} from '@/screens/notifications/mocks/mock-notifications';
+import { colors, shadows } from '@/theme';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
-const bannerMascot = require("../../../public/mascots/bell_rabbit.png");
+const bannerMascot = require('../../../public/mascots/bell_rabbit.png');
 
-type NotificationsScreenProps = NativeStackScreenProps<RootStackParamList, "Notifications">;
+type NotificationsScreenProps = NativeStackScreenProps<RootStackParamList, 'Notifications'>;
 
-type FeatherIconName = ComponentProps<typeof Feather>["name"];
+type FeatherIconName = ComponentProps<typeof Feather>['name'];
 
-type FilterKey = "all" | NotificationCategory;
+type FilterKey = 'all' | NotificationCategory;
 
 const FILTERS: readonly { key: FilterKey; label: string }[] = [
-  { key: "all", label: "전체" },
-  { key: "study", label: "학습 알림" },
-  { key: "event", label: "이벤트" },
-  { key: "service", label: "서비스" },
+  { key: 'all', label: '전체' },
+  { key: 'study', label: '학습 알림' },
+  { key: 'event', label: '이벤트' },
+  { key: 'service', label: '서비스' },
 ];
 
 /**
  * 알림 종류 → 아이콘/색 매핑.
  * 새 종류가 늘어나면 이 표에 한 줄만 추가하면 되고, 나머지 렌더링 로직은 그대로 재사용된다.
  */
-const NOTIFICATION_META: Record<NotificationType, { icon: FeatherIconName; iconColor: string; badgeColor: string }> = {
+const NOTIFICATION_META: Record<
+  NotificationType,
+  { icon: FeatherIconName; iconColor: string; badgeColor: string }
+> = {
   study_reminder: {
-    icon: "bell",
+    icon: 'bell',
     iconColor: colors.brand.DEFAULT,
     badgeColor: colors.brand[100],
   },
   grading_complete: {
-    icon: "award",
+    icon: 'award',
     iconColor: colors.feedback.positive,
     badgeColor: colors.feedback.positiveSoft,
   },
   growth: {
-    icon: "trending-up",
+    icon: 'trending-up',
     iconColor: colors.feedback.history.purple,
     badgeColor: colors.feedback.history.purpleSoft,
   },
   event: {
-    icon: "gift",
+    icon: 'gift',
     iconColor: colors.feedback.improvement,
     badgeColor: colors.feedback.improvementSoft,
   },
   tip: {
-    icon: "star",
+    icon: 'star',
     iconColor: colors.feedback.caution,
     badgeColor: colors.feedback.cautionSoft,
   },
   service_notice: {
-    icon: "volume-2",
+    icon: 'volume-2',
     iconColor: colors.sky.text,
     badgeColor: colors.sky.surface,
   },
   goal_achieved: {
-    icon: "check-square",
+    icon: 'check-square',
     iconColor: colors.feedback.positive,
     badgeColor: colors.feedback.positiveSoft,
   },
 };
 
-const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
 function isSameCalendarDay(a: Date, b: Date): boolean {
   return (
@@ -86,16 +89,16 @@ function isSameCalendarDay(a: Date, b: Date): boolean {
 
 function dateGroupLabel(createdAt: string, now: Date): string {
   const date = new Date(createdAt);
-  if (isSameCalendarDay(date, now)) return "오늘";
+  if (isSameCalendarDay(date, now)) return '오늘';
   return `${date.getMonth() + 1}월 ${date.getDate()}일 (${WEEKDAY_LABELS[date.getDay()]})`;
 }
 
 function timeLabel(createdAt: string): string {
   const date = new Date(createdAt);
   const hours = date.getHours();
-  const period = hours < 12 ? "오전" : "오후";
+  const period = hours < 12 ? '오전' : '오후';
   const displayHour = hours % 12 === 0 ? 12 : hours % 12;
-  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, '0');
   return `${period} ${displayHour}:${minutes}`;
 }
 
@@ -121,7 +124,7 @@ function NotificationCard({ item, onPress }: { item: NotificationItem; onPress: 
 
   return (
     <Pressable
-      accessibilityLabel={`${item.title}, ${item.body}, ${item.isRead ? "읽음" : "안 읽음"}`}
+      accessibilityLabel={`${item.title}, ${item.body}, ${item.isRead ? '읽음' : '안 읽음'}`}
       className="relative flex-row items-start gap-3 rounded-card border border-line bg-surface p-card"
       style={shadows.card}
       onPress={onPress}
@@ -157,13 +160,13 @@ export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => [
     ...MOCK_NOTIFICATIONS,
   ]);
-  const [selectedFilter, setSelectedFilter] = useState<FilterKey>("all");
+  const [selectedFilter, setSelectedFilter] = useState<FilterKey>('all');
 
   const hasReadNotifications = notifications.some((item) => item.isRead);
 
   const sections = useMemo(() => {
     const filtered =
-      selectedFilter === "all"
+      selectedFilter === 'all'
         ? notifications
         : notifications.filter((item) => item.category === selectedFilter);
     const sorted = [...filtered].sort(
@@ -183,7 +186,7 @@ export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
   };
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-surface-subtle">
+    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-surface-subtle">
       <View className="h-16 flex-row items-center justify-between px-screen">
         <View className="flex-row items-center">
           <Pressable
@@ -219,7 +222,7 @@ export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
             <View className="min-w-0 flex-1">
               <Text className="text-lg leading-7">토선생의 알림이에요!</Text>
               <Text className="mt-2 text-sm leading-6 text-ink-muted">
-                꾸준한 연습이 실력 향상의 지름길!{"\n"}오늘도 화이팅이에요 💪
+                꾸준한 연습이 실력 향상의 지름길!{'\n'}오늘도 화이팅이에요 💪
               </Text>
             </View>
             <Image
@@ -230,10 +233,7 @@ export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
             />
           </View>
 
-          <View
-            accessibilityRole="tablist"
-            className="mt-4 flex-row flex-wrap gap-2"
-          >
+          <View accessibilityRole="tablist" className="mt-4 flex-row flex-wrap gap-2">
             {FILTERS.map((filter) => {
               const isSelected = filter.key === selectedFilter;
               return (
@@ -242,11 +242,11 @@ export function NotificationsScreen({ navigation }: NotificationsScreenProps) {
                   accessibilityRole="tab"
                   accessibilityState={{ selected: isSelected }}
                   className={`rounded-full border px-4 py-2 ${
-                    isSelected ? "border-brand bg-surface" : "border-transparent bg-surface-muted"
+                    isSelected ? 'border-brand bg-surface' : 'border-transparent bg-surface-muted'
                   }`}
                   onPress={() => setSelectedFilter(filter.key)}
                 >
-                  <Text className={`text-sm ${isSelected ? "text-brand-text" : "text-ink-muted"}`}>
+                  <Text className={`text-sm ${isSelected ? 'text-brand-text' : 'text-ink-muted'}`}>
                     {filter.label}
                   </Text>
                 </Pressable>

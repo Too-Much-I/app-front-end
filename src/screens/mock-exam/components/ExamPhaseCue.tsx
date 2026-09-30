@@ -1,22 +1,22 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View } from "react-native";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
-import { ExamAudioErrorNotice } from "@/screens/mock-exam/components/ExamAudioErrorNotice";
-import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
-import { classifyAudioPlaybackError } from "@/features/audio/playback-error";
+import { Text } from '@/components/ui/Text';
+import { ExamAudioErrorNotice } from '@/screens/mock-exam/components/ExamAudioErrorNotice';
+import { PLAYBACK_AUDIO_MODE } from '@/features/audio/audio-session';
+import { classifyAudioPlaybackError } from '@/features/audio/playback-error';
 import {
   getExamCueAudioSource,
   getExamCueBeepSource,
   type ExamCueKind,
-} from "@/features/exam/exam-cue";
-import { colors } from "@/theme";
+} from '@/features/exam/exam-cue';
+import { colors } from '@/theme';
 import {
   reportOperationalError,
   type ExamAudioFailureDetail,
-} from "@/lib/operational-error-reporting";
+} from '@/lib/operational-error-reporting';
 
 interface ExamPhaseCueProps {
   cueKind: ExamCueKind;
@@ -27,7 +27,7 @@ interface ExamPhaseCueProps {
   onExit: () => void;
 }
 
-type CuePlaybackStage = "idle" | "cue" | "beep" | "completed";
+type CuePlaybackStage = 'idle' | 'cue' | 'beep' | 'completed';
 
 /**
  * 안내 음성이 재생 중이 아닌 채로 이만큼 머무르면 멈춘 것으로 본다.
@@ -40,17 +40,14 @@ type CuePlaybackStage = "idle" | "cue" | "beep" | "completed";
 const CUE_STALL_TIMEOUT_MS = 10_000;
 
 const CUE_LABELS: Record<ExamCueKind, string> = {
-  preparing: "준비 시작 안내를 재생하고 있어요",
-  "reading-aloud": "읽기 시작 안내를 재생하고 있어요",
-  responding: "응답 시작 안내를 재생하고 있어요",
-  speaking: "말하기 시작 안내를 재생하고 있어요",
+  preparing: '준비 시작 안내를 재생하고 있어요',
+  'reading-aloud': '읽기 시작 안내를 재생하고 있어요',
+  responding: '응답 시작 안내를 재생하고 있어요',
+  speaking: '말하기 시작 안내를 재생하고 있어요',
 };
 
 function hasFinished(status: ReturnType<typeof useAudioPlayerStatus>): boolean {
-  return (
-    status.didJustFinish ||
-    (status.duration > 0 && status.currentTime >= status.duration)
-  );
+  return status.didJustFinish || (status.duration > 0 && status.currentTime >= status.duration);
 }
 
 export function ExamPhaseCue({
@@ -74,20 +71,20 @@ export function ExamPhaseCue({
   const cueStatus = useAudioPlayerStatus(cuePlayer);
   const beepStatus = useAudioPlayerStatus(beepPlayer);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);
-  const stageRef = useRef<CuePlaybackStage>("idle");
+  const stageRef = useRef<CuePlaybackStage>('idle');
   const hasObservedPlayingRef = useRef(false);
   const shouldRestartRef = useRef(false);
   const isActiveRef = useRef(isActive);
   const hasReportedPlaybackFailureRef = useRef(false);
-  const hasCompleted = useCallback(() => stageRef.current === "completed", []);
+  const hasCompleted = useCallback(() => stageRef.current === 'completed', []);
 
   const markPlaybackFailure = useCallback(
     (detail: ExamAudioFailureDetail) => {
       if (!isActiveRef.current || hasReportedPlaybackFailureRef.current) return;
       hasReportedPlaybackFailureRef.current = true;
       reportOperationalError({
-        code: "EXAM_REQUIRED_AUDIO_FAILED",
-        cueKind: "phase",
+        code: 'EXAM_REQUIRED_AUDIO_FAILED',
+        cueKind: 'phase',
         partNumber,
         questionNumber,
         ...detail,
@@ -96,38 +93,41 @@ export function ExamPhaseCue({
     [partNumber, questionNumber],
   );
 
-  const playFromStart = useCallback(async (reloadSources = false) => {
-    if (reloadSources) hasReportedPlaybackFailureRef.current = false;
-    if (!isActiveRef.current || hasCompleted()) return;
-
-    try {
-      cuePlayer.pause();
-      beepPlayer.pause();
-      await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
+  const playFromStart = useCallback(
+    async (reloadSources = false) => {
+      if (reloadSources) hasReportedPlaybackFailureRef.current = false;
       if (!isActiveRef.current || hasCompleted()) return;
 
-      if (reloadSources) {
-        cuePlayer.replace(cueSource);
-        beepPlayer.replace(beepSource);
-      } else {
-        if (cuePlayer.currentTime > 0) await cuePlayer.seekTo(0);
-        if (beepPlayer.currentTime > 0) await beepPlayer.seekTo(0);
+      try {
+        cuePlayer.pause();
+        beepPlayer.pause();
+        await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
+        if (!isActiveRef.current || hasCompleted()) return;
+
+        if (reloadSources) {
+          cuePlayer.replace(cueSource);
+          beepPlayer.replace(beepSource);
+        } else {
+          if (cuePlayer.currentTime > 0) await cuePlayer.seekTo(0);
+          if (beepPlayer.currentTime > 0) await beepPlayer.seekTo(0);
+        }
+        stageRef.current = 'beep';
+        hasObservedPlayingRef.current = false;
+        shouldRestartRef.current = false;
+        setHasPlaybackError(false);
+        beepPlayer.play();
+      } catch (error) {
+        console.error(`[ExamPhaseCue] ${cueKind} 안내 음성 재생 실패`, error);
+        markPlaybackFailure({
+          reason: 'playback',
+          origin: 'start-call',
+          errorKind: classifyAudioPlaybackError(error),
+        });
+        setHasPlaybackError(true);
       }
-      stageRef.current = "beep";
-      hasObservedPlayingRef.current = false;
-      shouldRestartRef.current = false;
-      setHasPlaybackError(false);
-      beepPlayer.play();
-    } catch (error) {
-      console.error(`[ExamPhaseCue] ${cueKind} 안내 음성 재생 실패`, error);
-      markPlaybackFailure({
-        reason: "playback",
-        origin: "start-call",
-        errorKind: classifyAudioPlaybackError(error),
-      });
-      setHasPlaybackError(true);
-    }
-  }, [beepPlayer, beepSource, cueKind, cuePlayer, cueSource, hasCompleted, markPlaybackFailure]);
+    },
+    [beepPlayer, beepSource, cueKind, cuePlayer, cueSource, hasCompleted, markPlaybackFailure],
+  );
 
   useEffect(() => {
     isActiveRef.current = isActive;
@@ -138,21 +138,21 @@ export function ExamPhaseCue({
       cuePlayer.pause();
       beepPlayer.pause();
       hasObservedPlayingRef.current = false;
-      if (stageRef.current === "cue" || stageRef.current === "beep") {
+      if (stageRef.current === 'cue' || stageRef.current === 'beep') {
         shouldRestartRef.current = true;
       }
       return;
     }
 
-    if (stageRef.current === "idle" || shouldRestartRef.current) {
+    if (stageRef.current === 'idle' || shouldRestartRef.current) {
       void playFromStart();
     }
   }, [beepPlayer, cuePlayer, isActive, playFromStart]);
 
   useEffect(() => {
     const isCurrentPlayerPlaying =
-      (stageRef.current === "cue" && cueStatus.playing) ||
-      (stageRef.current === "beep" && beepStatus.playing);
+      (stageRef.current === 'cue' && cueStatus.playing) ||
+      (stageRef.current === 'beep' && beepStatus.playing);
     if (isCurrentPlayerPlaying && isActive) hasObservedPlayingRef.current = true;
   }, [beepStatus.playing, cueStatus.playing, isActive]);
 
@@ -161,8 +161,8 @@ export function ExamPhaseCue({
   useEffect(() => {
     if (!isActive || hasPlaybackError || hasCompleted()) return;
     const isCurrentPlayerPlaying =
-      (stageRef.current === "cue" && cueStatus.playing) ||
-      (stageRef.current === "beep" && beepStatus.playing);
+      (stageRef.current === 'cue' && cueStatus.playing) ||
+      (stageRef.current === 'beep' && beepStatus.playing);
     if (isCurrentPlayerPlaying) return;
 
     const timeoutId = setTimeout(() => {
@@ -172,7 +172,7 @@ export function ExamPhaseCue({
       hasObservedPlayingRef.current = false;
       shouldRestartRef.current = true;
       console.error(`[ExamPhaseCue] ${cueKind} 안내 음성이 시간 안에 끝나지 않음`);
-      markPlaybackFailure({ reason: "timeout" });
+      markPlaybackFailure({ reason: 'timeout' });
       setHasPlaybackError(true);
     }, CUE_STALL_TIMEOUT_MS);
 
@@ -190,7 +190,7 @@ export function ExamPhaseCue({
   ]);
 
   useEffect(() => {
-    const currentStatus = stageRef.current === "beep" ? beepStatus : cueStatus;
+    const currentStatus = stageRef.current === 'beep' ? beepStatus : cueStatus;
     if (currentStatus.error === null && !currentStatus.mediaServicesDidReset) return;
 
     cuePlayer.pause();
@@ -199,10 +199,10 @@ export function ExamPhaseCue({
     shouldRestartRef.current = true;
     markPlaybackFailure(
       currentStatus.mediaServicesDidReset
-        ? { reason: "media-reset" }
+        ? { reason: 'media-reset' }
         : {
-            reason: "playback",
-            origin: "player-status",
+            reason: 'playback',
+            origin: 'player-status',
             errorKind: classifyAudioPlaybackError(currentStatus.error),
           },
     );
@@ -211,7 +211,7 @@ export function ExamPhaseCue({
 
   useEffect(() => {
     if (
-      stageRef.current !== "beep" ||
+      stageRef.current !== 'beep' ||
       !isActive ||
       hasPlaybackError ||
       !hasObservedPlayingRef.current ||
@@ -220,19 +220,19 @@ export function ExamPhaseCue({
       return;
     }
 
-    stageRef.current = "cue";
+    stageRef.current = 'cue';
     hasObservedPlayingRef.current = false;
     beepPlayer.pause();
     void (async () => {
       try {
         if (cuePlayer.currentTime > 0) await cuePlayer.seekTo(0);
-        if (!isActiveRef.current || stageRef.current !== "cue") return;
+        if (!isActiveRef.current || stageRef.current !== 'cue') return;
         cuePlayer.play();
       } catch (error) {
         console.error(`[ExamPhaseCue] ${cueKind} 안내 음성 재생 실패`, error);
         markPlaybackFailure({
-          reason: "playback",
-          origin: "start-call",
+          reason: 'playback',
+          origin: 'start-call',
           errorKind: classifyAudioPlaybackError(error),
         });
         setHasPlaybackError(true);
@@ -242,7 +242,7 @@ export function ExamPhaseCue({
 
   useEffect(() => {
     if (
-      stageRef.current !== "cue" ||
+      stageRef.current !== 'cue' ||
       !isActive ||
       hasPlaybackError ||
       !hasObservedPlayingRef.current ||
@@ -251,7 +251,7 @@ export function ExamPhaseCue({
       return;
     }
 
-    stageRef.current = "completed";
+    stageRef.current = 'completed';
     hasObservedPlayingRef.current = false;
     cuePlayer.pause();
     onComplete();
@@ -275,7 +275,7 @@ export function ExamPhaseCue({
     <View accessibilityLiveRegion="polite" className="flex-row items-center gap-2 py-1">
       <MaterialCommunityIcons name="volume-high" size={20} color={colors.brand.text} />
       <Text className="text-sm text-brand-text">
-        {stageRef.current === "beep" ? "시작 알림음을 재생하고 있어요" : CUE_LABELS[cueKind]}
+        {stageRef.current === 'beep' ? '시작 알림음을 재생하고 있어요' : CUE_LABELS[cueKind]}
       </Text>
     </View>
   );

@@ -1,25 +1,25 @@
-import { useQuery } from "@tanstack/react-query";
-import { Image, View } from "react-native";
+import { useQuery } from '@tanstack/react-query';
+import { Image, View } from 'react-native';
 
-import { Sparkle, type SparkleProps } from "@/components/ui/Sparkle";
-import { Text } from "@/components/ui/Text";
-import { examRetriesQueryOptions } from "@/features/exam/exam-history-queries";
-import { summarizeReanswerProgress } from "@/features/exam/map-exam-retries";
-import { EmptyReanswerHistory } from "@/screens/feedback/components/EmptyReanswerHistory";
+import { Sparkle, type SparkleProps } from '@/components/ui/Sparkle';
+import { Text } from '@/components/ui/Text';
+import { examRetriesQueryOptions } from '@/features/exam/exam-history-queries';
+import { summarizeReanswerProgress } from '@/features/exam/map-exam-retries';
+import { EmptyReanswerHistory } from '@/screens/feedback/components/EmptyReanswerHistory';
 import {
   HistoryPanelLoading,
   HistoryPanelNotice,
-} from "@/screens/feedback/components/HistoryPanelNotice";
-import { ReanswerGrowthCard } from "@/screens/feedback/components/ReanswerGrowthCard";
+} from '@/screens/feedback/components/HistoryPanelNotice';
+import { ReanswerGrowthCard } from '@/screens/feedback/components/ReanswerGrowthCard';
 import {
   CONTRACT_ERROR_DESCRIPTION,
   type ExamHistoryState,
   resolveReanswerHistoryState,
-} from "@/screens/feedback/exam-history-state";
-import { useHistoryFailureReport } from "@/screens/feedback/use-history-failure-report";
-import { shadows } from "@/theme";
+} from '@/screens/feedback/exam-history-state';
+import { useHistoryFailureReport } from '@/screens/feedback/use-history-failure-report';
+import { shadows } from '@/theme';
 
-const chartIllustration = require("../../../../public/icons/chart.png");
+const chartIllustration = require('../../../../public/icons/chart.png');
 
 /**
  * 재답변 요약 배너에 흩뿌리는 반짝임.
@@ -28,11 +28,11 @@ const chartIllustration = require("../../../../public/icons/chart.png");
  * 배너가 `overflow-hidden`이라 카드 밖으로 나가는 좌표는 잘린다.
  */
 const REANSWER_SUMMARY_SPARKLES: SparkleProps[] = [
-  { className: "left-4 top-1", size: "sm", colorClassName: "text-sky-400" },
-  { className: "right-[108px] top-2", size: "base", colorClassName: "text-yellow-300" },
-  { className: "right-3 top-1", size: "sm", colorClassName: "text-brand-300" },
-  { className: "right-[96px] top-[74px]", size: "sm", colorClassName: "text-sky-300" },
-  { className: "right-2 top-[84px]", size: "base", colorClassName: "text-yellow-400" },
+  { className: 'left-4 top-1', size: 'sm', colorClassName: 'text-sky-400' },
+  { className: 'right-[108px] top-2', size: 'base', colorClassName: 'text-yellow-300' },
+  { className: 'right-3 top-1', size: 'sm', colorClassName: 'text-brand-300' },
+  { className: 'right-[96px] top-[74px]', size: 'sm', colorClassName: 'text-sky-300' },
+  { className: 'right-2 top-[84px]', size: 'base', colorClassName: 'text-yellow-400' },
 ];
 
 /**
@@ -56,7 +56,7 @@ export function ReanswerHistoryPanel({
   onStartExam: () => void;
 }) {
   const targetExamId =
-    history.status === "ready"
+    history.status === 'ready'
       ? (history.items.find((item) => item.retriedQuestionCount > 0)?.examId ?? null)
       : null;
 
@@ -69,28 +69,26 @@ export function ReanswerHistoryPanel({
 
   const state = resolveReanswerHistoryState(history, targetExamId, retriesQuery);
   useHistoryFailureReport(
-    "reanswer-history",
-    "[ReanswerHistory] 재답변 이력 조회 실패",
-    state.status === "error" && history.status !== "error" ? retriesQuery.error : null,
+    'reanswer-history',
+    '[ReanswerHistory] 재답변 이력 조회 실패',
+    state.status === 'error' && history.status !== 'error' ? retriesQuery.error : null,
   );
 
-  if (state.status === "loading") {
+  if (state.status === 'loading') {
     return <HistoryPanelLoading />;
   }
 
-  if (state.status === "error") {
+  if (state.status === 'error') {
     return (
       <HistoryPanelNotice
         title="재답변 기록을 불러오지 못했어요"
-        description={
-          state.retryable ? "잠시 후 다시 시도해 주세요." : CONTRACT_ERROR_DESCRIPTION
-        }
-        actionLabel={state.retryable ? "다시 시도" : undefined}
+        description={state.retryable ? '잠시 후 다시 시도해 주세요.' : CONTRACT_ERROR_DESCRIPTION}
+        actionLabel={state.retryable ? '다시 시도' : undefined}
         onAction={
           state.retryable
             ? () => {
                 // 이력 단계에서 실패했다면 그쪽을 다시 받아야 대상 시험이 정해진다.
-                if (history.status === "error") {
+                if (history.status === 'error') {
                   onRetryHistory();
                   return;
                 }
@@ -109,7 +107,7 @@ export function ReanswerHistoryPanel({
    */
   if (state.items.length === 0) {
     const feedbackExamId =
-      targetExamId ?? (history.status === "ready" ? history.items[0]?.examId : null);
+      targetExamId ?? (history.status === 'ready' ? history.items[0]?.examId : null);
 
     return (
       <EmptyReanswerHistory
@@ -122,7 +120,7 @@ export function ReanswerHistoryPanel({
 
   const progress = summarizeReanswerProgress(state.items);
   const delta = progress.averageDeltaPercentagePoints;
-  const formattedDelta = `${delta > 0 ? "+" : ""}${delta.toFixed(1)}%p`;
+  const formattedDelta = `${delta > 0 ? '+' : ''}${delta.toFixed(1)}%p`;
 
   return (
     <>
@@ -175,10 +173,7 @@ export function ReanswerHistoryPanel({
         <Text className="text-lg">답변 기록</Text>
         <View className="mt-3 gap-3">
           {state.items.map((item) => (
-            <ReanswerGrowthCard
-              key={`${item.examId}-${item.questionNumber}`}
-              item={item}
-            />
+            <ReanswerGrowthCard key={`${item.examId}-${item.questionNumber}`} item={item} />
           ))}
         </View>
       </View>

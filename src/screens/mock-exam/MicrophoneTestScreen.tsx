@@ -1,24 +1,21 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useCallback } from "react";
-import { Image, Linking, View } from "react-native";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useCallback } from 'react';
+import { Image, Linking, View } from 'react-native';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import { AudioWaveform } from "@/features/audio/components/AudioWaveform";
-import { useIsScreenActive } from "@/features/audio/use-is-screen-active";
-import { useRecordingAudioSession } from "@/features/audio/use-recording-audio-session";
-import type { MockExamStackParamList } from "@/navigation/types";
-import { DeviceTestLayout } from "@/screens/mock-exam/components/DeviceTestLayout";
-import { useMicrophoneTest } from "@/screens/mock-exam/hooks/use-microphone-test";
-import { colors } from "@/theme";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import { AudioWaveform } from '@/features/audio/components/AudioWaveform';
+import { useIsScreenActive } from '@/features/audio/use-is-screen-active';
+import { useRecordingAudioSession } from '@/features/audio/use-recording-audio-session';
+import type { MockExamStackParamList } from '@/navigation/types';
+import { DeviceTestLayout } from '@/screens/mock-exam/components/DeviceTestLayout';
+import { useMicrophoneTest } from '@/screens/mock-exam/hooks/use-microphone-test';
+import { colors } from '@/theme';
 
-const microphoneIcon = require("../../../public/icons/device-test/microphone.png");
+const microphoneIcon = require('../../../public/icons/device-test/microphone.png');
 
-type MicrophoneTestScreenProps = NativeStackScreenProps<
-  MockExamStackParamList,
-  "MicrophoneTest"
->;
+type MicrophoneTestScreenProps = NativeStackScreenProps<MockExamStackParamList, 'MicrophoneTest'>;
 
 export function MicrophoneTestScreen({ navigation }: MicrophoneTestScreenProps) {
   const {
@@ -49,24 +46,24 @@ export function MicrophoneTestScreen({ navigation }: MicrophoneTestScreenProps) 
   }, [navigation, prepareToLeave]);
 
   const helpText = (() => {
-    if (testState === "denied") return "마이크 권한을 허용해야 입력 신호를 확인할 수 있어요";
-    if (testState === "paused") return "마이크 상태를 확인하고 녹음을 이어갈게요";
-    if (testState === "interrupted") return "테스트가 중단됐어요. 다시 시도해주세요";
-    if (testState === "error") return "마이크를 시작하지 못했어요. 다시 시도해주세요";
-    if (testState === "recording") return "목소리에 따라 파형이 움직이고 있어요";
-    if (testState === "complete") return "녹음된 음량을 확인해주세요";
-    return "조용한 환경에서 응시해주세요";
+    if (testState === 'denied') return '마이크 권한을 허용해야 입력 신호를 확인할 수 있어요';
+    if (testState === 'paused') return '마이크 상태를 확인하고 녹음을 이어갈게요';
+    if (testState === 'interrupted') return '테스트가 중단됐어요. 다시 시도해주세요';
+    if (testState === 'error') return '마이크를 시작하지 못했어요. 다시 시도해주세요';
+    if (testState === 'recording') return '목소리에 따라 파형이 움직이고 있어요';
+    if (testState === 'complete') return '녹음된 음량을 확인해주세요';
+    return '조용한 환경에서 응시해주세요';
   })();
 
   const buttonLabel = (() => {
-    if (testState === "requesting") return "마이크 준비 중...";
-    if (testState === "recording") return "녹음 중";
-    if (testState === "paused") return "녹음 다시 연결 중...";
-    if (testState === "denied" && !canAskPermissionAgain) return "앱 설정에서 권한 허용";
-    if (testState === "denied") return "마이크 권한 다시 요청";
-    if (testState === "interrupted") return "다시 테스트하기";
-    if (testState === "error") return "다시 테스트하기";
-    return "마이크 테스트 시작";
+    if (testState === 'requesting') return '마이크 준비 중...';
+    if (testState === 'recording') return '녹음 중';
+    if (testState === 'paused') return '녹음 다시 연결 중...';
+    if (testState === 'denied' && !canAskPermissionAgain) return '앱 설정에서 권한 허용';
+    if (testState === 'denied') return '마이크 권한 다시 요청';
+    if (testState === 'interrupted') return '다시 테스트하기';
+    if (testState === 'error') return '다시 테스트하기';
+    return '마이크 테스트 시작';
   })();
 
   return (
@@ -113,12 +110,12 @@ export function MicrophoneTestScreen({ navigation }: MicrophoneTestScreenProps) 
           <View accessibilityLiveRegion="polite" className="mt-3 flex-row items-center gap-2">
             <View
               className={`h-2.5 w-2.5 rounded-full ${
-                isComplete ? "bg-sky" : isRecording ? "bg-brand-cta" : "bg-line"
+                isComplete ? 'bg-sky' : isRecording ? 'bg-brand-cta' : 'bg-line'
               }`}
             />
-            <Text className={`text-sm ${isComplete ? "text-sky-text" : "text-ink-muted"}`}>
+            <Text className={`text-sm ${isComplete ? 'text-sky-text' : 'text-ink-muted'}`}>
               {isComplete
-                ? "마이크 입력 정상"
+                ? '마이크 입력 정상'
                 : isRecording
                   ? `00:0${elapsedSeconds} / 00:0${durationSeconds}`
                   : `${durationSeconds}초 동안 말해주세요`}
@@ -127,10 +124,10 @@ export function MicrophoneTestScreen({ navigation }: MicrophoneTestScreenProps) 
 
           {isComplete && hasRecording ? (
             <Pressable
-              accessibilityLabel={isPlaying ? "내 녹음 일시정지" : "내 녹음 재생"}
+              accessibilityLabel={isPlaying ? '내 녹음 일시정지' : '내 녹음 재생'}
               accessibilityRole="button"
               className={`mt-5 flex-row items-center gap-2 rounded-full border border-sky-line px-5 py-3 ${
-                hasPlaybackError ? "bg-line" : "bg-sky-surface"
+                hasPlaybackError ? 'bg-line' : 'bg-sky-surface'
               }`}
               disabled={hasPlaybackError}
               onPress={() => {
@@ -138,18 +135,18 @@ export function MicrophoneTestScreen({ navigation }: MicrophoneTestScreenProps) 
               }}
             >
               <MaterialCommunityIcons
-                name={isPlaying ? "pause" : hasPlaybackProgress ? "replay" : "play"}
+                name={isPlaying ? 'pause' : hasPlaybackProgress ? 'replay' : 'play'}
                 size={22}
                 color={colors.sky.text}
               />
               <Text className="text-sm text-sky-text">
                 {hasPlaybackError
-                  ? "녹음을 불러오지 못했어요"
+                  ? '녹음을 불러오지 못했어요'
                   : isPlaying
-                    ? "일시정지"
+                    ? '일시정지'
                     : hasPlaybackProgress
-                      ? "다시 듣기"
-                      : "내 녹음 듣기"}
+                      ? '다시 듣기'
+                      : '내 녹음 듣기'}
               </Text>
             </Pressable>
           ) : null}
@@ -162,7 +159,7 @@ export function MicrophoneTestScreen({ navigation }: MicrophoneTestScreenProps) 
               className="items-center justify-center rounded-2xl bg-brand-cta py-4"
               onPress={() => {
                 prepareToLeave();
-                navigation.navigate("SoundTest");
+                navigation.navigate('SoundTest');
               }}
             >
               <Text className="text-lg text-white">다음, 음향 테스트</Text>
@@ -180,13 +177,13 @@ export function MicrophoneTestScreen({ navigation }: MicrophoneTestScreenProps) 
             accessibilityHint="마이크 권한 확인 후 입력 테스트를 시작합니다"
             accessibilityRole="button"
             className={`items-center justify-center rounded-2xl py-4 ${
-              isBusy ? "bg-line" : "bg-brand-cta"
+              isBusy ? 'bg-line' : 'bg-brand-cta'
             }`}
             disabled={isBusy}
             onPress={() => {
-              if (testState === "denied" && !canAskPermissionAgain) {
+              if (testState === 'denied' && !canAskPermissionAgain) {
                 void Linking.openSettings().catch((error: unknown) => {
-                  console.error("[MicrophoneTest] 앱 설정 화면 열기 실패", error);
+                  console.error('[MicrophoneTest] 앱 설정 화면 열기 실패', error);
                 });
                 return;
               }
@@ -194,9 +191,7 @@ export function MicrophoneTestScreen({ navigation }: MicrophoneTestScreenProps) 
               void startRecording();
             }}
           >
-            <Text
-              className={`text-lg ${isBusy ? "text-ink-disabled" : "text-white"}`}
-            >
+            <Text className={`text-lg ${isBusy ? 'text-ink-disabled' : 'text-white'}`}>
               {buttonLabel}
             </Text>
           </Pressable>

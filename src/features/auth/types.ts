@@ -1,4 +1,4 @@
-import type { ConsentRecordV2 } from "@/features/consent/consent-storage";
+import type { ConsentRecordV2 } from '@/features/consent/consent-storage';
 
 export type GuestAuthRequest = {
   installationId: string;
@@ -78,40 +78,40 @@ export type AuthSession = {
   refreshTokenExpiresAt: number;
 };
 
-export type BootstrapSource = "startup" | "consent-submit";
+export type BootstrapSource = 'startup' | 'consent-submit';
 
 export type BootstrapRetry =
-  | { operation: "read-local" }
+  | { operation: 'read-local' }
   | {
-      operation: "persist-consent";
+      operation: 'persist-consent';
       consent: ConsentRecordV2;
-      continuation: "guest" | "authenticated";
+      continuation: 'guest' | 'authenticated';
     }
-  | { operation: "persist-installation"; installationId: string }
-  | { operation: "reissue" }
-  | { operation: "guest" }
+  | { operation: 'persist-installation'; installationId: string }
+  | { operation: 'reissue' }
+  | { operation: 'guest' }
   | {
-      operation: "persist-session";
+      operation: 'persist-session';
       session: AuthSession;
-      continuation: "authenticated" | "check-consent";
+      continuation: 'authenticated' | 'check-consent';
     }
-  | { operation: "check-consent" }
-  | { operation: "update-consent"; request: UpdateConsentsRequest };
+  | { operation: 'check-consent' }
+  | { operation: 'update-consent'; request: UpdateConsentsRequest };
 
 export type AuthBootstrapState =
-  | { status: "CHECKING_LOCAL" }
+  | { status: 'CHECKING_LOCAL' }
   | {
-      status: "CONSENT_REQUIRED";
-      mode: "new" | "existing";
+      status: 'CONSENT_REQUIRED';
+      mode: 'new' | 'existing';
       requiredItems: ConsentRequirements;
     }
-  | { status: "REISSUING" }
-  | { status: "CHECKING_SERVER_CONSENT" }
-  | { status: "GUEST_RECOVERING"; source: BootstrapSource }
-  | { status: "CONSENT_UPDATING"; source: "consent-submit" }
-  | { status: "AUTHENTICATED" }
+  | { status: 'REISSUING' }
+  | { status: 'CHECKING_SERVER_CONSENT' }
+  | { status: 'GUEST_RECOVERING'; source: BootstrapSource }
+  | { status: 'CONSENT_UPDATING'; source: 'consent-submit' }
+  | { status: 'AUTHENTICATED' }
   | {
-      status: "RETRYABLE_ERROR";
+      status: 'RETRYABLE_ERROR';
       source: BootstrapSource;
       retry: BootstrapRetry;
       message: string;
@@ -126,21 +126,23 @@ export type RequestAuthSnapshot = {
 
 export class AuthProtocolError extends Error {
   constructor() {
-    super("인증 응답 형식이 올바르지 않습니다.");
-    this.name = "AuthProtocolError";
+    super('인증 응답 형식이 올바르지 않습니다.');
+    this.name = 'AuthProtocolError';
   }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
 function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0;
+  return typeof value === 'string' && value.trim().length > 0;
 }
 
 function isPositiveInteger(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value) && Number.isInteger(value) && value > 0;
+  return (
+    typeof value === 'number' && Number.isFinite(value) && Number.isInteger(value) && value > 0
+  );
 }
 
 export function parseRawTokenPair(value: unknown): RawTokenPair {

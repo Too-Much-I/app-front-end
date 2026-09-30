@@ -1,9 +1,9 @@
-import { Feather } from "@expo/vector-icons";
-import { View } from "react-native";
+import { Feather } from '@expo/vector-icons';
+import { View } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
-import { formatCountdown, isUrgentRemaining } from "@/screens/challenge/challenge-status";
-import { colors } from "@/theme";
+import { Text } from '@/components/ui/Text';
+import { formatCountdown, isUrgentRemaining } from '@/screens/challenge/challenge-status';
+import { colors } from '@/theme';
 
 interface ChallengeTimerHeaderProps {
   questionNumber: number;
@@ -45,10 +45,10 @@ export function ChallengeTimerHeader({
           <View
             className={`h-2 w-2 rounded-full ${
               number === questionNumber
-                ? "bg-brand-cta"
+                ? 'bg-brand-cta'
                 : number < questionNumber
-                  ? "bg-brand-300"
-                  : "bg-line"
+                  ? 'bg-brand-300'
+                  : 'bg-line'
             }`}
             key={number}
           />
@@ -56,17 +56,17 @@ export function ChallengeTimerHeader({
       </View>
 
       {remainingSeconds === null ? null : (
-      <View
-        accessibilityLabel={`남은 시간 ${Math.max(0, Math.ceil(remainingSeconds))}초`}
-        className={`flex-row items-center gap-content rounded-full px-4 py-1.5 ${
-          isUrgent ? "bg-exam-danger" : "bg-brand-cta"
-        }`}
-      >
-        <Feather color={colors.surface.DEFAULT} name="clock" size={14} />
-        <Text className="text-base tabular-nums text-white">
-          {formatCountdown(remainingSeconds)}
-        </Text>
-      </View>
+        <View
+          accessibilityLabel={`남은 시간 ${Math.max(0, Math.ceil(remainingSeconds))}초`}
+          className={`flex-row items-center gap-content rounded-full px-4 py-1.5 ${
+            isUrgent ? 'bg-exam-danger' : 'bg-brand-cta'
+          }`}
+        >
+          <Feather color={colors.surface.DEFAULT} name="clock" size={14} />
+          <Text className="text-base tabular-nums text-white">
+            {formatCountdown(remainingSeconds)}
+          </Text>
+        </View>
       )}
     </View>
   );

@@ -1,6 +1,6 @@
-import { rem } from "nativewind";
-import { useEffect } from "react";
-import { Dimensions, useWindowDimensions } from "react-native";
+import { rem } from 'nativewind';
+import { useEffect } from 'react';
+import { Dimensions, useWindowDimensions } from 'react-native';
 
 /**
  * 앱의 rem 기준.
@@ -77,7 +77,7 @@ export function scaleForLandscapeTable(width: number, height: number): number {
  * React 렌더 이후 effect에서만 set하면 첫 프레임이 기본값 14로 그려진 뒤 바뀌어
  * 큰 화면에서 글자가 한 번 튄다. import 부작용이지만 의도된 것이다.
  */
-applyRemScale(Dimensions.get("window").width);
+applyRemScale(Dimensions.get('window').width);
 
 /**
  * 실행 중 화면 폭 변화를 따라간다.

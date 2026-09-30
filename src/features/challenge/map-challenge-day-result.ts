@@ -3,15 +3,15 @@ import type {
   ChallengeDayResult,
   RawChallengeDayResult,
   RawChallengeQuestionResult,
-} from "@/types/challenge";
+} from '@/types/challenge';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
 /** 빈 문자열과 공백뿐인 값은 없는 것으로 본다 — 화면이 빈 카드를 그리지 않게 한다. */
 function toText(value: unknown): string | null {
-  if (typeof value !== "string") return null;
+  if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 }

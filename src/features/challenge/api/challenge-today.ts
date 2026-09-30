@@ -1,11 +1,8 @@
-import {
-  challengeTodaySchema,
-  mapChallengeToday,
-} from "@/features/challenge/map-challenge-today";
-import { apiFetchWithAuthRetry } from "@/lib/api/client";
-import { parseApiResult } from "@/lib/api/parse-api-result";
-import type { ApiEnvelope } from "@/types/api";
-import type { ChallengeToday } from "@/types/challenge";
+import { challengeTodaySchema, mapChallengeToday } from '@/features/challenge/map-challenge-today';
+import { apiFetchWithAuthRetry } from '@/lib/api/client';
+import { parseApiResult } from '@/lib/api/parse-api-result';
+import type { ApiEnvelope } from '@/types/api';
+import type { ChallengeToday } from '@/types/challenge';
 
 /**
  * 오늘 진행도. 챌린지의 모든 흐름이 여기서 시작한다.
@@ -17,9 +14,8 @@ import type { ChallengeToday } from "@/types/challenge";
  * 실제 확인은 `parseApiResult`가 하고, 매퍼는 확인된 값만 받는다.
  */
 export async function getChallengeToday(signal?: AbortSignal): Promise<ChallengeToday> {
-  const { result } = await apiFetchWithAuthRetry<ApiEnvelope<unknown>>(
-    "/api/v1/challenges/today",
-    { signal },
-  );
-  return mapChallengeToday(parseApiResult(challengeTodaySchema, result, "CHALLENGE_TODAY"));
+  const { result } = await apiFetchWithAuthRetry<ApiEnvelope<unknown>>('/api/v1/challenges/today', {
+    signal,
+  });
+  return mapChallengeToday(parseApiResult(challengeTodaySchema, result, 'CHALLENGE_TODAY'));
 }

@@ -1,6 +1,6 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-import type { ChallengeToday } from "@/types/challenge";
+import type { ChallengeToday } from '@/types/challenge';
 
 /**
  * `GET /api/v1/challenges/today` 응답의 와이어 모양.
@@ -21,7 +21,7 @@ export const challengeTodaySchema = z.object({
    */
   challengeDate: z.iso.date(),
   expiresInSeconds: z.number(),
-  dailyStatus: z.enum(["not_started", "in_progress", "completed"]),
+  dailyStatus: z.enum(['not_started', 'in_progress', 'completed']),
   totalQuestionCount: z.number().int(),
   /** 모두 끝났으면 `null`. 앱이 순서를 계산하지 않는 근거라 없어지면 안 된다. */
   nextQuestionNumber: z.number().int().nullable(),
@@ -29,23 +29,15 @@ export const challengeTodaySchema = z.object({
   questions: z.array(
     z.object({
       questionNumber: z.number().int(),
-      attemptStatus: z.enum(["not_started", "submitted"]),
-      gradingStatus: z.enum([
-        "not_requested",
-        "pending",
-        "processing",
-        "completed",
-        "failed",
-      ]),
+      attemptStatus: z.enum(['not_started', 'submitted']),
+      gradingStatus: z.enum(['not_requested', 'pending', 'processing', 'completed', 'failed']),
       resultAvailable: z.boolean(),
     }),
   ),
 });
 
 /** 오늘 진행도. 스테이지 화면과, 진입 날짜를 모르는 문제 화면이 함께 쓴다. */
-export function mapChallengeToday(
-  raw: z.infer<typeof challengeTodaySchema>,
-): ChallengeToday {
+export function mapChallengeToday(raw: z.infer<typeof challengeTodaySchema>): ChallengeToday {
   return {
     date: raw.challengeDate,
     expiresInSeconds: raw.expiresInSeconds,

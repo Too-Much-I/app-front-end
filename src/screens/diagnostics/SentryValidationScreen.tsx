@@ -1,40 +1,40 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
 import {
   captureSentryValidationCatalog,
   captureSentryValidationItem,
   previewSentryValidationItem,
   SENTRY_VALIDATION_CATALOG,
   type SentryValidationCatalogItem,
-} from "@/features/diagnostics/sentry-validation-catalog";
+} from '@/features/diagnostics/sentry-validation-catalog';
 import type {
   OperationalErrorCode,
   OperationalReportReceipt,
-} from "@/lib/operational-error-reporting";
+} from '@/lib/operational-error-reporting';
 import {
   flushOperationalEvents,
   getSentryRuntimeState,
   type OperationalEventPayload,
-} from "@/lib/sentry";
+} from '@/lib/sentry';
 
 type RunStatus =
-  | "idle"
-  | "previewed"
-  | "single-captured"
-  | "sending"
-  | "flushing"
-  | "completed"
-  | "failed"
-  | "interrupted";
+  | 'idle'
+  | 'previewed'
+  | 'single-captured'
+  | 'sending'
+  | 'flushing'
+  | 'completed'
+  | 'failed'
+  | 'interrupted';
 
 interface DisplayResult {
   eventId: string | null;
   preview: OperationalEventPayload;
-  status: "previewed" | "captured" | "failed";
+  status: 'previewed' | 'captured' | 'failed';
 }
 
 type DisplayResults = Partial<Record<OperationalErrorCode, DisplayResult>>;
@@ -43,28 +43,28 @@ function toDisplayResult(receipt: OperationalReportReceipt): DisplayResult {
   return {
     eventId: receipt.eventId,
     preview: receipt.preview,
-    status: receipt.status === "captured" ? "captured" : "failed",
+    status: receipt.status === 'captured' ? 'captured' : 'failed',
   };
 }
 
 function getStatusLabel(status: RunStatus): string {
   const labels: Record<RunStatus, string> = {
-    idle: "대기",
-    previewed: "로컬 미리보기 완료",
-    "single-captured": "개별 전송 완료",
-    sending: "Sentry 전송 중",
-    flushing: "Sentry flush 확인 중",
-    completed: "15/15 전송 완료",
-    failed: "전송 확인 실패",
-    interrupted: "실행 중단",
+    idle: '대기',
+    previewed: '로컬 미리보기 완료',
+    'single-captured': '개별 전송 완료',
+    sending: 'Sentry 전송 중',
+    flushing: 'Sentry flush 확인 중',
+    completed: '15/15 전송 완료',
+    failed: '전송 확인 실패',
+    interrupted: '실행 중단',
   };
   return labels[status];
 }
 
-function getResultClassName(status: DisplayResult["status"]): string {
-  if (status === "captured") return "text-feedback-positive";
-  if (status === "failed") return "text-exam-danger";
-  return "text-sky-text";
+function getResultClassName(status: DisplayResult['status']): string {
+  if (status === 'captured') return 'text-feedback-positive';
+  if (status === 'failed') return 'text-exam-danger';
+  return 'text-sky-text';
 }
 
 function PreviewBlock({ preview }: { preview: OperationalEventPayload }) {
@@ -95,25 +95,25 @@ function PreviewBlock({ preview }: { preview: OperationalEventPayload }) {
 export function SentryValidationScreen() {
   const runtime = getSentryRuntimeState();
   const [results, setResults] = useState<DisplayResults>({});
-  const [runStatus, setRunStatus] = useState<RunStatus>("idle");
+  const [runStatus, setRunStatus] = useState<RunStatus>('idle');
   const [startedAt, setStartedAt] = useState<string | null>(null);
   const [isSendArmed, setIsSendArmed] = useState(false);
   const [activeCode, setActiveCode] = useState<OperationalErrorCode | null>(null);
   const [flushSucceeded, setFlushSucceeded] = useState<boolean | null>(null);
   const isMountedRef = useRef(true);
-  const isAppActiveRef = useRef(AppState.currentState === "active");
+  const isAppActiveRef = useRef(AppState.currentState === 'active');
   const runInFlightRef = useRef(false);
   const hasStartedFullRunRef = useRef(false);
 
   const resultValues = Object.values(results);
-  const capturedCount = resultValues.filter((result) => result?.status === "captured").length;
+  const capturedCount = resultValues.filter((result) => result?.status === 'captured').length;
   const previewedCount = resultValues.filter(Boolean).length;
 
   useEffect(() => {
-    const subscription = AppState.addEventListener("change", (nextState) => {
-      isAppActiveRef.current = nextState === "active";
-      if (nextState !== "active" && runInFlightRef.current && isMountedRef.current) {
-        setRunStatus("interrupted");
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      isAppActiveRef.current = nextState === 'active';
+      if (nextState !== 'active' && runInFlightRef.current && isMountedRef.current) {
+        setRunStatus('interrupted');
       }
     });
 
@@ -136,10 +136,10 @@ export function SentryValidationScreen() {
     const previews: DisplayResults = {};
     for (const item of SENTRY_VALIDATION_CATALOG) {
       const preview = previewSentryValidationItem(item);
-      previews[preview.code] = { eventId: null, preview, status: "previewed" };
+      previews[preview.code] = { eventId: null, preview, status: 'previewed' };
     }
     setResults(previews);
-    setRunStatus("previewed");
+    setRunStatus('previewed');
     setFlushSucceeded(null);
   }, []);
 
@@ -148,7 +148,7 @@ export function SentryValidationScreen() {
     const preview = previewSentryValidationItem(item);
     setResults((current) => ({
       ...current,
-      [preview.code]: { eventId: null, preview, status: "previewed" },
+      [preview.code]: { eventId: null, preview, status: 'previewed' },
     }));
   }, []);
 
@@ -158,16 +158,16 @@ export function SentryValidationScreen() {
       runInFlightRef.current = true;
       setActiveCode(item.input.code);
       setStartedAt(new Date().toISOString());
-      setRunStatus("sending");
+      setRunStatus('sending');
       try {
         const receipt = captureSentryValidationItem(item);
         updateReceipt(receipt);
-        setRunStatus("flushing");
+        setRunStatus('flushing');
         const flush = await flushOperationalEvents();
         if (!isMountedRef.current || !isAppActiveRef.current) return;
-        const succeeded = receipt.status === "captured" && flush.status === "flushed";
+        const succeeded = receipt.status === 'captured' && flush.status === 'flushed';
         setFlushSucceeded(succeeded);
-        setRunStatus(succeeded ? "single-captured" : "failed");
+        setRunStatus(succeeded ? 'single-captured' : 'failed');
       } finally {
         runInFlightRef.current = false;
         if (isMountedRef.current) setActiveCode(null);
@@ -192,7 +192,7 @@ export function SentryValidationScreen() {
     setStartedAt(new Date().toISOString());
     setResults({});
     setFlushSucceeded(null);
-    setRunStatus("sending");
+    setRunStatus('sending');
 
     try {
       const run = await captureSentryValidationCatalog(
@@ -201,13 +201,13 @@ export function SentryValidationScreen() {
       );
       if (!isMountedRef.current || !isAppActiveRef.current) return;
 
-      setRunStatus("flushing");
+      setRunStatus('flushing');
       const allCaptured =
         run.receipts.length === SENTRY_VALIDATION_CATALOG.length &&
-        run.receipts.every((receipt) => receipt.status === "captured");
-      const succeeded = allCaptured && run.flush.status === "flushed";
-      setFlushSucceeded(run.flush.status === "flushed");
-      setRunStatus(succeeded ? "completed" : "failed");
+        run.receipts.every((receipt) => receipt.status === 'captured');
+      const succeeded = allCaptured && run.flush.status === 'flushed';
+      setFlushSucceeded(run.flush.status === 'flushed');
+      setRunStatus(succeeded ? 'completed' : 'failed');
     } finally {
       runInFlightRef.current = false;
     }
@@ -217,17 +217,17 @@ export function SentryValidationScreen() {
     if (runInFlightRef.current) return;
     hasStartedFullRunRef.current = false;
     setResults({});
-    setRunStatus("idle");
+    setRunStatus('idle');
     setStartedAt(null);
     setIsSendArmed(false);
     setFlushSucceeded(null);
   }, []);
 
-  const isBusy = runStatus === "sending" || runStatus === "flushing";
+  const isBusy = runStatus === 'sending' || runStatus === 'flushing';
   const canSend = runtime.enabled && !isBusy && !hasStartedFullRunRef.current;
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-surface-subtle">
+    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-surface-subtle">
       <ScrollView
         className="flex-1"
         contentContainerClassName="mx-auto w-full max-w-3xl px-screen pb-10 pt-6"
@@ -242,13 +242,13 @@ export function SentryValidationScreen() {
         <View className="mt-5 rounded-card border border-sky-line bg-sky-surface p-card">
           <Text className="text-lg text-sky-text">검증 환경</Text>
           <Text className="mt-2 text-sm text-sky-text">
-            mode: {runtime.validationMode ? "synthetic-validation" : "disabled"}
+            mode: {runtime.validationMode ? 'synthetic-validation' : 'disabled'}
           </Text>
           <Text className="mt-1 text-sm text-sky-text">
-            Sentry: {runtime.enabled ? "enabled" : "disabled"}
+            Sentry: {runtime.enabled ? 'enabled' : 'disabled'}
           </Text>
           <Text className="mt-1 text-sm text-sky-text">
-            상태: {getStatusLabel(runStatus)} · preview {previewedCount}/15 · captured{" "}
+            상태: {getStatusLabel(runStatus)} · preview {previewedCount}/15 · captured{' '}
             {capturedCount}/15
           </Text>
           {startedAt ? (
@@ -258,7 +258,7 @@ export function SentryValidationScreen() {
           ) : null}
           {flushSucceeded !== null ? (
             <Text className="mt-1 text-sm text-sky-text">
-              flush: {flushSucceeded ? "success" : "failed"}
+              flush: {flushSucceeded ? 'success' : 'failed'}
             </Text>
           ) : null}
         </View>
@@ -332,7 +332,7 @@ export function SentryValidationScreen() {
                     onPress={() => void captureOne(item)}
                   >
                     <Text className="text-sm text-brand-text">
-                      {isActive ? "전송 중" : "Sentry 1건 전송"}
+                      {isActive ? '전송 중' : 'Sentry 1건 전송'}
                     </Text>
                   </Pressable>
                 </View>
@@ -341,7 +341,7 @@ export function SentryValidationScreen() {
                   <>
                     <Text className={`mt-3 text-sm ${getResultClassName(result.status)}`}>
                       {result.status}
-                      {result.eventId ? ` · event ${result.eventId}` : ""}
+                      {result.eventId ? ` · event ${result.eventId}` : ''}
                     </Text>
                     <PreviewBlock preview={result.preview} />
                   </>

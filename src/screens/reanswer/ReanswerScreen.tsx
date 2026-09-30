@@ -1,40 +1,35 @@
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Linking, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Linking, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { ShardHeader } from "@/components/ui/ShardHeader";
-import { useIsScreenActive } from "@/features/audio/use-is-screen-active";
-import { useRecordingAudioSession } from "@/features/audio/use-recording-audio-session";
-import { AudioRecordingError } from "@/features/audio/use-timed-audio-recorder";
-import { useAnswerRecorder } from "@/features/exam/use-answer-recorder";
-import { useReanswerQuestion } from "@/features/exam/use-reanswer-question";
-import { useReanswerSubmission } from "@/features/exam/use-reanswer-submission";
-import type { RootStackParamList } from "@/navigation/types";
-import { trackEvent } from "@/lib/amplitude";
-import { reportOperationalError } from "@/lib/operational-error-reporting";
-import { ReanswerQuestionCard } from "@/screens/reanswer/components/ReanswerQuestionCard";
-import { ReanswerRecordPanel } from "@/screens/reanswer/components/ReanswerRecordPanel";
-import { ReanswerStatusPanel } from "@/screens/reanswer/components/ReanswerStatusPanel";
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { ShardHeader } from '@/components/ui/ShardHeader';
+import { useIsScreenActive } from '@/features/audio/use-is-screen-active';
+import { useRecordingAudioSession } from '@/features/audio/use-recording-audio-session';
+import { AudioRecordingError } from '@/features/audio/use-timed-audio-recorder';
+import { useAnswerRecorder } from '@/features/exam/use-answer-recorder';
+import { useReanswerQuestion } from '@/features/exam/use-reanswer-question';
+import { useReanswerSubmission } from '@/features/exam/use-reanswer-submission';
+import type { RootStackParamList } from '@/navigation/types';
+import { trackEvent } from '@/lib/amplitude';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
+import { ReanswerQuestionCard } from '@/screens/reanswer/components/ReanswerQuestionCard';
+import { ReanswerRecordPanel } from '@/screens/reanswer/components/ReanswerRecordPanel';
+import { ReanswerStatusPanel } from '@/screens/reanswer/components/ReanswerStatusPanel';
 import {
   formatRetryLabel,
   hasUnsavedReanswerRecording,
   isReanswerStatusOnly,
   isReanswerSubmissionLocked,
   type ReanswerUiStatus,
-} from "@/screens/reanswer/reanswer-status";
+} from '@/screens/reanswer/reanswer-status';
 
-type ReanswerScreenProps = NativeStackScreenProps<RootStackParamList, "Reanswer">;
+type ReanswerScreenProps = NativeStackScreenProps<RootStackParamList, 'Reanswer'>;
 
 /** 녹음 진행에 따라 화면이 직접 관리하는 단계. 조회·제출 상태는 각 훅이 따로 들고 있다. */
-type RecordingPhase =
-  | "idle"
-  | "recording"
-  | "reviewing"
-  | "record-failed"
-  | "permission-denied";
+type RecordingPhase = 'idle' | 'recording' | 'reviewing' | 'record-failed' | 'permission-denied';
 
 /**
  * 웹 문제별 피드백의 "다시 답변하기"가 여는 네이티브 녹음 화면.
@@ -54,9 +49,9 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
   const isScreenActive = useIsScreenActive();
   useRecordingAudioSession({
     isActive: isScreenActive,
-    suspendRecording: () => recorder.discard("owner-inactive"),
+    suspendRecording: () => recorder.discard('owner-inactive'),
   });
-  const [phase, setPhase] = useState<RecordingPhase>("idle");
+  const [phase, setPhase] = useState<RecordingPhase>('idle');
   const [finalizedAudioUri, setFinalizedAudioUri] = useState<string | null>(null);
   const [recordedSeconds, setRecordedSeconds] = useState(0);
   const [isDiscardVisible, setIsDiscardVisible] = useState(false);
@@ -74,8 +69,8 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
   const goToQuestionFeedback = useCallback(() => {
     leavingRef.current = true;
     // 재답변 결과이므로 새 회차까지 넘겨 해당 피드백을 정확히 연다.
-    navigation.navigate("MainTabs", {
-      screen: "Feedback",
+    navigation.navigate('MainTabs', {
+      screen: 'Feedback',
       params: { examId, questionNumber, retryCount: nextRetryCount },
     });
   }, [examId, navigation, nextRetryCount, questionNumber]);
@@ -105,20 +100,20 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
     });
 
     if (result.started) {
-      setPhase("recording");
+      setPhase('recording');
       return;
     }
-    if (result.reason === "interrupted") return;
-    if (result.reason === "error") {
+    if (result.reason === 'interrupted') return;
+    if (result.reason === 'error') {
       reportOperationalError({
-        code: "ANSWER_RECORDING_FAILED",
-        surface: "reanswer",
+        code: 'ANSWER_RECORDING_FAILED',
+        surface: 'reanswer',
         stage:
-          result.error?.stage === "stop" || result.error?.stage === "file-validation"
+          result.error?.stage === 'stop' || result.error?.stage === 'file-validation'
             ? result.error.stage
-            : "prepare",
+            : 'prepare',
         ...(result.error?.operation ? { operation: result.error.operation } : {}),
-        ...(typeof result.error?.permissionGranted === "boolean"
+        ...(typeof result.error?.permissionGranted === 'boolean'
           ? { permissionGranted: result.error.permissionGranted }
           : {}),
         questionNumber,
@@ -127,12 +122,12 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
         cause: result.error,
       });
     }
-    setPhase(result.reason === "permission-denied" ? "permission-denied" : "record-failed");
+    setPhase(result.reason === 'permission-denied' ? 'permission-denied' : 'record-failed');
   }, [answerKey, nextRetryCount, question, questionNumber, recorder]);
 
   // 녹음 중 마지막으로 관찰한 경과 시간. 확정 직후에는 recorder가 0으로 되돌린다.
   useEffect(() => {
-    if (recorder.status !== "recording") return;
+    if (recorder.status !== 'recording') return;
     lastElapsedSecondsRef.current = recorder.elapsedMs / 1_000;
   }, [recorder.elapsedMs, recorder.status]);
 
@@ -141,29 +136,29 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
     finishingRef.current = true;
 
     try {
-      const answer = await recorder.finish("user");
+      const answer = await recorder.finish('user');
       setFinalizedAudioUri(answer.audioFileUri);
       setRecordedSeconds(
         question
           ? Math.min(lastElapsedSecondsRef.current, question.speakTimeSec)
           : lastElapsedSecondsRef.current,
       );
-      setPhase("reviewing");
+      setPhase('reviewing');
     } catch (error) {
-      console.error("[Reanswer] 답변 확정 실패", error);
+      console.error('[Reanswer] 답변 확정 실패', error);
       if (
         !(error instanceof AudioRecordingError) ||
-        (error.stage !== "interruption" && error.stage !== "permission")
+        (error.stage !== 'interruption' && error.stage !== 'permission')
       ) {
         reportOperationalError({
-          code: "ANSWER_RECORDING_FAILED",
-          surface: "reanswer",
+          code: 'ANSWER_RECORDING_FAILED',
+          surface: 'reanswer',
           stage:
             error instanceof AudioRecordingError &&
-            error.stage !== "permission" &&
-            error.stage !== "interruption"
+            error.stage !== 'permission' &&
+            error.stage !== 'interruption'
               ? error.stage
-              : "stop",
+              : 'stop',
           questionNumber,
           retryCount: nextRetryCount,
           attempt: recordingAttemptRef.current,
@@ -171,7 +166,7 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
         });
       }
       setFinalizedAudioUri(null);
-      setPhase("record-failed");
+      setPhase('record-failed');
     } finally {
       finishingRef.current = false;
     }
@@ -180,30 +175,30 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
   // 제한 시간에 닿으면 녹음을 자동으로 끝낸다. 제출은 여전히 사용자가 누른다 —
   // 시간이 끝나는 것과 답변을 확정하는 것은 다른 결정이다.
   useEffect(() => {
-    if (phase !== "recording") return;
-    if (recorder.status !== "recording" || recorder.remainingMs > 0) return;
+    if (phase !== 'recording') return;
+    if (recorder.status !== 'recording' || recorder.remainingMs > 0) return;
     void finishRecording();
   }, [finishRecording, phase, recorder.remainingMs, recorder.status]);
 
   // 백그라운드 전환이나 마이크 선점처럼 화면 밖 사정으로 녹음이 취소된 경우.
   useEffect(() => {
-    if (phase !== "recording") return;
-    if (recorder.status !== "interrupted") return;
-    setPhase("record-failed");
+    if (phase !== 'recording') return;
+    if (recorder.status !== 'interrupted') return;
+    setPhase('record-failed');
   }, [phase, recorder.status]);
 
   const retakeRecording = useCallback(() => {
     recorder.resetForRetry();
     submission.reset();
     setFinalizedAudioUri(null);
-    setPhase("idle");
+    setPhase('idle');
   }, [recorder, submission]);
 
   const submitAnswer = useCallback(() => {
     if (!finalizedAudioUri) return;
     hasSubmittedRef.current = true;
     trackEvent({
-      name: "reanswer_submitted",
+      name: 'reanswer_submitted',
       properties: { retryCount: nextRetryCount },
     });
     submission.submit(finalizedAudioUri);
@@ -215,14 +210,14 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
    */
   useEffect(() => {
     trackEvent({
-      name: "reanswer_started",
+      name: 'reanswer_started',
       properties: { retryCount: nextRetryCount },
     });
 
     return () => {
       if (hasSubmittedRef.current) return;
       trackEvent({
-        name: "reanswer_abandoned",
+        name: 'reanswer_abandoned',
         properties: { retryCount: nextRetryCount },
       });
     };
@@ -244,7 +239,7 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
 
   // 안드로이드 하드웨어 뒤로가기와 스택 제스처도 같은 확인을 거치게 한다.
   useEffect(() => {
-    const unsubscribe = navigation.addListener("beforeRemove", (event) => {
+    const unsubscribe = navigation.addListener('beforeRemove', (event) => {
       if (leavingRef.current) return;
       if (isReanswerSubmissionLocked(uiStatus)) {
         event.preventDefault();
@@ -269,22 +264,22 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
           isReanswerSubmissionLocked(uiStatus)
             ? undefined
             : {
-                icon: "x",
-                accessibilityLabel: "다시 답변하기 닫기",
-                accessibilityHint: "재답변을 그만두고 문제별 피드백으로 돌아갑니다",
+                icon: 'x',
+                accessibilityLabel: '다시 답변하기 닫기',
+                accessibilityHint: '재답변을 그만두고 문제별 피드백으로 돌아갑니다',
                 onPress: requestClose,
               }
         }
       />
 
-      <SafeAreaView className="flex-1" edges={["bottom"]}>
+      <SafeAreaView className="flex-1" edges={['bottom']}>
         {isReanswerStatusOnly(uiStatus) || !question ? (
           <ReanswerStatusPanel
             errorMessage={submission.errorMessage}
             onLeave={leaveScreen}
             onOpenSettings={() => void Linking.openSettings()}
             onRetryRecording={retakeRecording}
-            status={isReanswerStatusOnly(uiStatus) ? uiStatus : "loading"}
+            status={isReanswerStatusOnly(uiStatus) ? uiStatus : 'loading'}
           />
         ) : (
           <>
@@ -293,10 +288,7 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
               contentContainerClassName="flex-grow px-screen pb-4 pt-4"
               showsVerticalScrollIndicator={false}
             >
-              <ReanswerQuestionCard
-                isAudioLocked={uiStatus === "recording"}
-                question={question}
-              />
+              <ReanswerQuestionCard isAudioLocked={uiStatus === 'recording'} question={question} />
             </ScrollView>
 
             <View className="px-screen pb-3">
@@ -345,16 +337,16 @@ function resolveUiStatus({
   submissionFailureStage,
 }: {
   phase: RecordingPhase;
-  questionStatus: "loading" | "ready" | "failed";
-  submissionStatus: "idle" | "submitting" | "grading" | "failed";
-  submissionFailureStage: "submit" | "grading" | null;
+  questionStatus: 'loading' | 'ready' | 'failed';
+  submissionStatus: 'idle' | 'submitting' | 'grading' | 'failed';
+  submissionFailureStage: 'submit' | 'grading' | null;
 }): ReanswerUiStatus {
-  if (submissionStatus === "submitting") return "submitting";
-  if (submissionStatus === "grading") return "grading";
-  if (submissionStatus === "failed") {
-    return submissionFailureStage === "grading" ? "grading-failed" : "submit-failed";
+  if (submissionStatus === 'submitting') return 'submitting';
+  if (submissionStatus === 'grading') return 'grading';
+  if (submissionStatus === 'failed') {
+    return submissionFailureStage === 'grading' ? 'grading-failed' : 'submit-failed';
   }
-  if (questionStatus === "loading") return "loading";
-  if (questionStatus === "failed") return "question-failed";
+  if (questionStatus === 'loading') return 'loading';
+  if (questionStatus === 'failed') return 'question-failed';
   return phase;
 }

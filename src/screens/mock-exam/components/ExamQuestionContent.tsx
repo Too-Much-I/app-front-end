@@ -1,9 +1,9 @@
-import { Image, View } from "react-native";
+import { Image, View } from 'react-native';
 
-import { Part4Table } from "@/components/exam/Part4Table";
-import { Text } from "@/components/ui/Text";
-import { getExamPartMeta } from "@/features/exam/part-meta";
-import type { ExamQuestion } from "@/types/exam";
+import { Part4Table } from '@/components/exam/Part4Table';
+import { Text } from '@/components/ui/Text';
+import { getExamPartMeta } from '@/features/exam/part-meta';
+import type { ExamQuestion } from '@/types/exam';
 
 interface ExamQuestionContentProps {
   question: ExamQuestion;

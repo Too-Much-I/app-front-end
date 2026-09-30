@@ -1,7 +1,7 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-import { toEpochMs } from "@/features/challenge/epoch-ms";
-import type { ChallengeAttempt } from "@/types/challenge";
+import { toEpochMs } from '@/features/challenge/epoch-ms';
+import type { ChallengeAttempt } from '@/types/challenge';
 
 /**
  * `POST .../attempt` 응답의 와이어 모양(명세 v1 §6.3).
@@ -27,9 +27,7 @@ export const challengeAttemptSchema = z.object({
   submissionDeadlineAt: z.iso.datetime({ offset: true }),
 });
 
-export function mapChallengeAttempt(
-  raw: z.infer<typeof challengeAttemptSchema>,
-): ChallengeAttempt {
+export function mapChallengeAttempt(raw: z.infer<typeof challengeAttemptSchema>): ChallengeAttempt {
   return {
     attemptId: raw.attemptId,
     date: raw.challengeDate,

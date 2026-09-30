@@ -1,18 +1,18 @@
-import { Feather } from "@expo/vector-icons";
-import { Image, View } from "react-native";
+import { Feather } from '@expo/vector-icons';
+import { Image, View } from 'react-native';
 
-import { Button } from "@/components/ui/Button";
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import { AudioWaveform } from "@/features/audio/components/AudioWaveform";
-import { formatDuration } from "@/screens/reanswer/reanswer-status";
-import { colors, shadows } from "@/theme";
+import { Button } from '@/components/ui/Button';
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import { AudioWaveform } from '@/features/audio/components/AudioWaveform';
+import { formatDuration } from '@/screens/reanswer/reanswer-status';
+import { colors, shadows } from '@/theme';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
-const rabbitFace = require("../../../../public/mascots/rabbit_face.png");
+const rabbitFace = require('../../../../public/mascots/rabbit_face.png');
 
 interface ReanswerRecordPanelProps {
-  status: "idle" | "recording" | "reviewing";
+  status: 'idle' | 'recording' | 'reviewing';
   meteringDb: number | null;
   remainingSeconds: number;
   recordedSeconds: number;
@@ -47,7 +47,7 @@ export function ReanswerRecordPanel({
 
   return (
     <View className="rounded-card bg-surface p-card" style={shadows.card}>
-      {status === "idle" ? (
+      {status === 'idle' ? (
         <View className="items-center gap-4">
           <View className="w-full flex-row items-center gap-1">
             <Image
@@ -74,7 +74,7 @@ export function ReanswerRecordPanel({
         </View>
       ) : null}
 
-      {status === "recording" ? (
+      {status === 'recording' ? (
         <View className="gap-3">
           <View className="gap-1.5">
             <View className="flex-row items-baseline justify-between">
@@ -110,7 +110,7 @@ export function ReanswerRecordPanel({
         </View>
       ) : null}
 
-      {status === "reviewing" ? (
+      {status === 'reviewing' ? (
         <View className="gap-3">
           <View className="gap-0.5">
             <Text className="text-center text-sm leading-6 text-ink-muted">

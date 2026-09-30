@@ -1,7 +1,7 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-import { toEpochMs } from "@/features/challenge/epoch-ms";
-import type { ChallengeUploadUrl } from "@/types/challenge";
+import { toEpochMs } from '@/features/challenge/epoch-ms';
+import type { ChallengeUploadUrl } from '@/types/challenge';
 
 /**
  * `POST /api/v1/challenges/attempts/{attemptId}/upload-url` 응답의 와이어 모양(명세 v1 §6.4).

@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
-import { Image, Modal, View, type ImageSourcePropType } from "react-native";
+import type { ReactNode } from 'react';
+import { Image, Modal, View, type ImageSourcePropType } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
-import { shadows } from "@/theme";
+import { Text } from '@/components/ui/Text';
+import { shadows } from '@/theme';
 
 interface MascotModalProps {
   visible: boolean;
@@ -65,7 +65,7 @@ export function MascotModal({
           style={shadows.card}
         >
           {/* 크롭할 때만 컨테이너를 이미지보다 낮춰 하단을 숨긴다(160dp -> 144dp). */}
-          <View className={`w-40 overflow-hidden ${cropMascotBottom ? "h-36" : "h-40"}`}>
+          <View className={`w-40 overflow-hidden ${cropMascotBottom ? 'h-36' : 'h-40'}`}>
             <Image className="h-40 w-40" resizeMode="contain" source={mascot} />
           </View>
 
@@ -73,7 +73,7 @@ export function MascotModal({
 
           <View
             className={`w-full flex-row items-center rounded-2xl border border-brand-200 bg-brand-50 px-4 py-4 ${
-              title ? "mt-3" : "mt-5"
+              title ? 'mt-3' : 'mt-5'
             }`}
           >
             {warningBadge ? (

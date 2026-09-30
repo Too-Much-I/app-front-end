@@ -1,8 +1,4 @@
-import type {
-  ExamGradingResult,
-  RawExamPartFeedback,
-  RawExamSummaryResult,
-} from "@/types/exam";
+import type { ExamGradingResult, RawExamPartFeedback, RawExamSummaryResult } from '@/types/exam';
 
 /** TOEIC Speaking 만점 기준 */
 const TOEIC_SPEAKING_MAX_SCORE = 200;

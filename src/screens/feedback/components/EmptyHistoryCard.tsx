@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
-import { View, type ImageSourcePropType } from "react-native";
+import type { ReactNode } from 'react';
+import { View, type ImageSourcePropType } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
-import { EmptyHistoryIllustration } from "@/screens/feedback/components/EmptyHistoryIllustration";
+import { Text } from '@/components/ui/Text';
+import { EmptyHistoryIllustration } from '@/screens/feedback/components/EmptyHistoryIllustration';
 
 interface EmptyHistoryCardProps {
   mascot: ImageSourcePropType;
@@ -30,12 +30,7 @@ interface EmptyHistoryCardProps {
  * 상하 여백이 비대칭(위 16 · 아래 24)인 것은 두 화면에서 그대로 옮겨온 값이다.
  * 왜 비대칭인지는 기록에 남아 있지 않다 — 바꿀 때는 두 탭을 함께 보고 정한다.
  */
-export function EmptyHistoryCard({
-  mascot,
-  title,
-  description,
-  children,
-}: EmptyHistoryCardProps) {
+export function EmptyHistoryCard({ mascot, title, description, children }: EmptyHistoryCardProps) {
   return (
     <View className="mt-3xl items-center rounded-card border border-line bg-surface px-xl pb-2xl pt-lg">
       <EmptyHistoryIllustration mascot={mascot} />
@@ -43,9 +38,7 @@ export function EmptyHistoryCard({
       <Text accessibilityRole="header" className="mt-element text-center text-xl">
         {title}
       </Text>
-      <Text className="mt-content text-center text-sm leading-6 text-ink-muted">
-        {description}
-      </Text>
+      <Text className="mt-content text-center text-sm leading-6 text-ink-muted">{description}</Text>
 
       <View className="mt-section w-full">{children}</View>
     </View>

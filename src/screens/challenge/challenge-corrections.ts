@@ -1,5 +1,5 @@
-import { colors } from "@/theme";
-import type { ChallengeCorrectionItem } from "@/types/challenge";
+import { colors } from '@/theme';
+import type { ChallengeCorrectionItem } from '@/types/challenge';
 
 /**
  * 첨삭 표시 규칙 — 심각도·종류 정규화와 밑줄 구간 계산.
@@ -15,28 +15,28 @@ import type { ChallengeCorrectionItem } from "@/types/challenge";
  * 어휘를 쓰기 때문에(`major`/`minor` 등 시험 도메인에서 실측) union으로 받으면
  * 모르는 값 하나에 스타일이 통째로 비어버린다.
  */
-export type ChallengeCorrectionSeverity = "high" | "medium" | "low";
+export type ChallengeCorrectionSeverity = 'high' | 'medium' | 'low';
 
 /** 알려진 동의어. 웹 상세 피드백이 쓰던 표를 그대로 가져왔다. */
 const SEVERITY_ALIASES: Record<string, ChallengeCorrectionSeverity> = {
-  high: "high",
-  major: "high",
-  critical: "high",
-  medium: "medium",
-  moderate: "medium",
-  low: "low",
-  minor: "low",
+  high: 'high',
+  major: 'high',
+  critical: 'high',
+  medium: 'medium',
+  moderate: 'medium',
+  low: 'low',
+  minor: 'low',
 };
 
 /** 모르는 값은 `medium`으로 떨어뜨린다 — 색이 undefined가 되는 쪽이 더 나쁘다. */
 export function normalizeCorrectionSeverity(severity: string): ChallengeCorrectionSeverity {
-  return SEVERITY_ALIASES[severity.toLowerCase()] ?? "medium";
+  return SEVERITY_ALIASES[severity.toLowerCase()] ?? 'medium';
 }
 
 export const CORRECTION_SEVERITY_LABEL: Record<ChallengeCorrectionSeverity, string> = {
-  high: "심각",
-  medium: "보통",
-  low: "경미",
+  high: '심각',
+  medium: '보통',
+  low: '경미',
 };
 
 /** 밑줄과 배지가 같은 색을 쓰도록 판정을 한 곳에 둔다. */
@@ -51,14 +51,14 @@ export function getCorrectionSeverityColor(severity: string): string {
  * 모르는 종류는 항목을 숨기지 않고 "기타"로 보여준다 — 설명 자체는 여전히 쓸모 있다.
  */
 const CORRECTION_TYPE_LABEL: Record<string, string> = {
-  grammar: "문법",
-  expression: "표현",
-  vocabulary: "어휘",
-  content: "내용",
+  grammar: '문법',
+  expression: '표현',
+  vocabulary: '어휘',
+  content: '내용',
 };
 
 export function getCorrectionTypeLabel(type: string): string {
-  return CORRECTION_TYPE_LABEL[type.toLowerCase()] ?? "기타";
+  return CORRECTION_TYPE_LABEL[type.toLowerCase()] ?? '기타';
 }
 
 /** 밑줄 한 구간. `index`는 `corrections` 배열의 위치이자 시트를 여는 값이다. */

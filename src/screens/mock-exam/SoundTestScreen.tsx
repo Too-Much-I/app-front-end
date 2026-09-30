@@ -1,27 +1,27 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, AppState, Image, View } from "react-native";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, AppState, Image, View } from 'react-native';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
-import { classifyAudioPlaybackError } from "@/features/audio/playback-error";
-import { createExamSession } from "@/features/exam/api/exam-session-create";
-import { ExamQuestionAudioError } from "@/features/exam/question-audio";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import { PLAYBACK_AUDIO_MODE } from '@/features/audio/audio-session';
+import { classifyAudioPlaybackError } from '@/features/audio/playback-error';
+import { createExamSession } from '@/features/exam/api/exam-session-create';
+import { ExamQuestionAudioError } from '@/features/exam/question-audio';
 import {
   reportOperationalError,
   type ExamAudioFailureDetail,
-} from "@/lib/operational-error-reporting";
-import type { MockExamStackParamList } from "@/navigation/types";
-import { DeviceTestLayout } from "@/screens/mock-exam/components/DeviceTestLayout";
-import { colors } from "@/theme";
+} from '@/lib/operational-error-reporting';
+import type { MockExamStackParamList } from '@/navigation/types';
+import { DeviceTestLayout } from '@/screens/mock-exam/components/DeviceTestLayout';
+import { colors } from '@/theme';
 
-const headphonesIcon = require("../../../public/icons/device-test/headphones.png");
-const soundCheckAudio = require("../../../public/assets/audio/sound_check.wav");
+const headphonesIcon = require('../../../public/icons/device-test/headphones.png');
+const soundCheckAudio = require('../../../public/assets/audio/sound_check.wav');
 
-type SoundTestScreenProps = NativeStackScreenProps<MockExamStackParamList, "SoundTest">;
+type SoundTestScreenProps = NativeStackScreenProps<MockExamStackParamList, 'SoundTest'>;
 
 export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
   const [hasPlayed, setHasPlayed] = useState(false);
@@ -31,7 +31,7 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
   const [startExamError, setStartExamError] = useState<string | null>(null);
   const createRequestRef = useRef<AbortController | null>(null);
   const hasReportedPlaybackFailureRef = useRef(false);
-  const isAppActiveRef = useRef(AppState.currentState === "active");
+  const isAppActiveRef = useRef(AppState.currentState === 'active');
   const isMountedRef = useRef(true);
   const startAttemptRef = useRef(0);
   const soundCheckPlayer = useAudioPlayer(soundCheckAudio, { updateInterval: 100 });
@@ -60,7 +60,7 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
       soundCheckPlayer.play();
       setHasPlayed(true);
     } catch (error) {
-      console.error("[SoundTest] 안내 음성 재생 실패", error);
+      console.error('[SoundTest] 안내 음성 재생 실패', error);
       if (
         isMountedRef.current &&
         isAppActiveRef.current &&
@@ -68,10 +68,10 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
       ) {
         hasReportedPlaybackFailureRef.current = true;
         reportOperationalError({
-          code: "EXAM_REQUIRED_AUDIO_FAILED",
-          cueKind: "sound-test",
-          reason: "playback",
-          origin: "start-call",
+          code: 'EXAM_REQUIRED_AUDIO_FAILED',
+          cueKind: 'sound-test',
+          reason: 'playback',
+          origin: 'start-call',
           errorKind: classifyAudioPlaybackError(error),
         });
       }
@@ -91,26 +91,26 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
     soundCheckPlayer.pause();
     const controller = new AbortController();
     startAttemptRef.current += 1;
-    const attempt = startAttemptRef.current === 1 ? "initial" : "retry";
+    const attempt = startAttemptRef.current === 1 ? 'initial' : 'retry';
     createRequestRef.current = controller;
     setIsStartingExam(true);
     setStartExamError(null);
 
     try {
       const session = await createExamSession(controller.signal);
-      if (!controller.signal.aborted) navigation.navigate("ExamSession", { session });
+      if (!controller.signal.aborted) navigation.navigate('ExamSession', { session });
     } catch (error) {
       if (controller.signal.aborted) return;
       if (error instanceof ExamQuestionAudioError) {
-        console.error("[SoundTest] 문제 음성이 없어 응시를 차단", {
+        console.error('[SoundTest] 문제 음성이 없어 응시를 차단', {
           examId: error.examId,
           issues: error.issues,
         });
         const firstIssue = error.issues[0];
         reportOperationalError({
-          code: "EXAM_REQUIRED_AUDIO_FAILED",
-          cueKind: "question",
-          reason: firstIssue?.reason ?? "missing",
+          code: 'EXAM_REQUIRED_AUDIO_FAILED',
+          cueKind: 'question',
+          reason: firstIssue?.reason ?? 'missing',
           ...(firstIssue
             ? {
                 partNumber: firstIssue.partNumber,
@@ -119,17 +119,17 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
             : {}),
           issueCount: error.issues.length,
         });
-        setStartExamError("문제 음성이 준비되지 않은 시험이에요. 다시 시도해주세요.");
+        setStartExamError('문제 음성이 준비되지 않은 시험이에요. 다시 시도해주세요.');
         return;
       }
-      console.error("[SoundTest] 모의고사 세션 생성 실패", error);
+      console.error('[SoundTest] 모의고사 세션 생성 실패', error);
       reportOperationalError({
-        code: "EXAM_SESSION_CREATE_FAILED",
-        stage: "session-create",
+        code: 'EXAM_SESSION_CREATE_FAILED',
+        stage: 'session-create',
         attempt,
         cause: error,
       });
-      setStartExamError("시험 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.");
+      setStartExamError('시험 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
     } finally {
       if (createRequestRef.current === controller) {
         createRequestRef.current = null;
@@ -148,22 +148,22 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
     }
     hasReportedPlaybackFailureRef.current = true;
     const detail: ExamAudioFailureDetail = playbackStatus.mediaServicesDidReset
-      ? { reason: "media-reset" }
+      ? { reason: 'media-reset' }
       : {
-          reason: "playback",
-          origin: "player-status",
+          reason: 'playback',
+          origin: 'player-status',
           errorKind: classifyAudioPlaybackError(playbackStatus.error),
         };
     reportOperationalError({
-      code: "EXAM_REQUIRED_AUDIO_FAILED",
-      cueKind: "sound-test",
+      code: 'EXAM_REQUIRED_AUDIO_FAILED',
+      cueKind: 'sound-test',
       ...detail,
     });
   }, [playbackStatus.error, playbackStatus.mediaServicesDidReset]);
 
   useEffect(() => {
-    const subscription = AppState.addEventListener("change", (state) => {
-      isAppActiveRef.current = state === "active";
+    const subscription = AppState.addEventListener('change', (state) => {
+      isAppActiveRef.current = state === 'active';
     });
 
     return () => {
@@ -182,13 +182,13 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
           <Text className="text-center text-3xl">음향 테스트</Text>
           <Text className="mt-2 text-center text-base leading-6 text-ink-muted">
             {isComplete
-              ? startExamError ??
+              ? (startExamError ??
                 (isStartingExam
-                  ? "시험 문제를 준비하고 있어요"
-                  : "잘 들린다면 시험을 시작해주세요")
+                  ? '시험 문제를 준비하고 있어요'
+                  : '잘 들린다면 시험을 시작해주세요'))
               : hasSoundPlaybackError
-                ? "안내 음성을 재생하지 못했어요. 다시 시도해주세요"
-                : "오디오나 헤드폰 환경을 권장해요"}
+                ? '안내 음성을 재생하지 못했어요. 다시 시도해주세요'
+                : '오디오나 헤드폰 환경을 권장해요'}
           </Text>
         </View>
 
@@ -218,18 +218,18 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
               }}
             >
               <MaterialCommunityIcons
-                name={playbackStatus.playing ? "pause" : hasPlaybackFinished ? "replay" : "play"}
+                name={playbackStatus.playing ? 'pause' : hasPlaybackFinished ? 'replay' : 'play'}
                 size={22}
                 color={colors.brand.text}
               />
               <Text className="text-sm text-brand-text">
                 {playbackStatus.playing
-                  ? "일시정지"
+                  ? '일시정지'
                   : hasPlaybackFinished
-                    ? "다시 재생하기"
+                    ? '다시 재생하기'
                     : hasPlayed
-                      ? "이어 듣기"
-                      : "안내 음성 재생"}
+                      ? '이어 듣기'
+                      : '안내 음성 재생'}
               </Text>
             </Pressable>
           ) : null}
@@ -240,7 +240,7 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
             accessibilityRole="button"
             accessibilityState={{ busy: isStartingExam, disabled: isStartingExam }}
             className={`items-center justify-center rounded-2xl py-4 ${
-              isStartingExam ? "bg-line" : "bg-brand-cta"
+              isStartingExam ? 'bg-line' : 'bg-brand-cta'
             }`}
             disabled={isStartingExam}
             onPress={() => {
@@ -254,7 +254,7 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
               </View>
             ) : (
               <Text className="text-lg text-white">
-                {startExamError ? "시험 시작 다시 시도" : "모의고사 시작하기"}
+                {startExamError ? '시험 시작 다시 시도' : '모의고사 시작하기'}
               </Text>
             )}
           </Pressable>
@@ -263,7 +263,7 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
             accessibilityRole="button"
             accessibilityState={{ disabled: !canCompleteSoundTest }}
             className={`items-center justify-center rounded-2xl py-4 ${
-              canCompleteSoundTest ? "bg-brand-cta" : "bg-line"
+              canCompleteSoundTest ? 'bg-brand-cta' : 'bg-line'
             }`}
             disabled={!canCompleteSoundTest}
             onPress={() => {
@@ -273,9 +273,7 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
             }}
           >
             <Text
-              className={`text-lg ${
-                canCompleteSoundTest ? "text-white" : "text-ink-disabled"
-              }`}
+              className={`text-lg ${canCompleteSoundTest ? 'text-white' : 'text-ink-disabled'}`}
             >
               잘 들려요
             </Text>

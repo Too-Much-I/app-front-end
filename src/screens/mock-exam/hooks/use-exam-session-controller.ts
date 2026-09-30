@@ -1,17 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useStore } from "zustand";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useStore } from 'zustand';
 
-import { AudioRecordingError } from "@/features/audio/use-timed-audio-recorder";
-import { useAnswerRecorder } from "@/features/exam/use-answer-recorder";
-import { useAnswerSubmissions } from "@/features/exam/use-answer-submissions";
-import { trackEvent } from "@/lib/amplitude";
-import { reportOperationalError } from "@/lib/operational-error-reporting";
-import { getPlayableQuestionAudioUrl } from "@/features/exam/question-audio";
+import { AudioRecordingError } from '@/features/audio/use-timed-audio-recorder';
+import { useAnswerRecorder } from '@/features/exam/use-answer-recorder';
+import { useAnswerSubmissions } from '@/features/exam/use-answer-submissions';
+import { trackEvent } from '@/lib/amplitude';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
+import { getPlayableQuestionAudioUrl } from '@/features/exam/question-audio';
 import {
   createExamSessionStore,
   getPartPrelude,
-} from "@/screens/mock-exam/hooks/exam-session-store";
-import type { ExamSession, FinalizedAnswer } from "@/types/exam";
+} from '@/screens/mock-exam/hooks/exam-session-store';
+import type { ExamSession, FinalizedAnswer } from '@/types/exam';
 
 const TIMER_UPDATE_INTERVAL_MS = 100;
 
@@ -75,11 +75,11 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
       try {
         const result = submissions.register(answer);
         if (!result.accepted) {
-          if (result.reason === "invalid-file") {
+          if (result.reason === 'invalid-file') {
             reportOperationalError({
-              code: "ANSWER_RECORDING_FAILED",
-              surface: "live",
-              stage: "file-validation",
+              code: 'ANSWER_RECORDING_FAILED',
+              surface: 'live',
+              stage: 'file-validation',
               questionNumber: answer.key.questionNumber,
               retryCount: answer.key.retryCount,
               attempt: recordingAttemptRef.current,
@@ -96,22 +96,16 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
         answerRegistered();
         return true;
       } catch (error) {
-        console.error("[ExamSession] 답변 registry 등록 실패", error);
+        console.error('[ExamSession] 답변 registry 등록 실패', error);
         answerRegistrationFailed(answer);
         return false;
       }
     },
-    [
-      answerFileInvalid,
-      answerRegistered,
-      answerRegistrationFailed,
-      recorder,
-      submissions,
-    ],
+    [answerFileInvalid, answerRegistered, answerRegistrationFailed, recorder, submissions],
   );
 
   const finishResponse = useCallback(
-    (reason: "user" | "native-timeout" | "fallback-timeout" = "user") => {
+    (reason: 'user' | 'native-timeout' | 'fallback-timeout' = 'user') => {
       const activePromise = transitionPromiseRef.current;
       if (activePromise) return activePromise;
       if (!beginFinalizing()) return Promise.resolve();
@@ -122,23 +116,21 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
           registerFinalizedAnswer(answer);
         })
         .catch((error: unknown) => {
-          console.error("[ExamSession] 답변 확정 실패", error);
+          console.error('[ExamSession] 답변 확정 실패', error);
           const isRecordingError = error instanceof AudioRecordingError;
           if (
             !isRecordingError ||
-            (error.stage !== "interruption" && error.stage !== "permission")
+            (error.stage !== 'interruption' && error.stage !== 'permission')
           ) {
             const activeQuestion = session.questions[store.getState().currentIndex];
             if (activeQuestion) {
               reportOperationalError({
-                code: "ANSWER_RECORDING_FAILED",
-                surface: "live",
+                code: 'ANSWER_RECORDING_FAILED',
+                surface: 'live',
                 stage:
-                  isRecordingError &&
-                  error.stage !== "permission" &&
-                  error.stage !== "interruption"
+                  isRecordingError && error.stage !== 'permission' && error.stage !== 'interruption'
                     ? error.stage
-                    : "stop",
+                    : 'stop',
                 questionNumber: activeQuestion.questionNumber,
                 retryCount: 0,
                 attempt: recordingAttemptRef.current,
@@ -146,7 +138,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
               });
             }
           }
-          if (isRecordingError && error.stage === "interruption") {
+          if (isRecordingError && error.stage === 'interruption') {
             recordingInterrupted();
           } else {
             recordingFailed();
@@ -194,21 +186,20 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
           recordingStarted();
           return;
         }
-        if (result.reason === "interrupted") {
+        if (result.reason === 'interrupted') {
           recordingInterrupted();
           return;
         }
-        if (result.reason === "error") {
+        if (result.reason === 'error') {
           reportOperationalError({
-            code: "ANSWER_RECORDING_FAILED",
-            surface: "live",
+            code: 'ANSWER_RECORDING_FAILED',
+            surface: 'live',
             stage:
-              result.error?.stage === "stop" ||
-              result.error?.stage === "file-validation"
+              result.error?.stage === 'stop' || result.error?.stage === 'file-validation'
                 ? result.error.stage
-                : "prepare",
+                : 'prepare',
             ...(result.error?.operation ? { operation: result.error.operation } : {}),
-            ...(typeof result.error?.permissionGranted === "boolean"
+            ...(typeof result.error?.permissionGranted === 'boolean'
               ? { permissionGranted: result.error.permissionGranted }
               : {}),
             questionNumber: activeQuestion.questionNumber,
@@ -220,18 +211,17 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
         recordingFailed();
       })
       .catch((error: unknown) => {
-        console.error("[ExamSession] 답변 녹음 시작 실패", error);
+        console.error('[ExamSession] 답변 녹음 시작 실패', error);
         const isRecordingError = error instanceof AudioRecordingError;
         reportOperationalError({
-          code: "ANSWER_RECORDING_FAILED",
-          surface: "live",
+          code: 'ANSWER_RECORDING_FAILED',
+          surface: 'live',
           stage:
-            isRecordingError &&
-            (error.stage === "stop" || error.stage === "file-validation")
+            isRecordingError && (error.stage === 'stop' || error.stage === 'file-validation')
               ? error.stage
-              : "prepare",
+              : 'prepare',
           ...(isRecordingError && error.operation ? { operation: error.operation } : {}),
-          ...(isRecordingError && typeof error.permissionGranted === "boolean"
+          ...(isRecordingError && typeof error.permissionGranted === 'boolean'
             ? { permissionGranted: error.permissionGranted }
             : {}),
           questionNumber: activeQuestion.questionNumber,
@@ -270,7 +260,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
   }, [registerFinalizedAnswer, store]);
 
   useEffect(() => {
-    if (phase !== "preparation" || !question || !isExamActive) return;
+    if (phase !== 'preparation' || !question || !isExamActive) return;
 
     const deadline = Date.now() + store.getState().preparationRemainingMs;
     const tick = () => {
@@ -281,14 +271,14 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     tick();
     return () => {
       clearInterval(intervalId);
-      if (store.getState().phase === "preparation") {
+      if (store.getState().phase === 'preparation') {
         suspendPreparation(Math.max(0, deadline - Date.now()));
       }
     };
   }, [currentIndex, isExamActive, phase, question, store, suspendPreparation, tickPreparation]);
 
   useEffect(() => {
-    if (phase !== "part4-reading" || !isReadingTableReady || !isExamActive) return;
+    if (phase !== 'part4-reading' || !isReadingTableReady || !isExamActive) return;
 
     const deadline = Date.now() + store.getState().readingRemainingMs;
     const tick = () => {
@@ -300,7 +290,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
 
     return () => {
       clearInterval(intervalId);
-      if (store.getState().phase === "part4-reading") {
+      if (store.getState().phase === 'part4-reading') {
         suspendReading(Math.max(0, deadline - Date.now()));
       }
     };
@@ -308,15 +298,15 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
 
   useEffect(() => {
     // generation이 정리되면 remainingMs가 0으로 떨어지므로 녹음 중일 때만 만료로 본다.
-    if (phase === "response" && recorder.status === "recording" && recorder.remainingMs <= 0) {
-      void finishResponse("native-timeout");
+    if (phase === 'response' && recorder.status === 'recording' && recorder.remainingMs <= 0) {
+      void finishResponse('native-timeout');
     }
   }, [finishResponse, phase, recorder.remainingMs, recorder.status]);
 
   useEffect(() => {
     if (
-      (phase === "response" || phase === "starting-response") &&
-      recorder.status === "interrupted"
+      (phase === 'response' || phase === 'starting-response') &&
+      recorder.status === 'interrupted'
     ) {
       recordingInterrupted();
     }
@@ -327,7 +317,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
    * 중요하다. 안내를 듣다 나간 것과 답변하다 나간 것은 대응이 전혀 다르기 때문이다.
    */
   useEffect(() => {
-    trackEvent({ name: "exam_started" });
+    trackEvent({ name: 'exam_started' });
 
     return () => {
       if (hasTrackedCompletionRef.current) return;
@@ -335,7 +325,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
       const { currentIndex: abandonedIndex, phase: abandonedPhase } = store.getState();
       const abandonedQuestion = questionsRef.current[abandonedIndex];
       trackEvent({
-        name: "exam_abandoned",
+        name: 'exam_abandoned',
         properties: {
           partNumber: abandonedQuestion?.partNumber ?? 0,
           questionNumber: abandonedQuestion?.questionNumber ?? 0,
@@ -346,19 +336,19 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
   }, [store]);
 
   useEffect(() => {
-    if (phase === "submission-barrier" && submissions.summary.isComplete) {
+    if (phase === 'submission-barrier' && submissions.summary.isComplete) {
       hasTrackedCompletionRef.current = true;
-      trackEvent({ name: "exam_completed" });
+      trackEvent({ name: 'exam_completed' });
       examCompleted();
     }
   }, [examCompleted, phase, submissions.summary.isComplete]);
 
   const remainingSeconds = useMemo(() => {
-    if (phase === "part4-reading") return readingRemainingMs / 1_000;
-    if (phase === "response-cue" || phase === "starting-response") {
+    if (phase === 'part4-reading') return readingRemainingMs / 1_000;
+    if (phase === 'response-cue' || phase === 'starting-response') {
       return question?.speakTimeSec ?? 0;
     }
-    if (phase === "response" || phase === "finalizing") {
+    if (phase === 'response' || phase === 'finalizing') {
       return recorder.remainingMs / 1_000;
     }
     return preparationRemainingMs / 1_000;

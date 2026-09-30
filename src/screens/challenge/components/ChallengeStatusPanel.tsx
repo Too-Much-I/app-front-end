@@ -1,19 +1,19 @@
-import { ActivityIndicator, Image, View } from "react-native";
+import { ActivityIndicator, Image, View } from 'react-native';
 
-import { Button } from "@/components/ui/Button";
-import { Text } from "@/components/ui/Text";
-import type { ChallengeStatusOnly } from "@/screens/challenge/challenge-status";
-import { colors, shadows } from "@/theme";
+import { Button } from '@/components/ui/Button';
+import { Text } from '@/components/ui/Text';
+import type { ChallengeStatusOnly } from '@/screens/challenge/challenge-status';
+import { colors, shadows } from '@/theme';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
-const micRabbit = require("../../../../public/mascots/mic_rabbit.png");
-const errorRabbit = require("../../../../public/mascots/error.png");
+const micRabbit = require('../../../../public/mascots/mic_rabbit.png');
+const errorRabbit = require('../../../../public/mascots/error.png');
 
-type ChallengeNoticeStatus = Exclude<ChallengeStatusOnly, "loading" | "submitting">;
+type ChallengeNoticeStatus = Exclude<ChallengeStatusOnly, 'loading' | 'submitting'>;
 
 interface ChallengeStatusPanelProps {
   /** 조회 중은 여기 없다 — 스켈레톤이 노트 자리를 대신 지킨다. */
-  status: Exclude<ChallengeStatusOnly, "loading">;
+  status: Exclude<ChallengeStatusOnly, 'loading'>;
   /** 제출 실패 문구는 업로드 단계마다 달라서 훅이 준 것을 그대로 보여준다. */
   errorMessage: string | null;
   onOpenSettings: () => void;
@@ -46,7 +46,7 @@ export function ChallengeStatusPanel({
 }: ChallengeStatusPanelProps) {
   // 제출은 스켈레톤을 쓰지 않는다. 도착할 내용이 있는 게 아니라 작업이 진행 중이고,
   // 얼마나 걸릴지는 업로드 상황에 달려 있어서 자리를 미리 잡아줄 것이 없다.
-  if (status === "submitting") {
+  if (status === 'submitting') {
     return (
       <View className="flex-1 items-center justify-center gap-3 px-screen">
         <ActivityIndicator color={colors.brand.cta} size="large" />
@@ -89,7 +89,7 @@ export function ChallengeStatusPanel({
               className="w-full"
               key={action.label}
               label={action.label}
-              variant={index === 0 ? "primary" : "neutral"}
+              variant={index === 0 ? 'primary' : 'neutral'}
               onPress={action.onPress}
             />
           ))}
@@ -101,29 +101,29 @@ export function ChallengeStatusPanel({
 
 function getStatusNotice(status: ChallengeNoticeStatus) {
   switch (status) {
-    case "question-failed":
+    case 'question-failed':
       return {
         mascot: errorRabbit,
-        title: "오늘의 문장을 불러오지 못했어요.",
-        description: "잠시 뒤 다시 시도해 주세요.",
+        title: '오늘의 문장을 불러오지 못했어요.',
+        description: '잠시 뒤 다시 시도해 주세요.',
       };
-    case "permission-denied":
+    case 'permission-denied':
       return {
         mascot: micRabbit,
-        title: "마이크를 사용할 수 없어요.",
-        description: "마이크 권한을 켜야 10초 챌린지를 말할 수 있어요.",
+        title: '마이크를 사용할 수 없어요.',
+        description: '마이크 권한을 켜야 10초 챌린지를 말할 수 있어요.',
       };
-    case "record-failed":
+    case 'record-failed':
       return {
         mascot: micRabbit,
-        title: "마이크를 준비하지 못했어요.",
-        description: "다른 앱이 마이크를 쓰고 있는지 확인한 뒤 다시 시도해 주세요.",
+        title: '마이크를 준비하지 못했어요.',
+        description: '다른 앱이 마이크를 쓰고 있는지 확인한 뒤 다시 시도해 주세요.',
       };
-    case "submit-failed":
+    case 'submit-failed':
       return {
         mascot: errorRabbit,
-        title: "제출 중 문제가 생겼어요.",
-        description: "녹음본은 아직 남아 있어요. 다시 제출하거나 처음부터 녹음할 수 있어요.",
+        title: '제출 중 문제가 생겼어요.',
+        description: '녹음본은 아직 남아 있어요. 다시 제출하거나 처음부터 녹음할 수 있어요.',
       };
   }
 }
@@ -139,50 +139,50 @@ function getStatusActions(
   },
 ): StatusAction[] {
   const goBack: StatusAction = {
-    label: "오늘의 진행도로 돌아가기",
-    hint: "이 문장을 그만두고 스테이지 화면으로 돌아갑니다",
+    label: '오늘의 진행도로 돌아가기',
+    hint: '이 문장을 그만두고 스테이지 화면으로 돌아갑니다',
     onPress: handlers.onLeave,
   };
 
   switch (status) {
-    case "question-failed":
+    case 'question-failed':
       return [
         {
-          label: "다시 불러오기",
-          hint: "오늘의 문장을 다시 요청합니다",
+          label: '다시 불러오기',
+          hint: '오늘의 문장을 다시 요청합니다',
           onPress: handlers.onRetryQuestion,
         },
         goBack,
       ];
-    case "permission-denied":
+    case 'permission-denied':
       return [
         {
-          label: "앱 설정에서 권한 허용",
-          hint: "시스템 설정에서 마이크 권한을 켤 수 있습니다",
+          label: '앱 설정에서 권한 허용',
+          hint: '시스템 설정에서 마이크 권한을 켤 수 있습니다',
           onPress: handlers.onOpenSettings,
         },
         goBack,
       ];
-    case "record-failed":
+    case 'record-failed':
       return [
         {
-          label: "다시 녹음",
-          hint: "녹음을 처음부터 다시 시작합니다",
+          label: '다시 녹음',
+          hint: '녹음을 처음부터 다시 시작합니다',
           onPress: handlers.onRetryRecording,
         },
         goBack,
       ];
     // 업로드가 실패해도 녹음본은 그대로라, 같은 파일을 다시 올리는 게 첫 번째 회복이다.
-    case "submit-failed":
+    case 'submit-failed':
       return [
         {
-          label: "다시 제출",
-          hint: "방금 녹음한 답변을 다시 올립니다",
+          label: '다시 제출',
+          hint: '방금 녹음한 답변을 다시 올립니다',
           onPress: handlers.onRetrySubmit,
         },
         {
-          label: "다시 녹음",
-          hint: "녹음을 처음부터 다시 시작합니다",
+          label: '다시 녹음',
+          hint: '녹음을 처음부터 다시 시작합니다',
           onPress: handlers.onRetryRecording,
         },
       ];

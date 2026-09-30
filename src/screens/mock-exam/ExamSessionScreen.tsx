@@ -1,58 +1,55 @@
-import { useIsFocused, usePreventRemove } from "@react-navigation/native";
-import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useState } from "react";
-import { AppState, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useIsFocused, usePreventRemove } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback, useEffect, useState } from 'react';
+import { AppState, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import { AudioWaveform } from "@/features/audio/components/AudioWaveform";
-import { useRecordingAudioSession } from "@/features/audio/use-recording-audio-session";
-import { getExamResponseCueKind } from "@/features/exam/exam-cue";
-import { getExamPartDirections } from "@/features/exam/part-directions";
-import { getQuestionAudioPlayCount } from "@/features/exam/question-audio";
-import { useOrientation } from "@/features/orientation/orientation-context";
-import type { MainTabParamList, MockExamStackParamList } from "@/navigation/types";
-import { ExamAnswerStatus } from "@/screens/mock-exam/components/ExamAnswerStatus";
-import { ExamInformationReading } from "@/screens/mock-exam/components/ExamInformationReading";
-import { ExamPartIntroContent } from "@/screens/mock-exam/components/ExamPartIntroContent";
-import { ExamPartDirectionsContent } from "@/screens/mock-exam/components/ExamPartDirectionsContent";
-import { ExamPhaseCue } from "@/screens/mock-exam/components/ExamPhaseCue";
-import { ExamPreludeError } from "@/screens/mock-exam/components/ExamPreludeError";
-import { ExamQuestionContent } from "@/screens/mock-exam/components/ExamQuestionContent";
-import { ExamQuestionCue } from "@/screens/mock-exam/components/ExamQuestionCue";
-import { ExamQuestionProgress } from "@/screens/mock-exam/components/ExamQuestionProgress";
-import { ExamSessionHeader } from "@/screens/mock-exam/components/ExamSessionHeader";
-import {
-  ExamTimerCard,
-  type ExamTimerMode,
-} from "@/screens/mock-exam/components/ExamTimerCard";
-import { Part4TableLandscapeModal } from "@/screens/mock-exam/components/Part4TableLandscapeModal";
-import { emitExamBreadcrumb } from "@/screens/mock-exam/exam-breadcrumb";
-import { useExamSessionController } from "@/screens/mock-exam/hooks/use-exam-session-controller";
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import { AudioWaveform } from '@/features/audio/components/AudioWaveform';
+import { useRecordingAudioSession } from '@/features/audio/use-recording-audio-session';
+import { getExamResponseCueKind } from '@/features/exam/exam-cue';
+import { getExamPartDirections } from '@/features/exam/part-directions';
+import { getQuestionAudioPlayCount } from '@/features/exam/question-audio';
+import { useOrientation } from '@/features/orientation/orientation-context';
+import type { MainTabParamList, MockExamStackParamList } from '@/navigation/types';
+import { ExamAnswerStatus } from '@/screens/mock-exam/components/ExamAnswerStatus';
+import { ExamInformationReading } from '@/screens/mock-exam/components/ExamInformationReading';
+import { ExamPartIntroContent } from '@/screens/mock-exam/components/ExamPartIntroContent';
+import { ExamPartDirectionsContent } from '@/screens/mock-exam/components/ExamPartDirectionsContent';
+import { ExamPhaseCue } from '@/screens/mock-exam/components/ExamPhaseCue';
+import { ExamPreludeError } from '@/screens/mock-exam/components/ExamPreludeError';
+import { ExamQuestionContent } from '@/screens/mock-exam/components/ExamQuestionContent';
+import { ExamQuestionCue } from '@/screens/mock-exam/components/ExamQuestionCue';
+import { ExamQuestionProgress } from '@/screens/mock-exam/components/ExamQuestionProgress';
+import { ExamSessionHeader } from '@/screens/mock-exam/components/ExamSessionHeader';
+import { ExamTimerCard, type ExamTimerMode } from '@/screens/mock-exam/components/ExamTimerCard';
+import { Part4TableLandscapeModal } from '@/screens/mock-exam/components/Part4TableLandscapeModal';
+import { emitExamBreadcrumb } from '@/screens/mock-exam/exam-breadcrumb';
+import { useExamSessionController } from '@/screens/mock-exam/hooks/use-exam-session-controller';
 import type {
   ExamPartPrelude,
   ExamQuestion,
   ExamSessionPhase,
   ExamTableContext,
-} from "@/types/exam";
+} from '@/types/exam';
 
-type ExamSessionScreenProps = NativeStackScreenProps<MockExamStackParamList, "ExamSession">;
-type PendingNavigation = "exit-exam" | "go-home" | "grading";
+type ExamSessionScreenProps = NativeStackScreenProps<MockExamStackParamList, 'ExamSession'>;
+type PendingNavigation = 'exit-exam' | 'go-home' | 'grading';
 
 /** 제출 완료 안내를 읽을 시간. 이 뒤에 채점 대기 화면으로 넘어간다. */
 const COMPLETED_HANDOFF_MS = 1_600;
 
 const NON_QUESTION_TABLE_PHASES = new Set<ExamSessionPhase>([
-  "directions",
-  "part3-intro",
-  "part4-reading",
-  "part-prelude-error",
-  "submission-barrier",
-  "completed",
+  'directions',
+  'part3-intro',
+  'part4-reading',
+  'part-prelude-error',
+  'submission-barrier',
+  'completed',
 ]);
 
 function getActivePart4Table(
@@ -60,13 +57,10 @@ function getActivePart4Table(
   partPrelude: ExamPartPrelude | undefined,
   phase: ExamSessionPhase,
 ): ExamTableContext | undefined {
-  if (phase === "part4-reading") {
-    return partPrelude?.kind === "part4-reading" ? partPrelude.tableContext : undefined;
+  if (phase === 'part4-reading') {
+    return partPrelude?.kind === 'part4-reading' ? partPrelude.tableContext : undefined;
   }
-  if (
-    question?.partNumber !== 4 ||
-    NON_QUESTION_TABLE_PHASES.has(phase)
-  ) {
+  if (question?.partNumber !== 4 || NON_QUESTION_TABLE_PHASES.has(phase)) {
     return undefined;
   }
   return question.tableContext;
@@ -75,7 +69,7 @@ function getActivePart4Table(
 export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps) {
   const session = route.params.session;
   const isFocused = useIsFocused();
-  const [isAppActive, setIsAppActive] = useState(AppState.currentState === "active");
+  const [isAppActive, setIsAppActive] = useState(AppState.currentState === 'active');
   const [isExitConfirmationVisible, setIsExitConfirmationVisible] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<PendingNavigation | null>(null);
   const {
@@ -110,22 +104,22 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
   } = controller;
   useRecordingAudioSession({
     isActive: isExamActive,
-    suspendRecording: () => recorder.discard("owner-inactive"),
+    suspendRecording: () => recorder.discard('owner-inactive'),
   });
   const activePart4Table = getActivePart4Table(question, partPrelude, phase);
-  const isSubmissionState = phase === "submission-barrier" || phase === "completed";
+  const isSubmissionState = phase === 'submission-barrier' || phase === 'completed';
   const timerMode: ExamTimerMode =
-    phase === "response-cue" ||
-    phase === "response" ||
-    phase === "starting-response" ||
-    phase === "finalizing"
-      ? "response"
-      : phase === "part4-reading"
-        ? "reading"
-        : "preparation";
+    phase === 'response-cue' ||
+    phase === 'response' ||
+    phase === 'starting-response' ||
+    phase === 'finalizing'
+      ? 'response'
+      : phase === 'part4-reading'
+        ? 'reading'
+        : 'preparation';
 
   const handleExitExam = useCallback(() => {
-    setPendingNavigation("exit-exam");
+    setPendingNavigation('exit-exam');
   }, []);
 
   const handleRequestExitExam = useCallback(() => {
@@ -142,12 +136,12 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
   }, [handleExitExam]);
 
   const handleGoHome = useCallback(() => {
-    setPendingNavigation("go-home");
+    setPendingNavigation('go-home');
   }, []);
 
   usePreventRemove(pendingNavigation === null, () => {
-    if (phase === "part-prelude-error") {
-      setPendingNavigation("exit-exam");
+    if (phase === 'part-prelude-error') {
+      setPendingNavigation('exit-exam');
       return;
     }
     setIsExitConfirmationVisible(true);
@@ -162,14 +156,14 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
   }, [restorePortrait]);
 
   useEffect(() => {
-    const subscription = AppState.addEventListener("change", (nextState) => {
-      setIsAppActive(nextState === "active");
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      setIsAppActive(nextState === 'active');
     });
     return () => subscription.remove();
   }, []);
 
   useEffect(() => {
-    emitExamBreadcrumb("exam.lifecycle", { isFocused, isAppActive });
+    emitExamBreadcrumb('exam.lifecycle', { isFocused, isAppActive });
   }, [isFocused, isAppActive]);
 
   useEffect(() => {
@@ -188,16 +182,16 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
   useEffect(() => {
     if (pendingNavigation === null) return;
 
-    if (pendingNavigation === "grading") {
-      navigation.replace("GradingWait", { examId: session.examId });
+    if (pendingNavigation === 'grading') {
+      navigation.replace('GradingWait', { examId: session.examId });
       return;
     }
 
     submissions.dispose();
     navigation.popToTop();
-    if (pendingNavigation === "go-home") {
+    if (pendingNavigation === 'go-home') {
       const tabNavigation = navigation.getParent<BottomTabNavigationProp<MainTabParamList>>();
-      tabNavigation?.navigate("Home");
+      tabNavigation?.navigate('Home');
     }
   }, [navigation, pendingNavigation, session.examId, submissions]);
 
@@ -205,10 +199,10 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
   // 시간만 잠깐 두고 넘어간다. `replace`인 이유: 응시 화면은 돌아갈 곳이 아니고,
   // 언마운트되면서 녹음·업로드 리소스가 정리되어야 한다.
   useEffect(() => {
-    if (phase !== "completed" || isExitConfirmationVisible) return;
+    if (phase !== 'completed' || isExitConfirmationVisible) return;
 
     const timeoutId = setTimeout(() => {
-      setPendingNavigation("grading");
+      setPendingNavigation('grading');
     }, COMPLETED_HANDOFF_MS);
 
     return () => clearTimeout(timeoutId);
@@ -217,22 +211,22 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
   if (!question) return null;
 
   const directions = getExamPartDirections(question.partNumber);
-  const part3Prelude = partPrelude?.kind === "part3-intro" ? partPrelude : undefined;
-  const part4Prelude = partPrelude?.kind === "part4-reading" ? partPrelude : undefined;
-  const invalidPrelude = partPrelude?.kind === "invalid" ? partPrelude : undefined;
+  const part3Prelude = partPrelude?.kind === 'part3-intro' ? partPrelude : undefined;
+  const part4Prelude = partPrelude?.kind === 'part4-reading' ? partPrelude : undefined;
+  const invalidPrelude = partPrelude?.kind === 'invalid' ? partPrelude : undefined;
   const showTimer = [
-    "preparation-cue",
-    "preparation",
-    "response-cue",
-    "starting-response",
-    "response",
-    "finalizing",
+    'preparation-cue',
+    'preparation',
+    'response-cue',
+    'starting-response',
+    'response',
+    'finalizing',
   ].includes(phase);
-  const showResponseWaveform = phase === "response" || phase === "finalizing";
+  const showResponseWaveform = phase === 'response' || phase === 'finalizing';
   const activeCueKind =
-    phase === "preparation-cue"
-      ? "preparing"
-      : phase === "response-cue"
+    phase === 'preparation-cue'
+      ? 'preparing'
+      : phase === 'response-cue'
         ? getExamResponseCueKind(question.partNumber)
         : null;
 
@@ -241,23 +235,21 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
       <StatusBar style="light" />
       <ExamSessionHeader
         partNumber={question.partNumber}
-        onExit={
-          phase === "part-prelude-error" ? handleExitExam : handleRequestExitExam
-        }
+        onExit={phase === 'part-prelude-error' ? handleExitExam : handleRequestExitExam}
       />
 
       <SafeAreaView
-        edges={["bottom"]}
-        className={`flex-1 ${phase === "directions" ? "bg-surface-subtle" : "bg-surface"}`}
+        edges={['bottom']}
+        className={`flex-1 ${phase === 'directions' ? 'bg-surface-subtle' : 'bg-surface'}`}
       >
-        {phase === "directions" && directions ? (
+        {phase === 'directions' && directions ? (
           <ExamPartDirectionsContent
             directions={directions}
             isActive={isExamActive}
             partNumber={question.partNumber}
             onComplete={completeDirections}
           />
-        ) : phase === "part3-intro" ? (
+        ) : phase === 'part3-intro' ? (
           part3Prelude ? (
             <ExamPartIntroContent
               isActive={isExamActive}
@@ -268,11 +260,11 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
           ) : (
             <ExamPreludeError onExit={handleExitExam} />
           )
-        ) : phase === "part4-reading" ? (
+        ) : phase === 'part4-reading' ? (
           part4Prelude ? (
             <View className="flex-1 bg-surface">
               <ExamInformationReading
-                landscapeActionDisabled={orientationMode !== "portrait"}
+                landscapeActionDisabled={orientationMode !== 'portrait'}
                 prelude={part4Prelude}
                 onTableReady={markPart4TableReady}
                 onRequestLandscape={handleRequestTableLandscape}
@@ -283,16 +275,14 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
                   accessibilityState={{ disabled: !isReadingTableReady }}
                   accessibilityRole="button"
                   className={`rounded-full border px-4 py-2 ${
-                    isReadingTableReady
-                      ? "border-brand-300"
-                      : "border-line bg-surface-muted"
+                    isReadingTableReady ? 'border-brand-300' : 'border-line bg-surface-muted'
                   }`}
                   disabled={!isReadingTableReady}
                   onPress={completePart4Reading}
                 >
                   <Text
                     className={`text-sm ${
-                      isReadingTableReady ? "text-brand-text" : "text-ink-disabled"
+                      isReadingTableReady ? 'text-brand-text' : 'text-ink-disabled'
                     }`}
                   >
                     준비 완료, 문제로 이동하기
@@ -303,14 +293,14 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
           ) : (
             <ExamPreludeError onExit={handleExitExam} />
           )
-        ) : phase === "part-prelude-error" ? (
+        ) : phase === 'part-prelude-error' ? (
           <ExamPreludeError prelude={invalidPrelude} onExit={handleExitExam} />
         ) : isSubmissionState ? (
           <ScrollView
             bounces={false}
             className="flex-1 bg-surface"
             contentContainerClassName={`flex-grow px-6 pb-8 pt-6 ${
-              phase === "completed" ? "justify-center" : ""
+              phase === 'completed' ? 'justify-center' : ''
             }`}
             showsVerticalScrollIndicator={false}
           >
@@ -340,7 +330,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
               showsVerticalScrollIndicator={false}
             >
               <ExamQuestionContent
-                landscapeActionDisabled={orientationMode !== "portrait"}
+                landscapeActionDisabled={orientationMode !== 'portrait'}
                 question={question}
                 onRequestLandscape={handleRequestTableLandscape}
               />
@@ -349,7 +339,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
             <View className="items-center gap-3 bg-surface px-screen pb-3 pt-4">
               {showResponseWaveform ? (
                 <AudioWaveform
-                  active={phase === "response" && recorder.status === "recording"}
+                  active={phase === 'response' && recorder.status === 'recording'}
                   meteringDb={recorder.meteringDb}
                   variant="answer"
                 />
@@ -359,15 +349,12 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
                 <ExamTimerCard mode={timerMode} remainingSeconds={remainingSeconds} />
               ) : null}
 
-              {phase === "question-cue" && questionAudioUrl ? (
+              {phase === 'question-cue' && questionAudioUrl ? (
                 <ExamQuestionCue
                   audioUrl={questionAudioUrl}
                   isActive={isExamActive}
                   partNumber={question.partNumber}
-                  playCount={getQuestionAudioPlayCount(
-                    question.partNumber,
-                    question.isLastInPart,
-                  )}
+                  playCount={getQuestionAudioPlayCount(question.partNumber, question.isLastInPart)}
                   questionNumber={question.questionNumber}
                   onComplete={completeQuestionCue}
                   onExit={handleExitExam}
@@ -384,9 +371,7 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
                   partNumber={question.partNumber}
                   questionNumber={question.questionNumber}
                   onComplete={
-                    phase === "preparation-cue"
-                      ? completePreparationCue
-                      : completeResponseCue
+                    phase === 'preparation-cue' ? completePreparationCue : completeResponseCue
                   }
                   onExit={handleExitExam}
                 />
@@ -405,28 +390,28 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
                 onRetrySubmission={submissions.retry}
               />
 
-              {phase === "preparation" || phase === "response" ? (
+              {phase === 'preparation' || phase === 'response' ? (
                 <Pressable
                   accessibilityRole="button"
                   className="rounded-full border border-brand-300 px-4 py-2"
                   onPress={() => {
-                    if (phase === "preparation") void beginResponse();
-                    else void finishResponse("user");
+                    if (phase === 'preparation') void beginResponse();
+                    else void finishResponse('user');
                   }}
                 >
                   <Text className="text-sm text-brand-text">
-                    {phase === "preparation"
-                      ? "준비 완료, 바로 답변 시작하기"
+                    {phase === 'preparation'
+                      ? '준비 완료, 바로 답변 시작하기'
                       : currentIndex < session.questions.length - 1
-                        ? "답변 완료, 다음 문제 보기"
-                        : "마지막 답변 제출하기"}
+                        ? '답변 완료, 다음 문제 보기'
+                        : '마지막 답변 제출하기'}
                   </Text>
                 </Pressable>
               ) : null}
 
-              {phase !== "interrupted" &&
-              phase !== "recording-recovery" &&
-              phase !== "registration-recovery" ? (
+              {phase !== 'interrupted' &&
+              phase !== 'recording-recovery' &&
+              phase !== 'registration-recovery' ? (
                 <Text className="text-center text-xs leading-4 text-ink-disabled">
                   답변 파일이 준비되면 다음 문제로 자동 전환되며 뒤로 갈 수 없어요.
                 </Text>
@@ -439,25 +424,25 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
       {activePart4Table ? (
         <Part4TableLandscapeModal
           table={activePart4Table}
-          transitioning={orientationMode === "restoring-portrait"}
+          transitioning={orientationMode === 'restoring-portrait'}
           visible={isLandscapeTableRequested}
           onRequestClose={handleCloseLandscapeTable}
         />
       ) : null}
 
       <ConfirmModal
-        cancelLabel={isSubmissionState ? "채점 계속하기" : "계속 응시하기"}
+        cancelLabel={isSubmissionState ? '채점 계속하기' : '계속 응시하기'}
         confirmHint={
           isSubmissionState
-            ? "채점을 진행하지 않고 모의고사 첫 화면으로 이동합니다"
-            : "진행 중인 시험을 종료하고 모의고사 첫 화면으로 이동합니다"
+            ? '채점을 진행하지 않고 모의고사 첫 화면으로 이동합니다'
+            : '진행 중인 시험을 종료하고 모의고사 첫 화면으로 이동합니다'
         }
         confirmLabel="시험 나가기"
         confirmTone="danger"
         message={
           isSubmissionState
-            ? "이제 답변 채점을 시작하려고 해요. 지금 나가면 채점이 진행되지 않아요."
-            : "지금 나가면 이번 시험은 제출되지 않고 채점 결과도 받을 수 없어요."
+            ? '이제 답변 채점을 시작하려고 해요. 지금 나가면 채점이 진행되지 않아요.'
+            : '지금 나가면 이번 시험은 제출되지 않고 채점 결과도 받을 수 없어요.'
         }
         onCancel={handleCancelExitExam}
         onConfirm={handleConfirmExitExam}

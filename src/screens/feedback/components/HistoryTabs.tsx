@@ -1,21 +1,21 @@
-import { useEffect, useState } from "react";
-import { View, type LayoutChangeEvent } from "react-native";
+import { useEffect, useState } from 'react';
+import { View, type LayoutChangeEvent } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withTiming,
-} from "react-native-reanimated";
+} from 'react-native-reanimated';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
 import {
   HISTORY_TABS,
   type HistoryTab,
   TAB_TRANSITION_DURATION_MS,
   tabIndexOf,
-} from "@/screens/feedback/exam-history-tabs";
+} from '@/screens/feedback/exam-history-tabs';
 
 export function HistoryTabs({
   selectedTab,
@@ -71,9 +71,7 @@ export function HistoryTabs({
               className="flex-1 items-center rounded-xl py-3"
               onPress={() => onSelect(tab.key)}
             >
-              <Text
-                className={`text-base ${isSelected ? "text-brand-text" : "text-ink-muted"}`}
-              >
+              <Text className={`text-base ${isSelected ? 'text-brand-text' : 'text-ink-muted'}`}>
                 {tab.label}
               </Text>
             </Pressable>

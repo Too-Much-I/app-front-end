@@ -1,10 +1,10 @@
-import type { ZodType } from "zod";
+import type { ZodType } from 'zod';
 
-import { ApiError } from "@/lib/api/transport";
+import { ApiError } from '@/lib/api/transport';
 import {
   reportOperationalError,
   type ApiResponseResource,
-} from "@/lib/operational-error-reporting";
+} from '@/lib/operational-error-reporting';
 
 /**
  * 스키마 불일치는 전송 실패가 아니라 200 응답의 내용 문제다.
@@ -16,21 +16,21 @@ import {
 const SCHEMA_MISMATCH_STATUS = 200;
 
 /** 사용자에게는 원인을 설명하지 않는다. 고칠 수 있는 종류의 실패가 아니다. */
-const SCHEMA_MISMATCH_MESSAGE = "응답을 처리하지 못했습니다.";
+const SCHEMA_MISMATCH_MESSAGE = '응답을 처리하지 못했습니다.';
 
 function reportMismatch(
   error: { issues: readonly { path: readonly PropertyKey[]; code: string }[] },
   resource: ApiResponseResource,
-  mode: "enforced" | "observed",
+  mode: 'enforced' | 'observed',
 ): void {
   const [issue] = error.issues;
   reportOperationalError({
-    code: "API_RESPONSE_VALIDATION_FAILED",
+    code: 'API_RESPONSE_VALIDATION_FAILED',
     resource,
     mode,
     // 서버가 보낸 값이 아니라 우리 스키마 기준의 경로와 사유만 보낸다.
     // 응답 본문은 기존 보고 정책대로 전송하지 않는다.
-    issuePath: issue.path.map(String).join(".") || "(root)",
+    issuePath: issue.path.map(String).join('.') || '(root)',
     issueCode: issue.code,
   });
 }
@@ -54,11 +54,11 @@ export function parseApiResult<T>(
     return parsed.data;
   }
 
-  reportMismatch(parsed.error, resource, "enforced");
+  reportMismatch(parsed.error, resource, 'enforced');
   throw new ApiError(
     SCHEMA_MISMATCH_STATUS,
     SCHEMA_MISMATCH_MESSAGE,
-    "API_RESPONSE_VALIDATION_FAILED",
+    'API_RESPONSE_VALIDATION_FAILED',
   );
 }
 
@@ -81,6 +81,6 @@ export function reportApiResultMismatch(
 ): void {
   const parsed = schema.safeParse(value);
   if (!parsed.success) {
-    reportMismatch(parsed.error, resource, "observed");
+    reportMismatch(parsed.error, resource, 'observed');
   }
 }

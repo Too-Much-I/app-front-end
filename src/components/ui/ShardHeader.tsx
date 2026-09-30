@@ -1,14 +1,14 @@
-import { Feather } from "@expo/vector-icons";
-import type { ComponentProps } from "react";
-import { View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Feather } from '@expo/vector-icons';
+import type { ComponentProps } from 'react';
+import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import { colors } from "@/theme";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import { colors } from '@/theme';
 
 interface ShardHeaderAction {
-  icon: ComponentProps<typeof Feather>["name"];
+  icon: ComponentProps<typeof Feather>['name'];
   accessibilityLabel: string;
   accessibilityHint?: string;
   onPress: () => void;
@@ -37,7 +37,7 @@ export function ShardHeader({ title, leftAction }: ShardHeaderProps) {
         style={{
           height: topInset + 248,
           top: -96,
-          transform: [{ rotate: "-14deg" }],
+          transform: [{ rotate: '-14deg' }],
         }}
       />
 

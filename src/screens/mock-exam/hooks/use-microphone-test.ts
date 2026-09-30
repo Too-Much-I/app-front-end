@@ -1,4 +1,4 @@
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from '@react-navigation/native';
 import {
   getRecordingPermissionsAsync,
   setAudioModeAsync,
@@ -6,45 +6,38 @@ import {
   useAudioPlayerStatus,
   useAudioRecorder,
   useAudioRecorderState,
-} from "expo-audio";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState } from "react-native";
+} from 'expo-audio';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 import {
   VOICE_RECORDING_OPTIONS,
   AUDIO_METER_UPDATE_INTERVAL_MS,
   PLAYBACK_AUDIO_MODE,
   RECORDING_AUDIO_MODE,
-} from "@/features/audio/audio-session";
+} from '@/features/audio/audio-session';
 import {
   RecordingPermissionError,
   resolveRecordingPermissionAsync,
   type RecordingPermissionFailureOperation,
-} from "@/features/audio/recording-permission";
-import { trackEvent } from "@/lib/amplitude";
-import type { MicrophoneTestFailureStage } from "@/lib/analytics-events";
-import { reportOperationalError } from "@/lib/operational-error-reporting";
+} from '@/features/audio/recording-permission';
+import { trackEvent } from '@/lib/amplitude';
+import type { MicrophoneTestFailureStage } from '@/lib/analytics-events';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 export type MicrophoneTestState =
-  | "idle"
-  | "requesting"
-  | "recording"
-  | "paused"
-  | "complete"
-  | "denied"
-  | "interrupted"
-  | "error";
+  'idle' | 'requesting' | 'recording' | 'paused' | 'complete' | 'denied' | 'interrupted' | 'error';
 
 type AudioStopTrigger =
-  | "recording-finished"
-  | "navigation-blur"
-  | "app-background"
-  | "screen-leave"
-  | "screen-inactive"
-  | "test-reset"
-  | "start-cancelled"
-  | "start-error"
-  | "resume-error";
+  | 'recording-finished'
+  | 'navigation-blur'
+  | 'app-background'
+  | 'screen-leave'
+  | 'screen-inactive'
+  | 'test-reset'
+  | 'start-cancelled'
+  | 'start-error'
+  | 'resume-error';
 
 interface AudioStopResult {
   audioUri: string | null;
@@ -55,13 +48,13 @@ const TEST_DURATION_SECONDS = 3;
 const TEST_DURATION_MS = TEST_DURATION_SECONDS * 1_000;
 type MicrophoneTestFailureOperation =
   | RecordingPermissionFailureOperation
-  | "playback-pause"
-  | "audio-mode"
-  | "recorder-prepare"
-  | "record-start";
+  | 'playback-pause'
+  | 'audio-mode'
+  | 'recorder-prepare'
+  | 'record-start';
 
 function trackMicrophoneTestFailure(operation: MicrophoneTestFailureStage): void {
-  trackEvent({ name: "mic_test_failed", properties: { operation } });
+  trackEvent({ name: 'mic_test_failed', properties: { operation } });
 }
 
 export function useMicrophoneTest() {
@@ -97,19 +90,18 @@ export function useMicrophoneTest() {
    * 서로 읽지도 쓰지도 않으므로 한 틱 어긋나도 각자 맞는 판단을 한다.
    */
   const isScreenFocusedRef = useRef(false);
-  const isAppBackgroundedRef = useRef(AppState.currentState === "background");
+  const isAppBackgroundedRef = useRef(AppState.currentState === 'background');
   const isPermissionRequestInFlightRef = useRef(false);
   const ownsRecordingAudioModeRef = useRef(false);
   const hasOpenRecordingRef = useRef(false);
-  const testStateRef = useRef<MicrophoneTestState>("idle");
-  const [testState, setTestState] = useState<MicrophoneTestState>("idle");
+  const testStateRef = useRef<MicrophoneTestState>('idle');
+  const [testState, setTestState] = useState<MicrophoneTestState>('idle');
   const [canAskPermissionAgain, setCanAskPermissionAgain] = useState(true);
   const [recordingUri, setRecordingUri] = useState<string | null>(null);
 
-  const isComplete = testState === "complete";
-  const isRecording = testState === "recording";
-  const isBusy =
-    testState === "requesting" || testState === "recording" || testState === "paused";
+  const isComplete = testState === 'complete';
+  const isRecording = testState === 'recording';
+  const isBusy = testState === 'requesting' || testState === 'recording' || testState === 'paused';
 
   const updateTestState = useCallback((nextState: MicrophoneTestState) => {
     testStateRef.current = nextState;
@@ -229,7 +221,7 @@ export function useMicrophoneTest() {
     // 비동기 permission/audio-mode/prepare 작업은 unmount로 자동 취소되지 않는다.
     // 늦게 돌아온 continuation은 release된 recorder/player 대신 전역 모드만 정리한다.
     if (!isMountedRef.current) {
-      await restorePlaybackAudioMode("start-cancelled");
+      await restorePlaybackAudioMode('start-cancelled');
       return;
     }
 
@@ -238,29 +230,21 @@ export function useMicrophoneTest() {
 
     // 위 Promise를 기다리는 사이에도 화면이 제거될 수 있다.
     if (!isMountedRef.current) {
-      await restorePlaybackAudioMode("start-cancelled");
+      await restorePlaybackAudioMode('start-cancelled');
       return;
     }
 
     // 앞선 cleanup보다 녹음 모드 전환이 늦게 끝났다면 한 번 더 복원해야 한다.
-    if (
-      ownsRecordingAudioModeRef.current ||
-      recorder.isRecording ||
-      hasOpenRecordingRef.current
-    ) {
-      await stopActiveAudio("start-cancelled");
+    if (ownsRecordingAudioModeRef.current || recorder.isRecording || hasOpenRecordingRef.current) {
+      await stopActiveAudio('start-cancelled');
     }
   }, [recorder, restorePlaybackAudioMode, stopActiveAudio]);
 
   const interruptAndStop = useCallback(
     (trigger: AudioStopTrigger) => {
       const activeState = testStateRef.current;
-      if (
-        activeState === "requesting" ||
-        activeState === "recording" ||
-        activeState === "paused"
-      ) {
-        updateTestState("interrupted");
+      if (activeState === 'requesting' || activeState === 'recording' || activeState === 'paused') {
+        updateTestState('interrupted');
       }
 
       void stopActiveAudio(trigger);
@@ -269,19 +253,15 @@ export function useMicrophoneTest() {
   );
 
   const finishRecording = useCallback(async () => {
-    const { audioUri, hasError } = await stopActiveAudio("recording-finished");
+    const { audioUri, hasError } = await stopActiveAudio('recording-finished');
 
-    if (
-      !isMountedRef.current ||
-      !isScreenFocusedRef.current ||
-      isAppBackgroundedRef.current
-    ) {
+    if (!isMountedRef.current || !isScreenFocusedRef.current || isAppBackgroundedRef.current) {
       return;
     }
 
     if (hasError || audioUri === null) {
-      trackMicrophoneTestFailure("stop-recording");
-      updateTestState("error");
+      trackMicrophoneTestFailure('stop-recording');
+      updateTestState('error');
       return;
     }
 
@@ -290,22 +270,22 @@ export function useMicrophoneTest() {
       setRecordingUri(audioUri);
       // 여러 번 시도한 끝에 통과했는지가 음성 판정 임계값 재조정의 근거가 된다.
       trackEvent({
-        name: "mic_test_passed",
+        name: 'mic_test_passed',
         properties: { attemptCount: startCountRef.current },
       });
-      updateTestState("complete");
+      updateTestState('complete');
     } catch (error) {
-      console.error("[MicrophoneTest] 녹음 파일을 재생기에 연결하지 못했습니다.", error);
-      trackMicrophoneTestFailure("playback-attach");
-      updateTestState("error");
+      console.error('[MicrophoneTest] 녹음 파일을 재생기에 연결하지 못했습니다.', error);
+      trackMicrophoneTestFailure('playback-attach');
+      updateTestState('error');
     }
   }, [recordingPlayer, stopActiveAudio, updateTestState]);
 
   const startRecording = useCallback(async () => {
     if (
-      testStateRef.current === "requesting" ||
-      testStateRef.current === "recording" ||
-      testStateRef.current === "paused"
+      testStateRef.current === 'requesting' ||
+      testStateRef.current === 'recording' ||
+      testStateRef.current === 'paused'
     ) {
       return;
     }
@@ -318,15 +298,15 @@ export function useMicrophoneTest() {
     const attempt = startAttemptRef.current + 1;
     startAttemptRef.current = attempt;
     startCountRef.current += 1;
-    updateTestState("requesting");
-    let failureOperation: MicrophoneTestFailureOperation = "playback-pause";
+    updateTestState('requesting');
+    let failureOperation: MicrophoneTestFailureOperation = 'playback-pause';
     let permissionGranted = false;
 
     try {
       recordingPlayer.pause();
       setRecordingUri(null);
 
-      failureOperation = "permission-check";
+      failureOperation = 'permission-check';
       const permission = await resolveRecordingPermissionAsync({
         onRequestStart: () => {
           isPermissionRequestInFlightRef.current = true;
@@ -342,14 +322,14 @@ export function useMicrophoneTest() {
       if (!permission.granted) {
         // `canAskAgain`이 false면 앱 설정으로 보내는 안내가 필요한 영구 거부다.
         trackEvent({
-          name: "mic_permission_denied",
+          name: 'mic_permission_denied',
           properties: { canAskAgain: permission.canAskAgain },
         });
-        updateTestState("denied");
+        updateTestState('denied');
         return;
       }
 
-      failureOperation = "audio-mode";
+      failureOperation = 'audio-mode';
       ownsRecordingAudioModeRef.current = true;
       await setAudioModeAsync(RECORDING_AUDIO_MODE);
       // setAudioModeAsync를 기다리는 사이 cleanup이 먼저 복원했을 수 있으므로 소유권을 재확인한다.
@@ -359,17 +339,17 @@ export function useMicrophoneTest() {
         return;
       }
 
-      failureOperation = "recorder-prepare";
+      failureOperation = 'recorder-prepare';
       await recorder.prepareToRecordAsync();
       if (!isStartAttemptActive(attempt)) {
         void cleanupCancelledStart();
         return;
       }
 
-      failureOperation = "record-start";
+      failureOperation = 'record-start';
       recorder.record();
       hasOpenRecordingRef.current = true;
-      updateTestState("recording");
+      updateTestState('recording');
       recordingTimerRef.current = setTimeout(() => {
         void finishRecording();
       }, TEST_DURATION_MS);
@@ -379,24 +359,21 @@ export function useMicrophoneTest() {
         return;
       }
 
-      console.error("[MicrophoneTest] 녹음 시작 실패", error);
+      console.error('[MicrophoneTest] 녹음 시작 실패', error);
       trackMicrophoneTestFailure(
         error instanceof RecordingPermissionError ? error.operation : failureOperation,
       );
       reportOperationalError({
-        code: "ANSWER_RECORDING_FAILED",
-        surface: "microphone-test",
-        stage: "prepare",
-        operation:
-          error instanceof RecordingPermissionError
-            ? error.operation
-            : failureOperation,
+        code: 'ANSWER_RECORDING_FAILED',
+        surface: 'microphone-test',
+        stage: 'prepare',
+        operation: error instanceof RecordingPermissionError ? error.operation : failureOperation,
         permissionGranted,
         attempt,
         cause: error,
       });
-      updateTestState("error");
-      void stopActiveAudio("start-error");
+      updateTestState('error');
+      void stopActiveAudio('start-error');
     }
   }, [
     cleanupCancelledStart,
@@ -414,11 +391,7 @@ export function useMicrophoneTest() {
       if (recorder.isRecording) recorder.pause();
 
       const permission = await getRecordingPermissionsAsync();
-      if (
-        !isMountedRef.current ||
-        !isScreenFocusedRef.current ||
-        isAppBackgroundedRef.current
-      ) {
+      if (!isMountedRef.current || !isScreenFocusedRef.current || isAppBackgroundedRef.current) {
         return;
       }
 
@@ -427,11 +400,11 @@ export function useMicrophoneTest() {
         // 백그라운드에 다녀오는 사이 권한이 회수된 경우다. 최초 거부와 시점이
         // 다르므로 같은 이벤트로 남기고 세션으로 구분한다.
         trackEvent({
-          name: "mic_permission_denied",
+          name: 'mic_permission_denied',
           properties: { canAskAgain: permission.canAskAgain },
         });
-        updateTestState("denied");
-        await stopActiveAudio("resume-error");
+        updateTestState('denied');
+        await stopActiveAudio('resume-error');
         return;
       }
 
@@ -441,15 +414,12 @@ export function useMicrophoneTest() {
         !recorderStatus.canRecord ||
         recorderStatus.mediaServicesDidReset
       ) {
-        updateTestState("interrupted");
-        await stopActiveAudio("resume-error");
+        updateTestState('interrupted');
+        await stopActiveAudio('resume-error');
         return;
       }
 
-      const remainingDurationMs = Math.max(
-        0,
-        TEST_DURATION_MS - recorderStatus.durationMillis,
-      );
+      const remainingDurationMs = Math.max(0, TEST_DURATION_MS - recorderStatus.durationMillis);
       if (remainingDurationMs === 0) {
         await finishRecording();
         return;
@@ -465,42 +435,34 @@ export function useMicrophoneTest() {
       }
 
       if (!recorder.isRecording) recorder.record();
-      updateTestState("recording");
+      updateTestState('recording');
       recordingTimerRef.current = setTimeout(() => {
         void finishRecording();
       }, remainingDurationMs);
     } catch (error) {
-      console.error("[MicrophoneTest] 백그라운드 복귀 후 녹음 재개 실패", error);
-      updateTestState("interrupted");
-      await stopActiveAudio("resume-error");
+      console.error('[MicrophoneTest] 백그라운드 복귀 후 녹음 재개 실패', error);
+      updateTestState('interrupted');
+      await stopActiveAudio('resume-error');
     }
   }, [cleanupCancelledStart, finishRecording, recorder, stopActiveAudio, updateTestState]);
 
   const refreshPermissionAfterBackground = useCallback(async () => {
     try {
       const permission = await getRecordingPermissionsAsync();
-      if (
-        !isMountedRef.current ||
-        !isScreenFocusedRef.current ||
-        isAppBackgroundedRef.current
-      ) {
+      if (!isMountedRef.current || !isScreenFocusedRef.current || isAppBackgroundedRef.current) {
         return;
       }
 
       setCanAskPermissionAgain(permission.canAskAgain);
-      if (permission.granted) updateTestState("idle");
+      if (permission.granted) updateTestState('idle');
     } catch (error) {
-      console.error("[MicrophoneTest] 백그라운드 복귀 후 마이크 권한 확인 실패", error);
+      console.error('[MicrophoneTest] 백그라운드 복귀 후 마이크 권한 확인 실패', error);
       // 권한 조회를 기다리는 사이 화면을 떠났거나 다시 백그라운드로 갔다면, 보고
       // 있지도 않은 화면의 마찰로 집계된다. 성공 경로와 같은 기준으로 막는다.
-      if (
-        isMountedRef.current &&
-        isScreenFocusedRef.current &&
-        !isAppBackgroundedRef.current
-      ) {
-        trackMicrophoneTestFailure("permission-recheck");
+      if (isMountedRef.current && isScreenFocusedRef.current && !isAppBackgroundedRef.current) {
+        trackMicrophoneTestFailure('permission-recheck');
       }
-      updateTestState("error");
+      updateTestState('error');
     }
   }, [updateTestState]);
 
@@ -510,63 +472,63 @@ export function useMicrophoneTest() {
 
       return () => {
         isScreenFocusedRef.current = false;
-        interruptAndStop("navigation-blur");
+        interruptAndStop('navigation-blur');
       };
     }, [interruptAndStop]),
   );
 
   useEffect(() => {
-    const subscription = AppState.addEventListener("change", (nextState) => {
-      if (nextState === "background") {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'background') {
         // Android 권한 팝업은 Activity를 잠시 pause할 수 있지만 사용자 이탈은 아니다.
         if (isPermissionRequestInFlightRef.current) return;
         isAppBackgroundedRef.current = true;
         if (!isScreenFocusedRef.current) return;
 
         const activeState = testStateRef.current;
-        if (activeState === "recording") {
+        if (activeState === 'recording') {
           clearRecordingTimer();
-          updateTestState("paused");
+          updateTestState('paused');
           return;
         }
 
-        if (activeState === "requesting") {
-          interruptAndStop("app-background");
+        if (activeState === 'requesting') {
+          interruptAndStop('app-background');
           return;
         }
 
-        if (activeState === "complete") {
+        if (activeState === 'complete') {
           try {
             recordingPlayer.pause();
           } catch (error) {
-            console.error("[MicrophoneTest] 백그라운드 전환 중 재생 정지 실패", error);
+            console.error('[MicrophoneTest] 백그라운드 전환 중 재생 정지 실패', error);
           }
         }
         return;
       }
 
-      if (nextState !== "active") return;
+      if (nextState !== 'active') return;
 
       isAppBackgroundedRef.current = false;
       if (!isScreenFocusedRef.current) return;
 
       const activeState = testStateRef.current;
-      if (activeState === "paused") {
+      if (activeState === 'paused') {
         void resumePausedRecording();
         return;
       }
 
-      if (activeState === "denied") {
+      if (activeState === 'denied') {
         void refreshPermissionAfterBackground();
         return;
       }
 
       // Expo의 foreground 자동 재생 대상이었더라도 테스트 음성은 사용자 입력 없이 재생하지 않는다.
-      if (activeState === "complete") {
+      if (activeState === 'complete') {
         try {
           recordingPlayer.pause();
         } catch (error) {
-          console.error("[MicrophoneTest] foreground 복귀 후 재생 정지 실패", error);
+          console.error('[MicrophoneTest] foreground 복귀 후 재생 정지 실패', error);
         }
       }
     });
@@ -610,14 +572,14 @@ export function useMicrophoneTest() {
 
       recordingPlayer.play();
     } catch (error) {
-      console.error("[MicrophoneTest] 녹음 파일 재생 실패", error);
-      trackMicrophoneTestFailure("playback");
-      updateTestState("error");
+      console.error('[MicrophoneTest] 녹음 파일 재생 실패', error);
+      trackMicrophoneTestFailure('playback');
+      updateTestState('error');
     }
   }, [playbackStatus, recordingPlayer, recordingUri, updateTestState]);
 
   const prepareToLeave = useCallback(() => {
-    interruptAndStop("screen-leave");
+    interruptAndStop('screen-leave');
   }, [interruptAndStop]);
 
   /**
@@ -628,12 +590,12 @@ export function useMicrophoneTest() {
    * 이 훅의 `useFocusEffect`와 AppState 구독이 맡고 있다.
    */
   const suspendAudio = useCallback(async () => {
-    await stopActiveAudio("screen-inactive");
+    await stopActiveAudio('screen-inactive');
   }, [stopActiveAudio]);
 
   const resetTest = useCallback(() => {
-    updateTestState("idle");
-    void stopActiveAudio("test-reset");
+    updateTestState('idle');
+    void stopActiveAudio('test-reset');
   }, [stopActiveAudio, updateTestState]);
 
   const elapsedSeconds = Math.min(

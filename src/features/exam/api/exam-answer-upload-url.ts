@@ -1,6 +1,6 @@
-import { apiFetchWithAuthRetry } from "@/lib/api/client";
-import type { ApiEnvelope } from "@/types/api";
-import type { AnswerKey, ExamAnswerUploadUrl } from "@/types/exam";
+import { apiFetchWithAuthRetry } from '@/lib/api/client';
+import type { ApiEnvelope } from '@/types/api';
+import type { AnswerKey, ExamAnswerUploadUrl } from '@/types/exam';
 
 export async function getAnswerUploadUrl(
   key: AnswerKey,

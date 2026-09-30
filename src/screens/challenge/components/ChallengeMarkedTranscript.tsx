@@ -1,11 +1,11 @@
-import type { ReactNode } from "react";
+import type { ReactNode } from 'react';
 
-import { Text } from "@/components/ui/Text";
+import { Text } from '@/components/ui/Text';
 import {
   type ChallengeCorrectionSpan,
   getCorrectionSeverityColor,
-} from "@/screens/challenge/challenge-corrections";
-import type { ChallengeCorrectionItem } from "@/types/challenge";
+} from '@/screens/challenge/challenge-corrections';
+import type { ChallengeCorrectionItem } from '@/types/challenge';
 
 interface ChallengeMarkedTranscriptProps {
   transcript: string;
@@ -53,7 +53,7 @@ export function ChallengeMarkedTranscript({
         onPress={() => onSelect(span.index)}
         style={{
           color: getCorrectionSeverityColor(correction.severity),
-          textDecorationLine: "underline",
+          textDecorationLine: 'underline',
         }}
       >
         {transcript.slice(span.start, span.end)}

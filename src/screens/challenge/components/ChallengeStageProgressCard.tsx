@@ -1,10 +1,10 @@
-import { Image, View } from "react-native";
+import { Image, View } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
-import { shadows } from "@/theme";
+import { Text } from '@/components/ui/Text';
+import { shadows } from '@/theme';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
-const carrot = require("../../../../public/challenge/carrot.png");
+const carrot = require('../../../../public/challenge/carrot.png');
 
 interface ChallengeStageProgressCardProps {
   solvedCount: number;
@@ -31,12 +31,7 @@ export function ChallengeStageProgressCard({
       className="flex-row items-center gap-3 self-start rounded-card bg-surface py-3 pl-4 pr-6"
       style={shadows.card}
     >
-      <Image
-        accessibilityElementsHidden
-        className="h-9 w-6"
-        resizeMode="contain"
-        source={carrot}
-      />
+      <Image accessibilityElementsHidden className="h-9 w-6" resizeMode="contain" source={carrot} />
 
       <View>
         <Text className="text-xs text-ink-muted">오늘 완료</Text>
@@ -46,7 +41,7 @@ export function ChallengeStageProgressCard({
           <Text className="text-lg text-brand-cta">{solvedCount}</Text>
           <Text className="text-lg text-ink">/ {totalCount}</Text>
           <Text className="pb-1 pl-1 text-xs text-ink-muted">
-            {isCompleted ? "완료" : "진행 중"}
+            {isCompleted ? '완료' : '진행 중'}
           </Text>
         </View>
       </View>

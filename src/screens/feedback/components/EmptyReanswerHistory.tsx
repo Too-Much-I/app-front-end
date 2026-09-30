@@ -1,8 +1,8 @@
-import { Button } from "@/components/ui/Button";
-import { StartMockExamButton } from "@/components/ui/StartMockExamButton";
-import { EmptyHistoryCard } from "@/screens/feedback/components/EmptyHistoryCard";
+import { Button } from '@/components/ui/Button';
+import { StartMockExamButton } from '@/components/ui/StartMockExamButton';
+import { EmptyHistoryCard } from '@/screens/feedback/components/EmptyHistoryCard';
 
-const graduateTurtle = require("../../../../public/mascots/graduate_turtle.png");
+const graduateTurtle = require('../../../../public/mascots/graduate_turtle.png');
 
 /** 재답변 기록이 비었을 때 터틀 마스코트와 다음 행동을 함께 보여준다. */
 export function EmptyReanswerHistory({

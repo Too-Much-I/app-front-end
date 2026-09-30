@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect } from 'react';
 import {
   cancelAnimation,
   useAnimatedStyle,
@@ -6,7 +6,7 @@ import {
   useSharedValue,
   withRepeat,
   withTiming,
-} from "react-native-reanimated";
+} from 'react-native-reanimated';
 
 const PULSE_MIN_OPACITY = 0.55;
 const PULSE_DURATION_MS = 850;

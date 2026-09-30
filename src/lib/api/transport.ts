@@ -1,17 +1,17 @@
-import type { ApiEnvelope, ApiErrorPayload } from "@/types/api";
+import type { ApiEnvelope, ApiErrorPayload } from '@/types/api';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
-const FALLBACK_ERROR_MESSAGE = "요청을 처리하지 못했습니다.";
+const FALLBACK_ERROR_MESSAGE = '요청을 처리하지 못했습니다.';
 const apiErrorResults = new WeakMap<ApiError, unknown>();
 
-export type JsonRequestInit = Omit<RequestInit, "body"> & {
+export type JsonRequestInit = Omit<RequestInit, 'body'> & {
   body?: string;
 };
 
 export class TransportConnectionError extends Error {
   constructor() {
-    super("서버에 연결하지 못했습니다.");
-    this.name = "TransportConnectionError";
+    super('서버에 연결하지 못했습니다.');
+    this.name = 'TransportConnectionError';
   }
 }
 
@@ -23,7 +23,7 @@ export class ApiError extends Error {
     result?: unknown,
   ) {
     super(message);
-    this.name = "ApiError";
+    this.name = 'ApiError';
     apiErrorResults.set(this, result);
   }
 
@@ -33,20 +33,18 @@ export class ApiError extends Error {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
-function parseEnvelope(
-  value: unknown,
-): ApiErrorPayload | ApiEnvelope<unknown> | null {
-  if (!isRecord(value) || typeof value.isSuccess !== "boolean") {
+function parseEnvelope(value: unknown): ApiErrorPayload | ApiEnvelope<unknown> | null {
+  if (!isRecord(value) || typeof value.isSuccess !== 'boolean') {
     return null;
   }
 
   return {
     isSuccess: value.isSuccess,
-    code: typeof value.code === "string" ? value.code : undefined,
-    message: typeof value.message === "string" ? value.message : undefined,
+    code: typeof value.code === 'string' ? value.code : undefined,
+    message: typeof value.message === 'string' ? value.message : undefined,
     result: value.result,
   } as ApiErrorPayload | ApiEnvelope<unknown>;
 }
@@ -69,15 +67,10 @@ function createApiError(response: Response, body: unknown): ApiError {
   const message =
     envelope?.message ||
     response.statusText ||
-    (typeof body === "string" ? body : "") ||
+    (typeof body === 'string' ? body : '') ||
     FALLBACK_ERROR_MESSAGE;
 
-  return new ApiError(
-    response.status,
-    message,
-    envelope?.code,
-    envelope?.result,
-  );
+  return new ApiError(response.status, message, envelope?.code, envelope?.result);
 }
 
 export async function serviceFetchWithMetadata<T>(
@@ -93,16 +86,14 @@ export async function serviceFetchWithMetadata<T>(
   if (callerSignal?.aborted) {
     abortFromCaller();
   } else {
-    callerSignal?.addEventListener("abort", abortFromCaller, { once: true });
+    callerSignal?.addEventListener('abort', abortFromCaller, { once: true });
   }
 
   try {
     const response = await fetch(url, {
       ...init,
       headers: {
-        ...(init.body === undefined
-          ? {}
-          : { "Content-Type": "application/json" }),
+        ...(init.body === undefined ? {} : { 'Content-Type': 'application/json' }),
         ...init.headers,
       },
       signal: controller.signal,
@@ -117,8 +108,8 @@ export async function serviceFetchWithMetadata<T>(
     if (
       !envelope ||
       envelope.isSuccess !== true ||
-      typeof envelope.code !== "string" ||
-      typeof envelope.message !== "string"
+      typeof envelope.code !== 'string' ||
+      typeof envelope.message !== 'string'
     ) {
       if (envelope?.isSuccess === false) {
         throw new ApiError(
@@ -128,10 +119,7 @@ export async function serviceFetchWithMetadata<T>(
           envelope.result,
         );
       }
-      throw new ApiError(
-        response.status,
-        "서버 응답 형식이 올바르지 않습니다.",
-      );
+      throw new ApiError(response.status, '서버 응답 형식이 올바르지 않습니다.');
     }
 
     return { envelope: envelope as ApiEnvelope<T>, headers: response.headers };
@@ -143,7 +131,7 @@ export async function serviceFetchWithMetadata<T>(
     throw error;
   } finally {
     clearTimeout(timeoutId);
-    callerSignal?.removeEventListener("abort", abortFromCaller);
+    callerSignal?.removeEventListener('abort', abortFromCaller);
   }
 }
 

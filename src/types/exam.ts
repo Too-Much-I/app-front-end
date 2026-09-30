@@ -1,21 +1,21 @@
 /** 라이브 시험 화면의 상태 기계가 가질 수 있는 단계. 이벤트 payload도 같은 계약을 사용한다. */
 export type ExamSessionPhase =
-  | "directions"
-  | "part3-intro"
-  | "part4-reading"
-  | "part-prelude-error"
-  | "question-cue"
-  | "preparation-cue"
-  | "preparation"
-  | "response-cue"
-  | "starting-response"
-  | "response"
-  | "finalizing"
-  | "interrupted"
-  | "recording-recovery"
-  | "registration-recovery"
-  | "submission-barrier"
-  | "completed";
+  | 'directions'
+  | 'part3-intro'
+  | 'part4-reading'
+  | 'part-prelude-error'
+  | 'question-cue'
+  | 'preparation-cue'
+  | 'preparation'
+  | 'response-cue'
+  | 'starting-response'
+  | 'response'
+  | 'finalizing'
+  | 'interrupted'
+  | 'recording-recovery'
+  | 'registration-recovery'
+  | 'submission-barrier'
+  | 'completed';
 
 export type ExamTableScalar = string | number | boolean | null;
 
@@ -130,39 +130,37 @@ export interface ExamQuestion {
 }
 
 export type ExamPartPreludeInvalidReason =
-  | "missing-part3-intro"
-  | "missing-part3-guide-audio"
-  | "misplaced-part3-content"
-  | "unsupported-part3-guide-audio"
-  | "missing-part4-table"
-  | "misplaced-part4-table"
-  | "conflicting-part4-table"
-  | "invalid-part4-table";
+  | 'missing-part3-intro'
+  | 'missing-part3-guide-audio'
+  | 'misplaced-part3-content'
+  | 'unsupported-part3-guide-audio'
+  | 'missing-part4-table'
+  | 'misplaced-part4-table'
+  | 'conflicting-part4-table'
+  | 'invalid-part4-table';
 
 export interface ExamPartIntroPrelude {
-  kind: "part3-intro";
+  kind: 'part3-intro';
   partNumber: 3;
   text: string;
   guideAudioUrl: string;
 }
 
 export interface ExamPartReadingPrelude {
-  kind: "part4-reading";
+  kind: 'part4-reading';
   partNumber: 4;
   tableContext: ExamTableContext;
   durationSec: 45;
 }
 
 export interface InvalidExamPartPrelude {
-  kind: "invalid";
+  kind: 'invalid';
   partNumber: 3 | 4;
   reason: ExamPartPreludeInvalidReason;
 }
 
 export type ExamPartPrelude =
-  | ExamPartIntroPrelude
-  | ExamPartReadingPrelude
-  | InvalidExamPartPrelude;
+  ExamPartIntroPrelude | ExamPartReadingPrelude | InvalidExamPartPrelude;
 
 export interface ExamSession {
   examId: string;
@@ -173,7 +171,7 @@ export interface ExamSession {
 
 export interface ExamAttempt {
   id: string;
-  status: "in_progress" | "uploading" | "grading" | "completed" | "failed";
+  status: 'in_progress' | 'uploading' | 'grading' | 'completed' | 'failed';
   startedAt: string;
 }
 
@@ -190,18 +188,18 @@ export interface FinalizedAnswer {
 }
 
 export type AnswerSubmissionStage =
-  | "queued-upload"
-  | "uploading"
-  | "queued-notify"
-  | "notifying"
-  | "retry-wait"
-  | "succeeded"
-  | "failed"
-  | "cancelled";
+  | 'queued-upload'
+  | 'uploading'
+  | 'queued-notify'
+  | 'notifying'
+  | 'retry-wait'
+  | 'succeeded'
+  | 'failed'
+  | 'cancelled';
 
-export type AnswerSubmissionFailureStage = "upload" | "notify";
+export type AnswerSubmissionFailureStage = 'upload' | 'notify';
 
-export type AnswerSubmissionFailureKind = "request" | "server-processing";
+export type AnswerSubmissionFailureKind = 'request' | 'server-processing';
 
 export interface AnswerSubmissionFailure {
   stage: AnswerSubmissionFailureStage;
@@ -221,7 +219,7 @@ export interface AnswerSubmissionJob {
   stageAttempt: number;
   nextRetryAt: number | null;
   lastError: AnswerSubmissionFailure | null;
-  acceptedStatus: Exclude<ExamAnswerSubmitResult["status"], "FAILED"> | null;
+  acceptedStatus: Exclude<ExamAnswerSubmitResult['status'], 'FAILED'> | null;
 }
 
 export interface AnswerSubmissionSummary {
@@ -240,11 +238,7 @@ export interface ExamAnswerUploadUrl {
 }
 
 /** POST /api/v1/exams/{examId}/questions/{questionId}/submit 의 result */
-export type ExamGradingLifecycleStatus =
-  | "PENDING"
-  | "PROCESSING"
-  | "COMPLETED"
-  | "FAILED";
+export type ExamGradingLifecycleStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 
 export interface ExamAnswerSubmitResult {
   status: ExamGradingLifecycleStatus;
@@ -392,10 +386,7 @@ export interface RawExamCorrectionItem {
  * 개수가 보장되지 않아 매퍼(map-exam-question-feedback.ts)에서 하나의 객체로 합친다.
  */
 export type RawExamDetailedScoreItem = Partial<
-  Record<
-    "accuracy_score" | "fluency_score" | "completeness_score" | "prosody_score",
-    number
-  >
+  Record<'accuracy_score' | 'fluency_score' | 'completeness_score' | 'prosody_score', number>
 >;
 
 /**

@@ -1,8 +1,8 @@
-import { View } from "react-native";
+import { View } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
+import { Text } from '@/components/ui/Text';
 
-export type ExamTimerMode = "preparation" | "reading" | "response";
+export type ExamTimerMode = 'preparation' | 'reading' | 'response';
 
 interface ExamTimerCardProps {
   mode: ExamTimerMode;
@@ -13,23 +13,19 @@ function formatSeconds(seconds: number) {
   const safeSeconds = Math.max(0, Math.ceil(seconds));
   const minutes = Math.floor(safeSeconds / 60);
   const remainder = safeSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+  return `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
 }
 
 /** 웹 시험 화면의 2단 타이머를 RN View로 그대로 재구성한다. */
 export function ExamTimerCard({ mode, remainingSeconds }: ExamTimerCardProps) {
-  const isResponse = mode === "response";
-  const isReading = mode === "reading";
-  const label = isResponse
-    ? "RESPONSE TIME"
-    : isReading
-      ? "READING TIME"
-      : "PREPARATION TIME";
+  const isResponse = mode === 'response';
+  const isReading = mode === 'reading';
+  const label = isResponse ? 'RESPONSE TIME' : isReading ? 'READING TIME' : 'PREPARATION TIME';
 
   return (
     <View
       accessibilityLabel={`${
-        isResponse ? "답변" : isReading ? "정보 읽기" : "준비"
+        isResponse ? '답변' : isReading ? '정보 읽기' : '준비'
       } 시간 ${formatSeconds(remainingSeconds)}`}
       className="w-60 items-stretch"
     >
@@ -38,12 +34,12 @@ export function ExamTimerCard({ mode, remainingSeconds }: ExamTimerCardProps) {
       </View>
       <View
         className={`rounded-b-xl border-2 border-t-0 bg-surface py-2.5 ${
-          isResponse ? "border-exam-dangerLine" : "border-exam-navy"
+          isResponse ? 'border-exam-dangerLine' : 'border-exam-navy'
         }`}
       >
         <Text
           className={`text-center text-3xl tabular-nums ${
-            isResponse ? "text-exam-danger" : "text-exam-navy"
+            isResponse ? 'text-exam-danger' : 'text-exam-navy'
           }`}
         >
           {formatSeconds(remainingSeconds)}

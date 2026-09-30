@@ -1,17 +1,17 @@
-import { Feather } from "@expo/vector-icons";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useEffect, useRef, useState } from "react";
-import { ScrollView, useWindowDimensions, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Feather } from '@expo/vector-icons';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useEffect, useRef, useState } from 'react';
+import { ScrollView, useWindowDimensions, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import { EXAM_PART_GUIDES } from "@/features/exam/part-guide";
-import type { MockExamStackParamList } from "@/navigation/types";
-import { ExamPartGuidePage } from "@/screens/mock-exam/components/ExamPartGuidePage";
-import { colors } from "@/theme";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import { EXAM_PART_GUIDES } from '@/features/exam/part-guide';
+import type { MockExamStackParamList } from '@/navigation/types';
+import { ExamPartGuidePage } from '@/screens/mock-exam/components/ExamPartGuidePage';
+import { colors } from '@/theme';
 
-type ExamPartGuideScreenProps = NativeStackScreenProps<MockExamStackParamList, "ExamPartGuide">;
+type ExamPartGuideScreenProps = NativeStackScreenProps<MockExamStackParamList, 'ExamPartGuide'>;
 
 export function ExamPartGuideScreen({ navigation }: ExamPartGuideScreenProps) {
   const { width } = useWindowDimensions();
@@ -37,11 +37,11 @@ export function ExamPartGuideScreen({ navigation }: ExamPartGuideScreenProps) {
   };
 
   const handleStartExam = () => {
-    navigation.navigate("MicrophoneTest");
+    navigation.navigate('MicrophoneTest');
   };
 
   return (
-    <SafeAreaView edges={["top"]} className="flex-1 bg-surface">
+    <SafeAreaView edges={['top']} className="flex-1 bg-surface">
       <View className="h-16 flex-row items-center px-screen">
         <Pressable
           accessibilityLabel="뒤로 가기"

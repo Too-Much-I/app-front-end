@@ -1,12 +1,9 @@
-import { UploadType, type File } from "expo-file-system";
+import { UploadType, type File } from 'expo-file-system';
 
-import {
-  deleteRecordingFile,
-  getValidRecordingFile,
-} from "@/features/audio/recording-file";
+import { deleteRecordingFile, getValidRecordingFile } from '@/features/audio/recording-file';
 
 /** 앱이 녹음하는 형식. 서버가 다른 `Content-Type`을 지정하면 호출부가 그것을 넘긴다. */
-export const ANSWER_AUDIO_CONTENT_TYPE = "audio/mp4";
+export const ANSWER_AUDIO_CONTENT_TYPE = 'audio/mp4';
 const PUT_TIMEOUT_MS = 15_000;
 const PUT_RETRY_DELAYS_MS = [1_000, 2_000, 4_000, 8_000, 16_000] as const;
 
@@ -23,12 +20,12 @@ export class AnswerAudioUploadError extends Error {
     options?: ErrorOptions,
   ) {
     super(message, options);
-    this.name = "AnswerAudioUploadError";
+    this.name = 'AnswerAudioUploadError';
   }
 }
 
 function isAbortError(error: unknown): boolean {
-  return error instanceof Error && error.name === "AbortError";
+  return error instanceof Error && error.name === 'AbortError';
 }
 
 function isRetryableStatus(status: number): boolean {
@@ -43,15 +40,15 @@ function wait(ms: number, signal?: AbortSignal): Promise<void> {
     }
 
     const timeoutId = setTimeout(() => {
-      signal?.removeEventListener("abort", handleAbort);
+      signal?.removeEventListener('abort', handleAbort);
       resolve();
     }, ms);
     const handleAbort = () => {
       clearTimeout(timeoutId);
-      signal?.removeEventListener("abort", handleAbort);
+      signal?.removeEventListener('abort', handleAbort);
       reject(signal?.reason);
     };
-    signal?.addEventListener("abort", handleAbort, { once: true });
+    signal?.addEventListener('abort', handleAbort, { once: true });
   });
 }
 
@@ -69,14 +66,14 @@ function createAttemptSignal(signal?: AbortSignal): {
   const abortFromCaller = () => controller.abort(signal?.reason);
 
   if (signal?.aborted) abortFromCaller();
-  else signal?.addEventListener("abort", abortFromCaller, { once: true });
+  else signal?.addEventListener('abort', abortFromCaller, { once: true });
 
   return {
     signal: controller.signal,
     didTimeout: () => timedOut,
     cleanup: () => {
       clearTimeout(timeoutId);
-      signal?.removeEventListener("abort", abortFromCaller);
+      signal?.removeEventListener('abort', abortFromCaller);
     },
   };
 }
@@ -85,7 +82,7 @@ export function getValidAnswerAudioFile(audioFileUri: string): File {
   try {
     return getValidRecordingFile(audioFileUri);
   } catch (error) {
-    throw new AnswerAudioUploadError("유효한 답변 파일을 찾지 못했어요.", false, null, {
+    throw new AnswerAudioUploadError('유효한 답변 파일을 찾지 못했어요.', false, null, {
       cause: error,
     });
   }
@@ -100,11 +97,11 @@ async function putAnswerAudio(
   const attempt = createAttemptSignal(signal);
   try {
     const result = await file.upload(uploadUrl, {
-      httpMethod: "PUT",
+      httpMethod: 'PUT',
       uploadType: UploadType.BINARY_CONTENT,
-      headers: { "Content-Type": contentType },
+      headers: { 'Content-Type': contentType },
       mimeType: contentType,
-      sessionType: "foreground",
+      sessionType: 'foreground',
       signal: attempt.signal,
     });
 
@@ -119,11 +116,11 @@ async function putAnswerAudio(
     if (error instanceof AnswerAudioUploadError) throw error;
     if (signal?.aborted) throw error;
     if (attempt.didTimeout() || isAbortError(error)) {
-      throw new AnswerAudioUploadError("답변 업로드 시간이 초과됐어요.", true, null, {
+      throw new AnswerAudioUploadError('답변 업로드 시간이 초과됐어요.', true, null, {
         cause: error,
       });
     }
-    throw new AnswerAudioUploadError("답변 업로드 중 네트워크 오류가 발생했어요.", true, null, {
+    throw new AnswerAudioUploadError('답변 업로드 중 네트워크 오류가 발생했어요.', true, null, {
       cause: error,
     });
   } finally {
@@ -143,7 +140,7 @@ export async function uploadAnswerAudio(
 
   for (let attempt = 0; ; attempt += 1) {
     if (Date.now() >= expiresAt) {
-      throw new AnswerAudioUploadError("답변 업로드 주소가 만료됐어요.", false, 403);
+      throw new AnswerAudioUploadError('답변 업로드 주소가 만료됐어요.', false, 403);
     }
 
     try {
@@ -159,7 +156,7 @@ export async function uploadAnswerAudio(
       const delay = getEqualJitterDelayMs(baseDelay);
       if (Date.now() + delay + PUT_TIMEOUT_MS >= expiresAt) {
         throw new AnswerAudioUploadError(
-          "답변 업로드 주소의 남은 시간이 부족해 재시도할 수 없어요.",
+          '답변 업로드 주소의 남은 시간이 부족해 재시도할 수 없어요.',
           false,
           403,
           { cause: error },

@@ -1,31 +1,28 @@
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { StatusBar } from "expo-status-bar";
-import { useCallback } from "react";
-import { Image, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback } from 'react';
+import { Image, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from "@/components/ui/Button";
-import { Text } from "@/components/ui/Text";
-import { useChallengeToday } from "@/features/challenge/use-challenge-today";
-import type { RootStackParamList } from "@/navigation/types";
+import { Button } from '@/components/ui/Button';
+import { Text } from '@/components/ui/Text';
+import { useChallengeToday } from '@/features/challenge/use-challenge-today';
+import type { RootStackParamList } from '@/navigation/types';
 import {
   toChallengeStageState,
   type ChallengeStageQuestion,
-} from "@/screens/challenge/challenge-stage-status";
-import { ChallengeHeader } from "@/screens/challenge/components/ChallengeHeader";
-import { ChallengeStageField } from "@/screens/challenge/components/ChallengeStageField";
-import { ChallengeStageProgressCard } from "@/screens/challenge/components/ChallengeStageProgressCard";
-import { ChallengeStageSkeleton } from "@/screens/challenge/components/ChallengeStageSkeleton";
-import { shadows } from "@/theme";
+} from '@/screens/challenge/challenge-stage-status';
+import { ChallengeHeader } from '@/screens/challenge/components/ChallengeHeader';
+import { ChallengeStageField } from '@/screens/challenge/components/ChallengeStageField';
+import { ChallengeStageProgressCard } from '@/screens/challenge/components/ChallengeStageProgressCard';
+import { ChallengeStageSkeleton } from '@/screens/challenge/components/ChallengeStageSkeleton';
+import { shadows } from '@/theme';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
-const greetingRabbit = require("../../../public/mascots/greeting_rabbit_bust.png");
-const errorRabbit = require("../../../public/mascots/error.png");
+const greetingRabbit = require('../../../public/mascots/greeting_rabbit_bust.png');
+const errorRabbit = require('../../../public/mascots/error.png');
 
-type ChallengeStageScreenProps = NativeStackScreenProps<
-  RootStackParamList,
-  "ChallengeStage"
->;
+type ChallengeStageScreenProps = NativeStackScreenProps<RootStackParamList, 'ChallengeStage'>;
 
 /**
  * 오늘 어디까지 왔는지 보고 다음 문장으로 들어가는 화면.
@@ -55,8 +52,8 @@ export function ChallengeStageScreen({ navigation }: ChallengeStageScreenProps) 
    */
   const openQuestion = useCallback(
     (question: ChallengeStageQuestion, date: string, nextQuestionNumber: number | null) => {
-      if (question.status === "done") {
-        navigation.navigate("ChallengeResult", {
+      if (question.status === 'done') {
+        navigation.navigate('ChallengeResult', {
           challengeDate: date,
           questionNumber: question.questionNumber,
           ...(nextQuestionNumber === null ? {} : { nextQuestionNumber }),
@@ -64,7 +61,7 @@ export function ChallengeStageScreen({ navigation }: ChallengeStageScreenProps) 
         return;
       }
 
-      navigation.navigate("TenSecondChallenge", {
+      navigation.navigate('TenSecondChallenge', {
         challengeDate: date,
         questionNumber: question.questionNumber,
       });
@@ -77,10 +74,10 @@ export function ChallengeStageScreen({ navigation }: ChallengeStageScreenProps) 
       <StatusBar style="dark" />
       <ChallengeHeader onClose={goBack} />
 
-      <SafeAreaView className="flex-1" edges={["bottom"]}>
-        {state.status === "loading" ? <ChallengeStageSkeleton /> : null}
+      <SafeAreaView className="flex-1" edges={['bottom']}>
+        {state.status === 'loading' ? <ChallengeStageSkeleton /> : null}
 
-        {state.status === "error" ? (
+        {state.status === 'error' ? (
           <View className="flex-1 items-center justify-center gap-5 px-screen">
             <Image
               accessibilityElementsHidden
@@ -109,7 +106,7 @@ export function ChallengeStageScreen({ navigation }: ChallengeStageScreenProps) 
           </View>
         ) : null}
 
-        {state.status === "ready" ? (
+        {state.status === 'ready' ? (
           <ScrollView
             className="flex-1"
             contentContainerClassName="grow px-screen pb-6"
@@ -158,8 +155,8 @@ export function ChallengeStageScreen({ navigation }: ChallengeStageScreenProps) 
                 `mt-auto`는 내용이 화면을 넘칠 때 저절로 0이 되어 밭을 밀지 않는다. */}
             <Text className="mt-auto pt-6 text-center text-sm text-ink-muted">
               {state.nextQuestionNumber === null
-                ? "오늘 몫을 다 뽑았어요. 내일 또 만나요!"
-                : "당근을 따라 오늘의 문제를 시작해요"}
+                ? '오늘 몫을 다 뽑았어요. 내일 또 만나요!'
+                : '당근을 따라 오늘의 문제를 시작해요'}
             </Text>
           </ScrollView>
         ) : null}
@@ -169,5 +166,5 @@ export function ChallengeStageScreen({ navigation }: ChallengeStageScreenProps) 
 }
 
 function countSolved(questions: ChallengeStageQuestion[]): number {
-  return questions.filter((question) => question.status === "done").length;
+  return questions.filter((question) => question.status === 'done').length;
 }

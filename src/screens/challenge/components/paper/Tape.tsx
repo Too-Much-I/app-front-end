@@ -1,17 +1,17 @@
-import { View } from "react-native";
+import { View } from 'react-native';
 
-export type TapeTone = "sky" | "mint";
-export type TapeSide = "left" | "right";
+export type TapeTone = 'sky' | 'mint';
+export type TapeSide = 'left' | 'right';
 
 const TONE_CLASSNAME: Record<TapeTone, string> = {
-  sky: "bg-sky/90",
-  mint: "bg-challenge-mint-label",
+  sky: 'bg-sky/90',
+  mint: 'bg-challenge-mint-label',
 };
 
 /** 종이 밖으로 나가야 "붙인 것"으로 보인다. 부모가 클리핑하면 이 여분이 잘린다. */
 const SIDE_CLASSNAME: Record<TapeSide, string> = {
-  left: "-left-2",
-  right: "-right-2",
+  left: '-left-2',
+  right: '-right-2',
 };
 
 const TAPE_DOT_COLUMNS = 4;

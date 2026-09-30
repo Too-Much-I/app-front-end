@@ -1,8 +1,8 @@
-import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
-import type { Ref } from "react";
-import type { View } from "react-native";
+import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import type { Ref } from 'react';
+import type { View } from 'react-native';
 
-import { Pressable } from "@/components/ui/Pressable";
+import { Pressable } from '@/components/ui/Pressable';
 
 /**
  * 탭바 버튼.
@@ -39,12 +39,7 @@ export function TabBarButton({
   return (
     // ref 캐스팅: react-navigation이 이 prop을 `Ref<View | LegacyRef<View>>`로 느슨하게
     // 선언해 둬서 RN의 `Ref<View>`와 바로 맞지 않는다. 실제로 넘어오는 값은 View ref다.
-    <Pressable
-      ref={ref as Ref<View>}
-      accessible
-      {...props}
-      style={style}
-    >
+    <Pressable ref={ref as Ref<View>} accessible {...props} style={style}>
       {children}
     </Pressable>
   );

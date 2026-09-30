@@ -1,6 +1,6 @@
-import { Accelerometer } from "expo-sensors";
-import { useEffect, useState } from "react";
-import { AppState, useWindowDimensions } from "react-native";
+import { Accelerometer } from 'expo-sensors';
+import { useEffect, useState } from 'react';
+import { AppState, useWindowDimensions } from 'react-native';
 
 /** 4Hz. 안내 문구 하나를 띄우는 데 이보다 잦은 표본은 배터리 낭비다. */
 const UPDATE_INTERVAL_MS = 250;
@@ -73,7 +73,7 @@ export function useLandscapeDetection(): boolean {
       if (
         cancelled ||
         startGeneration !== generation ||
-        AppState.currentState !== "active" ||
+        AppState.currentState !== 'active' ||
         !available ||
         subscription !== null
       ) {
@@ -94,11 +94,11 @@ export function useLandscapeDetection(): boolean {
       setSensorLandscape(false);
     };
 
-    if (AppState.currentState === "active") void start();
+    if (AppState.currentState === 'active') void start();
 
     // 백그라운드에서 센서를 돌릴 이유가 없다. 배터리 비용의 대부분이 여기서 준다.
-    const appStateSubscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") void start();
+    const appStateSubscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void start();
       else stop();
     });
 

@@ -1,7 +1,7 @@
-import { mapChallengeDayResult } from "@/features/challenge/map-challenge-day-result";
-import { apiFetchWithAuthRetry } from "@/lib/api/client";
-import type { ApiEnvelope } from "@/types/api";
-import type { ChallengeDayResult, RawChallengeDayResult } from "@/types/challenge";
+import { mapChallengeDayResult } from '@/features/challenge/map-challenge-day-result';
+import { apiFetchWithAuthRetry } from '@/lib/api/client';
+import type { ApiEnvelope } from '@/types/api';
+import type { ChallengeDayResult, RawChallengeDayResult } from '@/types/challenge';
 
 /**
  * 특정 날짜의 문제 하나에 대한 풀이 결과를 가져온다.

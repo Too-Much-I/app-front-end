@@ -20,16 +20,16 @@
  * 옆의 "토선생" 워드마크와 UI의 주황은 500으로 통일한다.
  */
 const brand = {
-  50: "#FFF7F2",
-  100: "#FFECE0",
-  200: "#FFD9C2",
-  300: "#FFBD94",
-  400: "#FC9351",
-  500: "#F76910",
-  600: "#E05B07",
-  700: "#BD4900",
-  800: "#993B00",
-  900: "#752D00",
+  50: '#FFF7F2',
+  100: '#FFECE0',
+  200: '#FFD9C2',
+  300: '#FFBD94',
+  400: '#FC9351',
+  500: '#F76910',
+  600: '#E05B07',
+  700: '#BD4900',
+  800: '#993B00',
+  900: '#752D00',
 };
 
 const colors = {
@@ -57,28 +57,28 @@ const colors = {
    */
   sky: {
     /** 마이크·음향 테스트처럼 긍정 상태를 또렷하게 표시하는 기본 하늘색. */
-    DEFAULT: "#80C8F0",
+    DEFAULT: '#80C8F0',
     /** 카드 바탕. 페이지 배경(#FFF9F2)·흰 카드와 명도는 비슷하지만 색조로 갈린다. */
-    surface: "#DCEDF9",
+    surface: '#DCEDF9',
     /** 명도차가 작아 경계가 흐려지므로 헤어라인으로 형태를 잡아준다. */
-    line: "#B9DCF2",
+    line: '#B9DCF2',
     /** `sky.surface` 위 텍스트용. 6.31:1로 본문 기준(4.5:1)을 넘긴다. */
-    text: "#0E5A7D",
+    text: '#0E5A7D',
   },
   ink: {
-    DEFAULT: "#111827",
-    muted: "#6B7280",
-    disabled: "#9CA3AF",
+    DEFAULT: '#111827',
+    muted: '#6B7280',
+    disabled: '#9CA3AF',
   },
   surface: {
-    DEFAULT: "#FFFFFF",
+    DEFAULT: '#FFFFFF',
     /** 목업의 카드 바탕에서 측정한 따뜻한 크림(#FFF9F2). 회색이 아니다. */
-    subtle: "#FFF9F2",
+    subtle: '#FFF9F2',
     /** 입력·시간 정보처럼 흰 화면 위에서 조용히 구분되는 중립 배경. */
-    muted: "#F7F7F7",
+    muted: '#F7F7F7',
   },
   line: {
-    DEFAULT: "#E5E7EB",
+    DEFAULT: '#E5E7EB',
   },
   /**
    * 시험 진행 화면 전용 상태색.
@@ -87,10 +87,10 @@ const colors = {
    * 브랜드·피드백 색과 역할이 다르므로 개별 화면에 hex를 흩뿌리지 않고 여기서 관리한다.
    */
   exam: {
-    navy: "#172554",
-    danger: "#EF4444",
-    dangerLine: "#F87171",
-    dangerSoft: "#FCA5A5",
+    navy: '#172554',
+    danger: '#EF4444',
+    dangerLine: '#F87171',
+    dangerSoft: '#FCA5A5',
   },
   /**
    * 채점 대기 화면의 "채점표" 전용 색.
@@ -104,14 +104,14 @@ const colors = {
    */
   grading: {
     /** 빨간펜 잉크 — 체크, 밑줄, 여백선의 기준색. */
-    ink: "#DE3125",
-    paper: "#FFFDF8",
+    ink: '#DE3125',
+    paper: '#FFFDF8',
     /** 종이의 가장자리. 그림자만으로는 크림 배경 위에서 경계가 흐려진다. */
-    paperEdge: "#ECE2CF",
+    paperEdge: '#ECE2CF',
     /** 가로 괘선. 파랑기가 있는 회색이라 잉크의 빨강과 부딪히지 않는다. */
-    rule: "#D9E3ED",
+    rule: '#D9E3ED',
     /** 왼쪽 세로 여백선 — 잉크를 흐리게 뺀 값. */
-    margin: "#F0B6AE",
+    margin: '#F0B6AE',
   },
   /**
    * 10초 챌린지 노트 전용 색.
@@ -125,13 +125,13 @@ const colors = {
    */
   challenge: {
     /** 속지 아래 깔린 크림 대지. 페이지 배경(#FFF9F2)보다 살짝 노랗다. */
-    mat: "#FDF5E5",
+    mat: '#FDF5E5',
     /** 속지의 옅은 가로 괘선. 흰 종이 위에서 거의 보이지 않을 만큼 옅어야 한다. */
-    rule: "#EFF6FC",
+    rule: '#EFF6FC',
     /** "오늘의 문장" 라벨 바탕. 위에 올리는 글자는 `ink`. */
-    label: "#FDE897",
+    label: '#FDE897',
     /** 왼쪽 가장자리 펀치 구멍의 테두리 — 구멍 자체는 대지 색으로 뚫는다. */
-    holeEdge: "#DED3BE",
+    holeEdge: '#DED3BE',
     /**
      * 결과 화면 문장 카드의 민트 톤.
      *
@@ -140,22 +140,22 @@ const colors = {
      * 색으로 구분되지 않기 때문이다.
      */
     mint: {
-      surface: "#E6F3E7",
+      surface: '#E6F3E7',
       /** 라벨 칩 바탕. 카드 바탕보다 한 단계 진해야 칩으로 읽힌다. */
-      label: "#CDE9D3",
+      label: '#CDE9D3',
       /** 민트 바탕 위 텍스트. 대비 5.9:1로 본문 기준(4.5:1)을 넘긴다. */
-      text: "#2F6B4A",
+      text: '#2F6B4A',
     },
     /** "토선생의 한마디" 판정 카드. 노트의 라벨 노랑(`label`)보다 한 단계 짙다. */
-    verdict: "#FBE7AC",
+    verdict: '#FBE7AC',
     /** 판정 카드 모서리에 붙는 별 스티커. */
-    star: "#FBC02D",
+    star: '#FBC02D',
     /** 완료를 축하하는 색종이. 네 색을 번갈아 뿌린다. */
     confetti: {
-      pink: "#F9C6C9",
-      yellow: "#FBD46A",
-      mint: "#BFE3C8",
-      sky: "#A8D2F0",
+      pink: '#F9C6C9',
+      yellow: '#FBD46A',
+      mint: '#BFE3C8',
+      sky: '#A8D2F0',
     },
     /**
      * 첨삭 심각도 3단계.
@@ -168,58 +168,58 @@ const colors = {
      * 빨강을 새로 들이면 `exam.danger`(오류)와 의미가 겹친다.
      */
     correction: {
-      high: "#C2410C",
-      medium: "#F97316",
-      low: "#FDBA74",
+      high: '#C2410C',
+      medium: '#F97316',
+      low: '#FDBA74',
     },
   },
   /** 결과 피드백 화면의 카드, 상태 배지와 교실 칠판에만 쓰는 의미 색. */
   feedback: {
-    scoreSurface: "#07513D",
-    scoreSurfaceSoft: "#116B53",
-    scoreTrack: "#397464",
-    chalkboard: "#174D3C",
-    chalkboardDeep: "#0E382C",
-    chalk: "#F7F2D7",
-    chalkMuted: "#C8DCCF",
-    wood: "#A76B3D",
-    woodLight: "#D49A62",
-    cardTint: "#FFF8EF",
-    cardLine: "#FFC3A2",
-    positive: "#169B5B",
-    positiveSoft: "#EAF8F0",
-    caution: "#E99A0B",
-    cautionSoft: "#FFF6DF",
-    improvement: "#EF5B62",
-    improvementSoft: "#FFF0F1",
+    scoreSurface: '#07513D',
+    scoreSurfaceSoft: '#116B53',
+    scoreTrack: '#397464',
+    chalkboard: '#174D3C',
+    chalkboardDeep: '#0E382C',
+    chalk: '#F7F2D7',
+    chalkMuted: '#C8DCCF',
+    wood: '#A76B3D',
+    woodLight: '#D49A62',
+    cardTint: '#FFF8EF',
+    cardLine: '#FFC3A2',
+    positive: '#169B5B',
+    positiveSoft: '#EAF8F0',
+    caution: '#E99A0B',
+    cautionSoft: '#FFF6DF',
+    improvement: '#EF5B62',
+    improvementSoft: '#FFF0F1',
     history: {
-      chartLine: "#C9DEF2",
-      blue: "#2F86D5",
-      blueSoft: "#E8F3FD",
-      green: "#168C51",
-      greenSoft: "#E8F6ED",
-      purple: "#7057C9",
-      purpleSoft: "#F0ECFC",
-      orange: "#D95700",
-      orangeSoft: "#FFF0E5",
+      chartLine: '#C9DEF2',
+      blue: '#2F86D5',
+      blueSoft: '#E8F3FD',
+      green: '#168C51',
+      greenSoft: '#E8F6ED',
+      purple: '#7057C9',
+      purpleSoft: '#F0ECFC',
+      orange: '#D95700',
+      orangeSoft: '#FFF0E5',
     },
-    radarGrid: "#89AA9D",
-    radarFill: "#FFCD45",
-    radarPoint: "#FF8B32",
+    radarGrid: '#89AA9D',
+    radarFill: '#FFCD45',
+    radarPoint: '#FF8B32',
     /** 파트별 피드백 카드는 색을 통일하고 상태 배지만 별도 색으로 구분한다. */
     part: {
-      surface: "#FFFDF8",
-      border: "#E9DED0",
-      accent: "#F76910",
-      body: "#374151",
-      action: "#FFF1E7",
-      actionText: "#993B00",
-      positive: "#137A4B",
-      positiveSoft: "#E8F5EE",
-      caution: "#A86600",
-      cautionSoft: "#FFF4D8",
-      improvement: "#C8454B",
-      improvementSoft: "#FDECEC",
+      surface: '#FFFDF8',
+      border: '#E9DED0',
+      accent: '#F76910',
+      body: '#374151',
+      action: '#FFF1E7',
+      actionText: '#993B00',
+      positive: '#137A4B',
+      positiveSoft: '#E8F5EE',
+      caution: '#A86600',
+      cautionSoft: '#FFF4D8',
+      improvement: '#C8454B',
+      improvementSoft: '#FDECEC',
     },
   },
 };
@@ -235,9 +235,9 @@ const colors = {
  * 같은 단계에서 비슷한 깊이로 보여야 하므로 한 덩어리로 묶어 둔다.
  */
 const shadow = {
-  color: "#000000",
+  color: '#000000',
   /** 그림자 끄기용. RN은 `shadowColor`를 비울 수 없어 투명색으로 끈다. */
-  colorNone: "transparent",
+  colorNone: 'transparent',
   card: { offsetY: 2, opacity: 0.08, radius: 8, elevation: 3 },
   /** 위로 뜨는 그림자 — 하단 탭바처럼 화면 아래에 붙는 표면용. */
   raisedBottom: { offsetY: -2, opacity: 0.06, radius: 8, elevation: 8 },
@@ -249,8 +249,8 @@ const shadow = {
  * `sans`도 같은 값으로 덮어써서, 별도 지정 없이 떨어지는 텍스트도 Jua가 되게 한다.
  */
 const fontFamily = {
-  jua: ["Jua_400Regular"],
-  sans: ["Jua_400Regular"],
+  jua: ['Jua_400Regular'],
+  sans: ['Jua_400Regular'],
 };
 
 /**
@@ -289,8 +289,8 @@ const fontSize = {
   base: [remFromPx(16), { lineHeight: remFromPx(24) }],
   lg: [remFromPx(18), { lineHeight: remFromPx(26) }],
   xl: [remFromPx(20), { lineHeight: remFromPx(28) }],
-  "2xl": [remFromPx(24), { lineHeight: remFromPx(32) }],
-  "3xl": [remFromPx(30), { lineHeight: remFromPx(38) }],
+  '2xl': [remFromPx(24), { lineHeight: remFromPx(32) }],
+  '3xl': [remFromPx(30), { lineHeight: remFromPx(38) }],
 };
 
 /**
@@ -311,11 +311,11 @@ const spacing = {
   md: 12,
   lg: 16,
   xl: 20,
-  "2xl": 24,
-  "3xl": 32,
-  "4xl": 40,
-  "5xl": 48,
-  "6xl": 64,
+  '2xl': 24,
+  '3xl': 32,
+  '4xl': 40,
+  '5xl': 48,
+  '6xl': 64,
 };
 
 /**
@@ -348,8 +348,8 @@ const layout = {
   element: spacing.md,
   card: spacing.lg,
   screen: spacing.xl,
-  section: spacing["2xl"],
-  "section-lg": spacing["3xl"],
+  section: spacing['2xl'],
+  'section-lg': spacing['3xl'],
 };
 
 /**
@@ -370,9 +370,7 @@ const layout = {
  * `max-w-3xl`·`w-screen` 같은 기존 클래스는 여기 키를 더해도 그대로다.
  */
 const toRemScale = (scale) =>
-  Object.fromEntries(
-    Object.entries(scale).map(([key, px]) => [key, remFromPx(px)]),
-  );
+  Object.fromEntries(Object.entries(scale).map(([key, px]) => [key, remFromPx(px)]));
 
 const spacingScale = { ...toRemScale(spacing), ...toRemScale(layout) };
 
@@ -417,7 +415,7 @@ const radius = {
  *
  * 기본 스케일(`rounded-2xl` 등)은 `spacing`과 마찬가지로 덮어쓰지 않고 키를 더하기만 한다.
  */
-const radiusScale = { ...toRemScale(radius), pill: "9999px" };
+const radiusScale = { ...toRemScale(radius), pill: '9999px' };
 
 /**
  * 요소 자체의 치수 — px 원시값.
@@ -482,10 +480,7 @@ const size = {
  * 그대로면 글자가 버튼을 밀어낸다.
  */
 const controlHeightScale = Object.fromEntries(
-  Object.entries(size.control).map(([key, px]) => [
-    `control-${key}`,
-    remFromPx(px),
-  ]),
+  Object.entries(size.control).map(([key, px]) => [`control-${key}`, remFromPx(px)]),
 );
 
 /**

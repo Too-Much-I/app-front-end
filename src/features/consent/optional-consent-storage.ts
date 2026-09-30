@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * 선택 동의 항목 — 채점 품질 및 안전성 개선을 위한 답변 검토.
@@ -18,9 +18,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  * 즉 이 저장소는 서버 왕복 전에 읽는 캐시이지 진실의 원천이 아니다. 이번 실행에서
  * 이용자가 정한 선택은 `auth-controller`가 메모리에 들고 있고 그쪽이 우선한다.
  */
-export const QUALITY_REVIEW_CONSENT_VERSION = "quality-review-v1";
+export const QUALITY_REVIEW_CONSENT_VERSION = 'quality-review-v1';
 
-const STORAGE_KEY = "optional-consent-record";
+const STORAGE_KEY = 'optional-consent-record';
 
 export type OptionalConsentRecord = {
   schemaVersion: 1;
@@ -32,11 +32,11 @@ export type OptionalConsentRecord = {
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
 function isValidIsoDate(value: unknown): value is string {
-  return typeof value === "string" && Number.isFinite(Date.parse(value));
+  return typeof value === 'string' && Number.isFinite(Date.parse(value));
 }
 
 function isOptionalConsentRecord(value: unknown): value is OptionalConsentRecord {
@@ -46,8 +46,8 @@ function isOptionalConsentRecord(value: unknown): value is OptionalConsentRecord
   const item = value.qualityReview;
   return (
     isRecord(item) &&
-    typeof item.consented === "boolean" &&
-    typeof item.version === "string" &&
+    typeof item.consented === 'boolean' &&
+    typeof item.version === 'string' &&
     isValidIsoDate(item.decidedAt)
   );
 }
