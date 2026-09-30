@@ -2,6 +2,8 @@ name: CI
 
 on:
   pull_request:
+    # edited: PR 본문의 "동작 변화 없음" 선언을 고치면 학습 기록 검사를 다시 돌린다.
+    types: [opened, synchronize, reopened, edited]
   push:
     branches: [main]
 
@@ -26,6 +28,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          # 학습 기록 검사가 base...HEAD로 PR의 변경 파일을 구한다.
+          fetch-depth: 0
 
       # package.json의 packageManager 필드에서 pnpm 버전을 읽는다.
       - uses: pnpm/action-setup@v6
@@ -54,6 +58,15 @@ jobs:
       - name: pnpm check:naming
         if: ${{ !cancelled() }}
         run: pnpm check:naming
+
+      # 동작이 바뀌는 PR에는 사람이 쓴 학습 기록(예상·찾은 것·흐름 설명·달라진 것)이 있어야 한다.
+      # 내용이 맞는지는 판단하지 않는다. 규칙: docs/how-we-work.md, docs/learning/README.md
+      - name: pnpm check:learning
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: pnpm check:learning
 
   architecture:
     # 최초 실행 뒤 main 룰셋의 required status check에 이 이름을 등록한다.
