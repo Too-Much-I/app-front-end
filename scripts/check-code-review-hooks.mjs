@@ -15,10 +15,14 @@ import {
   reviewStatistics,
   submitReview,
 } from './code-review/core.mjs';
+import { evaluateLearningRecord } from './code-review/learning.mjs';
 
 const root = mkdtempSync(join(tmpdir(), 'code-review-hook-test-'));
 const cli = resolve(dirname(fileURLToPath(import.meta.url)), 'code-review/cli.mjs');
 const key = reviewSessionKey('session-A');
+const LEARNING = 'docs/learning/2026-10-01-test.md';
+const learningRecord = ({ prediction = '- 예상: 값이 2가 된다', rest = '' } = {}) =>
+  `# 작업\n\n## 구현 전 예상\n<!-- 안내 -->\n${prediction}\n\n## 시나리오 지도\n\n${rest}`;
 const event = {
   session_id: 'session-A',
   hook_event_name: 'Stop',
@@ -58,8 +62,10 @@ try {
     '.agents/skills/review-completed-code/SKILL.md',
     'scripts/code-review/core.mjs',
     'scripts/code-review/cli.mjs',
+    'scripts/code-review/learning.mjs',
   ])
     write(path, 'fixture\n');
+  write(LEARNING, learningRecord());
 
   check('명시적인 구현 시작이 없으면 검사/리뷰하지 않는다', () => {
     assert.deepEqual(
@@ -67,13 +73,13 @@ try {
       {},
     );
   });
-  let { runId } = beginReviewCycle(root, key, '첫 작업');
+  let { runId } = beginReviewCycle(root, key, '첫 작업', LEARNING);
   check('스켈레톤만 변경하면 리뷰를 생략한다', () => {
     write('src/learning.skeleton.ts', '여전히 미완성\n');
     assert.equal(readyReviewCycle(root, key, ['src/learning.skeleton.ts']).phase, 'skipped');
     assert.deepEqual(handleReviewStop(root, event), {});
   });
-  ({ runId } = beginReviewCycle(root, key, '실제 구현'));
+  ({ runId } = beginReviewCycle(root, key, '실제 구현', LEARNING));
   check('구현 중에는 종료해도 검사하지 않는다', () => {
     assert.deepEqual(
       handleReviewStop(root, event, () => assert.fail('검사 실행 금지')),
@@ -178,7 +184,7 @@ try {
     assert.equal(runRecord(runId).evaluations.length, 3);
     assert.throws(() => evaluateFinding(root, runId, 'F2', 'useful'));
   });
-  ({ runId } = beginReviewCycle(root, key, '수정 경쟁'));
+  ({ runId } = beginReviewCycle(root, key, '수정 경쟁', LEARNING));
   write('src/example.ts', 'export const value = 3;\n');
   readyReviewCycle(root, key, ['src/example.ts']);
   check('ready 이후 바뀐 코드에는 예전 검사/리뷰를 적용하지 않는다', () => {
@@ -205,7 +211,7 @@ try {
     assert.equal(runRecord(runId).phase, 'stale');
     cancelReviewCycle(root, key);
   });
-  ({ runId } = beginReviewCycle(root, key, '비교 기준', 'checks-only'));
+  ({ runId } = beginReviewCycle(root, key, '비교 기준', LEARNING, 'checks-only'));
   write('src/example.ts', 'export const value = 7;\n');
   check('검사 전용 비교군은 AI 리뷰를 호출하지 않는다', () => {
     readyReviewCycle(root, key, ['src/example.ts']);
@@ -213,7 +219,7 @@ try {
     assert.equal(runRecord(runId).phase, 'completed');
     assert.equal(reviewStatistics(root).find((group) => group.mode === 'checks-only').completed, 1);
   });
-  ({ runId } = beginReviewCycle(root, key, '삭제와 신규 파일'));
+  ({ runId } = beginReviewCycle(root, key, '삭제와 신규 파일', LEARNING));
   rmSync(join(root, 'src/example.ts'));
   write('src/new.ts', 'export const next = 1;\n');
   check('삭제·신규 파일과 지적 0건도 기록한다', () => {
@@ -255,7 +261,7 @@ try {
       `#!/usr/bin/env node\nrequire('node:fs').appendFileSync('checks.log', process.argv.slice(2).join(' ') + '\\n');\n`,
     );
     chmodSync(join(root, 'bin/pnpm'), 0o700);
-    ({ runId } = beginReviewCycle(root, key, '프로세스 통합'));
+    ({ runId } = beginReviewCycle(root, key, '프로세스 통합', LEARNING));
     write('src/new.ts', 'export const next = 2;\n');
     readyReviewCycle(root, key, ['src/new.ts']);
     const options = {
@@ -281,7 +287,7 @@ try {
   check('실제 검사 프로세스의 실패 종료 코드는 리뷰를 차단한다', () => {
     write('bin/pnpm', '#!/usr/bin/env node\nprocess.exitCode = 1;\n');
     chmodSync(join(root, 'bin/pnpm'), 0o700);
-    ({ runId } = beginReviewCycle(root, key, '실패 프로세스'));
+    ({ runId } = beginReviewCycle(root, key, '실패 프로세스', LEARNING));
     write('src/new.ts', 'export const next = 3;\n');
     readyReviewCycle(root, key, ['src/new.ts']);
     const result = spawnSync(process.execPath, [cli, 'hook'], {
@@ -303,7 +309,7 @@ try {
     assert.equal(runRecord(runId).phase, 'cancelled');
   });
   function completeWithFinding(value) {
-    ({ runId } = beginReviewCycle(root, key, '평가 질문 검증'));
+    ({ runId } = beginReviewCycle(root, key, '평가 질문 검증', LEARNING));
     write('src/new.ts', `export const next = ${value};\n`);
     readyReviewCycle(root, key, ['src/new.ts']);
     handleReviewStop(root, event, passed);
@@ -342,6 +348,67 @@ try {
     evaluateFinding(root, runId, 'F1', 'deferred');
     assert.deepEqual(handleReviewStop(root, event), {});
     assert.equal(runRecord(runId).evaluationRequest.status, 'resolved');
+  });
+  check('학습 기록 없이, 또는 예상이 비어 있으면 구현을 시작하지 않는다', () => {
+    const blank = 'docs/learning/2026-10-01-blank.md';
+    write(blank, learningRecord({ prediction: '- 예상:\n- 이유:\n- 반증:' }));
+    assert.throws(() => beginReviewCycle(root, key, '경로 없음'), /학습 기록 경로/);
+    assert.throws(
+      () => beginReviewCycle(root, key, 'README', 'docs/learning/README.md'),
+      /학습 기록 경로/,
+    );
+    assert.throws(() => beginReviewCycle(root, key, '빈 예상', blank), /비어 있습니다/);
+    assert.throws(
+      () => beginReviewCycle(root, key, '없는 파일', 'docs/learning/none.md'),
+      /없습니다/,
+    );
+  });
+  check('시작 시점의 예상을 고정하고, 완료 때 바뀐 예상과 빈 섹션을 알린다', () => {
+    write(LEARNING, learningRecord());
+    ({ runId } = beginReviewCycle(root, key, '예상 고정', LEARNING));
+    assert.equal(runRecord(runId).learning.prediction, '- 예상: 값이 2가 된다');
+    write(
+      LEARNING,
+      learningRecord({ prediction: '- 예상: 나중에 고친 예상', rest: '## 흐름 설명\n설명함\n' }),
+    );
+    write('src/new.ts', 'export const next = 7;\n');
+    readyReviewCycle(root, key, ['src/new.ts']);
+    handleReviewStop(root, event, passed);
+    const report = submitReview(root, runId, { summary: '지적 없음', findings: [] });
+    assert.equal(runRecord(runId).learning.prediction, '- 예상: 값이 2가 된다');
+    assert.equal(report.learning.predictionChanged, true);
+    assert.deepEqual(report.learning.missing, ['내가 찾은 것', '예상과 달라진 것']);
+  });
+  check('동작 변화 없음 선언은 학습 기록 없이 시작한다', () => {
+    ({ runId } = beginReviewCycle(root, key, '포맷', '동작 변화 없음'));
+    assert.deepEqual(runRecord(runId).learning, { declared: '동작 변화 없음' });
+    cancelReviewCycle(root, key);
+  });
+  check('CI 머지 조건: 문서만·선언·완성된 학습 기록만 통과', () => {
+    const filled = `## 구현 전 예상\n- 예상: A\n## 내가 찾은 것\nB\n## 흐름 설명\nC\n## 예상과 달라진 것\nD\n`;
+    const files = { 'docs/learning/2026-10-01-a.md': filled };
+    const decide = (changedFiles, prBody = '', addedFiles = changedFiles) =>
+      evaluateLearningRecord({ changedFiles, addedFiles, prBody, readFile: (path) => files[path] })
+        .ok;
+    assert.equal(decide(['docs/a.md', 'README.md']), true);
+    assert.equal(decide(['src/a.ts']), false);
+    assert.equal(decide(['src/a.ts'], '동작 변화 없음: 포맷만 변경'), true);
+    assert.equal(decide(['src/a.ts'], '<!-- 동작 변화 없음: 예시 -->'), false);
+    assert.equal(decide(['src/a.ts'], '동작 변화 없음:'), false);
+    // 템플릿 자리표시를 그대로 두면 사유를 쓰지 않은 것이다.
+    assert.equal(decide(['src/a.ts'], '동작 변화 없음: <사유>'), false);
+    assert.equal(decide(['src/a.ts'], '동작 변화 없음: <실제 사유>'), false);
+    assert.equal(decide(['src/a.ts', 'docs/learning/2026-10-01-a.md']), true);
+    files['docs/learning/2026-10-01-b.md'] = filled.replace('D\n', '<!-- 템플릿 -->\n');
+    assert.equal(decide(['src/a.ts', 'docs/learning/2026-10-01-b.md']), false);
+    assert.equal(decide(['src/a.ts', 'docs/learning/README.md']), false);
+    // 제목 표기(# 개수, # 뒤 공백, 제목 안 띄어쓰기)는 너그럽게 받는다.
+    files['docs/learning/2026-10-01-c.md'] =
+      `### 구현 전 예상\nA\n##내가 찾은 것\nB\n## 흐름설명\nC\n#### 예상과  달라진 것 ##\nD\n`;
+    assert.equal(decide(['src/a.ts', 'docs/learning/2026-10-01-c.md']), true);
+    // 이미 채워진 이전 작업의 기록을 수정만 한 PR은 통과하지 않는다.
+    const oldRecord = ['src/a.ts', 'docs/learning/2026-10-01-a.md'];
+    assert.equal(decide(oldRecord, '', ['src/a.ts']), false);
   });
   process.stdout.write(`코드 리뷰 훅 검사 ${assertions}개 통과\n`);
 } finally {

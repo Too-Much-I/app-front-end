@@ -25,6 +25,15 @@ description: Review this project's completed, verified code changes when its cod
 - 사용자 스켈레톤의 TODO·주석·누락 import를 리팩토링 제안으로 채우지 않는다.
 - 지적 개수를 맞추지 않는다. 근거 있는 지적이 없으면 findings를 빈 배열로 제출한다.
 
+## 시나리오 지도
+
+`packet`의 `learning.path`가 있으면 리뷰를 제출한 뒤 그 학습 기록의 "시나리오 지도"에 깨질 수 있는
+시나리오 3개를 쓴다. 각 시나리오는 시작 조건, 찾을 질문, 지나가는 함수(`파일:줄`)만 적는다.
+답, 결과, 답을 암시하는 표현은 쓰지 않는다. 리뷰 지적과 같은 내용을 시나리오로 반복하지 않는다.
+"구현 전 예상", "내가 찾은 것", "흐름 설명", "예상과 달라진 것"은 사람이 쓰며 AI가 채우거나 다듬지 않는다.
+`submit` 응답의 `learning.missing`과 `predictionChanged`를 사용자에게 알린다. 비어 있으면 머지 전
+CI가 막는다는 사실을 함께 알린다.
+
 ## 결과 기록
 
 `output/code-review/<실행ID>-report.json`에 다음 모양으로 작성한다.
