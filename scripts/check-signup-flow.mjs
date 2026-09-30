@@ -58,20 +58,30 @@ const firebase = {
   user: { uid: 'firebase-user', phoneNumber: null },
   sends: [],
   links: [],
+  updates: [],
   linkError: null,
+  lastSentPhone: null,
 };
 const mocks = {
   'react-native': { Platform: { OS: 'ios' }, AppState: appState },
   '@react-native-firebase/auth': {
     getAuth: () => ({ currentUser: firebase.user }),
-    verifyPhoneNumber: (_auth, phone, _timeout, forceResend) => ({
-      on: (_event, observer) => firebase.sends.push({ phone, forceResend, observer }),
-    }),
+    verifyPhoneNumber: (_auth, phone, _timeout, forceResend) => {
+      firebase.lastSentPhone = phone;
+      return { on: (_event, observer) => firebase.sends.push({ phone, forceResend, observer }) };
+    },
     PhoneAuthProvider: { credential: (verificationId, code) => ({ verificationId, code }) },
+    // 실제 SDK처럼 사용자에 번호는 하나다. 이미 있으면 link는 실패하고 update로 교체한다.
     linkWithCredential: async (user, credential) => {
       firebase.links.push(credential);
+      if (typeof firebase.linkError === 'function') throw firebase.linkError(user);
       if (firebase.linkError) throw firebase.linkError;
-      user.phoneNumber = '+821012345678';
+      if (user.phoneNumber) throw { code: 'auth/provider-already-linked' };
+      user.phoneNumber = firebase.lastSentPhone;
+    },
+    updatePhoneNumber: async (user, credential) => {
+      firebase.updates.push(credential);
+      user.phoneNumber = firebase.lastSentPhone;
     },
   },
 };
@@ -525,6 +535,44 @@ await check(
   },
 );
 
+await check('세션 활성화 실패는 가입 실패로 분류하지 않고 재제출 없이 재로그인 안내', async () => {
+  for (const path of ['submit', 'restart']) {
+    const member = { ...session, accessToken: `member-${path}` };
+    const h = harness({
+      enrollment: path === 'restart' ? enrollment({ expiresAt: now }) : enrollment(),
+      dependencies:
+        path === 'restart'
+          ? { exchange: async () => ({ kind: 'authenticated', session: member }) }
+          : {},
+    });
+    const flow = createSignupFlow({
+      enrollment: path === 'restart' ? enrollment({ expiresAt: now }) : enrollment(),
+      uid: 'firebase-user',
+      draftStore: h.draftStore,
+      phone: { isVerified: () => true, reset: () => {}, dispose: () => {} },
+      dependencies: h.dependencies,
+      onComplete: async () => {
+        throw new Error('activation');
+      },
+    });
+    h.flow.dispose();
+    h.draftStore.setNickname('가입자');
+    flow.completeNickname();
+    await flush();
+    h.draftStore.setConsent('terms', true);
+    h.draftStore.setConsent('privacy', true);
+    flow.completeConsents();
+    await flush();
+    flow.completePhoneVerification();
+    await flush();
+    assert.equal(flow.getState().state.status, 'failed', path);
+    assert.equal(flow.getState().state.nextAction, 'sign-in-again', path);
+    assert.match(flow.getState().state.message, /가입은 완료됐어요/);
+    assert.equal(h.calls.submit.length, path === 'submit' ? 1 : 0, path);
+    flow.dispose();
+  }
+});
+
 await check(
   '증명 갱신 실패는 SNS 재로그인, dispose 후 늦은 성공은 완료로 전달하지 않음',
   async () => {
@@ -567,7 +615,9 @@ function phoneHarness() {
   firebase.user = { uid: 'firebase-user', phoneNumber: null };
   firebase.sends = [];
   firebase.links = [];
+  firebase.updates = [];
   firebase.linkError = null;
+  firebase.lastSentPhone = null;
   timers.clear();
   const draftStore = createSignupDraftStore();
   let reauth = 0;
@@ -639,6 +689,48 @@ await check('전화 인증: 재전송 대기·다른 계정 번호·이미 연�
   assert.equal(switched.reauth(), 1);
   switched.phone.dispose();
 });
+
+await check(
+  '전화 인증: 인증 후 번호를 고치면 새 번호로 교체, 남은 다른 번호는 완료로 보지 않음',
+  async () => {
+    const h = phoneHarness();
+    h.draftStore.setPhone('01012345678');
+    h.phone.requestCode();
+    firebase.sends[0].observer({ state: 'sent', verificationId: 'verification-a' });
+    h.phone.setCode('111111');
+    await h.phone.verifyCode();
+    assert.equal(firebase.user.phoneNumber, '+821012345678');
+
+    h.draftStore.setPhone('01098765432');
+    assert.equal(h.phone.isVerified(), false);
+    await advance(15_000);
+    h.phone.requestCode();
+    assert.equal(firebase.sends[1].phone, '+821098765432');
+    firebase.sends[1].observer({ state: 'sent', verificationId: 'verification-b' });
+    h.phone.setCode('222222');
+    await h.phone.verifyCode();
+    assert.deepEqual(firebase.updates, [{ verificationId: 'verification-b', code: '222222' }]);
+    assert.equal(firebase.user.phoneNumber, '+821098765432');
+    assert.equal(h.phone.isVerified(), true);
+    h.phone.dispose();
+
+    // link 시점에 다른 번호가 이미 연결돼 있으면(경합) 완료로 넘기지 않는다.
+    const raced = phoneHarness();
+    raced.draftStore.setPhone('01098765432');
+    raced.phone.requestCode();
+    firebase.sends[0].observer({ state: 'sent', verificationId: 'verification-c' });
+    // 확인을 시작할 땐 번호가 없었지만 link 도중 다른 번호가 연결된 경우.
+    firebase.linkError = (user) => {
+      user.phoneNumber = '+821012345678';
+      return { code: 'auth/provider-already-linked' };
+    };
+    raced.phone.setCode('333333');
+    await raced.phone.verifyCode();
+    assert.deepEqual(raced.stage(), { status: 'idle' });
+    assert.equal(raced.phone.isVerified(), false);
+    raced.phone.dispose();
+  },
+);
 
 assert.equal(appStateListeners.size, 0);
 console.log(`가입 흐름 검사 ${passed}개 통과`);

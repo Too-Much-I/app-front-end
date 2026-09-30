@@ -51,6 +51,7 @@ const SIGNUP_MESSAGES = {
   invalidInput: '가입 정보를 확인하지 못했어요. 입력한 내용을 확인한 뒤 다시 시도해 주세요.',
   phoneRequired: '휴대전화 인증을 다시 진행해 주세요.',
   unexpected: '가입을 완료하지 못했어요. 잠시 후 다시 시도해 주세요.',
+  activationFailed: '가입은 완료됐어요. 로그인 화면에서 같은 SNS 계정으로 다시 로그인해 주세요.',
 } as const;
 
 /**
@@ -292,6 +293,20 @@ export function createSignupFlow(options: {
   }
 
   /**
+   * 서버가 발급한 세션을 코디네이터에 넘긴다. 가입 요청과 다른 try로 감싸 활성화 실패가
+   * 가입 실패로 분류되지 않게 한다. 계정은 이미 만들어졌으므로 같은 enrollment를 다시
+   * 제출하지 않고 재로그인으로 안내한다(exchange가 AUTHENTICATED를 준다).
+   */
+  async function complete(session: AuthSession, step: SignupStep): Promise<void> {
+    try {
+      await options.onComplete(session);
+    } catch {
+      if (!disposed)
+        fail(step, { message: SIGNUP_MESSAGES.activationFailed, nextAction: 'sign-in-again' });
+    }
+  }
+
+  /**
    * 만료·enrollment 충돌 시 같은 ID를 재사용하지 않고 exchange부터 다시 받는다. 입력 초안은 유지한다.
    * 'continue'면 새 enrollment로 제출을 이어간다. 그 밖에는 이 함수가 다음 상태를 정했다.
    */
@@ -305,25 +320,26 @@ export function createSignupFlow(options: {
       fail(step, resolveSignupProofFailure(proof));
       return 'stop';
     }
+    let result: IdentityExchangeResult;
     try {
-      const result = await dependencies.exchange(proof.firebaseIdToken, abort.signal);
-      if (!isCurrent(current)) return 'stop';
-      if (result.kind === 'authenticated') {
-        // 이전 제출이 서버에서 성공했지만 응답을 받지 못한 경우다.
-        await options.onComplete(result.session);
-        return 'stop';
-      }
-      enrollment = result.enrollment;
-      steps = resolveSignupSteps(enrollment);
-      if (steps.includes('phone') && !phone.isVerified()) {
-        goTo('phone');
-        return 'stop';
-      }
-      return 'continue';
+      result = await dependencies.exchange(proof.firebaseIdToken, abort.signal);
     } catch (error) {
       if (isCurrent(current)) fail(step, resolveSignupRequestFailure(error));
       return 'stop';
     }
+    if (!isCurrent(current)) return 'stop';
+    if (result.kind === 'authenticated') {
+      // 이전 제출이 서버에서 성공했지만 응답을 받지 못한 경우다.
+      await complete(result.session, step);
+      return 'stop';
+    }
+    enrollment = result.enrollment;
+    steps = resolveSignupSteps(enrollment);
+    if (steps.includes('phone') && !phone.isVerified()) {
+      goTo('phone');
+      return 'stop';
+    }
+    return 'continue';
   }
 
   /** 판단 함수가 고른 행동을 실행한다. 'continue'면 제출 루프를 이어간다. */
@@ -379,8 +395,9 @@ export function createSignupFlow(options: {
         return;
       }
 
+      let session: AuthSession;
       try {
-        const session = await dependencies.submit(
+        session = await dependencies.submit(
           {
             enrollmentId: enrollment.enrollmentId,
             firebaseIdToken: proof.firebaseIdToken,
@@ -390,14 +407,15 @@ export function createSignupFlow(options: {
           },
           abort.signal,
         );
-        if (!isCurrent(current)) return;
-        await options.onComplete(session);
-        return;
       } catch (error) {
         if (!isCurrent(current)) return;
         const decision = resolveSignupSubmitFailure(error, attempts);
         if ((await carryOut(decision, attempts, current, step)) === 'stop') return;
+        continue;
       }
+      if (!isCurrent(current)) return;
+      await complete(session, step);
+      return;
     }
   }
 

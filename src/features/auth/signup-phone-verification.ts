@@ -2,6 +2,7 @@ import {
   getAuth,
   linkWithCredential,
   PhoneAuthProvider,
+  updatePhoneNumber,
   verifyPhoneNumber,
 } from '@react-native-firebase/auth';
 import { createStore } from 'zustand/vanilla';
@@ -49,7 +50,11 @@ function toE164(phone: string): string {
   return `+82${phone.slice(1)}`;
 }
 
-type PhoneFailure = { stage: 'idle' | 'code' | 'verified' | 'reauth'; message: string | null };
+/** already-linked는 연결된 번호와 입력 번호를 비교해야 결과를 알 수 있어 호출자가 판단한다. */
+type PhoneFailure = {
+  stage: 'idle' | 'code' | 'already-linked' | 'reauth';
+  message: string | null;
+};
 
 function classifyPhoneFailure(error: unknown): PhoneFailure {
   switch (readFirebaseSdkErrorCode(error)) {
@@ -66,8 +71,7 @@ function classifyPhoneFailure(error: unknown): PhoneFailure {
         message: '다른 계정에 연결된 번호예요. 다른 번호로 인증해 주세요.',
       };
     case 'auth/provider-already-linked':
-      // 이 Firebase 사용자에 이미 번호가 연결돼 있다. 서버가 가입 제출에서 증명으로 확인한다.
-      return { stage: 'verified', message: null };
+      return { stage: 'already-linked', message: null };
     case 'auth/invalid-phone-number':
       return { stage: 'idle', message: '휴대전화 번호를 확인해 주세요.' };
     case 'auth/too-many-requests':
@@ -244,9 +248,13 @@ export function createSignupPhoneVerification(options: {
     }
     const attempt = generation;
     const { verificationId } = current.stage;
+    const e164 = toE164(draftStore.getState().phone);
     store.setState({ stage: { status: 'verifying', verificationId }, error: null });
     try {
-      await linkWithCredential(user, PhoneAuthProvider.credential(verificationId, current.code));
+      const credential = PhoneAuthProvider.credential(verificationId, current.code);
+      // 인증 후 번호를 고친 경우 이미 다른 번호가 연결돼 있다. 한 사용자에 번호는 하나라 교체한다.
+      if (user.phoneNumber) await updatePhoneNumber(user, credential);
+      else await linkWithCredential(user, credential);
       if (attempt !== generation) return;
       if (!currentUser()) {
         requireReauth();
@@ -260,8 +268,18 @@ export function createSignupPhoneVerification(options: {
         case 'reauth':
           requireReauth();
           return;
-        case 'verified':
-          store.setState({ stage: { status: 'verified' }, code: '', error: null });
+        case 'already-linked':
+          // 같은 번호면 이미 인증된 것이다. 다른 번호가 남아 있으면 완료로 보지 않는다.
+          // 다음 시도에서는 연결된 번호가 보여 교체 경로를 탄다.
+          if (currentUser()?.phoneNumber === e164) {
+            store.setState({ stage: { status: 'verified' }, code: '', error: null });
+          } else {
+            store.setState({
+              stage: { status: 'idle' },
+              code: '',
+              error: '이전에 인증한 번호가 남아 있어요. 인증번호를 다시 받아 주세요.',
+            });
+          }
           return;
         case 'code':
           store.setState({ stage: { status: 'code', verificationId }, error: failure.message });
@@ -275,7 +293,10 @@ export function createSignupPhoneVerification(options: {
     }
   }
 
-  /** 번호 수정. 진행 중인 발송·확인 결과는 무시한다. 이미 연결된 번호는 Firebase에 남는다. */
+  /**
+   * 번호 수정. 진행 중인 발송·확인 결과는 무시한다.
+   * 이미 연결된 번호는 새 번호 인증에 성공할 때 교체되며 그전까지 Firebase에 남는다.
+   */
   function editPhone(): void {
     invalidate();
     const { attempts, nextSendAt } = store.getState();
