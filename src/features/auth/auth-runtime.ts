@@ -1,6 +1,8 @@
 import { AppState } from 'react-native';
 import { exchangeFirebaseProof } from '@/features/auth/api/exchange-firebase-proof';
+import { getPolicyVersions } from '@/features/auth/api/get-policy-versions';
 import { prepareGuestEnrollment } from '@/features/auth/api/prepare-guest-enrollment';
+import { submitFirebaseSignup } from '@/features/auth/api/submit-firebase-signup';
 import { createFirebaseAuthController } from '@/features/auth/firebase-auth-controller';
 import type { FirebaseAuthSdk } from '@/features/auth/firebase-auth-types';
 
@@ -8,6 +10,10 @@ import { createAuthConsentController } from '@/features/auth/auth-consent-contro
 import { createAuthCoordinator } from '@/features/auth/auth-coordinator';
 import { observeAuthForegroundRecovery } from '@/features/auth/auth-foreground-recovery';
 import { createSessionController } from '@/features/auth/session-controller';
+import { createSignupFlow } from '@/features/auth/signup-flow';
+import { createSignupPhoneVerification } from '@/features/auth/signup-phone-verification';
+import type { IdentityEnrollment } from '@/features/auth/identity-login-types';
+import type { AuthSession } from '@/features/auth/types';
 import { createAuthenticatedApiClient } from '@/lib/api/authenticated-client';
 import { queryClient } from '@/lib/query-client';
 
@@ -41,6 +47,33 @@ export function createAuthRuntime(options: {
     subscribe: coordinator.subscribe,
     retry: coordinator.retry,
   });
+  /** direct signup 화면이 흐름마다 한 번 만들고, 화면이 사라질 때 dispose한다. */
+  function startSignup(input: {
+    enrollment: IdentityEnrollment;
+    uid: string;
+    onComplete: (session: AuthSession) => Promise<void>;
+  }) {
+    const phone = createSignupPhoneVerification({
+      uid: input.uid,
+      draftStore: coordinator.signupDraft,
+      // 흐름은 전화 인증 컨트롤러를 받아 만들어지므로 호출 시점에 참조한다.
+      onReauthRequired: () => flow.requireSignInAgain(),
+    });
+    const flow = createSignupFlow({
+      enrollment: input.enrollment,
+      uid: input.uid,
+      draftStore: coordinator.signupDraft,
+      phone,
+      dependencies: {
+        refreshProof: firebase.refreshProof,
+        exchange: exchangeFirebaseProof,
+        submit: submitFirebaseSignup,
+        loadPolicyVersions: getPolicyVersions,
+      },
+      onComplete: input.onComplete,
+    });
+    return { flow, phone };
+  }
   const dispose = () => {
     stopRecovery();
     coordinator.dispose();
@@ -50,5 +83,5 @@ export function createAuthRuntime(options: {
     session.dispose();
   };
 
-  return { session, consent, coordinator, api, dispose };
+  return { session, consent, coordinator, api, startSignup, dispose };
 }

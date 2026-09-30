@@ -62,6 +62,7 @@ Guest Identity Access Token의 존재 여부는 Firebase에 묻지 않는다. �
 | GET | `/api/v1/users/me` | Identity Access Token | 현재 사용자·`accountType` 조회 |
 | GET | `/api/v1/users/me/consents` | Identity Access Token | 정책 version·동의 상태 조회 |
 | PUT | `/api/v1/users/me/consents` | Identity Access Token | 필수·선택 동의 저장 |
+| GET | `/api/v1/policies/consents` | 공개 | 현재 정책 version 조회 (2026-09-30 추가 예정) |
 | POST | `/api/v1/users/withdraw` | Identity Bearer + credential body | Firebase/LOCAL/Guest 탈퇴 |
 
 구버전 참고 API:
@@ -106,7 +107,7 @@ Guest Identity Access Token의 존재 여부는 Firebase에 묻지 않는다. �
 }
 ```
 
-`missingRequirements` 가능 값은 `EMAIL_VERIFICATION`, `PHONE_VERIFICATION`, `PROFILE`, `CONSENTS`이며 배열 순서는 계약이 아니다. 신규 가입은 같은 Firebase User에 phone credential을 link한 뒤 `/firebase/signup`을 호출한다.
+`missingRequirements` 가능 값은 `PHONE_VERIFICATION`, `PROFILE`, `CONSENTS`이며 배열 순서는 계약이 아니다. `EMAIL_VERIFICATION`은 SNS 로그인 경로에서 사용하지 않는다(2026-09-30 서버 확인). 신규 가입은 같은 Firebase User에 phone credential을 link한 뒤 `/firebase/signup`을 호출한다.
 
 ### 5.2 Firebase signup
 
@@ -125,6 +126,18 @@ Guest Identity Access Token의 존재 여부는 Firebase에 묻지 않는다. �
 ```
 
 성공 시 Identity Access/Refresh Token을 발급한다. 닉네임은 2~20자이며 필수 동의는 `true`, version은 서버 정책과 일치해야 한다.
+
+direct signup의 version은 exchange 응답에 없으므로 공개 API `GET /api/v1/policies/consents`로 받는다(2026-09-30 서버 안내, 배포 예정). 예정 응답:
+
+```json
+{
+  "privacyConsentVersion": "privacy-v1",
+  "termConsentVersion": "term-v1",
+  "qualityReviewConsentVersion": "quality-review-v1"
+}
+```
+
+`qualityReviewConsentVersion`은 선택 동의(품질 검토)다. 서버가 signup body에 품질 검토 동의 필드를 추가할 예정이며 필드 이름은 미정이다(2026-09-30). 동의하지 않아도 생략하지 않고 `false`와 version을 보낸다. Guest upgrade body에도 같은 필드가 없어 추가를 요청한다. `ApiEnvelope` 여부는 배포 후 확인한다.
 
 ### 5.3 Guest prepare — TMI-169
 
@@ -186,7 +199,7 @@ Authorization: Bearer <guest-identity-access-token>
 }
 ```
 
-전화번호, `userId`, `missingRequirements`를 추가하지 않는다. 서버가 Firebase proof로 phone·email 상태를 검증한다. 성공하면 canonical userId는 유지되고 기존 Guest RefreshSession은 폐기되며 새 MEMBER Access/Refresh Token을 반환한다.
+전화번호, `userId`, `missingRequirements`를 추가하지 않는다. 서버가 Firebase proof로 phone 상태를 검증한다. 성공하면 canonical userId는 유지되고 기존 Guest RefreshSession은 폐기되며 새 MEMBER Access/Refresh Token을 반환한다.
 
 ### 5.5 Guest merge
 

@@ -13,6 +13,7 @@ import { OrientationProvider } from '@/features/orientation/OrientationProvider'
 import { useOrientation } from '@/features/orientation/orientation-context';
 import { AuthPreviewNavigator } from '@/navigation/AuthPreviewNavigator';
 import { RootNavigator } from '@/navigation/RootNavigator';
+import { SignupNavigator } from '@/navigation/SignupNavigator';
 import type { RootStackParamList } from '@/navigation/types';
 import { IS_AUTH_UI_PREVIEW } from '@/lib/auth-ui-preview';
 import { trackScreenView } from '@/lib/amplitude';
@@ -61,10 +62,22 @@ function AppContent() {
       >
         <RootNavigator
           coordinator={appAuthRuntime.coordinator}
-          // 가입·Guest 승격·병합 흐름 구현 전까지 로그인 화면으로 돌려보낸다.
-          renderEnrollment={(state, { onCancel }) => (
-            <EnrollmentUnavailableScreen status={state.status} onCancel={onCancel} />
-          )}
+          renderEnrollment={(state, { draftStore, onComplete, onCancel }) =>
+            state.status === 'signingUp' && state.enrollment.origin === 'noSession' ? (
+              <SignupNavigator
+                key={state.flowId}
+                enrollment={state.enrollment}
+                uid={state.uid}
+                draftStore={draftStore}
+                startSignup={appAuthRuntime.startSignup}
+                onComplete={onComplete}
+                onCancel={onCancel}
+              />
+            ) : (
+              // Guest 승격·병합 구현 전까지 로그인 화면으로 돌려보낸다.
+              <EnrollmentUnavailableScreen status={state.status} onCancel={onCancel} />
+            )
+          }
           onBrowse={ignoreLoginExit}
           onClose={ignoreLoginExit}
         />

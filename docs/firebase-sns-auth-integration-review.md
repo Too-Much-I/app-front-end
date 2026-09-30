@@ -61,7 +61,7 @@ SNS 로그인 → /firebase/exchange
                        → 토큰 저장 → 앱 진입
 ```
 
-`enrollmentId`는 **진행 중인 가입 절차의 번호**다. 회원 토큰이 아니며, 응답의 `expiresIn`에 따라 만료된다. `missingRequirements`는 배열 순서가 아니라 포함된 요건을 기준으로 처리한다. 이메일 인증이 요구되면 이를 먼저 해결한다.
+`enrollmentId`는 **진행 중인 가입 절차의 번호**다. 회원 토큰이 아니며, 응답의 `expiresIn`에 따라 만료된다. `missingRequirements`는 배열 순서가 아니라 포함된 요건을 기준으로 처리한다.
 
 지정한 화면은 다음처럼 연결한다.
 

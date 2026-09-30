@@ -1,8 +1,8 @@
 import type { AuthSession } from '@/features/auth/types';
 
 export type IdentityLoginOrigin = 'noSession' | 'guest';
-export type IdentityEnrollmentRequirement =
-  'EMAIL_VERIFICATION' | 'PHONE_VERIFICATION' | 'PROFILE' | 'CONSENTS';
+/** EMAIL_VERIFICATION은 SNS 로그인 경로에서 쓰지 않는다(2026-09-30 서버 확인). */
+export type IdentityEnrollmentRequirement = 'PHONE_VERIFICATION' | 'PROFILE' | 'CONSENTS';
 
 export type IdentityEnrollment = {
   enrollmentId: string;

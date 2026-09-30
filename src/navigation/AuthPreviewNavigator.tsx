@@ -26,7 +26,8 @@ import {
   type PhoneVerificationViewState,
 } from '@/screens/auth/PhoneVerificationScreen';
 import { SupportInquiryScreen } from '@/screens/support/SupportInquiryScreen';
-import { SignupProfileScreen } from '@/screens/auth/SignupProfileScreen';
+import { SignupConsentScreen } from '@/screens/auth/SignupConsentScreen';
+import { SignupNicknameScreen } from '@/screens/auth/SignupNicknameScreen';
 import { useAppFonts } from '@/theme/use-app-fonts';
 import { useRemScale } from '@/theme/rem-scale';
 
@@ -48,7 +49,7 @@ function LoginPreviewRoute({
     draftStore.setPolicyVersions(AUTH_PREVIEW_FIXTURE.policyVersions);
     draftStore.setNickname(AUTH_PREVIEW_FIXTURE.nickname);
     draftStore.setPhone(AUTH_PREVIEW_FIXTURE.phone);
-    navigation.navigate('SignupProfilePreview');
+    navigation.navigate('SignupNicknamePreview');
   };
   return (
     <View className="flex-1">
@@ -66,14 +67,33 @@ function LoginPreviewRoute({
   );
 }
 
-function SignupProfilePreviewRoute({
+function SignupNicknamePreviewRoute({
   navigation,
-}: NativeStackScreenProps<AuthPreviewStackParamList, 'SignupProfilePreview'>) {
+}: NativeStackScreenProps<AuthPreviewStackParamList, 'SignupNicknamePreview'>) {
   const draftStore = useSignupDraftStore();
   return (
-    <SignupProfileScreen
+    <SignupNicknameScreen
       draftStore={draftStore}
+      step={1}
+      totalSteps={3}
       validateNickname={validatePreviewNickname}
+      onBack={navigation.goBack}
+      onContinue={() => navigation.navigate('SignupConsentPreview')}
+    />
+  );
+}
+
+function SignupConsentPreviewRoute({
+  navigation,
+}: NativeStackScreenProps<AuthPreviewStackParamList, 'SignupConsentPreview'>) {
+  const draftStore = useSignupDraftStore();
+  return (
+    <SignupConsentScreen
+      draftStore={draftStore}
+      step={2}
+      totalSteps={3}
+      loading={false}
+      continueLabel="휴대전화 인증으로 계속하기"
       onBack={navigation.goBack}
       onContinue={() => navigation.navigate('PhoneVerificationPreview')}
       onOpenPolicy={(policy) =>
@@ -145,6 +165,8 @@ function PhoneVerificationPreviewRoute({
       ) : null}
       <PhoneVerificationScreen
         state={state}
+        step={3}
+        totalSteps={3}
         onBack={state.step === 'number' ? navigation.goBack : editPhone}
         onChangePhone={changePhone}
         onRequestCode={() => setState(requestPreviewPhoneCode(state))}
@@ -182,7 +204,7 @@ export function AuthPreviewNavigator() {
           <NavigationContainer
             onStateChange={(state) => {
               // 버튼·하드웨어 뒤로 가기·스와이프 모두 가입 스택을 벗어나면 취소다.
-              if (state && !state.routes.some((route) => route.name === 'SignupProfilePreview'))
+              if (state && !state.routes.some((route) => route.name === 'SignupNicknamePreview'))
                 draftStore.reset();
             }}
           >
@@ -191,7 +213,8 @@ export function AuthPreviewNavigator() {
               <Stack.Screen name="SupportInquiryPreview">
                 {({ navigation }) => <SupportInquiryScreen onBack={navigation.goBack} />}
               </Stack.Screen>
-              <Stack.Screen name="SignupProfilePreview" component={SignupProfilePreviewRoute} />
+              <Stack.Screen name="SignupNicknamePreview" component={SignupNicknamePreviewRoute} />
+              <Stack.Screen name="SignupConsentPreview" component={SignupConsentPreviewRoute} />
               <Stack.Screen
                 name="PhoneVerificationPreview"
                 component={PhoneVerificationPreviewRoute}

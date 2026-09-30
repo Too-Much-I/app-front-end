@@ -11,6 +11,9 @@ interface SignupConsentRowProps {
   onToggle: () => void;
   onDetail?: () => void;
   all?: boolean;
+  /** 선택 동의. 라벨에 [선택]을 붙인다. */
+  optional?: boolean;
+  disabled?: boolean;
 }
 
 export function SignupConsentRow({
@@ -19,15 +22,19 @@ export function SignupConsentRow({
   onToggle,
   onDetail,
   all = false,
+  optional = false,
+  disabled = false,
 }: SignupConsentRowProps) {
+  const tag = optional ? '선택' : '필수';
   return (
     <View
       className={`flex-row items-center ${all ? 'rounded-control border border-line bg-surface' : ''}`}
     >
       <Pressable
         accessibilityRole="checkbox"
-        accessibilityState={{ checked }}
-        accessibilityLabel={all ? label : `필수 ${label}`}
+        accessibilityState={{ checked, disabled }}
+        accessibilityLabel={all ? label : `${tag} ${label}`}
+        disabled={disabled}
         className={`flex-1 flex-row items-center gap-element px-card ${all ? 'min-h-control-lg py-element' : 'min-h-control-md py-sm'}`}
         onPress={onToggle}
       >
@@ -39,7 +46,9 @@ export function SignupConsentRow({
           ) : null}
         </View>
         <Text className={`flex-1 ${all ? 'text-lg' : 'text-base'}`}>
-          {!all ? <Text className="text-brand-text">[필수] </Text> : null}
+          {!all ? (
+            <Text className={optional ? 'text-ink-muted' : 'text-brand-text'}>[{tag}] </Text>
+          ) : null}
           {label}
         </Text>
       </Pressable>

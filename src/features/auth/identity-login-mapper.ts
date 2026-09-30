@@ -11,9 +11,7 @@ import { AuthProtocolError, createAuthSession } from '@/features/auth/types';
 const enrollmentSchema = z.object({
   type: z.literal('ENROLLMENT_REQUIRED'),
   enrollmentId: z.string().trim().min(1),
-  missingRequirements: z.array(
-    z.enum(['EMAIL_VERIFICATION', 'PHONE_VERIFICATION', 'PROFILE', 'CONSENTS']),
-  ),
+  missingRequirements: z.array(z.enum(['PHONE_VERIFICATION', 'PROFILE', 'CONSENTS'])),
   expiresIn: z.number().int().positive(),
 });
 const guestEnrollmentSchema = enrollmentSchema.extend({

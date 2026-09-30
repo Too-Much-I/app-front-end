@@ -1,6 +1,8 @@
 import { createStore } from 'zustand/vanilla';
 
-export type SignupDraftPolicy = 'terms' | 'privacy';
+export type SignupDraftPolicy = 'terms' | 'privacy' | 'qualityReview';
+/** 가입에 반드시 동의해야 하는 약관. qualityReview는 선택 동의다. */
+export const REQUIRED_SIGNUP_POLICIES = ['terms', 'privacy'] as const satisfies SignupDraftPolicy[];
 export type SignupDraftConsent =
   { version: null; agreed: false } | { version: string; agreed: boolean };
 
@@ -20,6 +22,7 @@ function emptySignupDraft(phoneRevision = 0): SignupDraftState {
     consents: {
       terms: { version: null, agreed: false },
       privacy: { version: null, agreed: false },
+      qualityReview: { version: null, agreed: false },
     },
   };
 }
@@ -32,6 +35,10 @@ function updateDraftConsentVersion(
   return current.version === version ? current : { version, agreed: false };
 }
 
+function withAgreement(current: SignupDraftConsent, agreed: boolean): SignupDraftConsent {
+  return current.version === null ? current : { version: current.version, agreed };
+}
+
 /** 가입 흐름 소유자가 생성·초기화한다. 기기 저장, SMS 코드, 인증 증명을 포함하지 않는다. */
 export function createSignupDraftStore() {
   const store = createStore<SignupDraftState>(() => emptySignupDraft());
@@ -41,6 +48,10 @@ export function createSignupDraftStore() {
       consents: {
         terms: updateDraftConsentVersion(current.consents.terms, versions.terms),
         privacy: updateDraftConsentVersion(current.consents.privacy, versions.privacy),
+        qualityReview: updateDraftConsentVersion(
+          current.consents.qualityReview,
+          versions.qualityReview,
+        ),
       },
     }));
   }
@@ -61,14 +72,9 @@ export function createSignupDraftStore() {
   function setAllConsents(agreed: boolean): void {
     store.setState((current) => ({
       consents: {
-        terms:
-          current.consents.terms.version === null
-            ? current.consents.terms
-            : { version: current.consents.terms.version, agreed },
-        privacy:
-          current.consents.privacy.version === null
-            ? current.consents.privacy
-            : { version: current.consents.privacy.version, agreed },
+        terms: withAgreement(current.consents.terms, agreed),
+        privacy: withAgreement(current.consents.privacy, agreed),
+        qualityReview: withAgreement(current.consents.qualityReview, agreed),
       },
     }));
   }

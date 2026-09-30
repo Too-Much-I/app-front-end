@@ -66,7 +66,6 @@ Guest 전용 `ALREADY_LINKED`는 제거한다. 성공 결과는 다음 두 가�
 
 가능한 값:
 
-- `EMAIL_VERIFICATION`
 - `PHONE_VERIFICATION`
 - `PROFILE`
 - `CONSENTS`
@@ -87,7 +86,7 @@ Guest 전용 `ALREADY_LINKED`는 제거한다. 성공 결과는 다음 두 가�
 }
 ```
 
-전화번호, `userId`, `missingRequirements`를 upgrade 요청에 임의로 추가하지 않는다. 서버가 Firebase proof로 phone·email 상태를 다시 확인한다.
+전화번호, `userId`, `missingRequirements`를 upgrade 요청에 임의로 추가하지 않는다. 서버가 Firebase proof로 phone 상태를 다시 확인한다.
 
 ### MERGE_REQUIRED
 
