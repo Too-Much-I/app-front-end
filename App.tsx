@@ -77,11 +77,11 @@ function FirebaseValidationAppContent() {
   if (!ready) return null;
   // 검증 모드에서만 모듈을 로드해 기존 앱 경로에 native 초기화가 섞이지 않게 한다.
   const {
-    FirebaseAuthValidationScreen,
-  }: typeof import('./src/screens/diagnostics/FirebaseAuthValidationScreen') = require('./src/screens/diagnostics/FirebaseAuthValidationScreen');
+    FirebaseValidationNavigator,
+  }: typeof import('./src/navigation/FirebaseValidationNavigator') = require('./src/navigation/FirebaseValidationNavigator');
   return (
     <View className="flex-1" onLayout={onLayoutRootView}>
-      <FirebaseAuthValidationScreen />
+      <FirebaseValidationNavigator />
     </View>
   );
 }
