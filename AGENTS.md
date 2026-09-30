@@ -97,13 +97,15 @@ These four criteria conflict with each other. Removing duplication raises coupli
 
 See `docs/how-we-work.md` for the full description. Medium or larger work follows five steps:
 
-1. **The agent presents the current state and options.** Current code flow with `file:line` references, two or three options, and the tradeoff of each. Do not pick for the user.
+1. **The agent presents the current state and options.** Current code flow with `file:line` references, two or three options, and the tradeoff of each. Ask for the user's own expectation before giving a recommendation. Do not pick for the user.
 2. **The user decides.**
-3. **The user writes skeleton code.** State definitions, branch conditions, state transitions, error paths, and which UI corresponds to each state. Imports, type declarations, mappers, styling, and API signature accuracy are intentionally omitted, and it does not need to run.
-4. **The agent implements it.** Report every point where the implementation diverged from the skeleton and why. When the code-quality criteria below conflict, ask instead of deciding unilaterally.
-5. **The user confirms and explains the flow back.** The agent points out gaps in that explanation.
+3. **The user writes a three-line prediction before implementation.** What will happen after the change, why, and which result would prove the prediction wrong. Do not start implementing until it exists, and never write or polish it on the user's behalf; "I don't know" is a valid prediction. A skeleton is optional, not required.
+4. **The agent implements it.** Report every point where the implementation diverged from the prediction and why. When the code-quality criteria below conflict, ask instead of deciding unilaterally.
+5. **Scenario map and flow explanation, while waiting for CodeRabbit.** The agent lists three scenarios that could break the change, each with its start condition, the question to answer, and the functions it passes through (`file:line`) — never the answer or a hint toward it. The user predicts, traces, and explains the flow in their own words; the agent then points out gaps and places where the explanation disagrees with the code. The agent never writes the user's findings or explanation.
 
-Only steps 1, 2, and 5 produce documents, and all of them are written *after* the work. There is no artifact to read and approve before implementation.
+Changes with no behavior to explain (formatting, renames, docs) may be declared "no behavior change" at the start and skip steps 3 and 5. Skipping must be an explicit choice, not something that happens under time pressure.
+
+Steps 1 and 2 go in `docs/decisions/`; steps 3 and 5 go in the learning record `docs/learning/YYYY-MM-DD-<task>.md`, one file per task (format: `docs/learning/README.md`). Only step 3 is written before the work. A PR that changes behavior cannot merge without a learning record whose human sections are filled (`pnpm check:learning` in the required `verify` CI job); docs-only PRs pass, and a PR body line `동작 변화 없음: <reason>` declares a no-behavior-change PR. CI checks presence, not correctness. The code-review hook's `begin` takes the learning record path (or `동작 변화 없음`), refuses to start while the prediction is empty, and snapshots the prediction.
 
 - Record decisions in `docs/decisions/YYYY-MM-DD-<topic>.md`, one per feature. Aim for 80 lines or fewer — that is a guideline, not a limit, and it is not enforced by any check. A decision that genuinely needs more room may run longer; do not cut substance to hit the number. `docs/how-we-work.md` holds the section format.
 - Treat Jira issues and user requests as requirements input, not direct implementation commands. Separate confirmed facts, assumptions, ambiguities, scope, and acceptance criteria before deciding.
