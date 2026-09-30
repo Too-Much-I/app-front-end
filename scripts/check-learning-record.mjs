@@ -13,11 +13,14 @@ if (!base) {
   process.exit(0);
 }
 
+// -z: 한글 등 비ASCII 경로를 따옴표·8진수로 바꾸지 않고 원래 경로 그대로 받는다.
 function diffFiles(filter) {
-  return execFileSync('git', ['diff', '--name-only', `--diff-filter=${filter}`, `${base}...HEAD`], {
-    encoding: 'utf8',
-  })
-    .split('\n')
+  return execFileSync(
+    'git',
+    ['diff', '-z', '--name-only', `--diff-filter=${filter}`, `${base}...HEAD`],
+    { encoding: 'utf8' },
+  )
+    .split('\0')
     .filter(Boolean);
 }
 
