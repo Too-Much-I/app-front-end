@@ -1,20 +1,17 @@
-import { ActivityIndicator, Image, View } from "react-native";
+import { ActivityIndicator, Image, View } from 'react-native';
 
-import { Button } from "@/components/ui/Button";
-import { Text } from "@/components/ui/Text";
-import { GradingRabbitBanner } from "@/features/exam/components/GradingRabbitBanner";
-import type { ReanswerStatusOnly } from "@/screens/reanswer/reanswer-status";
-import { colors, shadows } from "@/theme";
+import { Button } from '@/components/ui/Button';
+import { Text } from '@/components/ui/Text';
+import { GradingRabbitBanner } from '@/features/exam/components/GradingRabbitBanner';
+import type { ReanswerStatusOnly } from '@/screens/reanswer/reanswer-status';
+import { colors, shadows } from '@/theme';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
-const micRabbit = require("../../../../public/mascots/mic_rabbit.png");
-const errorRabbit = require("../../../../public/mascots/error.png");
-const waitingRabbit = require("../../../../public/mascots/waiting_rabbit_tight.png");
+const micRabbit = require('../../../../public/mascots/mic_rabbit.png');
+const errorRabbit = require('../../../../public/mascots/error.png');
+const waitingRabbit = require('../../../../public/mascots/waiting_rabbit_tight.png');
 
-type ReanswerNoticeStatus = Exclude<
-  ReanswerStatusOnly,
-  "loading" | "submitting" | "grading"
->;
+type ReanswerNoticeStatus = Exclude<ReanswerStatusOnly, 'loading' | 'submitting' | 'grading'>;
 
 interface ReanswerStatusPanelProps {
   status: ReanswerStatusOnly;
@@ -46,7 +43,7 @@ export function ReanswerStatusPanel({
   onRetryRecording,
   onLeave,
 }: ReanswerStatusPanelProps) {
-  if (status === "loading") {
+  if (status === 'loading') {
     return (
       <View className="flex-1 items-center justify-center gap-3 px-screen">
         <ActivityIndicator color={colors.brand.cta} size="large" />
@@ -55,7 +52,7 @@ export function ReanswerStatusPanel({
     );
   }
 
-  if (status === "submitting" || status === "grading") {
+  if (status === 'submitting' || status === 'grading') {
     return (
       <View className="flex-1 items-center justify-center px-screen">
         <View
@@ -64,11 +61,9 @@ export function ReanswerStatusPanel({
         >
           <GradingRabbitBanner />
           <Text className="text-base text-brand-text">
-            {status === "submitting"
-              ? "제출하는 중이에요..."
-              : "제출했어요! 채점 중이에요..."}
+            {status === 'submitting' ? '제출하는 중이에요...' : '제출했어요! 채점 중이에요...'}
           </Text>
-          {status === "grading" ? (
+          {status === 'grading' ? (
             <Text className="mt-1 text-sm text-brand-cta">
               채점이 끝나면 자동으로 결과를 보여드릴게요.
             </Text>
@@ -110,7 +105,7 @@ export function ReanswerStatusPanel({
               className="w-full"
               key={action.label}
               label={action.label}
-              variant={index === 0 ? "primary" : "neutral"}
+              variant={index === 0 ? 'primary' : 'neutral'}
               onPress={action.onPress}
             />
           ))}
@@ -122,35 +117,35 @@ export function ReanswerStatusPanel({
 
 function getStatusNotice(status: ReanswerNoticeStatus) {
   switch (status) {
-    case "question-failed":
+    case 'question-failed':
       return {
         mascot: errorRabbit,
-        title: "문제를 불러오지 못했어요.",
-        description: "피드백 화면에서 다시 시작해 주세요.",
+        title: '문제를 불러오지 못했어요.',
+        description: '피드백 화면에서 다시 시작해 주세요.',
       };
-    case "permission-denied":
+    case 'permission-denied':
       return {
         mascot: micRabbit,
-        title: "마이크를 사용할 수 없어요.",
-        description: "마이크 권한을 확인해 주세요.",
+        title: '마이크를 사용할 수 없어요.',
+        description: '마이크 권한을 확인해 주세요.',
       };
-    case "record-failed":
+    case 'record-failed':
       return {
         mascot: micRabbit,
-        title: "마이크를 준비하지 못했어요.",
-        description: "다른 앱이 마이크를 쓰고 있는지 확인한 뒤 다시 시도해 주세요.",
+        title: '마이크를 준비하지 못했어요.',
+        description: '다른 앱이 마이크를 쓰고 있는지 확인한 뒤 다시 시도해 주세요.',
       };
-    case "submit-failed":
+    case 'submit-failed':
       return {
         mascot: errorRabbit,
-        title: "제출 중 문제가 생겼어요.",
-        description: "이번 녹음은 저장되지 않았어요. 피드백 화면에서 다시 시작해 주세요.",
+        title: '제출 중 문제가 생겼어요.',
+        description: '이번 녹음은 저장되지 않았어요. 피드백 화면에서 다시 시작해 주세요.',
       };
-    case "grading-failed":
+    case 'grading-failed':
       return {
         mascot: waitingRabbit,
-        title: "채점 결과를 확인하지 못했어요.",
-        description: "답변은 접수됐어요. 피드백 화면에서 잠시 후 다시 확인해 주세요.",
+        title: '채점 결과를 확인하지 못했어요.',
+        description: '답변은 접수됐어요. 피드백 화면에서 잠시 후 다시 확인해 주세요.',
       };
   }
 }
@@ -164,33 +159,33 @@ function getStatusActions(
   },
 ): StatusAction[] {
   const goBack: StatusAction = {
-    label: "피드백으로 돌아가기",
-    hint: "재답변을 그만두고 문제별 피드백으로 돌아갑니다",
+    label: '피드백으로 돌아가기',
+    hint: '재답변을 그만두고 문제별 피드백으로 돌아갑니다',
     onPress: handlers.onLeave,
   };
 
   switch (status) {
-    case "permission-denied":
+    case 'permission-denied':
       return [
         {
-          label: "앱 설정에서 권한 허용",
-          hint: "시스템 설정에서 마이크 권한을 켤 수 있습니다",
+          label: '앱 설정에서 권한 허용',
+          hint: '시스템 설정에서 마이크 권한을 켤 수 있습니다',
           onPress: handlers.onOpenSettings,
         },
         goBack,
       ];
-    case "record-failed":
+    case 'record-failed':
       return [
         {
-          label: "다시 녹음",
-          hint: "녹음을 처음부터 다시 시작합니다",
+          label: '다시 녹음',
+          hint: '녹음을 처음부터 다시 시작합니다',
           onPress: handlers.onRetryRecording,
         },
         goBack,
       ];
-    case "question-failed":
-    case "submit-failed":
-    case "grading-failed":
+    case 'question-failed':
+    case 'submit-failed':
+    case 'grading-failed':
       return [goBack];
   }
 }

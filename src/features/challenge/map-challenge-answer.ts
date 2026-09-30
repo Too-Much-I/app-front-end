@@ -1,6 +1,6 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-import type { ChallengeAnswerAccepted } from "@/types/challenge";
+import type { ChallengeAnswerAccepted } from '@/types/challenge';
 
 /**
  * `POST .../answer` 접수 응답의 와이어 모양(명세 v1 §6.6).
@@ -12,13 +12,7 @@ export const challengeAnswerAcceptedSchema = z.object({
   attemptId: z.string(),
   challengeDate: z.iso.date(),
   questionNumber: z.number().int(),
-  gradingStatus: z.enum([
-    "not_requested",
-    "pending",
-    "processing",
-    "completed",
-    "failed",
-  ]),
+  gradingStatus: z.enum(['not_requested', 'pending', 'processing', 'completed', 'failed']),
   /** 접수 즉시 내려오는 참고 답안. AI 피드백을 기다리지 않고 보여줄 수 있다. */
   referenceAnswer: z.string(),
   feedbackAvailable: z.boolean(),

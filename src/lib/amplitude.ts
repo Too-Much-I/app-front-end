@@ -1,6 +1,6 @@
-import { Platform } from "react-native";
+import { Platform } from 'react-native';
 
-import type { AnalyticsEvent } from "@/lib/analytics-events";
+import type { AnalyticsEvent } from '@/lib/analytics-events';
 
 /**
  * Amplitude 제품 분석 배선.
@@ -12,11 +12,11 @@ import type { AnalyticsEvent } from "@/lib/analytics-events";
  * 세션 리코딩은 켜지 않는다. 화면 녹화는 이미 Clarity가 담당하고 있고, 학습자 답안과
  * 성적이 뜨는 화면을 두 벌로 수집할 이유가 없다.
  */
-const AMPLITUDE_API_KEY = process.env.EXPO_PUBLIC_AMPLITUDE_API_KEY ?? "";
+const AMPLITUDE_API_KEY = process.env.EXPO_PUBLIC_AMPLITUDE_API_KEY ?? '';
 const AMPLITUDE_ENABLED =
-  process.env.EXPO_PUBLIC_ENABLE_AMPLITUDE === "true" && AMPLITUDE_API_KEY !== "";
+  process.env.EXPO_PUBLIC_ENABLE_AMPLITUDE === 'true' && AMPLITUDE_API_KEY !== '';
 
-type AmplitudeModule = typeof import("@amplitude/analytics-react-native");
+type AmplitudeModule = typeof import('@amplitude/analytics-react-native');
 
 /**
  * 초기화가 끝난 SDK. 실패하면 `null`로 resolve해서 이후 호출이 조용히 no-op이 된다.
@@ -32,12 +32,12 @@ export function initializeAmplitude(): void {
   if (
     !AMPLITUDE_ENABLED ||
     amplitudeReady ||
-    (Platform.OS !== "android" && Platform.OS !== "ios")
+    (Platform.OS !== 'android' && Platform.OS !== 'ios')
   ) {
     return;
   }
 
-  amplitudeReady = import("@amplitude/analytics-react-native")
+  amplitudeReady = import('@amplitude/analytics-react-native')
     .then(async (amplitude) => {
       await amplitude.init(AMPLITUDE_API_KEY, undefined, {
         // 학습자 답안과 계정 정보가 오가는 앱이므로 자동 수집 범위를 좁게 잡는다.
@@ -69,7 +69,7 @@ export function initializeAmplitude(): void {
       return amplitude;
     })
     .catch((error: unknown) => {
-      console.error("[Amplitude] initialization failed", error);
+      console.error('[Amplitude] initialization failed', error);
       return null;
     });
 }
@@ -82,10 +82,7 @@ export function trackEvent(event: AnalyticsEvent): void {
   if (!amplitudeReady) return;
 
   void amplitudeReady.then((amplitude) => {
-    amplitude?.track(
-      event.name,
-      "properties" in event ? event.properties : undefined,
-    );
+    amplitude?.track(event.name, 'properties' in event ? event.properties : undefined);
   });
 }
 

@@ -1,42 +1,29 @@
-import type { RequestAuthSnapshot } from "@/features/auth/types";
-import { getLearningApiBaseUrl } from "@/lib/api/service-base-url";
-import {
-  ApiError,
-  serviceFetch,
-  type JsonRequestInit,
-} from "@/lib/api/transport";
+import type { RequestAuthSnapshot } from '@/features/auth/types';
+import { getLearningApiBaseUrl } from '@/lib/api/service-base-url';
+import { ApiError, serviceFetch, type JsonRequestInit } from '@/lib/api/transport';
 
 interface ApiSessionAccess {
   prepareRequest: () => Promise<RequestAuthSnapshot>;
-  recoverUnauthorized: (
-    generation: number,
-    code?: string,
-  ) => Promise<RequestAuthSnapshot>;
+  recoverUnauthorized: (generation: number, code?: string) => Promise<RequestAuthSnapshot>;
 }
 
-type ReadRequestInit = Omit<JsonRequestInit, "body" | "method"> & {
+type ReadRequestInit = Omit<JsonRequestInit, 'body' | 'method'> & {
   body?: never;
-  method?: "GET";
+  method?: 'GET';
 };
 
-function waitForCaller<T>(
-  promise: Promise<T>,
-  signal?: AbortSignal,
-): Promise<T> {
+function waitForCaller<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
   if (!signal) {
     return promise;
   }
   if (signal.aborted) {
-    return Promise.reject(signal.reason ?? new Error("요청이 취소되었습니다."));
+    return Promise.reject(signal.reason ?? new Error('요청이 취소되었습니다.'));
   }
 
   return new Promise<T>((resolve, reject) => {
-    const handleAbort = () =>
-      reject(signal.reason ?? new Error("요청이 취소되었습니다."));
-    signal.addEventListener("abort", handleAbort, { once: true });
-    promise
-      .then(resolve, reject)
-      .finally(() => signal.removeEventListener("abort", handleAbort));
+    const handleAbort = () => reject(signal.reason ?? new Error('요청이 취소되었습니다.'));
+    signal.addEventListener('abort', handleAbort, { once: true });
+    promise.then(resolve, reject).finally(() => signal.removeEventListener('abort', handleAbort));
   });
 }
 
@@ -69,10 +56,7 @@ export function createAuthenticatedApiClient(session: ApiSessionAccess) {
     init: JsonRequestInit = {},
     timeoutMs?: number,
   ): Promise<T> {
-    const snapshot = await waitForCaller(
-      session.prepareRequest(),
-      init.signal ?? undefined,
-    );
+    const snapshot = await waitForCaller(session.prepareRequest(), init.signal ?? undefined);
 
     return requestWithToken<T>(path, snapshot, init, timeoutMs);
   }
@@ -82,10 +66,7 @@ export function createAuthenticatedApiClient(session: ApiSessionAccess) {
     init: ReadRequestInit = {},
     timeoutMs?: number,
   ): Promise<T> {
-    const firstSnapshot = await waitForCaller(
-      session.prepareRequest(),
-      init.signal ?? undefined,
-    );
+    const firstSnapshot = await waitForCaller(session.prepareRequest(), init.signal ?? undefined);
 
     let unauthorizedCode: string | undefined;
     try {

@@ -1,6 +1,6 @@
-import { mapIdentityGuestPreparation } from "@/features/auth/identity-login-mapper";
-import { getIdentityApiBaseUrl } from "@/lib/api/service-base-url";
-import { serviceFetch } from "@/lib/api/transport";
+import { mapIdentityGuestPreparation } from '@/features/auth/identity-login-mapper';
+import { getIdentityApiBaseUrl } from '@/lib/api/service-base-url';
+import { serviceFetch } from '@/lib/api/transport';
 
 export async function prepareGuestEnrollment(
   firebaseIdToken: string,
@@ -10,7 +10,7 @@ export async function prepareGuestEnrollment(
   const envelope = await serviceFetch<unknown>(
     `${getIdentityApiBaseUrl()}/api/v1/auth/firebase/guest/prepare`,
     {
-      method: "POST",
+      method: 'POST',
       headers: { Authorization: `Bearer ${guestAccessToken}` },
       body: JSON.stringify({ firebaseIdToken }),
       signal,

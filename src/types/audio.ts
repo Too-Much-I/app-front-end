@@ -7,7 +7,7 @@
  *
  * 둘은 원인 계열이 다르므로 같은 `playback`으로 뭉뚱그리면 조사할 방향이 사라진다.
  */
-export type AudioPlaybackFailureOrigin = "start-call" | "player-status";
+export type AudioPlaybackFailureOrigin = 'start-call' | 'player-status';
 
 /**
  * 재생 실패 사유를 접어 둔 닫힌 집합.
@@ -19,12 +19,12 @@ export type AudioPlaybackFailureOrigin = "start-call" | "player-status";
  * 바뀌므로 분류표는 최선의 근사이지 계약이 아니다.
  */
 export type AudioPlaybackErrorKind =
-  | "offline"
-  | "timed-out"
-  | "unreachable"
-  | "forbidden"
-  | "not-found"
-  | "server-error"
-  | "unsupported-format"
-  | "session"
-  | "unknown";
+  | 'offline'
+  | 'timed-out'
+  | 'unreachable'
+  | 'forbidden'
+  | 'not-found'
+  | 'server-error'
+  | 'unsupported-format'
+  | 'session'
+  | 'unknown';

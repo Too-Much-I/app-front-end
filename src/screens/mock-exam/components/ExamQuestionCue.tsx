@@ -1,19 +1,19 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View } from "react-native";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
-import { ExamAudioErrorNotice } from "@/screens/mock-exam/components/ExamAudioErrorNotice";
-import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
-import { classifyAudioPlaybackError } from "@/features/audio/playback-error";
-import { getExamListenAgainCueSource } from "@/features/exam/exam-cue";
-import { getQuestionAudioSource } from "@/features/exam/question-audio";
-import { colors } from "@/theme";
+import { Text } from '@/components/ui/Text';
+import { ExamAudioErrorNotice } from '@/screens/mock-exam/components/ExamAudioErrorNotice';
+import { PLAYBACK_AUDIO_MODE } from '@/features/audio/audio-session';
+import { classifyAudioPlaybackError } from '@/features/audio/playback-error';
+import { getExamListenAgainCueSource } from '@/features/exam/exam-cue';
+import { getQuestionAudioSource } from '@/features/exam/question-audio';
+import { colors } from '@/theme';
 import {
   reportOperationalError,
   type ExamAudioFailureDetail,
-} from "@/lib/operational-error-reporting";
+} from '@/lib/operational-error-reporting';
 
 interface ExamQuestionCueProps {
   audioUrl: string;
@@ -31,7 +31,7 @@ interface ExamQuestionCueProps {
  * 안내를 재생하는 단계다. 안내는 반복이 남아 있을 때만 거치므로 1회 재생 문항은
  * `question` 단계에서 끝난다.
  */
-type QuestionCueStage = "question" | "listen-again";
+type QuestionCueStage = 'question' | 'listen-again';
 
 /**
  * 문제 음성이 재생 중이 아닌 채로 이만큼 머무르면 멈춘 것으로 본다.
@@ -40,10 +40,7 @@ type QuestionCueStage = "question" | "listen-again";
 const CUE_STALL_TIMEOUT_MS = 10_000;
 
 function hasFinished(status: ReturnType<typeof useAudioPlayerStatus>): boolean {
-  return (
-    status.didJustFinish ||
-    (status.duration > 0 && status.currentTime >= status.duration)
-  );
+  return status.didJustFinish || (status.duration > 0 && status.currentTime >= status.duration);
 }
 
 export function ExamQuestionCue({
@@ -69,7 +66,7 @@ export function ExamQuestionCue({
   const listenAgainStatus = useAudioPlayerStatus(listenAgainPlayer);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);
   const [playedCount, setPlayedCount] = useState(0);
-  const [stage, setStage] = useState<QuestionCueStage>("question");
+  const [stage, setStage] = useState<QuestionCueStage>('question');
   const hasCompletedRef = useRef(false);
   const hasStartedRef = useRef(false);
   const shouldRestartRef = useRef(false);
@@ -77,7 +74,7 @@ export function ExamQuestionCue({
   const isActiveRef = useRef(isActive);
   // 단계 전환은 effect 안에서 즉시 읽어야 해서 ref로도 들고 있는다. 화면 문구는
   // state를 봐야 갱신되므로 둘을 항상 같이 바꾼다.
-  const stageRef = useRef<QuestionCueStage>("question");
+  const stageRef = useRef<QuestionCueStage>('question');
   const hasReportedPlaybackFailureRef = useRef(false);
   const enterStage = useCallback((next: QuestionCueStage) => {
     stageRef.current = next;
@@ -89,8 +86,8 @@ export function ExamQuestionCue({
       if (!isActiveRef.current || hasReportedPlaybackFailureRef.current) return;
       hasReportedPlaybackFailureRef.current = true;
       reportOperationalError({
-        code: "EXAM_REQUIRED_AUDIO_FAILED",
-        cueKind: "question",
+        code: 'EXAM_REQUIRED_AUDIO_FAILED',
+        cueKind: 'question',
         partNumber,
         questionNumber,
         ...detail,
@@ -104,7 +101,7 @@ export function ExamQuestionCue({
       if (reloadSource) hasReportedPlaybackFailureRef.current = false;
       if (!audioSource || !isActiveRef.current || hasCompletedRef.current) {
         if (!audioSource) {
-          markPlaybackFailure({ reason: "missing" });
+          markPlaybackFailure({ reason: 'missing' });
           setHasPlaybackError(true);
         }
         return;
@@ -125,16 +122,16 @@ export function ExamQuestionCue({
         }
         // 재시작은 항상 1회차 문제 음성부터다. 안내만 다시 듣는 진입점은 없다.
         setPlayedCount(0);
-        enterStage("question");
+        enterStage('question');
         player.play();
         setHasPlaybackError(false);
         hasStartedRef.current = true;
         shouldRestartRef.current = false;
       } catch (error) {
-        console.error("[ExamQuestionCue] 문제 음성 재생 실패", error);
+        console.error('[ExamQuestionCue] 문제 음성 재생 실패', error);
         markPlaybackFailure({
-          reason: "playback",
-          origin: "start-call",
+          reason: 'playback',
+          origin: 'start-call',
           errorKind: classifyAudioPlaybackError(error),
         });
         setHasPlaybackError(true);
@@ -165,7 +162,7 @@ export function ExamQuestionCue({
 
   useEffect(() => {
     const isCurrentPlayerPlaying =
-      stageRef.current === "listen-again" ? listenAgainStatus.playing : playbackStatus.playing;
+      stageRef.current === 'listen-again' ? listenAgainStatus.playing : playbackStatus.playing;
     if (isCurrentPlayerPlaying && isActive) {
       hasObservedPlayingRef.current = true;
     }
@@ -176,7 +173,7 @@ export function ExamQuestionCue({
   useEffect(() => {
     if (!isActive || hasPlaybackError || hasCompletedRef.current) return;
     const isCurrentPlayerPlaying =
-      stageRef.current === "listen-again" ? listenAgainStatus.playing : playbackStatus.playing;
+      stageRef.current === 'listen-again' ? listenAgainStatus.playing : playbackStatus.playing;
     if (isCurrentPlayerPlaying) return;
 
     const timeoutId = setTimeout(() => {
@@ -185,8 +182,8 @@ export function ExamQuestionCue({
       listenAgainPlayer.pause();
       hasObservedPlayingRef.current = false;
       shouldRestartRef.current = true;
-      console.error("[ExamQuestionCue] 문제 음성이 시간 안에 끝나지 않음");
-      markPlaybackFailure({ reason: "timeout" });
+      console.error('[ExamQuestionCue] 문제 음성이 시간 안에 끝나지 않음');
+      markPlaybackFailure({ reason: 'timeout' });
       setHasPlaybackError(true);
     }, CUE_STALL_TIMEOUT_MS);
 
@@ -214,14 +211,12 @@ export function ExamQuestionCue({
     shouldRestartRef.current = true;
     markPlaybackFailure(
       playbackStatus.mediaServicesDidReset || listenAgainStatus.mediaServicesDidReset
-        ? { reason: "media-reset" }
+        ? { reason: 'media-reset' }
         : {
-            reason: "playback",
-            origin: "player-status",
+            reason: 'playback',
+            origin: 'player-status',
             // 두 플레이어를 함께 보므로 실제로 깨진 쪽의 서술을 고른다.
-            errorKind: classifyAudioPlaybackError(
-              playbackStatus.error ?? listenAgainStatus.error,
-            ),
+            errorKind: classifyAudioPlaybackError(playbackStatus.error ?? listenAgainStatus.error),
           },
     );
     setHasPlaybackError(true);
@@ -230,7 +225,7 @@ export function ExamQuestionCue({
   // 문제 음성 한 회차가 끝났다. 남은 회차가 있으면 "Now listen again." 안내를 거친다.
   useEffect(() => {
     if (
-      stageRef.current !== "question" ||
+      stageRef.current !== 'question' ||
       !isActive ||
       !hasFinished(playbackStatus) ||
       !hasObservedPlayingRef.current ||
@@ -253,18 +248,18 @@ export function ExamQuestionCue({
       return;
     }
 
-    enterStage("listen-again");
+    enterStage('listen-again');
     player.pause();
     void (async () => {
       try {
         if (listenAgainPlayer.currentTime > 0) await listenAgainPlayer.seekTo(0);
-        if (!isActiveRef.current || stageRef.current !== "listen-again") return;
+        if (!isActiveRef.current || stageRef.current !== 'listen-again') return;
         listenAgainPlayer.play();
       } catch (error) {
-        console.error("[ExamQuestionCue] 다시 듣기 안내 재생 실패", error);
+        console.error('[ExamQuestionCue] 다시 듣기 안내 재생 실패', error);
         markPlaybackFailure({
-          reason: "playback",
-          origin: "start-call",
+          reason: 'playback',
+          origin: 'start-call',
           errorKind: classifyAudioPlaybackError(error),
         });
         setHasPlaybackError(true);
@@ -286,7 +281,7 @@ export function ExamQuestionCue({
   // 안내가 끝났다. 문제 음성 다음 회차를 처음부터 다시 재생한다.
   useEffect(() => {
     if (
-      stageRef.current !== "listen-again" ||
+      stageRef.current !== 'listen-again' ||
       !isActive ||
       !hasFinished(listenAgainStatus) ||
       !hasObservedPlayingRef.current ||
@@ -297,7 +292,7 @@ export function ExamQuestionCue({
     }
 
     hasObservedPlayingRef.current = false;
-    enterStage("question");
+    enterStage('question');
     listenAgainPlayer.pause();
     void (async () => {
       try {
@@ -305,10 +300,10 @@ export function ExamQuestionCue({
         if (!isActiveRef.current || hasCompletedRef.current) return;
         player.play();
       } catch (error) {
-        console.error("[ExamQuestionCue] 문제 음성 반복 재생 실패", error);
+        console.error('[ExamQuestionCue] 문제 음성 반복 재생 실패', error);
         markPlaybackFailure({
-          reason: "playback",
-          origin: "start-call",
+          reason: 'playback',
+          origin: 'start-call',
           errorKind: classifyAudioPlaybackError(error),
         });
         setHasPlaybackError(true);
@@ -342,11 +337,11 @@ export function ExamQuestionCue({
     <View accessibilityLiveRegion="polite" className="flex-row items-center gap-2 py-1">
       <MaterialCommunityIcons name="volume-high" size={20} color={colors.brand.text} />
       <Text className="text-sm text-brand-text">
-        {stage === "listen-again"
-          ? "다시 듣기 안내를 재생하고 있어요"
+        {stage === 'listen-again'
+          ? '다시 듣기 안내를 재생하고 있어요'
           : playCount > 1
             ? `문제 음성을 듣고 있어요 (${Math.min(playedCount + 1, playCount)}/${playCount})`
-            : "문제 음성을 듣고 있어요"}
+            : '문제 음성을 듣고 있어요'}
       </Text>
     </View>
   );

@@ -1,12 +1,12 @@
-import { Feather } from "@expo/vector-icons";
-import { StatusBar } from "expo-status-bar";
-import { Modal, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Feather } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
+import { Modal, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Part4Table } from "@/components/exam/Part4Table";
-import { Pressable } from "@/components/ui/Pressable";
-import { colors } from "@/theme";
-import type { ExamTableContext } from "@/types/exam";
+import { Part4Table } from '@/components/exam/Part4Table';
+import { Pressable } from '@/components/ui/Pressable';
+import { colors } from '@/theme';
+import type { ExamTableContext } from '@/types/exam';
 
 interface Part4TableLandscapeModalProps {
   visible: boolean;
@@ -34,7 +34,7 @@ export function Part4TableLandscapeModal({
       navigationBarTranslucent
       presentationStyle="fullScreen"
       statusBarTranslucent
-      supportedOrientations={["portrait", "landscape-left", "landscape-right"]}
+      supportedOrientations={['portrait', 'landscape-left', 'landscape-right']}
       visible
       onRequestClose={onRequestClose}
     >
@@ -42,19 +42,15 @@ export function Part4TableLandscapeModal({
       <SafeAreaView
         accessibilityViewIsModal
         className="relative flex-1 bg-surface"
-        edges={["top", "right", "bottom", "left"]}
+        edges={['top', 'right', 'bottom', 'left']}
       >
         <Pressable
           accessibilityHint="현재 시험 단계의 세로 화면으로 돌아갑니다"
-          accessibilityLabel={
-            transitioning ? "표 축소 중" : "표 축소하고 세로 화면으로 돌아가기"
-          }
+          accessibilityLabel={transitioning ? '표 축소 중' : '표 축소하고 세로 화면으로 돌아가기'}
           accessibilityRole="button"
           accessibilityState={{ disabled: transitioning }}
           className={`absolute right-5 top-3 z-20 h-11 w-11 items-center justify-center rounded-full border ${
-            transitioning
-              ? "border-line bg-surface-muted"
-              : "border-brand-300 bg-surface"
+            transitioning ? 'border-line bg-surface-muted' : 'border-brand-300 bg-surface'
           }`}
           disabled={transitioning}
           hitSlop={4}

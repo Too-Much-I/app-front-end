@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useAuth } from "@/features/auth/auth-context";
-import { reportOperationalError } from "@/lib/operational-error-reporting";
+import { useAuth } from '@/features/auth/auth-context';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 /**
  * 설정 화면의 "채점 품질 개선을 위한 답변 검토" 스위치.
@@ -53,10 +53,10 @@ export function useQualityReviewConsent() {
     try {
       await setQualityReviewConsent(next);
     } catch (error) {
-      console.error("[Settings] 선택 동의 변경 실패", error);
+      console.error('[Settings] 선택 동의 변경 실패', error);
       reportOperationalError({
-        code: "QUALITY_REVIEW_CONSENT_UPDATE_FAILED",
-        operation: "set-quality-review-consent",
+        code: 'QUALITY_REVIEW_CONSENT_UPDATE_FAILED',
+        operation: 'set-quality-review-consent',
         cause: error,
       });
       setEnabled(previous);

@@ -1,10 +1,7 @@
-import { mapExamGradingResult } from "@/features/exam/map-exam-grading-result";
-import { apiFetchWithAuthRetry } from "@/lib/api/client";
-import type { ApiEnvelope } from "@/types/api";
-import type {
-  ExamGradingResult,
-  RawExamSummaryResult,
-} from "@/types/exam";
+import { mapExamGradingResult } from '@/features/exam/map-exam-grading-result';
+import { apiFetchWithAuthRetry } from '@/lib/api/client';
+import type { ApiEnvelope } from '@/types/api';
+import type { ExamGradingResult, RawExamSummaryResult } from '@/types/exam';
 
 const gradingSummaryPath = (examId: string) => `/api/v1/exams/${examId}/summary`;
 

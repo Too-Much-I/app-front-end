@@ -1,10 +1,7 @@
-import { mapExamQuestionInfo } from "@/features/exam/map-exam-question-info";
-import { apiFetchWithAuthRetry } from "@/lib/api/client";
-import type { ApiEnvelope } from "@/types/api";
-import type {
-  ExamQuestionInfo,
-  RawExamQuestionDetailResult,
-} from "@/types/exam";
+import { mapExamQuestionInfo } from '@/features/exam/map-exam-question-info';
+import { apiFetchWithAuthRetry } from '@/lib/api/client';
+import type { ApiEnvelope } from '@/types/api';
+import type { ExamQuestionInfo, RawExamQuestionDetailResult } from '@/types/exam';
 
 /**
  * 재답변 화면이 그릴 문제 원문 하나를 가져온다.

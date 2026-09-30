@@ -1,12 +1,12 @@
-import { useFocusEffect } from "@react-navigation/native";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect } from "react";
-import { AppState } from "react-native";
+import { useFocusEffect } from '@react-navigation/native';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect } from 'react';
+import { AppState } from 'react-native';
 
 import {
   CHALLENGE_TODAY_QUERY_KEY,
   challengeTodayQueryOptions,
-} from "@/features/challenge/challenge-today-queries";
+} from '@/features/challenge/challenge-today-queries';
 
 /**
  * 오늘 진행도와, 그것을 다시 읽는 세 계기.
@@ -42,9 +42,9 @@ export function useChallengeToday() {
       // 다른 화면에서 돌아왔을 때. 문제 화면이 진행도 갱신을 요구하며 나온 경우가 여기다.
       refetchIfStale();
 
-      const subscription = AppState.addEventListener("change", (nextState) => {
+      const subscription = AppState.addEventListener('change', (nextState) => {
         // 백그라운드에 있는 동안에는 아래 만료 타이머가 돌지 않으므로 복귀 시 한 번 본다.
-        if (nextState === "active") refetchIfStale();
+        if (nextState === 'active') refetchIfStale();
       });
 
       return () => subscription.remove();
@@ -62,10 +62,7 @@ export function useChallengeToday() {
     if (data === undefined) return;
 
     const expiresAtMs = dataUpdatedAt + data.expiresInSeconds * 1_000;
-    const timer = setTimeout(
-      () => void refetch(),
-      Math.max(expiresAtMs - Date.now(), 0),
-    );
+    const timer = setTimeout(() => void refetch(), Math.max(expiresAtMs - Date.now(), 0));
 
     return () => clearTimeout(timer);
   }, [data, dataUpdatedAt, refetch]);

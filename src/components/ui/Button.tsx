@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
-import { ActivityIndicator } from "react-native";
+import type { ReactNode } from 'react';
+import { ActivityIndicator } from 'react-native';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import { colors, shadows, size } from "@/theme";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import { colors, shadows, size } from '@/theme';
 
 /**
  * 버튼의 역할.
@@ -11,10 +11,10 @@ import { colors, shadows, size } from "@/theme";
  * 배경색이 아니라 "화면에서 이 버튼이 무슨 무게인가"로 나눈다. 같은 주황이라도
  * 화면의 주 행동과 보조 행동은 다른 variant다.
  */
-type ButtonVariant = "primary" | "secondary" | "neutral" | "danger" | "text";
+type ButtonVariant = 'primary' | 'secondary' | 'neutral' | 'danger' | 'text';
 
 /** 높이 단계. 값은 `tokens.js`의 `size.control`. */
-type ButtonSize = "sm" | "md" | "lg";
+type ButtonSize = 'sm' | 'md' | 'lg';
 
 type ButtonProps = {
   label: string;
@@ -50,28 +50,28 @@ type ButtonProps = {
 
 const VARIANT_STYLES = {
   text: {
-    fill: "text",
-    container: "border border-transparent bg-transparent",
-    label: "!text-brand-text",
+    fill: 'text',
+    container: 'border border-transparent bg-transparent',
+    label: '!text-brand-text',
     foreground: colors.brand.text,
   },
   primary: {
-    fill: "solid",
-    container: "border border-transparent bg-brand-cta",
-    label: "text-white",
+    fill: 'solid',
+    container: 'border border-transparent bg-brand-cta',
+    label: 'text-white',
     foreground: colors.surface.DEFAULT,
   },
   secondary: {
-    fill: "outline",
-    container: "border border-brand-300 bg-surface",
+    fill: 'outline',
+    container: 'border border-brand-300 bg-surface',
     // 흰 배경 위 주황 글자는 500(3.01:1)이 아니라 700(5.10:1)이어야 본문 대비를 넘긴다.
-    label: "text-brand-text",
+    label: 'text-brand-text',
     foreground: colors.brand.text,
   },
   neutral: {
-    fill: "outline",
-    container: "border border-line bg-surface",
-    label: "text-ink",
+    fill: 'outline',
+    container: 'border border-line bg-surface',
+    label: 'text-ink',
     foreground: colors.ink.DEFAULT,
   },
   /**
@@ -91,24 +91,21 @@ const VARIANT_STYLES = {
    * 지금 미리 옮기지 않는 이유는 색이 옮겨가도 쓰는 곳이 늘지 않기 때문이다.
    */
   danger: {
-    fill: "outline",
-    container: "border border-exam-dangerLine bg-surface",
-    label: "text-exam-danger",
+    fill: 'outline',
+    container: 'border border-exam-dangerLine bg-surface',
+    label: 'text-exam-danger',
     foreground: colors.exam.danger,
   },
 } as const satisfies Record<
   ButtonVariant,
-  { fill: "solid" | "outline" | "text"; container: string; label: string; foreground: string }
+  { fill: 'solid' | 'outline' | 'text'; container: string; label: string; foreground: string }
 >;
 
 const SIZE_STYLES = {
-  sm: { container: "min-h-control-sm gap-xs px-md", label: "text-sm", icon: size.icon.sm },
-  md: { container: "min-h-control-md gap-content px-lg", label: "text-base", icon: size.icon.md },
-  lg: { container: "min-h-control-lg gap-content px-xl", label: "text-base", icon: size.icon.md },
-} as const satisfies Record<
-  ButtonSize,
-  { container: string; label: string; icon: number }
->;
+  sm: { container: 'min-h-control-sm gap-xs px-md', label: 'text-sm', icon: size.icon.sm },
+  md: { container: 'min-h-control-md gap-content px-lg', label: 'text-base', icon: size.icon.md },
+  lg: { container: 'min-h-control-lg gap-content px-xl', label: 'text-base', icon: size.icon.md },
+} as const satisfies Record<ButtonSize, { container: string; label: string; icon: number }>;
 
 /**
  * 비활성 상태.
@@ -124,18 +121,18 @@ const SIZE_STYLES = {
  */
 const DISABLED_STYLES = {
   text: {
-    container: "border border-transparent bg-transparent",
-    label: "text-ink-disabled",
+    container: 'border border-transparent bg-transparent',
+    label: 'text-ink-disabled',
     foreground: colors.ink.disabled,
   },
   solid: {
-    container: "border border-transparent bg-line",
-    label: "text-ink-muted",
+    container: 'border border-transparent bg-line',
+    label: 'text-ink-muted',
     foreground: colors.ink.muted,
   },
   outline: {
-    container: "border border-line bg-surface",
-    label: "text-ink-disabled",
+    container: 'border border-line bg-surface',
+    label: 'text-ink-disabled',
     foreground: colors.ink.disabled,
   },
 } as const;
@@ -160,8 +157,8 @@ const DISABLED_STYLES = {
 export function Button({
   label,
   onPress,
-  variant = "primary",
-  size: sizeName = "md",
+  variant = 'primary',
+  size: sizeName = 'md',
   loading = false,
   disabled = false,
   renderIcon,
@@ -181,13 +178,11 @@ export function Button({
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityRole="button"
       // sm은 hitTarget(44)보다 낮으므로 모자란 만큼 위아래로 터치 영역을 넓힌다.
-      hitSlop={
-        sizeName === "sm" ? (size.hitTarget - size.control.sm) / 2 : undefined
-      }
+      hitSlop={sizeName === 'sm' ? (size.hitTarget - size.control.sm) / 2 : undefined}
       // `disabled`가 아니라 `isInert`인 이유: loading일 때도 `Pressable`이 실제로 잠긴다.
       // 여기에 `disabled`만 넘기면 눌리지 않는 버튼을 보조기기가 활성으로 읽는다.
       accessibilityState={{ busy: loading, disabled: isInert }}
-      className={`flex-row items-center justify-center rounded-control ${sizeStyle.container} ${variantStyle.container} ${className ?? ""}`}
+      className={`flex-row items-center justify-center rounded-control ${sizeStyle.container} ${variantStyle.container} ${className ?? ''}`}
       disabled={isInert}
       style={elevated && !isInert ? shadows.card : undefined}
       onPress={onPress}

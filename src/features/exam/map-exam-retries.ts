@@ -1,8 +1,8 @@
 import {
   getExamPartNumberByQuestionNumber,
   getExamQuestionMaxScore,
-} from "@/features/exam/part-meta";
-import type { RawExamRetriesResult } from "@/types/exam";
+} from '@/features/exam/part-meta';
+import type { RawExamRetriesResult } from '@/types/exam';
 
 export type ReanswerQuestionItem = {
   examId: string;
@@ -26,21 +26,21 @@ export type ReanswerProgress = {
 /** 응답 형식이 계약과 다를 때 던진다. 빈 목록으로 바꾸지 않는다. */
 export class ExamRetriesContractError extends Error {
   constructor() {
-    super("재답변 이력 응답 형식이 올바르지 않습니다.");
-    this.name = "ExamRetriesContractError";
+    super('재답변 이력 응답 형식이 올바르지 않습니다.');
+    this.name = 'ExamRetriesContractError';
   }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
 function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
+  return typeof value === 'number' && Number.isFinite(value);
 }
 
 function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0;
+  return typeof value === 'string' && value.length > 0;
 }
 
 type GradedAttempt = {
@@ -66,7 +66,7 @@ function toGradedAttempt(value: unknown): GradedAttempt | null {
   return {
     retryCount,
     score,
-    completedAt: typeof completedAt === "string" ? completedAt : null,
+    completedAt: typeof completedAt === 'string' ? completedAt : null,
   };
 }
 
@@ -77,10 +77,7 @@ function toGradedAttempt(value: unknown): GradedAttempt | null {
  * 재답변 회차(retryCount>0) 모두 채점이 끝나 있어야 하고, 두 점수가 만점 범위 안이어야 한다.
  * 조건을 못 채운 문항은 평균의 분모에서도 빠진다.
  */
-function toReanswerQuestion(
-  examId: string,
-  value: unknown,
-): ReanswerQuestionItem | null {
+function toReanswerQuestion(examId: string, value: unknown): ReanswerQuestionItem | null {
   if (!isRecord(value)) return null;
 
   const { questionNumber, attempts } = value;
@@ -112,17 +109,13 @@ function toReanswerQuestion(
     initialScore: initial.score,
     latestScore: latest.score,
     maxScore,
-    completedAt: latest.completedAt ?? initial.completedAt ?? "",
+    completedAt: latest.completedAt ?? initial.completedAt ?? '',
   };
 }
 
 /** 재답변 이력에서 비교 가능한 문항만 문항 번호 순으로 추린다. */
 export function mapExamRetries(raw: RawExamRetriesResult): ReanswerQuestionItem[] {
-  if (
-    !isRecord(raw) ||
-    !isNonEmptyString(raw.examId) ||
-    !Array.isArray(raw.questions)
-  ) {
+  if (!isRecord(raw) || !isNonEmptyString(raw.examId) || !Array.isArray(raw.questions)) {
     throw new ExamRetriesContractError();
   }
 
@@ -153,18 +146,14 @@ export function summarizeReanswerProgress(
   }
 
   const averageDeltaRatio =
-    items.reduce(
-      (sum, item) => sum + (item.latestScore - item.initialScore) / item.maxScore,
-      0,
-    ) / items.length;
+    items.reduce((sum, item) => sum + (item.latestScore - item.initialScore) / item.maxScore, 0) /
+    items.length;
 
   const rounded = Math.round(averageDeltaRatio * 1_000) / 10;
 
   return {
     averageDeltaPercentagePoints: rounded === 0 ? 0 : rounded,
-    improvedQuestionCount: items.filter(
-      (item) => item.latestScore > item.initialScore,
-    ).length,
+    improvedQuestionCount: items.filter((item) => item.latestScore > item.initialScore).length,
     comparableQuestionCount: items.length,
   };
 }

@@ -1,15 +1,15 @@
-import { Feather } from "@expo/vector-icons";
-import type { ReactNode } from "react";
-import { Image, View } from "react-native";
+import { Feather } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
+import { Image, View } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
-import { isUrgentRemaining } from "@/screens/challenge/challenge-status";
-import { PunchHoles } from "@/screens/challenge/components/paper/PunchHoles";
-import { Tape } from "@/screens/challenge/components/paper/Tape";
-import { colors, shadows } from "@/theme";
+import { Text } from '@/components/ui/Text';
+import { isUrgentRemaining } from '@/screens/challenge/challenge-status';
+import { PunchHoles } from '@/screens/challenge/components/paper/PunchHoles';
+import { Tape } from '@/screens/challenge/components/paper/Tape';
+import { colors, shadows } from '@/theme';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
-const paintingCat = require("../../../../public/mascots/painting_cat.png");
+const paintingCat = require('../../../../public/mascots/painting_cat.png');
 
 /** 아래쪽 뜯긴 가장자리를 만드는 물결 수. */
 const TORN_EDGE_BUMP_COUNT = 14;
@@ -62,7 +62,7 @@ export function ChallengeNoteCard({
       <View className="grow rounded-card bg-challenge-mat p-3" style={shadows.card}>
         <View
           className="relative grow overflow-hidden rounded-2xl bg-surface"
-          style={{ transform: [{ rotate: "-0.8deg" }] }}
+          style={{ transform: [{ rotate: '-0.8deg' }] }}
         >
           <NoteRuleLines />
           <PunchHoles carvedFrom={colors.challenge.mat} fit="note" />
@@ -74,10 +74,10 @@ export function ChallengeNoteCard({
             </View>
 
             {/*
-              * 행간만 토큰 스케일 밖의 값이다. `text-3xl`이 들고 오는 38px은 제목용이라
-              * 두 줄 이상 감기는 문장에서 답답하고, Tailwind의 `leading-10`(35px)은 더
-              * 좁다. px가 아니라 rem으로 적어 런타임 rem 스케일링에서 빠지지 않게 한다.
-              */}
+             * 행간만 토큰 스케일 밖의 값이다. `text-3xl`이 들고 오는 38px은 제목용이라
+             * 두 줄 이상 감기는 문장에서 답답하고, Tailwind의 `leading-10`(35px)은 더
+             * 좁다. px가 아니라 rem으로 적어 런타임 rem 스케일링에서 빠지지 않게 한다.
+             */}
             <Text className="text-center text-3xl leading-[3.375rem]">{promptKo}</Text>
 
             <DashedRule colorClassName="border-sky" />
@@ -146,7 +146,7 @@ function NoteTimerBar({
       pointerEvents="none"
     >
       <View
-        className={`h-full ${isUrgentRemaining(remainingSeconds) ? "bg-exam-danger" : "bg-brand-cta"}`}
+        className={`h-full ${isUrgentRemaining(remainingSeconds) ? 'bg-exam-danger' : 'bg-brand-cta'}`}
         style={{ width: `${remainingRatio * 100}%` }}
       />
     </View>

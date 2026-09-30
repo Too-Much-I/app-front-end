@@ -1,19 +1,19 @@
-import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ScrollView, View } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
-import { ExamAudioErrorNotice } from "@/screens/mock-exam/components/ExamAudioErrorNotice";
-import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
-import { classifyAudioPlaybackError } from "@/features/audio/playback-error";
+import { Text } from '@/components/ui/Text';
+import { ExamAudioErrorNotice } from '@/screens/mock-exam/components/ExamAudioErrorNotice';
+import { PLAYBACK_AUDIO_MODE } from '@/features/audio/audio-session';
+import { classifyAudioPlaybackError } from '@/features/audio/playback-error';
 import {
   getExamPartDirectionAudioSource,
   type ExamPartDirections,
-} from "@/features/exam/part-directions";
+} from '@/features/exam/part-directions';
 import {
   reportOperationalError,
   type ExamAudioFailureDetail,
-} from "@/lib/operational-error-reporting";
+} from '@/lib/operational-error-reporting';
 
 interface ExamPartDirectionsContentProps {
   directions: ExamPartDirections;
@@ -59,8 +59,8 @@ export function ExamPartDirectionsContent({
       if (!isActiveRef.current || hasReportedPlaybackFailureRef.current) return;
       hasReportedPlaybackFailureRef.current = true;
       reportOperationalError({
-        code: "EXAM_REQUIRED_AUDIO_FAILED",
-        cueKind: "part-directions",
+        code: 'EXAM_REQUIRED_AUDIO_FAILED',
+        cueKind: 'part-directions',
         partNumber,
         ...detail,
       });
@@ -68,40 +68,43 @@ export function ExamPartDirectionsContent({
     [partNumber],
   );
 
-  const playDirections = useCallback(async (isUserRetry = false) => {
-    if (isUserRetry) hasReportedPlaybackFailureRef.current = false;
-    if (audioSource === undefined) {
-      markPlaybackFailure({ reason: "missing" });
-      setHasPlaybackError(true);
-      return;
-    }
-    if (!isActiveRef.current || hasCompletedRef.current) return;
-
-    try {
-      setHasPlaybackError(false);
-      hasObservedPlayingRef.current = false;
-      await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
+  const playDirections = useCallback(
+    async (isUserRetry = false) => {
+      if (isUserRetry) hasReportedPlaybackFailureRef.current = false;
+      if (audioSource === undefined) {
+        markPlaybackFailure({ reason: 'missing' });
+        setHasPlaybackError(true);
+        return;
+      }
       if (!isActiveRef.current || hasCompletedRef.current) return;
 
-      player.pause();
+      try {
+        setHasPlaybackError(false);
+        hasObservedPlayingRef.current = false;
+        await setAudioModeAsync(PLAYBACK_AUDIO_MODE);
+        if (!isActiveRef.current || hasCompletedRef.current) return;
 
-      if (player.currentTime > 0) {
-        await player.seekTo(0);
+        player.pause();
+
+        if (player.currentTime > 0) {
+          await player.seekTo(0);
+        }
+
+        player.play();
+        hasStartedRef.current = true;
+        shouldRestartRef.current = false;
+      } catch (error) {
+        console.error(`[ExamPartDirections] Part ${partNumber} 안내 음성 재생 실패`, error);
+        markPlaybackFailure({
+          reason: 'playback',
+          origin: 'start-call',
+          errorKind: classifyAudioPlaybackError(error),
+        });
+        setHasPlaybackError(true);
       }
-
-      player.play();
-      hasStartedRef.current = true;
-      shouldRestartRef.current = false;
-    } catch (error) {
-      console.error(`[ExamPartDirections] Part ${partNumber} 안내 음성 재생 실패`, error);
-      markPlaybackFailure({
-        reason: "playback",
-        origin: "start-call",
-        errorKind: classifyAudioPlaybackError(error),
-      });
-      setHasPlaybackError(true);
-    }
-  }, [audioSource, markPlaybackFailure, partNumber, player]);
+    },
+    [audioSource, markPlaybackFailure, partNumber, player],
+  );
 
   useEffect(() => {
     isActiveRef.current = isActive;
@@ -126,10 +129,10 @@ export function ExamPartDirectionsContent({
     if (playbackStatus.error === null && !playbackStatus.mediaServicesDidReset) return;
     markPlaybackFailure(
       playbackStatus.mediaServicesDidReset
-        ? { reason: "media-reset" }
+        ? { reason: 'media-reset' }
         : {
-            reason: "playback",
-            origin: "player-status",
+            reason: 'playback',
+            origin: 'player-status',
             errorKind: classifyAudioPlaybackError(playbackStatus.error),
           },
     );
@@ -156,12 +159,10 @@ export function ExamPartDirectionsContent({
         showsVerticalScrollIndicator={false}
       >
         <View className="mx-auto w-full max-w-3xl items-center">
-          <Text className="text-center text-2xl leading-8 text-exam-navy">
-            {directions.title}
-          </Text>
+          <Text className="text-center text-2xl leading-8 text-exam-navy">{directions.title}</Text>
 
           <Text className="mt-5 w-full max-w-3xl text-center text-base leading-6 text-ink-muted">
-            {directions.lines.join(" ")}
+            {directions.lines.join(' ')}
           </Text>
         </View>
       </ScrollView>

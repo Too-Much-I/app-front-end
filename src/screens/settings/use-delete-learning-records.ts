@@ -1,9 +1,9 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from 'react';
 
-import { useAuth } from "@/features/auth/auth-context";
-import { reportOperationalError } from "@/lib/operational-error-reporting";
+import { useAuth } from '@/features/auth/auth-context';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
-export type DeleteRecordsStatus = "idle" | "confirming" | "deleting" | "error";
+export type DeleteRecordsStatus = 'idle' | 'confirming' | 'deleting' | 'error';
 
 /**
  * 설정 화면의 "모든 학습 기록 삭제" 확인 흐름.
@@ -14,12 +14,12 @@ export type DeleteRecordsStatus = "idle" | "confirming" | "deleting" | "error";
  */
 export function useDeleteLearningRecords() {
   const { deleteGuestAccount } = useAuth();
-  const [status, setStatus] = useState<DeleteRecordsStatus>("idle");
+  const [status, setStatus] = useState<DeleteRecordsStatus>('idle');
   // 상태 반영을 기다리는 사이의 연타를 막는다. status만으로는 한 프레임이 비어 있다.
   const isDeletingRef = useRef(false);
 
   const request = useCallback(() => {
-    setStatus("confirming");
+    setStatus('confirming');
   }, []);
 
   const cancel = useCallback(() => {
@@ -27,7 +27,7 @@ export function useDeleteLearningRecords() {
     if (isDeletingRef.current) {
       return;
     }
-    setStatus("idle");
+    setStatus('idle');
   }, []);
 
   const confirm = useCallback(async () => {
@@ -35,20 +35,20 @@ export function useDeleteLearningRecords() {
       return;
     }
     isDeletingRef.current = true;
-    setStatus("deleting");
+    setStatus('deleting');
 
     try {
       await deleteGuestAccount();
       // 성공: 이 컴포넌트는 곧 언마운트된다. 여기서 상태를 만지지 않는다.
     } catch (error) {
-      console.error("[Settings] 학습 기록 삭제 실패", error);
+      console.error('[Settings] 학습 기록 삭제 실패', error);
       reportOperationalError({
-        code: "LEARNING_RECORD_DELETE_FAILED",
-        operation: "delete-learning-records",
+        code: 'LEARNING_RECORD_DELETE_FAILED',
+        operation: 'delete-learning-records',
         cause: error,
       });
       isDeletingRef.current = false;
-      setStatus("error");
+      setStatus('error');
     }
   }, [deleteGuestAccount]);
 

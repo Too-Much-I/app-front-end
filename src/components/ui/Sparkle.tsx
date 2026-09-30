@@ -1,13 +1,13 @@
-import { Text } from "react-native";
+import { Text } from 'react-native';
 
-type SparkleSize = "sm" | "base" | "lg" | "xl" | "2xl";
+type SparkleSize = 'sm' | 'base' | 'lg' | 'xl' | '2xl';
 
 const SIZE_CLASS: Record<SparkleSize, string> = {
-  sm: "text-xs",
-  base: "text-sm",
-  lg: "text-base",
-  xl: "text-xl",
-  "2xl": "text-2xl",
+  sm: 'text-xs',
+  base: 'text-sm',
+  lg: 'text-base',
+  xl: 'text-xl',
+  '2xl': 'text-2xl',
 };
 
 export type SparkleProps = {
@@ -22,6 +22,10 @@ export type SparkleProps = {
  * 마스코트 주변에 흩뿌리는 장식용 반짝임 하나.
  * 위치는 호출부에서 className으로, 크기는 프리셋으로, 색은 배경에 맞춰 colorClassName으로 받는다.
  */
-export function Sparkle({ className, size = "sm", colorClassName = "text-brand-300" }: SparkleProps) {
+export function Sparkle({
+  className,
+  size = 'sm',
+  colorClassName = 'text-brand-300',
+}: SparkleProps) {
   return <Text className={`absolute ${SIZE_CLASS[size]} ${colorClassName} ${className}`}>✦</Text>;
 }

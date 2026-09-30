@@ -1,15 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { getChallengeDayResult } from "@/features/challenge/api/challenge-day-result";
+import { getChallengeDayResult } from '@/features/challenge/api/challenge-day-result';
 import {
   createDevMockDayResult,
   withDevMockFallback,
-} from "@/features/challenge/dev-mock-challenge";
+} from '@/features/challenge/dev-mock-challenge';
 import type {
   ChallengeDayResult,
   ChallengeQuestionResult,
   ChallengeInitialResult,
-} from "@/types/challenge";
+} from '@/types/challenge';
 
 /** 명세 8절 권장 주기 — 2초에서 시작해 5초까지 늘린다. 이후에는 5초를 유지한다. */
 const POLL_INTERVALS_MS = [2_000, 2_500, 3_000, 3_500, 4_000, 4_500, 5_000] as const;
@@ -17,16 +17,16 @@ const POLL_INTERVALS_MS = [2_000, 2_500, 3_000, 3_500, 4_000, 4_500, 5_000] as c
 const POLL_BUDGET_MS = 180_000;
 
 export type ChallengeResultStatus =
-  | "loading"
+  | 'loading'
   /** AI 처리 중. 참고 답안은 이미 보여줄 수 있다. */
-  | "grading"
-  | "completed"
+  | 'grading'
+  | 'completed'
   /** AI가 실패했다. 사용자 재응시 사유가 아니라 서버 복구 대상이다. */
-  | "grading-failed"
-  | "timed-out"
+  | 'grading-failed'
+  | 'timed-out'
   /** 그날 이 문제를 풀지 않았다 — 결과가 존재하지 않는다. */
-  | "not-attempted"
-  | "load-failed";
+  | 'not-attempted'
+  | 'load-failed';
 
 interface ChallengeResultState {
   status: ChallengeResultStatus;
@@ -34,7 +34,7 @@ interface ChallengeResultState {
 }
 
 function toInitialState(initialResult?: ChallengeInitialResult): ChallengeResultState {
-  if (!initialResult) return { status: "loading", question: null };
+  if (!initialResult) return { status: 'loading', question: null };
 
   return {
     status: resolveInitialStatus(initialResult.gradingStatus),
@@ -55,11 +55,11 @@ function toInitialState(initialResult?: ChallengeInitialResult): ChallengeResult
 }
 
 function resolveInitialStatus(
-  gradingStatus: ChallengeInitialResult["gradingStatus"],
+  gradingStatus: ChallengeInitialResult['gradingStatus'],
 ): ChallengeResultStatus {
-  if (gradingStatus === "completed") return "completed";
-  if (gradingStatus === "failed") return "grading-failed";
-  return "grading";
+  if (gradingStatus === 'completed') return 'completed';
+  if (gradingStatus === 'failed') return 'grading-failed';
+  return 'grading';
 }
 
 function getPollIntervalMs(round: number): number {
@@ -79,9 +79,7 @@ export function useChallengeResult(
   /** 제출 접수 응답이 준 값. 있으면 첫 조회를 기다리지 않고 그 상태로 시작한다. */
   initialResult?: ChallengeInitialResult,
 ) {
-  const [state, setState] = useState<ChallengeResultState>(() =>
-    toInitialState(initialResult),
-  );
+  const [state, setState] = useState<ChallengeResultState>(() => toInitialState(initialResult));
   const [attempt, setAttempt] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -91,53 +89,47 @@ export function useChallengeResult(
     let round = 0;
     let hasLoadedOnce = false;
     // 이미 그릴 것이 있으면(초기 결과나 직전 조회 결과) 스피너로 되돌리지 않는다.
-    setState((current) =>
-      current.question ? current : { status: "loading", question: null },
-    );
+    setState((current) => (current.question ? current : { status: 'loading', question: null }));
 
     const check = async () => {
       if (controller.signal.aborted) return;
 
       try {
-        const dayResult = await loadDayResult(
-          challengeDate,
-          questionNumber,
-          controller.signal,
-        );
+        const dayResult = await loadDayResult(challengeDate, questionNumber, controller.signal);
         if (controller.signal.aborted) return;
         hasLoadedOnce = true;
 
         const question = dayResult.question;
         if (!question) {
-          setState({ status: "not-attempted", question: null });
+          setState({ status: 'not-attempted', question: null });
           return;
         }
-        if (question.gradingStatus === "completed") {
-          setState({ status: "completed", question });
+        if (question.gradingStatus === 'completed') {
+          setState({ status: 'completed', question });
           return;
         }
-        if (question.gradingStatus === "failed") {
-          setState({ status: "grading-failed", question });
+        if (question.gradingStatus === 'failed') {
+          setState({ status: 'grading-failed', question });
           return;
         }
         // not_requested는 만료된 제출이다. 참고 답안은 있으니 그 상태로 멈춘다.
-        if (question.gradingStatus === "not_requested") {
-          setState({ status: "completed", question });
+        if (question.gradingStatus === 'not_requested') {
+          setState({ status: 'completed', question });
           return;
         }
-        setState({ status: "grading", question });
+        setState({ status: 'grading', question });
       } catch (error) {
         if (controller.signal.aborted) return;
-        console.error("[Challenge] 결과 조회 실패", error);
+        console.error('[Challenge] 결과 조회 실패', error);
         if (!hasLoadedOnce && Date.now() >= deadline) {
-          setState({ status: "load-failed", question: null });
+          setState({ status: 'load-failed', question: null });
           return;
         }
       }
 
       if (Date.now() >= deadline) {
         setState((current) => ({
-          status: hasLoadedOnce ? "timed-out" : "load-failed",
+          status: hasLoadedOnce ? 'timed-out' : 'load-failed',
           question: current.question,
         }));
         return;
@@ -175,7 +167,5 @@ function loadDayResult(
   const load = () => getChallengeDayResult(challengeDate, questionNumber, signal);
   if (!__DEV__) return load();
 
-  return withDevMockFallback(load, () =>
-    createDevMockDayResult(challengeDate, questionNumber),
-  );
+  return withDevMockFallback(load, () => createDevMockDayResult(challengeDate, questionNumber));
 }

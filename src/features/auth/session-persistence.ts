@@ -1,12 +1,10 @@
-import type { AuthRestorationRecord } from "@/features/auth/session-restoration-types";
-import type { AuthSession } from "@/features/auth/types";
+import type { AuthRestorationRecord } from '@/features/auth/session-restoration-types';
+import type { AuthSession } from '@/features/auth/types';
 
 // 앱 실행 중 저장만 재시도한다. 서버의 토큰 발급 요청을 반복하지 않는다.
 const STORAGE_RETRY_DELAYS_MS = [1_000, 3_000, 10_000] as const;
 
-export function createSessionPersistence(
-  write: (record: AuthRestorationRecord) => Promise<void>,
-) {
+export function createSessionPersistence(write: (record: AuthRestorationRecord) => Promise<void>) {
   let revision = 0;
   let queue: Promise<void> = Promise.resolve();
   let dirty: AuthRestorationRecord | null = null;
@@ -23,10 +21,7 @@ export function createSessionPersistence(
     timer = null;
   }
 
-  function enqueue(
-    record: AuthRestorationRecord,
-    version: number,
-  ): Promise<void> {
+  function enqueue(record: AuthRestorationRecord, version: number): Promise<void> {
     const operation = queue.then(async () => {
       if (!disposed && version === revision) await write(record);
     });
@@ -64,7 +59,7 @@ export function createSessionPersistence(
 
   function saveInBackground(session: AuthSession): void {
     cancelRetry();
-    dirty = { schemaVersion: 2, phase: "active", session };
+    dirty = { schemaVersion: 2, phase: 'active', session };
     void flush();
   }
 

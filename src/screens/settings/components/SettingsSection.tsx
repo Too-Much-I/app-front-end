@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
-import { View } from "react-native";
+import type { ReactNode } from 'react';
+import { View } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
-import { shadows } from "@/theme";
+import { Text } from '@/components/ui/Text';
+import { shadows } from '@/theme';
 
 type SettingsSectionProps = {
   title: string;

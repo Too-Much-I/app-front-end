@@ -1,19 +1,19 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ScrollView, View } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
-import { ExamAudioErrorNotice } from "@/screens/mock-exam/components/ExamAudioErrorNotice";
-import { PLAYBACK_AUDIO_MODE } from "@/features/audio/audio-session";
-import { classifyAudioPlaybackError } from "@/features/audio/playback-error";
-import { getExamPartIntroAudioSource } from "@/features/exam/part-prelude";
-import { colors } from "@/theme";
+import { Text } from '@/components/ui/Text';
+import { ExamAudioErrorNotice } from '@/screens/mock-exam/components/ExamAudioErrorNotice';
+import { PLAYBACK_AUDIO_MODE } from '@/features/audio/audio-session';
+import { classifyAudioPlaybackError } from '@/features/audio/playback-error';
+import { getExamPartIntroAudioSource } from '@/features/exam/part-prelude';
+import { colors } from '@/theme';
 import {
   reportOperationalError,
   type ExamAudioFailureDetail,
-} from "@/lib/operational-error-reporting";
-import type { ExamPartIntroPrelude } from "@/types/exam";
+} from '@/lib/operational-error-reporting';
+import type { ExamPartIntroPrelude } from '@/types/exam';
 
 /**
  * 원격 음원을 받아 오는 데 주는 시간.
@@ -64,8 +64,8 @@ export function ExamPartIntroContent({
     if (!isActiveRef.current || hasReportedPlaybackFailureRef.current) return;
     hasReportedPlaybackFailureRef.current = true;
     reportOperationalError({
-      code: "EXAM_REQUIRED_AUDIO_FAILED",
-      cueKind: "part-intro",
+      code: 'EXAM_REQUIRED_AUDIO_FAILED',
+      cueKind: 'part-intro',
       partNumber: 3,
       ...detail,
     });
@@ -76,7 +76,7 @@ export function ExamPartIntroContent({
       if (reloadSource) hasReportedPlaybackFailureRef.current = false;
       if (!audioSource || !isActiveRef.current || hasCompletedRef.current) {
         if (!audioSource) {
-          markPlaybackFailure({ reason: "missing" });
+          markPlaybackFailure({ reason: 'missing' });
           setHasPlaybackError(true);
         }
         return;
@@ -104,10 +104,10 @@ export function ExamPartIntroContent({
         setHasPlaybackError(false);
         hasStartedRef.current = true;
       } catch (error) {
-        console.error("[ExamPartIntro] 안내 음성 재생 실패", error);
+        console.error('[ExamPartIntro] 안내 음성 재생 실패', error);
         markPlaybackFailure({
-          reason: "playback",
-          origin: "start-call",
+          reason: 'playback',
+          origin: 'start-call',
           errorKind: classifyAudioPlaybackError(error),
         });
         setHasPlaybackError(true);
@@ -132,21 +132,13 @@ export function ExamPartIntroContent({
 
     // 번들 음원과 달리 원격 URL은 player 생성 뒤 비동기로 로드된다. 로드 전에 play()를
     // 호출하면 오류 없이 무시될 수 있으므로 isLoaded가 된 시점에 재생을 시작한다.
-    if (
-      playbackStatus.isLoaded &&
-      (!hasStartedRef.current || shouldRestartRef.current)
-    ) {
+    if (playbackStatus.isLoaded && (!hasStartedRef.current || shouldRestartRef.current)) {
       void playFromStart();
     }
   }, [isActive, playFromStart, playbackStatus.isLoaded, player, reloadRevision]);
 
   useEffect(() => {
-    if (
-      !isActive ||
-      hasPlaybackError ||
-      playbackStatus.playing ||
-      hasCompletedRef.current
-    ) {
+    if (!isActive || hasPlaybackError || playbackStatus.playing || hasCompletedRef.current) {
       return;
     }
 
@@ -154,11 +146,7 @@ export function ExamPartIntroContent({
     const isLoading = !playbackStatus.isLoaded;
     const timeoutId = setTimeout(
       () => {
-        if (
-          !isActiveRef.current ||
-          hasObservedPlayingRef.current ||
-          hasCompletedRef.current
-        ) {
+        if (!isActiveRef.current || hasObservedPlayingRef.current || hasCompletedRef.current) {
           return;
         }
         player.pause();
@@ -166,10 +154,10 @@ export function ExamPartIntroContent({
         shouldRestartRef.current = true;
         console.error(
           isLoading
-            ? "[ExamPartIntro] 안내 음성을 받아오지 못함"
-            : "[ExamPartIntro] 안내 음성 재생 시작 시간 초과",
+            ? '[ExamPartIntro] 안내 음성을 받아오지 못함'
+            : '[ExamPartIntro] 안내 음성 재생 시작 시간 초과',
         );
-        markPlaybackFailure({ reason: isLoading ? "load-timeout" : "timeout" });
+        markPlaybackFailure({ reason: isLoading ? 'load-timeout' : 'timeout' });
         setHasPlaybackError(true);
       },
       isLoading ? AUDIO_LOAD_TIMEOUT_MS : PLAYBACK_START_TIMEOUT_MS,
@@ -200,10 +188,10 @@ export function ExamPartIntroContent({
     shouldRestartRef.current = true;
     markPlaybackFailure(
       playbackStatus.mediaServicesDidReset
-        ? { reason: "media-reset" }
+        ? { reason: 'media-reset' }
         : {
-            reason: "playback",
-            origin: "player-status",
+            reason: 'playback',
+            origin: 'player-status',
             errorKind: classifyAudioPlaybackError(playbackStatus.error),
           },
     );
@@ -239,9 +227,7 @@ export function ExamPartIntroContent({
         showsVerticalScrollIndicator={false}
       >
         <View className="mx-auto w-full max-w-3xl rounded-2xl border border-line bg-surface p-6">
-          <Text className="text-center text-xl leading-8 text-exam-navy">
-            {prelude.text}
-          </Text>
+          <Text className="text-center text-xl leading-8 text-exam-navy">{prelude.text}</Text>
           {!hasPlaybackError ? (
             <View
               accessibilityLiveRegion="polite"

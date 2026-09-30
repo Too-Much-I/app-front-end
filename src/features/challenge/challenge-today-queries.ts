@@ -1,11 +1,8 @@
-import { queryOptions } from "@tanstack/react-query";
+import { queryOptions } from '@tanstack/react-query';
 
-import { getChallengeToday } from "@/features/challenge/api/challenge-today";
-import {
-  createDevMockToday,
-  withDevMockFallback,
-} from "@/features/challenge/dev-mock-challenge";
-import type { ChallengeToday } from "@/types/challenge";
+import { getChallengeToday } from '@/features/challenge/api/challenge-today';
+import { createDevMockToday, withDevMockFallback } from '@/features/challenge/dev-mock-challenge';
+import type { ChallengeToday } from '@/types/challenge';
 
 /**
  * 오늘 진행도의 쿼리 키.
@@ -13,7 +10,7 @@ import type { ChallengeToday } from "@/types/challenge";
  * 제출이 접수되면 이 키를 무효화한다. 진행도가 바뀐 것은 아는데 만료 시각은 아직
  * 멀었으므로, 캐시를 낡은 것으로 표시해야 스테이지가 돌아오는 순간 다시 읽는다.
  */
-export const CHALLENGE_TODAY_QUERY_KEY = ["challenge", "today"] as const;
+export const CHALLENGE_TODAY_QUERY_KEY = ['challenge', 'today'] as const;
 
 /**
  * 스테이지와, 진입 날짜를 모르는 문제 화면이 함께 쓰는 조회.

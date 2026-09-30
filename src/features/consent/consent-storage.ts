@@ -1,12 +1,12 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const PRIVACY_CONSENT_VERSION = "privacy-v1";
-export const TERM_CONSENT_VERSION = "term-v1";
-export const CONSENT_VERSION = "1";
+export const PRIVACY_CONSENT_VERSION = 'privacy-v1';
+export const TERM_CONSENT_VERSION = 'term-v1';
+export const CONSENT_VERSION = '1';
 
-const STORAGE_KEY = "consent-record";
-const LEGACY_PRIVACY_CONSENT_VERSION = "privacy-v1";
-const LEGACY_TERM_CONSENT_VERSION = "term-v1";
+const STORAGE_KEY = 'consent-record';
+const LEGACY_PRIVACY_CONSENT_VERSION = 'privacy-v1';
+const LEGACY_TERM_CONSENT_VERSION = 'term-v1';
 
 export type ConsentItemRecord = {
   consented: true;
@@ -26,18 +26,18 @@ type LegacyConsentRecord = {
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
 function isValidIsoDate(value: unknown): value is string {
-  return typeof value === "string" && Number.isFinite(Date.parse(value));
+  return typeof value === 'string' && Number.isFinite(Date.parse(value));
 }
 
 function isConsentItem(value: unknown): value is ConsentItemRecord {
   return (
     isRecord(value) &&
     value.consented === true &&
-    typeof value.version === "string" &&
+    typeof value.version === 'string' &&
     isValidIsoDate(value.agreedAt)
   );
 }
@@ -52,11 +52,7 @@ function isConsentRecordV2(value: unknown): value is ConsentRecordV2 {
 }
 
 function isLegacyConsentRecord(value: unknown): value is LegacyConsentRecord {
-  return (
-    isRecord(value) &&
-    typeof value.version === "string" &&
-    isValidIsoDate(value.agreedAt)
-  );
+  return isRecord(value) && typeof value.version === 'string' && isValidIsoDate(value.agreedAt);
 }
 
 export function createConsentRecord(agreedAt: string = new Date().toISOString()): ConsentRecordV2 {

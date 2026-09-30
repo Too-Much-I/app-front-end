@@ -2,27 +2,27 @@ import type {
   ServerConsentItemStatus,
   ServerConsentStatus,
   ServerOptionalConsentItemStatus,
-} from "@/features/auth/types";
-import { getIdentityApiBaseUrl } from "@/lib/api/service-base-url";
-import { serviceFetch } from "@/lib/api/transport";
+} from '@/features/auth/types';
+import { getIdentityApiBaseUrl } from '@/lib/api/service-base-url';
+import { serviceFetch } from '@/lib/api/transport';
 
 class ConsentStatusProtocolError extends Error {
   constructor() {
-    super("동의 상태 응답 형식이 올바르지 않습니다.");
-    this.name = "ConsentStatusProtocolError";
+    super('동의 상태 응답 형식이 올바르지 않습니다.');
+    this.name = 'ConsentStatusProtocolError';
   }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
 function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0;
+  return typeof value === 'string' && value.trim().length > 0;
 }
 
 function isIsoDate(value: unknown): value is string {
-  return typeof value === "string" && Number.isFinite(Date.parse(value));
+  return typeof value === 'string' && Number.isFinite(Date.parse(value));
 }
 
 function mapConsentItem(value: unknown): ServerConsentItemStatus {
@@ -31,7 +31,7 @@ function mapConsentItem(value: unknown): ServerConsentItemStatus {
     !isNonEmptyString(value.currentVersion) ||
     !isNonEmptyString(value.consentedVersion) ||
     !isIsoDate(value.consentedAt) ||
-    typeof value.requiresConsent !== "boolean"
+    typeof value.requiresConsent !== 'boolean'
   ) {
     throw new ConsentStatusProtocolError();
   }
@@ -56,8 +56,8 @@ function mapOptionalConsentItem(value: unknown): ServerOptionalConsentItemStatus
   if (
     !isRecord(value) ||
     !isNonEmptyString(value.currentVersion) ||
-    typeof value.consented !== "boolean" ||
-    typeof value.requiresConsent !== "boolean" ||
+    typeof value.consented !== 'boolean' ||
+    typeof value.requiresConsent !== 'boolean' ||
     !(value.consentedVersion === null || isNonEmptyString(value.consentedVersion)) ||
     !(value.consentedAt === null || isIsoDate(value.consentedAt))
   ) {

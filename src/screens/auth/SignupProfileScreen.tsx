@@ -1,20 +1,20 @@
-import { useState } from "react";
-import { Image, TextInput, View } from "react-native";
-import { useStore } from "zustand";
+import { useState } from 'react';
+import { Image, TextInput, View } from 'react-native';
+import { useStore } from 'zustand';
 
-import { Button } from "@/components/ui/Button";
-import { Text } from "@/components/ui/Text";
-import { AuthScreenFrame } from "@/screens/auth/components/AuthScreenFrame";
-import { SignupConsentRow } from "@/screens/auth/components/SignupConsentRow";
-import { colors, FONT_FAMILY } from "@/theme";
-import type { createSignupDraftStore } from "@/features/auth/signup-draft-store";
+import { Button } from '@/components/ui/Button';
+import { Text } from '@/components/ui/Text';
+import { AuthScreenFrame } from '@/screens/auth/components/AuthScreenFrame';
+import { SignupConsentRow } from '@/screens/auth/components/SignupConsentRow';
+import { colors, FONT_FAMILY } from '@/theme';
+import type { createSignupDraftStore } from '@/features/auth/signup-draft-store';
 
 interface SignupProfileScreenProps {
   draftStore: ReturnType<typeof createSignupDraftStore>;
   validateNickname?: (nickname: string) => string | null;
   onBack: () => void;
   onContinue: () => void;
-  onOpenPolicy: (policy: "terms" | "privacy") => void;
+  onOpenPolicy: (policy: 'terms' | 'privacy') => void;
 }
 
 export function SignupProfileScreen({
@@ -51,7 +51,7 @@ export function SignupProfileScreen({
     >
       <View className="items-center gap-content">
         <Image
-          source={require("../../../public/auth/curious-rabbit.png")}
+          source={require('../../../public/auth/curious-rabbit.png')}
           className="h-36 w-36"
           resizeMode="contain"
           accessible={false}
@@ -70,13 +70,13 @@ export function SignupProfileScreen({
           accessibilityHint="앞뒤 공백을 제외하고 2자에서 20자로 입력해주세요"
           autoCapitalize="none"
           autoCorrect={false}
-          className={`min-h-control-lg rounded-control border bg-surface px-card py-0 text-base text-ink ${nicknameError ? "border-exam-danger" : "border-line"}`}
+          className={`min-h-control-lg rounded-control border bg-surface px-card py-0 text-base text-ink ${nicknameError ? 'border-exam-danger' : 'border-line'}`}
           // iOS 단일 행 입력은 본문용 lineHeight를 주면 Jua 기준선이 아래로 밀린다.
           style={{
             fontFamily: FONT_FAMILY,
             lineHeight: undefined,
             includeFontPadding: false,
-            textAlignVertical: "center",
+            textAlignVertical: 'center',
           }}
           placeholder="닉네임을 입력해 주세요"
           placeholderTextColor={colors.ink.disabled}
@@ -97,9 +97,7 @@ export function SignupProfileScreen({
           </Text>
         ) : null}
         <View className="flex-row justify-between gap-content">
-          <Text
-            className={`text-sm ${length > 20 ? "!text-exam-danger" : "text-ink-muted"}`}
-          >
+          <Text className={`text-sm ${length > 20 ? '!text-exam-danger' : 'text-ink-muted'}`}>
             2~20자로 입력해 주세요.
           </Text>
           <Text className="text-sm text-ink-muted">{length} / 20</Text>
@@ -111,26 +109,20 @@ export function SignupProfileScreen({
           label="약관 전체 동의"
           all
           checked={allChecked}
-          onToggle={() =>
-            draftStore.setAllConsents(!allChecked)
-          }
+          onToggle={() => draftStore.setAllConsents(!allChecked)}
         />
         <View>
           <SignupConsentRow
             label="서비스 이용약관 동의"
             checked={consents.terms.agreed}
-            onToggle={() =>
-              draftStore.setConsent("terms", !consents.terms.agreed)
-            }
-            onDetail={() => onOpenPolicy("terms")}
+            onToggle={() => draftStore.setConsent('terms', !consents.terms.agreed)}
+            onDetail={() => onOpenPolicy('terms')}
           />
           <SignupConsentRow
             label="개인정보 수집·이용 동의"
             checked={consents.privacy.agreed}
-            onToggle={() =>
-              draftStore.setConsent("privacy", !consents.privacy.agreed)
-            }
-            onDetail={() => onOpenPolicy("privacy")}
+            onToggle={() => draftStore.setConsent('privacy', !consents.privacy.agreed)}
+            onDetail={() => onOpenPolicy('privacy')}
           />
         </View>
       </View>

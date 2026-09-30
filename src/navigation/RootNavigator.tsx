@@ -1,46 +1,42 @@
 import {
   createNativeStackNavigator,
   type NativeStackScreenProps,
-} from "@react-navigation/native-stack";
-import { useState, type ReactElement } from "react";
-import { ActivityIndicator, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useStore } from "zustand";
+} from '@react-navigation/native-stack';
+import { useState, type ReactElement } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useStore } from 'zustand';
 
-import { SupportInquiryScreen } from "@/screens/support/SupportInquiryScreen";
-import { useAuth } from "@/features/auth/auth-context";
-import type {
-  AuthCoordinatorState,
-  createAuthCoordinator,
-} from "@/features/auth/auth-coordinator";
-import { useAuthBootstrap } from "@/features/auth/use-auth-bootstrap";
-import { LoginScreen } from "@/screens/auth/LoginScreen";
-import { Text } from "@/components/ui/Text";
-import { Button } from "@/components/ui/Button";
-import { colors } from "@/theme";
+import { SupportInquiryScreen } from '@/screens/support/SupportInquiryScreen';
+import { useAuth } from '@/features/auth/auth-context';
+import type { AuthCoordinatorState, createAuthCoordinator } from '@/features/auth/auth-coordinator';
+import { useAuthBootstrap } from '@/features/auth/use-auth-bootstrap';
+import { LoginScreen } from '@/screens/auth/LoginScreen';
+import { Text } from '@/components/ui/Text';
+import { Button } from '@/components/ui/Button';
+import { colors } from '@/theme';
 
-import type { AuthSession, AuthBootstrapState } from "@/features/auth/types";
-import { MainTabNavigator } from "@/navigation/MainTabNavigator";
-import type { RootStackParamList } from "@/navigation/types";
-import { AuthRecoveryScreen } from "@/screens/auth/AuthRecoveryScreen";
-import { ConsentScreen } from "@/screens/consent/ConsentScreen";
-import { NotificationsScreen } from "@/screens/notifications/NotificationsScreen";
-import { ReanswerScreen } from "@/screens/reanswer/ReanswerScreen";
-import { SettingsScreen } from "@/screens/settings/SettingsScreen";
-import { SettingsWebViewScreen } from "@/screens/settings/SettingsWebViewScreen";
-import { ChallengeResultScreen } from "@/screens/challenge/ChallengeResultScreen";
-import { ChallengeStageScreen } from "@/screens/challenge/ChallengeStageScreen";
-import { TenSecondChallengeScreen } from "@/screens/challenge/TenSecondChallengeScreen";
+import type { AuthSession, AuthBootstrapState } from '@/features/auth/types';
+import { MainTabNavigator } from '@/navigation/MainTabNavigator';
+import type { RootStackParamList } from '@/navigation/types';
+import { AuthRecoveryScreen } from '@/screens/auth/AuthRecoveryScreen';
+import { ConsentScreen } from '@/screens/consent/ConsentScreen';
+import { NotificationsScreen } from '@/screens/notifications/NotificationsScreen';
+import { ReanswerScreen } from '@/screens/reanswer/ReanswerScreen';
+import { SettingsScreen } from '@/screens/settings/SettingsScreen';
+import { SettingsWebViewScreen } from '@/screens/settings/SettingsWebViewScreen';
+import { ChallengeResultScreen } from '@/screens/challenge/ChallengeResultScreen';
+import { ChallengeStageScreen } from '@/screens/challenge/ChallengeStageScreen';
+import { TenSecondChallengeScreen } from '@/screens/challenge/TenSecondChallengeScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function isConsentFlow(state: AuthBootstrapState): boolean {
   return (
-    state.status === "CONSENT_REQUIRED" ||
-    state.status === "CONSENT_UPDATING" ||
-    (state.status === "GUEST_RECOVERING" &&
-      state.source === "consent-submit") ||
-    (state.status === "RETRYABLE_ERROR" && state.source === "consent-submit")
+    state.status === 'CONSENT_REQUIRED' ||
+    state.status === 'CONSENT_UPDATING' ||
+    (state.status === 'GUEST_RECOVERING' && state.source === 'consent-submit') ||
+    (state.status === 'RETRYABLE_ERROR' && state.source === 'consent-submit')
   );
 }
 
@@ -53,15 +49,12 @@ function LegacyRootNavigator({ state }: { state: AuthBootstrapState }) {
           component={LegacyConsentRoute}
           options={{ gestureEnabled: false }}
         />
-        <Stack.Screen
-          name="SettingsWebView"
-          component={SettingsWebViewScreen}
-        />
+        <Stack.Screen name="SettingsWebView" component={SettingsWebViewScreen} />
       </Stack.Navigator>
     );
   }
 
-  if (state.status === "RETRYABLE_ERROR") {
+  if (state.status === 'RETRYABLE_ERROR') {
     return (
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen
@@ -101,43 +94,32 @@ function MemberRootNavigator() {
   );
 }
 
-function LegacyConsentRoute(
-  props: NativeStackScreenProps<RootStackParamList, "Consent">,
-) {
-  const { state, acceptConsent, retry, setPendingQualityReviewConsent } =
-    useAuth();
+function LegacyConsentRoute(props: NativeStackScreenProps<RootStackParamList, 'Consent'>) {
+  const { state, acceptConsent, retry, setPendingQualityReviewConsent } = useAuth();
   const [requirements] = useState(() =>
-    state.status === "CONSENT_REQUIRED"
-      ? state.requiredItems
-      : { privacy: true, terms: true },
+    state.status === 'CONSENT_REQUIRED' ? state.requiredItems : { privacy: true, terms: true },
   );
-  const [mode] = useState(() =>
-    state.status === "CONSENT_REQUIRED" ? state.mode : "new",
-  );
+  const [mode] = useState(() => (state.status === 'CONSENT_REQUIRED' ? state.mode : 'new'));
   return (
     <ConsentScreen
       {...props}
       mode={mode}
       requiredItems={requirements}
       isSubmitting={
-        state.status === "GUEST_RECOVERING" ||
-        state.status === "CONSENT_UPDATING" ||
-        (state.status === "RETRYABLE_ERROR" &&
-          state.source === "consent-submit" &&
+        state.status === 'GUEST_RECOVERING' ||
+        state.status === 'CONSENT_UPDATING' ||
+        (state.status === 'RETRYABLE_ERROR' &&
+          state.source === 'consent-submit' &&
           state.isRetrying === true)
       }
       submitError={
-        state.status === "RETRYABLE_ERROR" && state.source === "consent-submit"
+        state.status === 'RETRYABLE_ERROR' && state.source === 'consent-submit'
           ? state.message
           : null
       }
       onAccept={async (quality) => {
         setPendingQualityReviewConsent(quality);
-        if (
-          state.status === "RETRYABLE_ERROR" &&
-          state.source === "consent-submit"
-        )
-          await retry();
+        if (state.status === 'RETRYABLE_ERROR' && state.source === 'consent-submit') await retry();
         else await acceptConsent();
       }}
     />
@@ -146,20 +128,16 @@ function LegacyConsentRoute(
 
 function LegacyAuthRecoveryRoute({
   navigation,
-}: NativeStackScreenProps<RootStackParamList, "AuthRecovery">) {
+}: NativeStackScreenProps<RootStackParamList, 'AuthRecovery'>) {
   const { state, retry } = useAuth();
   return (
     <AuthRecoveryScreen
       message={
-        state.status === "RETRYABLE_ERROR"
-          ? state.message
-          : "인증 상태를 다시 확인하고 있습니다."
+        state.status === 'RETRYABLE_ERROR' ? state.message : '인증 상태를 다시 확인하고 있습니다.'
       }
-      isRetrying={
-        state.status === "RETRYABLE_ERROR" && state.isRetrying === true
-      }
+      isRetrying={state.status === 'RETRYABLE_ERROR' && state.isRetrying === true}
       onRetry={retry}
-      onHelp={() => navigation.navigate("SupportInquiry")}
+      onHelp={() => navigation.navigate('SupportInquiry')}
     />
   );
 }
@@ -167,12 +145,9 @@ function LegacyAuthRecoveryRoute({
 type CoordinatorNavigationProps = {
   coordinator: ReturnType<typeof createAuthCoordinator>;
   renderEnrollment: (
-    state: Extract<
-      AuthCoordinatorState,
-      { status: "signingUp" | "mergeRequired" }
-    >,
+    state: Extract<AuthCoordinatorState, { status: 'signingUp' | 'mergeRequired' }>,
     actions: {
-      draftStore: ReturnType<typeof createAuthCoordinator>["signupDraft"];
+      draftStore: ReturnType<typeof createAuthCoordinator>['signupDraft'];
       onComplete: (session: AuthSession) => Promise<void>;
       onCancel: () => void;
     },
@@ -190,65 +165,54 @@ function CoordinatorRootNavigator({
   const state = useStore(coordinator, (snapshot) => snapshot.state);
 
   switch (state.status) {
-    case "idle":
-    case "restoring":
-    case "signingIn":
-    case "submittingProof":
-    case "activatingSession":
+    case 'idle':
+    case 'restoring':
+    case 'signingIn':
+    case 'submittingProof':
+    case 'activatingSession':
       return (
         <View className="flex-1 items-center justify-center gap-content bg-surface-subtle">
           <ActivityIndicator color={colors.brand.text} />
           <Text accessibilityLiveRegion="polite">
-            {state.status === "signingIn"
-              ? "소셜 인증을 진행하고 있어요."
-              : state.status === "submittingProof"
-                ? "로그인을 확인하고 있어요."
-                : state.status === "activatingSession"
-                  ? "로그인을 마무리하고 있어요."
-                  : "로그인 정보를 확인하고 있어요."}
+            {state.status === 'signingIn'
+              ? '소셜 인증을 진행하고 있어요.'
+              : state.status === 'submittingProof'
+                ? '로그인을 확인하고 있어요.'
+                : state.status === 'activatingSession'
+                  ? '로그인을 마무리하고 있어요.'
+                  : '로그인 정보를 확인하고 있어요.'}
           </Text>
-          {state.status === "signingIn" ||
-          state.status === "submittingProof" ? (
-            <Button
-              label="취소"
-              variant="secondary"
-              onPress={coordinator.cancelLogin}
-            />
+          {state.status === 'signingIn' || state.status === 'submittingProof' ? (
+            <Button label="취소" variant="secondary" onPress={coordinator.cancelLogin} />
           ) : null}
         </View>
       );
-    case "noSession":
-    case "guest":
+    case 'noSession':
+    case 'guest':
       return (
-        <Stack.Navigator
-          key="login"
-          screenOptions={{ headerShown: false, gestureEnabled: false }}
-        >
+        <Stack.Navigator key="login" screenOptions={{ headerShown: false, gestureEnabled: false }}>
           <Stack.Screen name="AuthLogin">
             {() => (
               <SafeAreaView className="flex-1 bg-surface-subtle">
                 <LoginScreen
                   {...loginActions}
-                  onSelectProvider={(provider) =>
-                    void coordinator.signIn(provider)
-                  }
+                  onSelectProvider={(provider) => void coordinator.signIn(provider)}
                 />
               </SafeAreaView>
             )}
           </Stack.Screen>
         </Stack.Navigator>
       );
-    case "signingUp":
-    case "mergeRequired":
+    case 'signingUp':
+    case 'mergeRequired':
       return renderEnrollment(state, {
         draftStore: coordinator.signupDraft,
-        onComplete: (session) =>
-          coordinator.completeEnrollment(state.flowId, session),
+        onComplete: (session) => coordinator.completeEnrollment(state.flowId, session),
         onCancel: coordinator.cancelLogin,
       });
-    case "authenticated":
+    case 'authenticated':
       return <MemberRootNavigator />;
-    case "consent":
+    case 'consent':
       return (
         <Stack.Navigator
           key="consent"
@@ -261,24 +225,17 @@ function CoordinatorRootNavigator({
                 mode="existing"
                 requiredItems={state.requiredItems}
                 qualityReviewConsented={state.qualityReviewConsented}
-                isSubmitting={state.submission.status === "submitting"}
-                submitError={
-                  state.submission.status === "failed"
-                    ? state.submission.message
-                    : null
-                }
+                isSubmitting={state.submission.status === 'submitting'}
+                submitError={state.submission.status === 'failed' ? state.submission.message : null}
                 onAccept={coordinator.acceptConsent}
               />
             )}
           </Stack.Screen>
-          <Stack.Screen
-            name="SettingsWebView"
-            component={SettingsWebViewScreen}
-          />
+          <Stack.Screen name="SettingsWebView" component={SettingsWebViewScreen} />
         </Stack.Navigator>
       );
-    case "loginError":
-    case "error":
+    case 'loginError':
+    case 'error':
       return (
         <Stack.Navigator
           key="recovery"
@@ -288,17 +245,11 @@ function CoordinatorRootNavigator({
             {({ navigation }) => (
               <AuthRecoveryScreen
                 message={state.message}
-                isRetrying={state.status === "error" && state.isRetrying}
+                isRetrying={state.status === 'error' && state.isRetrying}
                 onRetry={coordinator.retry}
-                onCancel={
-                  state.status === "loginError"
-                    ? coordinator.cancelLogin
-                    : undefined
-                }
-                recoveryAction={
-                  state.nextAction === "get-help" ? "get-help" : "retry"
-                }
-                onHelp={() => navigation.navigate("SupportInquiry")}
+                onCancel={state.status === 'loginError' ? coordinator.cancelLogin : undefined}
+                recoveryAction={state.nextAction === 'get-help' ? 'get-help' : 'retry'}
+                onHelp={() => navigation.navigate('SupportInquiry')}
               />
             )}
           </Stack.Screen>
@@ -313,16 +264,14 @@ function CoordinatorRootNavigator({
 }
 
 /** 기존 앱은 state 경로를 사용한다. 실제 복원 구현 준비 후 coordinator 경로로 전환한다. */
-export function RootNavigator(
-  props: { state: AuthBootstrapState } | CoordinatorNavigationProps,
-) {
-  if ("coordinator" in props) return <CoordinatorRootNavigator {...props} />;
+export function RootNavigator(props: { state: AuthBootstrapState } | CoordinatorNavigationProps) {
+  if ('coordinator' in props) return <CoordinatorRootNavigator {...props} />;
   return <LegacyRootNavigator state={props.state} />;
 }
 
 function SupportInquiryRoute({
   navigation,
-}: NativeStackScreenProps<RootStackParamList, "SupportInquiry">) {
+}: NativeStackScreenProps<RootStackParamList, 'SupportInquiry'>) {
   // TODO: 비로그인 문의 API 계약 확정 후 sendInquiry 어댑터 연결.
   return <SupportInquiryScreen onBack={navigation.goBack} />;
 }

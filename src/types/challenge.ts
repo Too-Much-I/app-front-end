@@ -12,18 +12,14 @@
  * 정상 제출·무음·제출 유효시간(1시간) 만료는 모두 `submitted`로 projection된 값이다.
  * 프론트는 이 값만으로 문제 화면과 결과 화면 중 어디로 갈지 정한다.
  */
-export type ChallengeAttemptStatus = "not_started" | "submitted";
+export type ChallengeAttemptStatus = 'not_started' | 'submitted';
 
 /** AI 처리 상태. `attemptStatus=submitted`와 별개로 움직인다. */
 export type ChallengeGradingStatus =
-  | "not_requested"
-  | "pending"
-  | "processing"
-  | "completed"
-  | "failed";
+  'not_requested' | 'pending' | 'processing' | 'completed' | 'failed';
 
 /** 하루 진행 상태. `completed`는 세 문제를 다 마쳤다는 뜻일 뿐 참여 조건이 아니다. */
-export type ChallengeDailyStatus = "not_started" | "in_progress" | "completed";
+export type ChallengeDailyStatus = 'not_started' | 'in_progress' | 'completed';
 
 export interface ChallengeToday {
   date: string;

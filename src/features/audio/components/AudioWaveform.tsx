@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import { View } from "react-native";
+import { useEffect, useMemo, useState } from 'react';
+import { View } from 'react-native';
 
-import { normalizeMeteringDb } from "@/features/audio/audio-session";
+import { normalizeMeteringDb } from '@/features/audio/audio-session';
 
 const VISUAL_SMOOTHING = 0.35;
 
@@ -10,11 +10,11 @@ const MICROPHONE_TEST_SCALES = [
 ] as const;
 
 const ANSWER_SCALES = [
-  0.3, 0.42, 0.58, 0.76, 0.52, 0.88, 0.64, 0.4, 0.8, 1, 0.68, 0.46, 0.72, 0.92,
-  0.56, 0.36, 0.5, 0.78, 0.6, 0.4, 0.28, 0.5, 0.4, 0.3,
+  0.3, 0.42, 0.58, 0.76, 0.52, 0.88, 0.64, 0.4, 0.8, 1, 0.68, 0.46, 0.72, 0.92, 0.56, 0.36, 0.5,
+  0.78, 0.6, 0.4, 0.28, 0.5, 0.4, 0.3,
 ] as const;
 
-type AudioWaveformVariant = "microphone-test" | "answer";
+type AudioWaveformVariant = 'microphone-test' | 'answer';
 
 interface AudioWaveformProps {
   active: boolean;
@@ -29,7 +29,7 @@ interface WaveformConfig {
 }
 
 const WAVEFORM_CONFIGS: Record<AudioWaveformVariant, WaveformConfig> = {
-  "microphone-test": {
+  'microphone-test': {
     scales: MICROPHONE_TEST_SCALES,
     minHeight: 8,
     maxHeight: 60,
@@ -59,14 +59,12 @@ export function AudioWaveform({ active, meteringDb, variant }: AudioWaveformProp
     }
 
     const normalizedLevel = normalizeMeteringDb(meteringDb);
-    const targetHeight =
-      config.minHeight + normalizedLevel * (config.maxHeight - config.minHeight);
+    const targetHeight = config.minHeight + normalizedLevel * (config.maxHeight - config.minHeight);
 
     setHeights((currentHeights) =>
       currentHeights.map((currentHeight, index) => {
         const scale = config.scales[index] ?? 1;
-        const scaledTarget =
-          config.minHeight + (targetHeight - config.minHeight) * scale;
+        const scaledTarget = config.minHeight + (targetHeight - config.minHeight) * scale;
         return currentHeight + (scaledTarget - currentHeight) * VISUAL_SMOOTHING;
       }),
     );
@@ -81,18 +79,16 @@ export function AudioWaveform({ active, meteringDb, variant }: AudioWaveformProp
    * 간격만 8px로 벌리면 파형이 아니라 막대그래프가 된다.
    */
   const containerClassName =
-    variant === "microphone-test"
-      ? "h-16 flex-row gap-1.5"
-      : "h-10 flex-row items-center gap-1";
+    variant === 'microphone-test' ? 'h-16 flex-row gap-1.5' : 'h-10 flex-row items-center gap-1';
   const barContainerClassName =
-    variant === "microphone-test" ? "h-16 justify-center" : "h-10 justify-center";
-  const barWidthClassName = variant === "microphone-test" ? "w-1.5" : "w-1";
+    variant === 'microphone-test' ? 'h-16 justify-center' : 'h-10 justify-center';
+  const barWidthClassName = variant === 'microphone-test' ? 'w-1.5' : 'w-1';
   const barColorClassName = (() => {
-    if (variant === "answer") {
-      return active ? "bg-exam-dangerSoft" : "bg-line";
+    if (variant === 'answer') {
+      return active ? 'bg-exam-dangerSoft' : 'bg-line';
     }
-    if (active) return "bg-brand-cta";
-    return "bg-brand-200";
+    if (active) return 'bg-brand-cta';
+    return 'bg-brand-200';
   })();
 
   return (

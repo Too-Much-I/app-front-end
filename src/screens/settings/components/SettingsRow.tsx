@@ -1,12 +1,12 @@
-import { Feather } from "@expo/vector-icons";
-import type { ComponentProps, ReactNode } from "react";
-import { View } from "react-native";
+import { Feather } from '@expo/vector-icons';
+import type { ComponentProps, ReactNode } from 'react';
+import { View } from 'react-native';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import { colors } from "@/theme";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import { colors } from '@/theme';
 
-export type SettingsIconName = ComponentProps<typeof Feather>["name"];
+export type SettingsIconName = ComponentProps<typeof Feather>['name'];
 
 type SettingsRowProps = {
   icon: SettingsIconName;
@@ -19,9 +19,7 @@ type SettingsRowProps = {
   showDivider?: boolean;
 };
 
-const DEFAULT_TRAILING = (
-  <Feather name="chevron-right" size={20} color={colors.ink.disabled} />
-);
+const DEFAULT_TRAILING = <Feather name="chevron-right" size={20} color={colors.ink.disabled} />;
 
 export function SettingsRow({
   icon,
@@ -36,7 +34,7 @@ export function SettingsRow({
   const badgeColor = destructive ? colors.feedback.improvement : colors.brand.DEFAULT;
   const titleColor = destructive ? colors.feedback.improvement : colors.ink.DEFAULT;
   const rowClassName = `flex-row items-center gap-3 py-4 ${
-    showDivider ? "border-b border-line" : ""
+    showDivider ? 'border-b border-line' : ''
   }`;
 
   const content = (
@@ -51,9 +49,7 @@ export function SettingsRow({
         <Text className="text-base" style={{ color: titleColor }}>
           {title}
         </Text>
-        {description ? (
-          <Text className="mt-1 text-xs text-ink-muted">{description}</Text>
-        ) : null}
+        {description ? <Text className="mt-1 text-xs text-ink-muted">{description}</Text> : null}
       </View>
       {trailing}
     </>

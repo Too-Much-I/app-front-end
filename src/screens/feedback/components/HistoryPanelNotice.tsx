@@ -1,8 +1,8 @@
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View } from 'react-native';
 
-import { Button } from "@/components/ui/Button";
-import { Text } from "@/components/ui/Text";
-import { colors } from "@/theme";
+import { Button } from '@/components/ui/Button';
+import { Text } from '@/components/ui/Text';
+import { colors } from '@/theme';
 
 /**
  * 두 탭이 목록 대신 보여주는 화면 둘. 늘 같이 바뀌므로 한 파일에 둔다 —
@@ -28,9 +28,7 @@ export function HistoryPanelNotice({
       <Text accessibilityRole="header" className="text-center text-lg">
         {title}
       </Text>
-      <Text className="mt-2 text-center text-sm leading-6 text-ink-muted">
-        {description}
-      </Text>
+      <Text className="mt-2 text-center text-sm leading-6 text-ink-muted">{description}</Text>
       {actionLabel && onAction && (
         <Button
           accessibilityHint={actionHint}

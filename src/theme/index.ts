@@ -1,6 +1,6 @@
-import { Easing, type EasingFunction, type ViewStyle } from "react-native";
+import { Easing, type EasingFunction, type ViewStyle } from 'react-native';
 
-import tokens from "@/theme/tokens";
+import tokens from '@/theme/tokens';
 
 export const { colors, tabBar } = tokens;
 

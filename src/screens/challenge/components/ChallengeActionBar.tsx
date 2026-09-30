@@ -1,8 +1,8 @@
-import { View } from "react-native";
+import { View } from 'react-native';
 
-import { Button } from "@/components/ui/Button";
-import { Text } from "@/components/ui/Text";
-import type { ChallengeNoteStatus } from "@/screens/challenge/challenge-status";
+import { Button } from '@/components/ui/Button';
+import { Text } from '@/components/ui/Text';
+import type { ChallengeNoteStatus } from '@/screens/challenge/challenge-status';
 
 interface ChallengeActionBarProps {
   status: ChallengeNoteStatus;
@@ -27,12 +27,10 @@ export function ChallengeActionBar({
   onRetake,
   onSubmit,
 }: ChallengeActionBarProps) {
-  if (status === "reviewing") {
+  if (status === 'reviewing') {
     return (
       <View className="gap-2">
-        <Text className="text-center text-xs text-ink-muted">
-          들어보고 마음에 들면 제출해요.
-        </Text>
+        <Text className="text-center text-xs text-ink-muted">들어보고 마음에 들면 제출해요.</Text>
 
         <View className="flex-row gap-2">
           <Button
@@ -54,13 +52,11 @@ export function ChallengeActionBar({
     );
   }
 
-  const isRecording = status === "recording";
+  const isRecording = status === 'recording';
 
   return (
     <View className="gap-2">
-      <Text className="text-center text-xs text-ink-muted">
-        10초가 지나면 자동으로 끝나요.
-      </Text>
+      <Text className="text-center text-xs text-ink-muted">10초가 지나면 자동으로 끝나요.</Text>
 
       {/* 비활성일 때도 외곽선을 유지한다 — Button이 variant의 채움 여부를 지킨다. */}
       <Button

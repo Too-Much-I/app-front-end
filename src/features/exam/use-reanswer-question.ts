@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-import { getExamQuestionInfo } from "@/features/exam/api/exam-question-info";
-import { reportOperationalError } from "@/lib/operational-error-reporting";
-import type { ExamQuestionInfo } from "@/types/exam";
+import { getExamQuestionInfo } from '@/features/exam/api/exam-question-info';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
+import type { ExamQuestionInfo } from '@/types/exam';
 
 interface ReanswerQuestionState {
-  status: "loading" | "ready" | "failed";
+  status: 'loading' | 'ready' | 'failed';
   question: ExamQuestionInfo | null;
 }
 
@@ -18,28 +18,28 @@ interface ReanswerQuestionState {
  */
 export function useReanswerQuestion(examId: string, questionNumber: number) {
   const [state, setState] = useState<ReanswerQuestionState>({
-    status: "loading",
+    status: 'loading',
     question: null,
   });
 
   useEffect(() => {
     const controller = new AbortController();
-    setState({ status: "loading", question: null });
+    setState({ status: 'loading', question: null });
 
     getExamQuestionInfo(examId, questionNumber, controller.signal)
       .then((question) => {
         if (controller.signal.aborted) return;
-        setState({ status: "ready", question });
+        setState({ status: 'ready', question });
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        console.error("[Reanswer] 문제 조회 실패", error);
+        console.error('[Reanswer] 문제 조회 실패', error);
         reportOperationalError({
-          code: "REANSWER_QUESTION_LOAD_FAILED",
+          code: 'REANSWER_QUESTION_LOAD_FAILED',
           questionNumber,
           cause: error,
         });
-        setState({ status: "failed", question: null });
+        setState({ status: 'failed', question: null });
       });
 
     return () => controller.abort();

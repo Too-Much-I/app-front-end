@@ -1,30 +1,30 @@
-import { Feather } from "@expo/vector-icons";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
-import type { ComponentProps, ComponentType } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Feather } from '@expo/vector-icons';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
+import type { ComponentProps, ComponentType } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { FeedbackScreen } from "@/screens/feedback/FeedbackScreen";
-import { HomeScreen } from "@/screens/home/HomeScreen";
-import { MockExamStackNavigator } from "@/navigation/MockExamStackNavigator";
-import { TabBarButton } from "@/navigation/TabBarButton";
-import type { MainTabParamList } from "@/navigation/types";
-import { colors, FONT_FAMILY, tabBar } from "@/theme";
-import { useScaleValue } from "@/theme/rem-scale";
+import { FeedbackScreen } from '@/screens/feedback/FeedbackScreen';
+import { HomeScreen } from '@/screens/home/HomeScreen';
+import { MockExamStackNavigator } from '@/navigation/MockExamStackNavigator';
+import { TabBarButton } from '@/navigation/TabBarButton';
+import type { MainTabParamList } from '@/navigation/types';
+import { colors, FONT_FAMILY, tabBar } from '@/theme';
+import { useScaleValue } from '@/theme/rem-scale';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 type TabConfig = {
   name: keyof MainTabParamList;
   title: string;
-  icon: ComponentProps<typeof Feather>["name"];
+  icon: ComponentProps<typeof Feather>['name'];
   component: ComponentType;
 };
 
 const TAB_CONFIG: TabConfig[] = [
-  { name: "Home", title: "홈", icon: "home", component: HomeScreen },
-  { name: "MockExam", title: "모의고사", icon: "clipboard", component: MockExamStackNavigator },
-  { name: "Feedback", title: "피드백", icon: "message-circle", component: FeedbackScreen },
+  { name: 'Home', title: '홈', icon: 'home', component: HomeScreen },
+  { name: 'MockExam', title: '모의고사', icon: 'clipboard', component: MockExamStackNavigator },
+  { name: 'Feedback', title: '피드백', icon: 'message-circle', component: FeedbackScreen },
 ];
 
 export function MainTabNavigator() {
@@ -88,8 +88,8 @@ export function MainTabNavigator() {
               <Feather name={icon} color={color} size={scaled(tabBar.iconSize)} />
             ),
             tabBarStyle:
-              name === "MockExam" && getFocusedRouteNameFromRoute(route) === "ExamSession"
-                ? { display: "none" }
+              name === 'MockExam' && getFocusedRouteNameFromRoute(route) === 'ExamSession'
+                ? { display: 'none' }
                 : defaultTabBarStyle,
           })}
         />

@@ -1,8 +1,7 @@
-import { Platform } from "react-native";
+import { Platform } from 'react-native';
 
-const CLARITY_PROJECT_ID = "xzxyrpjm2t";
-const CLARITY_ENABLED =
-  process.env.EXPO_PUBLIC_ENABLE_CLARITY === "true";
+const CLARITY_PROJECT_ID = 'xzxyrpjm2t';
+const CLARITY_ENABLED = process.env.EXPO_PUBLIC_ENABLE_CLARITY === 'true';
 
 let initializationStarted = false;
 
@@ -14,20 +13,20 @@ export function initializeClarity(): void {
   if (
     !CLARITY_ENABLED ||
     initializationStarted ||
-    (Platform.OS !== "android" && Platform.OS !== "ios")
+    (Platform.OS !== 'android' && Platform.OS !== 'ios')
   ) {
     return;
   }
 
   initializationStarted = true;
 
-  void import("@microsoft/react-native-clarity")
+  void import('@microsoft/react-native-clarity')
     .then((Clarity) => {
       Clarity.initialize(CLARITY_PROJECT_ID, {
         logLevel: Clarity.LogLevel.None,
       });
     })
     .catch((error: unknown) => {
-      console.error("[Clarity] initialization failed", error);
+      console.error('[Clarity] initialization failed', error);
     });
 }

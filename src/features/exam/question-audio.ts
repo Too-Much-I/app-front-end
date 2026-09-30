@@ -1,6 +1,6 @@
-import type { AudioSource } from "expo-audio";
+import type { AudioSource } from 'expo-audio';
 
-import type { ExamQuestion, RawExamSession } from "@/types/exam";
+import type { ExamQuestion, RawExamSession } from '@/types/exam';
 
 /**
  * 질문 오디오가 반드시 제공되어야 하는 파트.
@@ -16,7 +16,7 @@ const QUESTION_AUDIO_REQUIRED_PARTS: ReadonlySet<number> = new Set([3, 4, 5]);
  */
 const PART4_LAST_QUESTION_PLAY_COUNT = 2;
 
-export type ExamQuestionAudioIssueReason = "missing" | "unsupported";
+export type ExamQuestionAudioIssueReason = 'missing' | 'unsupported';
 
 export interface ExamQuestionAudioIssue {
   questionNumber: number;
@@ -34,7 +34,7 @@ export class ExamQuestionAudioError extends Error {
 
   constructor(examId: string, issues: readonly ExamQuestionAudioIssue[]) {
     super(`질문 오디오를 사용할 수 없는 문항이 ${issues.length}개 있습니다.`);
-    this.name = "ExamQuestionAudioError";
+    this.name = 'ExamQuestionAudioError';
     this.examId = examId;
     this.issues = issues;
   }
@@ -45,7 +45,7 @@ export function requiresQuestionAudio(partNumber: number): boolean {
 }
 
 function trimNonEmpty(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
+  if (typeof value !== 'string') return undefined;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
 }
@@ -63,10 +63,7 @@ export function getQuestionAudioSource(audioUrl: string): AudioSource | undefine
 }
 
 /** 질문 오디오를 몇 번 재생할지. Part 4 마지막 문항만 2회다. */
-export function getQuestionAudioPlayCount(
-  partNumber: number,
-  isLastInPart: boolean,
-): number {
+export function getQuestionAudioPlayCount(partNumber: number, isLastInPart: boolean): number {
   return partNumber === 4 && isLastInPart ? PART4_LAST_QUESTION_PLAY_COUNT : 1;
 }
 
@@ -74,9 +71,7 @@ export function getQuestionAudioPlayCount(
  * 재생해야 할 질문 오디오 주소를 돌려준다.
  * Part 1·2는 주소가 담겨 오더라도 재생하지 않으므로 항상 undefined다.
  */
-export function getPlayableQuestionAudioUrl(
-  question: ExamQuestion,
-): string | undefined {
+export function getPlayableQuestionAudioUrl(question: ExamQuestion): string | undefined {
   if (!requiresQuestionAudio(question.partNumber)) return undefined;
   const audioUrl = trimNonEmpty(question.audioUrl);
   if (!audioUrl || !isSupportedQuestionAudioUrl(audioUrl)) return undefined;
@@ -98,7 +93,7 @@ export function assertQuestionAudioAvailable(session: RawExamSession): void {
       issues.push({
         questionNumber: question.questionNumber,
         partNumber: question.part,
-        reason: "missing",
+        reason: 'missing',
       });
       continue;
     }
@@ -106,7 +101,7 @@ export function assertQuestionAudioAvailable(session: RawExamSession): void {
       issues.push({
         questionNumber: question.questionNumber,
         partNumber: question.part,
-        reason: "unsupported",
+        reason: 'unsupported',
       });
     }
   }

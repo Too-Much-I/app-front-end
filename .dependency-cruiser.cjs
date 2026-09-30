@@ -5,19 +5,19 @@ module.exports = {
   forbidden: [],
   options: {
     doNotFollow: {
-      path: "node_modules",
+      path: 'node_modules',
     },
     includeOnly: {
-      path: "^(?:index[.]ts|App[.]tsx|src/)",
+      path: '^(?:index[.]ts|App[.]tsx|src/)',
     },
     tsConfig: {
-      fileName: "tsconfig.json",
+      fileName: 'tsconfig.json',
     },
     // 타입 경계도 구조의 일부다. 런타임 의존성과 구분할 수 있도록 표시해 함께 수집한다.
-    tsPreCompilationDeps: "specify",
+    tsPreCompilationDeps: 'specify',
     enhancedResolveOptions: {
-      conditionNames: ["react-native", "browser", "import", "require", "default", "types"],
-      extensions: [".ts", ".tsx", ".js", ".jsx", ".json"],
+      conditionNames: ['react-native', 'browser', 'import', 'require', 'default', 'types'],
+      extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
     },
   },
 };

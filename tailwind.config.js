@@ -5,12 +5,12 @@ const {
   fontSize,
   radiusScale,
   spacingScale,
-} = require("./src/theme/tokens");
+} = require('./src/theme/tokens');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./App.tsx", "./src/**/*.{js,jsx,ts,tsx}"],
-  presets: [require("nativewind/preset")],
+  content: ['./App.tsx', './src/**/*.{js,jsx,ts,tsx}'],
+  presets: [require('nativewind/preset')],
   theme: {
     extend: {
       colors,

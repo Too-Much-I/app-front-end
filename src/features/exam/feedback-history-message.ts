@@ -5,7 +5,7 @@
  *   type: "FEEDBACK_HISTORY_REQUESTED"
  * }))`.
  */
-const MESSAGE_TYPE = "FEEDBACK_HISTORY_REQUESTED";
+const MESSAGE_TYPE = 'FEEDBACK_HISTORY_REQUESTED';
 
 /** 계약에 맞지 않는 웹뷰 메시지는 현재 화면을 유지하도록 false를 돌려준다. */
 export function isFeedbackHistoryRequestedMessage(rawMessage: string): boolean {
@@ -16,7 +16,7 @@ export function isFeedbackHistoryRequestedMessage(rawMessage: string): boolean {
     return false;
   }
 
-  if (typeof parsed !== "object" || parsed === null) return false;
+  if (typeof parsed !== 'object' || parsed === null) return false;
 
   const { type } = parsed as Record<string, unknown>;
   return type === MESSAGE_TYPE;

@@ -1,28 +1,23 @@
-import { Feather } from "@expo/vector-icons";
-import { useCallback, useRef, useState } from "react";
-import {
-  type LayoutChangeEvent,
-  ScrollView,
-  View,
-  type ViewStyle,
-} from "react-native";
+import { Feather } from '@expo/vector-icons';
+import { useCallback, useRef, useState } from 'react';
+import { type LayoutChangeEvent, ScrollView, View, type ViewStyle } from 'react-native';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import { colors } from "@/theme";
-import type { ExamTableContext, ExamTableScalar } from "@/types/exam";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import { colors } from '@/theme';
+import type { ExamTableContext, ExamTableScalar } from '@/types/exam';
 
 const MIN_COLUMN_WIDTH = 144;
 
 function formatExamTableValue(value: ExamTableScalar | undefined): string {
-  if (value === null || value === undefined || value === "") return "—";
-  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   return String(value);
 }
 
 function formatStatus(status: string): string {
-  const displayStatus = status.replace(/_/g, " ").trim();
-  return (displayStatus || "unknown").toUpperCase();
+  const displayStatus = status.replace(/_/g, ' ').trim();
+  return (displayStatus || 'unknown').toUpperCase();
 }
 
 interface Part4TableProps {
@@ -43,9 +38,7 @@ export function Part4Table({
   const [viewportWidth, setViewportWidth] = useState(0);
   const columnCount = table.columns.length;
   const columnWidth =
-    columnCount > 0
-      ? Math.max(MIN_COLUMN_WIDTH, viewportWidth / columnCount)
-      : viewportWidth;
+    columnCount > 0 ? Math.max(MIN_COLUMN_WIDTH, viewportWidth / columnCount) : viewportWidth;
   const tableWidth = columnWidth * columnCount;
   const columnStyle: ViewStyle = {
     flexGrow: 0,
@@ -55,9 +48,7 @@ export function Part4Table({
 
   const handleViewportLayout = useCallback((event: LayoutChangeEvent) => {
     const nextWidth = Math.round(event.nativeEvent.layout.width);
-    setViewportWidth((currentWidth) =>
-      currentWidth === nextWidth ? currentWidth : nextWidth,
-    );
+    setViewportWidth((currentWidth) => (currentWidth === nextWidth ? currentWidth : nextWidth));
   }, []);
 
   return (
@@ -76,33 +67,26 @@ export function Part4Table({
           accessibilityRole="button"
           accessibilityState={{ disabled: landscapeActionDisabled }}
           className={`absolute right-0 top-0 z-10 h-11 w-11 items-center justify-center rounded-full border ${
-            landscapeActionDisabled
-              ? "border-line bg-surface-muted"
-              : "border-brand-300 bg-surface"
+            landscapeActionDisabled ? 'border-line bg-surface-muted' : 'border-brand-300 bg-surface'
           }`}
           disabled={landscapeActionDisabled}
           hitSlop={4}
           onPress={onRequestLandscape}
         >
           <Feather
-            color={
-              landscapeActionDisabled ? colors.ink.disabled : colors.brand.text
-            }
+            color={landscapeActionDisabled ? colors.ink.disabled : colors.brand.text}
             name="maximize-2"
             size={21}
           />
         </Pressable>
       ) : null}
 
-      <View className={`gap-1 ${onRequestLandscape ? "px-14" : ""}`}>
+      <View className={`gap-1 ${onRequestLandscape ? 'px-14' : ''}`}>
         <Text accessibilityRole="header" className="text-center text-2xl text-exam-navy">
           {formatExamTableValue(table.title)}
         </Text>
         {table.subtitles.map((subtitle, index) => (
-          <Text
-            className="text-center text-sm leading-6 text-ink-muted"
-            key={`subtitle-${index}`}
-          >
+          <Text className="text-center text-sm leading-6 text-ink-muted" key={`subtitle-${index}`}>
             {formatExamTableValue(subtitle)}
           </Text>
         ))}
@@ -152,7 +136,7 @@ export function Part4Table({
             {table.columns.map((column, columnIndex) => (
               <View
                 className={`self-stretch px-3 py-3 ${
-                  columnIndex < table.columns.length - 1 ? "border-r border-line" : ""
+                  columnIndex < table.columns.length - 1 ? 'border-r border-line' : ''
                 }`}
                 key={`${column.key}-${columnIndex}`}
                 style={columnStyle}
@@ -171,9 +155,7 @@ export function Part4Table({
           ) : (
             table.items.map((item, rowIndex) => (
               <View
-                className={
-                  rowIndex < table.items.length - 1 ? "border-b border-line" : ""
-                }
+                className={rowIndex < table.items.length - 1 ? 'border-b border-line' : ''}
                 key={`row-${rowIndex}`}
                 style={{ width: tableWidth }}
               >
@@ -185,21 +167,17 @@ export function Part4Table({
                     return (
                       <View
                         className={`self-stretch px-3 py-3 ${
-                          columnIndex < table.columns.length - 1
-                            ? "border-r border-line"
-                            : ""
+                          columnIndex < table.columns.length - 1 ? 'border-r border-line' : ''
                         }`}
                         key={`${column.key}-${columnIndex}`}
                         style={columnStyle}
                       >
                         <Text
                           accessibilityLabel={`${column.label}, ${
-                            displayValue === "—" ? "값 없음" : displayValue
+                            displayValue === '—' ? '값 없음' : displayValue
                           }`}
                           className={`text-sm leading-6 ${
-                            item.strikeThrough
-                              ? "text-ink-muted line-through"
-                              : "text-exam-navy"
+                            item.strikeThrough ? 'text-ink-muted line-through' : 'text-exam-navy'
                           }`}
                         >
                           {displayValue}

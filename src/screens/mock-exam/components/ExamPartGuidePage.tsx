@@ -1,12 +1,12 @@
-import { Feather } from "@expo/vector-icons";
-import { Image, ScrollView, View } from "react-native";
+import { Feather } from '@expo/vector-icons';
+import { Image, ScrollView, View } from 'react-native';
 
-import { Button } from "@/components/ui/Button";
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import type { ExamPartGuide } from "@/features/exam/part-guide";
-import { colors } from "@/theme";
-import { useScaleValue } from "@/theme/rem-scale";
+import { Button } from '@/components/ui/Button';
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import type { ExamPartGuide } from '@/features/exam/part-guide';
+import { colors } from '@/theme';
+import { useScaleValue } from '@/theme/rem-scale';
 
 interface ExamPartGuidePageProps {
   activeIndex: number;
@@ -19,7 +19,7 @@ interface ExamPartGuidePageProps {
 }
 
 interface TimingItemProps {
-  icon: "clock" | "mic";
+  icon: 'clock' | 'mic';
   label: string;
   value: string;
 }
@@ -40,12 +40,17 @@ function PartProgress({
   activeIndex,
   partCount,
   onSelectPart,
-}: Pick<ExamPartGuidePageProps, "activeIndex" | "partCount" | "onSelectPart">) {
+}: Pick<ExamPartGuidePageProps, 'activeIndex' | 'partCount' | 'onSelectPart'>) {
   return (
     <View className="relative mb-7 mt-1 flex-row">
       <View
         className="absolute bg-line"
-        style={{ height: 2, left: `${100 / partCount / 2}%`, right: `${100 / partCount / 2}%`, top: 11 }}
+        style={{
+          height: 2,
+          left: `${100 / partCount / 2}%`,
+          right: `${100 / partCount / 2}%`,
+          top: 11,
+        }}
       />
       {Array.from({ length: partCount }, (_, index) => {
         const isActive = index === activeIndex;
@@ -65,16 +70,16 @@ function PartProgress({
               <View
                 className={`items-center justify-center rounded-full ${
                   isActive
-                    ? "h-6 w-6 bg-brand-cta"
+                    ? 'h-6 w-6 bg-brand-cta'
                     : isComplete
-                      ? "h-2 w-2 bg-brand-cta"
-                      : "h-2 w-2 bg-line"
+                      ? 'h-2 w-2 bg-brand-cta'
+                      : 'h-2 w-2 bg-line'
                 }`}
               >
                 {isActive ? <Text className="text-sm text-white">{index + 1}</Text> : null}
               </View>
             </View>
-            <Text className={`mt-2 text-sm ${isActive ? "text-brand-cta" : "text-ink-muted"}`}>
+            <Text className={`mt-2 text-sm ${isActive ? 'text-brand-cta' : 'text-ink-muted'}`}>
               Part {index + 1}
             </Text>
           </Pressable>
@@ -97,11 +102,11 @@ export function ExamPartGuidePage({
   // 타지 않는다. 큰 화면에서 글자만 커지고 마스코트가 상한에 막히지 않도록 함께 곱한다.
   const scale = useScaleValue();
   const mascotSize = {
-    height: "100%" as const,
+    height: '100%' as const,
     maxHeight: 200 * scale,
     maxWidth: 190 * scale,
     transform: [{ scale: guide.mascotScale }],
-    width: "52%" as const,
+    width: '52%' as const,
   };
 
   return (
@@ -111,11 +116,7 @@ export function ExamPartGuidePage({
       className="flex-1 bg-surface"
       contentContainerClassName="flex-grow px-10 pb-6 pt-6"
     >
-      <PartProgress
-        activeIndex={activeIndex}
-        partCount={partCount}
-        onSelectPart={onSelectPart}
-      />
+      <PartProgress activeIndex={activeIndex} partCount={partCount} onSelectPart={onSelectPart} />
 
       <View>
         <View className="flex-row items-center gap-2">
@@ -139,7 +140,7 @@ export function ExamPartGuidePage({
 
       <Button
         className="mt-section"
-        label={isLast ? "시작하기" : "다음 파트"}
+        label={isLast ? '시작하기' : '다음 파트'}
         size="lg"
         onPress={isLast ? onStart : onNext}
       />

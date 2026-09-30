@@ -1,4 +1,4 @@
-import type { ChallengeToday } from "@/types/challenge";
+import type { ChallengeToday } from '@/types/challenge';
 
 /**
  * 스테이지가 그리는 상태와 그 판정.
@@ -14,7 +14,7 @@ import type { ChallengeToday } from "@/types/challenge";
  * 같고, 채점 대기는 그 화면이 이미 소유하고 있다. 스테이지가 그것까지 알면 진행도를
  * 반복 조회할 이유가 생긴다.
  */
-export type ChallengeStageCardStatus = "locked" | "next" | "done";
+export type ChallengeStageCardStatus = 'locked' | 'next' | 'done';
 
 export interface ChallengeStageQuestion {
   questionNumber: number;
@@ -22,10 +22,10 @@ export interface ChallengeStageQuestion {
 }
 
 export type ChallengeStageState =
-  | { status: "loading" }
-  | { status: "error" }
+  | { status: 'loading' }
+  | { status: 'error' }
   | {
-      status: "ready";
+      status: 'ready';
       /** 서버가 정한 날짜. 문제·결과 화면으로 그대로 실어 보낸다. */
       date: string;
       questions: ChallengeStageQuestion[];
@@ -41,12 +41,12 @@ export type ChallengeStageState =
  * 모든 카드가 `locked`로 떨어진다. 서버가 문항마다 답을 이미 주고 있으므로 그것을 읽는다.
  */
 export function resolveChallengeStageCardStatus(
-  question: ChallengeToday["questions"][number],
+  question: ChallengeToday['questions'][number],
   nextQuestionNumber: number | null,
 ): ChallengeStageCardStatus {
-  if (question.attemptStatus === "submitted") return "done";
-  if (question.questionNumber === nextQuestionNumber) return "next";
-  return "locked";
+  if (question.attemptStatus === 'submitted') return 'done';
+  if (question.questionNumber === nextQuestionNumber) return 'next';
+  return 'locked';
 }
 
 /**
@@ -63,7 +63,7 @@ export function toChallengeStageState(query: {
   if (query.data !== undefined) {
     const today = query.data;
     return {
-      status: "ready",
+      status: 'ready',
       date: today.date,
       nextQuestionNumber: today.nextQuestionNumber,
       questions: today.questions.map((question) => ({
@@ -72,6 +72,6 @@ export function toChallengeStageState(query: {
       })),
     };
   }
-  if (query.error !== null) return { status: "error" };
-  return { status: "loading" };
+  if (query.error !== null) return { status: 'error' };
+  return { status: 'loading' };
 }

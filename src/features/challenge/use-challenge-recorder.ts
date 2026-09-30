@@ -1,11 +1,11 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo } from 'react';
 
 import {
   useTimedAudioRecorder,
   type AudioRecordingFinishReason,
   type FinalizedAudioRecording,
   type StartAudioRecordingResult,
-} from "@/features/audio/use-timed-audio-recorder";
+} from '@/features/audio/use-timed-audio-recorder';
 
 export interface ChallengeQuestionKey {
   /** 스테이지 API가 내려준 서버 기준 날짜. */
@@ -80,14 +80,7 @@ export function useChallengeRecorder() {
       canAskPermissionAgain,
       lastError,
     }),
-    [
-      canAskPermissionAgain,
-      elapsedMs,
-      lastError,
-      meteringDb,
-      remainingMs,
-      status,
-    ],
+    [canAskPermissionAgain, elapsedMs, lastError, meteringDb, remainingMs, status],
   );
 
   // 상태 폴링으로 snapshot이 바뀌어도 명령 묶음은 같은 참조를 유지한다.

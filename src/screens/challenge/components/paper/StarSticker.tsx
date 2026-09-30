@@ -1,7 +1,7 @@
-import { FontAwesome } from "@expo/vector-icons";
-import { View } from "react-native";
+import { FontAwesome } from '@expo/vector-icons';
+import { View } from 'react-native';
 
-import { colors } from "@/theme";
+import { colors } from '@/theme';
 
 /** 흰 테두리를 만드는 뒷별과 앞별의 크기 차이. */
 const OUTLINE_SIZE = 38;
@@ -19,7 +19,7 @@ export function StarSticker() {
       accessibilityElementsHidden
       className="absolute -left-1 -top-3 items-center justify-center"
       pointerEvents="none"
-      style={{ transform: [{ rotate: "-12deg" }] }}
+      style={{ transform: [{ rotate: '-12deg' }] }}
     >
       <FontAwesome color={colors.surface.DEFAULT} name="star" size={OUTLINE_SIZE} />
       <View className="absolute">

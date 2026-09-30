@@ -1,10 +1,7 @@
-import {
-  mapExamRetries,
-  type ReanswerQuestionItem,
-} from "@/features/exam/map-exam-retries";
-import { apiFetchWithAuthRetry } from "@/lib/api/client";
-import type { ApiEnvelope } from "@/types/api";
-import type { RawExamRetriesResult } from "@/types/exam";
+import { mapExamRetries, type ReanswerQuestionItem } from '@/features/exam/map-exam-retries';
+import { apiFetchWithAuthRetry } from '@/lib/api/client';
+import type { ApiEnvelope } from '@/types/api';
+import type { RawExamRetriesResult } from '@/types/exam';
 
 /**
  * 한 시험에서 재답변한 문항과 회차별 점수를 조회한다.

@@ -1,9 +1,9 @@
-import { Image, View } from "react-native";
+import { Image, View } from 'react-native';
 
-import { Button } from "@/components/ui/Button";
-import { Text } from "@/components/ui/Text";
+import { Button } from '@/components/ui/Button';
+import { Text } from '@/components/ui/Text';
 
-const errorMascot = require("../../../../public/mascots/error.png");
+const errorMascot = require('../../../../public/mascots/error.png');
 
 interface GradingFailedNoticeProps {
   onGoHome: () => void;
@@ -27,9 +27,7 @@ export function GradingFailedNotice({ onGoHome }: GradingFailedNoticeProps) {
         resizeMode="contain"
         source={errorMascot}
       />
-      <Text className="mt-4 text-center text-xl text-exam-danger">
-        채점을 마치지 못했어요
-      </Text>
+      <Text className="mt-4 text-center text-xl text-exam-danger">채점을 마치지 못했어요</Text>
       <Text className="mt-2 text-center text-sm leading-6 text-ink-muted">
         답변은 그대로 보관돼 있어요. 홈으로 돌아간 뒤 잠시 후 다시 확인해주세요.
       </Text>

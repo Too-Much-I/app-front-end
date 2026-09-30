@@ -1,7 +1,7 @@
-import { ScrollView, View } from "react-native";
+import { ScrollView, View } from 'react-native';
 
-import { Part4Table } from "@/components/exam/Part4Table";
-import type { ExamPartReadingPrelude } from "@/types/exam";
+import { Part4Table } from '@/components/exam/Part4Table';
+import type { ExamPartReadingPrelude } from '@/types/exam';
 
 interface ExamInformationReadingProps {
   prelude: ExamPartReadingPrelude;

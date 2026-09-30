@@ -1,4 +1,4 @@
-import type { AudioPlaybackErrorKind } from "@/types/audio";
+import type { AudioPlaybackErrorKind } from '@/types/audio';
 
 /**
  * 분류표. 위에서부터 처음 걸리는 항목이 답이다.
@@ -8,33 +8,30 @@ import type { AudioPlaybackErrorKind } from "@/types/audio";
  * 플랫폼이 쓰는 NSError 코드(`error -1009` 등)는 형태가 고유해 그대로 받는다.
  */
 const ERROR_KIND_PATTERNS: readonly (readonly [RegExp, AudioPlaybackErrorKind])[] = [
-  [/not connected to the internet|network (?:is )?offline|\berror -1009\b/i, "offline"],
-  [/timed out|\berror -1001\b/i, "timed-out"],
-  [
-    /cannot find host|cannot connect to host|could not be found|\berror -100[34]\b/i,
-    "unreachable",
-  ],
-  [/(?:code|status)\D{0,3}\b40[13]\b|forbidden|unauthorized|access denied/i, "forbidden"],
+  [/not connected to the internet|network (?:is )?offline|\berror -1009\b/i, 'offline'],
+  [/timed out|\berror -1001\b/i, 'timed-out'],
+  [/cannot find host|cannot connect to host|could not be found|\berror -100[34]\b/i, 'unreachable'],
+  [/(?:code|status)\D{0,3}\b40[13]\b|forbidden|unauthorized|access denied/i, 'forbidden'],
   // `not found`는 자유 문구로 두지 않는다. "codec not found"처럼 다른 계열의 실패에도
   // 흔히 섞이는데, 이 표는 순서대로 먼저 걸리는 항목이 답이라 뒤의 더 정확한 분류를
   // 가로챈다. 다른 항목의 문구들과 달리 이 말은 그 자체로 변별력이 없다.
-  [/(?:code|status)\D{0,3}\b404\b/i, "not-found"],
+  [/(?:code|status)\D{0,3}\b404\b/i, 'not-found'],
   [
     /(?:code|status)\D{0,3}\b5\d{2}\b|internal server error|not correctly configured/i,
-    "server-error",
+    'server-error',
   ],
   [
     /unsupported|cannot (?:open|decode)|unrecognized format|codec|\berror -1182\d\b/i,
-    "unsupported-format",
+    'unsupported-format',
   ],
   // `AVAudioSession`처럼 붙여 쓰는 표기가 실제로 더 흔하다.
-  [/audio\s?session|interrupt/i, "session"],
+  [/audio\s?session|interrupt/i, 'session'],
 ];
 
 function toErrorMessage(value: unknown): string {
-  if (typeof value === "string") return value;
+  if (typeof value === 'string') return value;
   if (value instanceof Error) return value.message;
-  return "";
+  return '';
 }
 
 /**
@@ -48,11 +45,11 @@ function toErrorMessage(value: unknown): string {
  */
 export function classifyAudioPlaybackError(value: unknown): AudioPlaybackErrorKind {
   const message = toErrorMessage(value);
-  if (message.length === 0) return "unknown";
+  if (message.length === 0) return 'unknown';
 
   for (const [pattern, kind] of ERROR_KIND_PATTERNS) {
     if (pattern.test(message)) return kind;
   }
 
-  return "unknown";
+  return 'unknown';
 }

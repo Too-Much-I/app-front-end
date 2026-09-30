@@ -1,11 +1,11 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import type { ReactNode } from "react";
-import { ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
+import { ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import { colors } from "@/theme";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import { colors } from '@/theme';
 
 interface DeviceTestLayoutProps {
   children: ReactNode;
@@ -15,7 +15,7 @@ interface DeviceTestLayoutProps {
 
 export function DeviceTestLayout({ children, currentStep, onBack }: DeviceTestLayoutProps) {
   return (
-    <SafeAreaView edges={["top"]} className="flex-1 bg-surface-subtle">
+    <SafeAreaView edges={['top']} className="flex-1 bg-surface-subtle">
       <View className="h-16 flex-row items-center px-screen">
         <Pressable
           accessibilityLabel="뒤로 가기"
@@ -43,7 +43,9 @@ export function DeviceTestLayout({ children, currentStep, onBack }: DeviceTestLa
       >
         <View className="mb-6 flex-row justify-center gap-2">
           <View className="h-2 w-12 rounded-full bg-brand-cta" />
-          <View className={`h-2 w-12 rounded-full ${currentStep === 2 ? "bg-brand-cta" : "bg-line"}`} />
+          <View
+            className={`h-2 w-12 rounded-full ${currentStep === 2 ? 'bg-brand-cta' : 'bg-line'}`}
+          />
         </View>
         {children}
       </ScrollView>

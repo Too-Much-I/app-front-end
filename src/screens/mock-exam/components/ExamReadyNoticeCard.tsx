@@ -1,9 +1,9 @@
-import { Feather } from "@expo/vector-icons";
-import { View } from "react-native";
+import { Feather } from '@expo/vector-icons';
+import { View } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
-import { EXAM_READY_NOTICES } from "@/features/exam/ready-notice";
-import { colors, shadows } from "@/theme";
+import { Text } from '@/components/ui/Text';
+import { EXAM_READY_NOTICES } from '@/features/exam/ready-notice';
+import { colors, shadows } from '@/theme';
 
 const ICON_SIZE = 19;
 
@@ -19,7 +19,7 @@ export function ExamReadyNoticeCard() {
       {EXAM_READY_NOTICES.map((notice, index) => (
         <View
           key={notice.title}
-          className={`flex-row items-start gap-3 py-4 ${index > 0 ? "border-t border-line" : ""}`}
+          className={`flex-row items-start gap-3 py-4 ${index > 0 ? 'border-t border-line' : ''}`}
         >
           <View className="h-9 w-9 items-center justify-center rounded-xl bg-brand-100">
             <Feather name={notice.icon} size={ICON_SIZE} color={colors.brand.text} />

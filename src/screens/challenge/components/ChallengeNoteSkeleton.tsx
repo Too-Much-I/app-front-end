@@ -1,9 +1,9 @@
-import { View } from "react-native";
-import Animated from "react-native-reanimated";
+import { View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
-import { SkeletonBlock } from "@/components/ui/SkeletonBlock";
-import { useSkeletonPulseStyle } from "@/components/ui/use-skeleton-pulse-style";
-import { shadows } from "@/theme";
+import { SkeletonBlock } from '@/components/ui/SkeletonBlock';
+import { useSkeletonPulseStyle } from '@/components/ui/use-skeleton-pulse-style';
+import { shadows } from '@/theme';
 
 /**
  * 문제를 불러오는 동안의 노트 자리.

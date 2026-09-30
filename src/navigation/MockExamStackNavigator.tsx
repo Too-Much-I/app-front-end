@@ -1,12 +1,12 @@
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import type { MockExamStackParamList } from "@/navigation/types";
-import { ExamPartGuideScreen } from "@/screens/mock-exam/ExamPartGuideScreen";
-import { ExamSessionScreen } from "@/screens/mock-exam/ExamSessionScreen";
-import { GradingWaitScreen } from "@/screens/mock-exam/GradingWaitScreen";
-import { MicrophoneTestScreen } from "@/screens/mock-exam/MicrophoneTestScreen";
-import { MockExamReadyScreen } from "@/screens/mock-exam/MockExamReadyScreen";
-import { SoundTestScreen } from "@/screens/mock-exam/SoundTestScreen";
+import type { MockExamStackParamList } from '@/navigation/types';
+import { ExamPartGuideScreen } from '@/screens/mock-exam/ExamPartGuideScreen';
+import { ExamSessionScreen } from '@/screens/mock-exam/ExamSessionScreen';
+import { GradingWaitScreen } from '@/screens/mock-exam/GradingWaitScreen';
+import { MicrophoneTestScreen } from '@/screens/mock-exam/MicrophoneTestScreen';
+import { MockExamReadyScreen } from '@/screens/mock-exam/MockExamReadyScreen';
+import { SoundTestScreen } from '@/screens/mock-exam/SoundTestScreen';
 
 const Stack = createNativeStackNavigator<MockExamStackParamList>();
 

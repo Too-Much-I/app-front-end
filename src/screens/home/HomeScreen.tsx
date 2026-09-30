@@ -1,27 +1,27 @@
-import { Feather } from "@expo/vector-icons";
-import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
-import { useNavigation, type CompositeNavigationProp } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Image, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Feather } from '@expo/vector-icons';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { useNavigation, type CompositeNavigationProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Image, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Sparkle, type SparkleProps } from "@/components/ui/Sparkle";
-import { StartMockExamButton } from "@/components/ui/StartMockExamButton";
-import { Text } from "@/components/ui/Text";
-import { TickingClock } from "@/components/ui/TickingClock";
-import type { MainTabParamList, RootStackParamList } from "@/navigation/types";
-import { RecentFeedbackCard } from "@/screens/home/RecentFeedbackCard";
-import { useRecentFeedback } from "@/screens/home/use-recent-feedback";
-import { colors, shadows } from "@/theme";
+import { Pressable } from '@/components/ui/Pressable';
+import { Sparkle, type SparkleProps } from '@/components/ui/Sparkle';
+import { StartMockExamButton } from '@/components/ui/StartMockExamButton';
+import { Text } from '@/components/ui/Text';
+import { TickingClock } from '@/components/ui/TickingClock';
+import type { MainTabParamList, RootStackParamList } from '@/navigation/types';
+import { RecentFeedbackCard } from '@/screens/home/RecentFeedbackCard';
+import { useRecentFeedback } from '@/screens/home/use-recent-feedback';
+import { colors, shadows } from '@/theme';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
-const logo = require("../../../public/logo.png");
-const greetingMascot = require("../../../public/mascots/greeting_rabbit_bust.png");
+const logo = require('../../../public/logo.png');
+const greetingMascot = require('../../../public/mascots/greeting_rabbit_bust.png');
 
 /** 탭 안에서 루트 스택의 설정 화면으로 이동해야 하므로 두 내비게이터를 함께 쓴다. */
 type HomeNavigationProp = CompositeNavigationProp<
-  BottomTabNavigationProp<MainTabParamList, "Home">,
+  BottomTabNavigationProp<MainTabParamList, 'Home'>,
   NativeStackNavigationProp<RootStackParamList>
 >;
 
@@ -32,15 +32,15 @@ type HomeNavigationProp = CompositeNavigationProp<
  * 뒤쪽 2개는 토끼 귀 뒤로 살짝 떨어진 자리에 얹는 보조 반짝임.
  */
 const GREETING_SPARKLES: SparkleProps[] = [
-  { className: "left-12 top-0", size: "xl", colorClassName: "text-sky-300" },
-  { className: "right-10 top-2", size: "2xl", colorClassName: "text-brand-300" },
-  { className: "top-16 left-16", size: "lg", colorClassName: "text-yellow-300" },
-  { className: "right-2 top-0", size: "sm", colorClassName: "text-brand-200" },
-  { className: "right-28 top-6", size: "sm", colorClassName: "text-sky-200" },
+  { className: 'left-12 top-0', size: 'xl', colorClassName: 'text-sky-300' },
+  { className: 'right-10 top-2', size: '2xl', colorClassName: 'text-brand-300' },
+  { className: 'top-16 left-16', size: 'lg', colorClassName: 'text-yellow-300' },
+  { className: 'right-2 top-0', size: 'sm', colorClassName: 'text-brand-200' },
+  { className: 'right-28 top-6', size: 'sm', colorClassName: 'text-sky-200' },
   // 아래 3개는 디버그 격자(px 좌표)로 짚어서 임의값으로 정확히 배치한 것.
-  { className: "top-[180px] left-[60px]", size: "2xl", colorClassName: "text-yellow-500" },
-  { className: "top-[50px] left-[180px]", size: "2xl", colorClassName: "text-brand-200" },
-  { className: "top-[200px] left-[340px]", size: "lg", colorClassName: "text-sky-400" },
+  { className: 'top-[180px] left-[60px]', size: '2xl', colorClassName: 'text-yellow-500' },
+  { className: 'top-[50px] left-[180px]', size: '2xl', colorClassName: 'text-brand-200' },
+  { className: 'top-[200px] left-[340px]', size: 'lg', colorClassName: 'text-sky-400' },
 ];
 
 /**
@@ -50,12 +50,12 @@ const GREETING_SPARKLES: SparkleProps[] = [
  * 텍스트 블록과 시계 사이 빈 공간을 감싸듯 배치된다.
  */
 const CHALLENGE_SPARKLES: SparkleProps[] = [
-  { className: "left-[18px] top-0", size: "sm", colorClassName: "text-sky-400" },
-  { className: "left-[225px] -top-[4px]", size: "base", colorClassName: "text-yellow-300" },
-  { className: "left-[236px] top-[60px]", size: "sm", colorClassName: "text-brand-300" },
-  { className: "left-[205px] top-[52px]", size: "sm", colorClassName: "text-yellow-400" },
-  { className: "left-[296px] top-[96px]", size: "base", colorClassName: "text-sky-300" },
-  { className: "left-[150px] top-[104px]", size: "sm", colorClassName: "text-brand-200" },
+  { className: 'left-[18px] top-0', size: 'sm', colorClassName: 'text-sky-400' },
+  { className: 'left-[225px] -top-[4px]', size: 'base', colorClassName: 'text-yellow-300' },
+  { className: 'left-[236px] top-[60px]', size: 'sm', colorClassName: 'text-brand-300' },
+  { className: 'left-[205px] top-[52px]', size: 'sm', colorClassName: 'text-yellow-400' },
+  { className: 'left-[296px] top-[96px]', size: 'base', colorClassName: 'text-sky-300' },
+  { className: 'left-[150px] top-[104px]', size: 'sm', colorClassName: 'text-brand-200' },
 ];
 
 export function HomeScreen() {
@@ -63,7 +63,7 @@ export function HomeScreen() {
   const recentFeedback = useRecentFeedback();
 
   return (
-    <SafeAreaView edges={["top"]} className="flex-1 bg-surface-subtle">
+    <SafeAreaView edges={['top']} className="flex-1 bg-surface-subtle">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="px-screen pb-8">
           {/* 헤더 */}
@@ -88,7 +88,7 @@ export function HomeScreen() {
               <Pressable
                 accessibilityLabel="설정"
                 className="h-10 w-10 items-center justify-center rounded-full"
-                onPress={() => navigation.navigate("Settings")}
+                onPress={() => navigation.navigate('Settings')}
               >
                 <Feather name="settings" size={22} color={colors.ink.DEFAULT} />
               </Pressable>
@@ -98,7 +98,7 @@ export function HomeScreen() {
           {/* 인사 섹션 — 페이지 배경 전체가 이 옅은 브랜드 톤이라 별도 박스 없이 바로 얹는다 */}
           <View className="relative flex-row items-center justify-center gap-2 px-4 py-6">
             <Text className="mr-4 text-lg leading-8">
-              지금은 응시 한 번에{"\n"}약점 리포트가{"\n"}전부 열려요 😊
+              지금은 응시 한 번에{'\n'}약점 리포트가{'\n'}전부 열려요 😊
             </Text>
             <Image source={greetingMascot} className="h-56 w-40" resizeMode="contain" />
             {/* 반짝임은 토끼 그림보다 나중에 그려야 겹치는 자리에서도 가려지지 않는다. */}
@@ -107,10 +107,7 @@ export function HomeScreen() {
             ))}
           </View>
 
-          <StartMockExamButton
-            className="mt-2"
-            onPress={() => navigation.navigate("MockExam")}
-          />
+          <StartMockExamButton className="mt-2" onPress={() => navigation.navigate('MockExam')} />
 
           {/* 최근 피드백 섹션 헤더 */}
           <View className="mt-8 flex-row items-center justify-between">
@@ -118,7 +115,7 @@ export function HomeScreen() {
             <Pressable
               className="flex-row items-center gap-1 py-1"
               onPress={() =>
-                navigation.navigate("Feedback", {
+                navigation.navigate('Feedback', {
                   examId: undefined,
                   questionNumber: undefined,
                   retryCount: undefined,
@@ -133,7 +130,7 @@ export function HomeScreen() {
           {/* 최근 피드백 카드 — 옅은 배경 위에서 유일하게 흰색인 카드 */}
           <RecentFeedbackCard
             state={recentFeedback.state}
-            onOpenFeedback={(examId) => navigation.navigate("Feedback", { examId })}
+            onOpenFeedback={(examId) => navigation.navigate('Feedback', { examId })}
             onRetry={recentFeedback.retry}
           />
 
@@ -144,7 +141,7 @@ export function HomeScreen() {
           <Pressable
             accessibilityLabel="10초 챌린지 시작"
             className="relative mt-3 flex-row items-center gap-3 rounded-card border border-sky-line bg-sky-surface p-card"
-            onPress={() => navigation.navigate("ChallengeStage")}
+            onPress={() => navigation.navigate('ChallengeStage')}
             style={shadows.card}
           >
             <View className="flex-1">

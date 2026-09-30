@@ -4,7 +4,7 @@
  * 계약: `window.ReactNativeWebView.postMessage(JSON.stringify({ type: "GO_HOME_REQUESTED" }))`.
  * 추가 필드는 없다. `/app-exam-screen`, `/app-question-feedback` 두 웹뷰 화면에서 공통으로 온다.
  */
-const MESSAGE_TYPE = "GO_HOME_REQUESTED";
+const MESSAGE_TYPE = 'GO_HOME_REQUESTED';
 
 /**
  * 웹뷰 메시지가 홈 이동 요청인지 판별한다. 계약에 맞지 않으면 false를 돌려주고,
@@ -18,7 +18,7 @@ export function isGoHomeRequestedMessage(rawMessage: string): boolean {
     return false;
   }
 
-  if (typeof parsed !== "object" || parsed === null) return false;
+  if (typeof parsed !== 'object' || parsed === null) return false;
 
   const { type } = parsed as Record<string, unknown>;
 

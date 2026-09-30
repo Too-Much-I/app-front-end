@@ -1,10 +1,7 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext } from 'react';
 
 export type OrientationMode =
-  | "portrait"
-  | "entering-landscape"
-  | "landscape"
-  | "restoring-portrait";
+  'portrait' | 'entering-landscape' | 'landscape' | 'restoring-portrait';
 
 export interface OrientationContextValue {
   mode: OrientationMode;
@@ -21,7 +18,7 @@ export const OrientationContext = createContext<OrientationContextValue | null>(
 export function useOrientation(): OrientationContextValue {
   const context = useContext(OrientationContext);
   if (!context) {
-    throw new Error("useOrientation must be used within an OrientationProvider");
+    throw new Error('useOrientation must be used within an OrientationProvider');
   }
   return context;
 }

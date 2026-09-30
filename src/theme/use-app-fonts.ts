@@ -1,7 +1,7 @@
-import { Jua_400Regular } from "@expo-google-fonts/jua";
-import { useFonts } from "expo-font";
-import * as SplashScreen from "expo-splash-screen";
-import { useCallback } from "react";
+import { Jua_400Regular } from '@expo-google-fonts/jua';
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
+import { useCallback } from 'react';
 
 void SplashScreen.preventAutoHideAsync();
 

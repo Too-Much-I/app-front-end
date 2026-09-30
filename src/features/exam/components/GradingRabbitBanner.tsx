@@ -1,22 +1,22 @@
-import { useVideoPlayer, VideoView } from "expo-video";
-import { useEffect, useState } from "react";
-import { AppState, Image, View } from "react-native";
+import { useVideoPlayer, VideoView } from 'expo-video';
+import { useEffect, useState } from 'react';
+import { AppState, Image, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
-} from "react-native-reanimated";
+} from 'react-native-reanimated';
 
-import { colors } from "@/theme";
+import { colors } from '@/theme';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
 //
 // webm(VP9)이 아니라 mp4(H.264)를 쓴다. 같은 파일 하나로 iOS·Android·웹이 모두
 // 재생되기 때문에 플랫폼 분기도, 번들에 두 벌을 싣는 일도 없다.
-const runningRabbitVideo = require("../../../../public/mascots/running_rabbit.mp4");
-const runningRabbitPoster = require("../../../../public/mascots/running_rabbit_poster.jpg");
+const runningRabbitVideo = require('../../../../public/mascots/running_rabbit.mp4');
+const runningRabbitPoster = require('../../../../public/mascots/running_rabbit_poster.jpg');
 
 const BANNER_HEIGHT = 200;
 /** 영상이 720×720 정사각이라 배너 높이에 맞춘 정사각으로 놓는다. */
@@ -62,10 +62,10 @@ function SpeedLine({ top, width, gap, delayMs }: (typeof SPEED_LINES)[number]) {
     <Animated.View
       style={[
         {
-          position: "absolute",
+          position: 'absolute',
           top,
           // 오른쪽 끝을 배너 중앙에서 영상 반폭만큼 왼쪽으로 — 즉 영상 왼쪽 모서리에 붙인다.
-          right: "50%",
+          right: '50%',
           marginRight: VIDEO_SIZE / 2 + gap,
           width,
           height: 3,
@@ -111,8 +111,8 @@ export function GradingRabbitBanner() {
    * 화면은 하필 제일 불안한 순간에 "앱이 죽었나"로 읽힌다.
    */
   useEffect(() => {
-    const subscription = AppState.addEventListener("change", (nextState) => {
-      if (nextState === "active") {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
         player.play();
       }
     });

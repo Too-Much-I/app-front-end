@@ -4,20 +4,18 @@ export interface ExamPartMeta {
 }
 
 export const EXAM_PART_META: Record<number, ExamPartMeta> = {
-  1: { titleKo: "지문 읽기", titleEn: "Read a Text Aloud" },
-  2: { titleKo: "사진 묘사", titleEn: "Describe a Picture" },
-  3: { titleKo: "질문에 답하기", titleEn: "Respond to Questions" },
+  1: { titleKo: '지문 읽기', titleEn: 'Read a Text Aloud' },
+  2: { titleKo: '사진 묘사', titleEn: 'Describe a Picture' },
+  3: { titleKo: '질문에 답하기', titleEn: 'Respond to Questions' },
   4: {
-    titleKo: "정보를 활용해 답하기",
-    titleEn: "Respond to Questions Using Information Provided",
+    titleKo: '정보를 활용해 답하기',
+    titleEn: 'Respond to Questions Using Information Provided',
   },
-  5: { titleKo: "의견 제시하기", titleEn: "Express an Opinion" },
+  5: { titleKo: '의견 제시하기', titleEn: 'Express an Opinion' },
 };
 
 export function getExamPartMeta(part: number): ExamPartMeta {
-  return (
-    EXAM_PART_META[part] ?? { titleKo: `Part ${part}`, titleEn: `Part ${part}` }
-  );
+  return EXAM_PART_META[part] ?? { titleKo: `Part ${part}`, titleEn: `Part ${part}` };
 }
 
 /** 파트별 문제 번호. 토익 스피킹 정규 구성(Part1~2: 2문제, Part3~4: 3문제, Part5: 1문제) 기준. */
@@ -56,12 +54,8 @@ export function getExamQuestionMaxScore(questionNumber: number): number | null {
 }
 
 /** questionNumber가 속한 파트 번호를 찾는다. 정규 구성에 없는 번호면 null. */
-export function getExamPartNumberByQuestionNumber(
-  questionNumber: number,
-): number | null {
-  for (const [partNumber, questionNumbers] of Object.entries(
-    EXAM_PART_QUESTION_NUMBERS,
-  )) {
+export function getExamPartNumberByQuestionNumber(questionNumber: number): number | null {
+  for (const [partNumber, questionNumbers] of Object.entries(EXAM_PART_QUESTION_NUMBERS)) {
     if (questionNumbers.includes(questionNumber)) return Number(partNumber);
   }
   return null;
@@ -73,10 +67,7 @@ export interface ExamPartTiming {
 }
 
 /** 파트별 준비/답변 시간. 토익 스피킹 정규 구성 기준의 고정값 — 실제 시험 형식이 바뀌기 전엔 변하지 않는다. */
-export function getExamPartTiming(
-  partNumber: number,
-  isLastInPart: boolean,
-): ExamPartTiming {
+export function getExamPartTiming(partNumber: number, isLastInPart: boolean): ExamPartTiming {
   switch (partNumber) {
     case 1: // Read a Text Aloud
       return { prepTimeSec: 45, speakTimeSec: 45 };
@@ -107,7 +98,6 @@ export function getExamPartTimingByQuestionNumber(
   questionNumber: number,
 ): ExamPartTiming {
   const questionNumbers = getExamPartQuestionNumbers(partNumber);
-  const isLastInPart =
-    questionNumbers[questionNumbers.length - 1] === questionNumber;
+  const isLastInPart = questionNumbers[questionNumbers.length - 1] === questionNumber;
   return getExamPartTiming(partNumber, isLastInPart);
 }

@@ -1,5 +1,5 @@
-const { getSentryExpoConfig } = require("@sentry/react-native/metro");
-const { withNativeWind } = require("nativewind/metro");
+const { getSentryExpoConfig } = require('@sentry/react-native/metro');
+const { withNativeWind } = require('nativewind/metro');
 
 // annotateReactComponents는 빌드 타임에 컴포넌트 이름·소스 파일을 터치 breadcrumb의
 // `data.path`에 실어준다. 재현 불가 제보에서 "어느 화면의 무엇을 눌렀는가"를 특정하기 위한 것.
@@ -12,7 +12,7 @@ const config = getSentryExpoConfig(__dirname, {
 });
 
 module.exports = withNativeWind(config, {
-  input: "./global.css",
+  input: './global.css',
   // rem을 빌드 타임 상수로 굽지 않고 런타임 옵저버블로 남긴다.
   // 이 값이 숫자면 CSS의 rem이 `value * inlineRem`으로 인라이닝되어
   // `rem.set()`이 무시된다(react-native-css-interop parseDeclaration).

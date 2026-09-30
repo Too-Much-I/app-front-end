@@ -1,9 +1,8 @@
-import { createStore } from "zustand/vanilla";
+import { createStore } from 'zustand/vanilla';
 
-export type SignupDraftPolicy = "terms" | "privacy";
+export type SignupDraftPolicy = 'terms' | 'privacy';
 export type SignupDraftConsent =
-  | { version: null; agreed: false }
-  | { version: string; agreed: boolean };
+  { version: null; agreed: false } | { version: string; agreed: boolean };
 
 type SignupDraftState = {
   nickname: string;
@@ -15,8 +14,8 @@ type SignupDraftState = {
 
 function emptySignupDraft(phoneRevision = 0): SignupDraftState {
   return {
-    nickname: "",
-    phone: "",
+    nickname: '',
+    phone: '',
     phoneRevision,
     consents: {
       terms: { version: null, agreed: false },
@@ -37,9 +36,7 @@ function updateDraftConsentVersion(
 export function createSignupDraftStore() {
   const store = createStore<SignupDraftState>(() => emptySignupDraft());
 
-  function setPolicyVersions(
-    versions: Record<SignupDraftPolicy, string | null>,
-  ): void {
+  function setPolicyVersions(versions: Record<SignupDraftPolicy, string | null>): void {
     store.setState((current) => ({
       consents: {
         terms: updateDraftConsentVersion(current.consents.terms, versions.terms),
@@ -78,9 +75,7 @@ export function createSignupDraftStore() {
 
   function setPhone(phone: string): void {
     store.setState((current) =>
-      current.phone === phone
-        ? current
-        : { phone, phoneRevision: current.phoneRevision + 1 },
+      current.phone === phone ? current : { phone, phoneRevision: current.phoneRevision + 1 },
     );
   }
 
@@ -91,7 +86,6 @@ export function createSignupDraftStore() {
     setConsent,
     setAllConsents,
     setPolicyVersions,
-    reset: () =>
-      store.setState((current) => emptySignupDraft(current.phoneRevision + 1)),
+    reset: () => store.setState((current) => emptySignupDraft(current.phoneRevision + 1)),
   };
 }

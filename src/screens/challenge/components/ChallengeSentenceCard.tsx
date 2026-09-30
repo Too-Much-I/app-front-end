@@ -1,30 +1,33 @@
-import { Feather } from "@expo/vector-icons";
-import type { ReactNode } from "react";
-import { View } from "react-native";
+import { Feather } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
+import { View } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
-import { PunchHoles } from "@/screens/challenge/components/paper/PunchHoles";
-import { colors, shadows } from "@/theme";
+import { Text } from '@/components/ui/Text';
+import { PunchHoles } from '@/screens/challenge/components/paper/PunchHoles';
+import { colors, shadows } from '@/theme';
 
-export type SentenceCardTone = "mint" | "sky";
+export type SentenceCardTone = 'mint' | 'sky';
 
 /**
  * 톤이 고르는 것은 색뿐이다. 값은 여기 묶여 있어서 호출부는 "무슨 문장인가"만 말한다.
  */
 const TONE = {
   mint: {
-    surface: "bg-challenge-mint-surface",
-    label: "bg-challenge-mint-label",
-    text: "text-challenge-mint-text",
+    surface: 'bg-challenge-mint-surface',
+    label: 'bg-challenge-mint-label',
+    text: 'text-challenge-mint-text',
     icon: colors.challenge.mint.text,
   },
   sky: {
-    surface: "bg-sky-surface",
-    label: "bg-sky-line",
-    text: "text-sky-text",
+    surface: 'bg-sky-surface',
+    label: 'bg-sky-line',
+    text: 'text-sky-text',
     icon: colors.sky.text,
   },
-} satisfies Record<SentenceCardTone, { surface: string; label: string; text: string; icon: string }>;
+} satisfies Record<
+  SentenceCardTone,
+  { surface: string; label: string; text: string; icon: string }
+>;
 
 interface ChallengeSentenceCardProps {
   tone: SentenceCardTone;
@@ -66,10 +69,7 @@ export function ChallengeSentenceCard({
 
   return (
     <View>
-      <View
-        className={`overflow-hidden rounded-card ${palette.surface}`}
-        style={shadows.card}
-      >
+      <View className={`overflow-hidden rounded-card ${palette.surface}`} style={shadows.card}>
         {/* 카드는 화면 배경 위에 놓이므로 구멍 뒤에 비치는 것도 화면 배경이다. */}
         <PunchHoles carvedFrom={colors.surface.subtle} />
 
@@ -82,9 +82,7 @@ export function ChallengeSentenceCard({
               <Text className={`text-xs ${palette.text}`}>{label}</Text>
             </View>
 
-            {hint ? (
-              <Text className={`flex-1 text-[11px] ${palette.text}`}>{hint}</Text>
-            ) : null}
+            {hint ? <Text className={`flex-1 text-[11px] ${palette.text}`}>{hint}</Text> : null}
           </View>
 
           {/* 글은 흰 바탕 위에 얹고 색 카드가 그것을 감싼다. */}

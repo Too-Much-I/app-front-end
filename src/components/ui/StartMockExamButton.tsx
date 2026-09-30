@@ -1,6 +1,6 @@
-import { AntDesign } from "@expo/vector-icons";
+import { AntDesign } from '@expo/vector-icons';
 
-import { Button } from "@/components/ui/Button";
+import { Button } from '@/components/ui/Button';
 
 type StartMockExamButtonProps = {
   onPress: () => void;
@@ -34,9 +34,7 @@ export function StartMockExamButton({
       accessibilityHint={accessibilityHint}
       className={className}
       label="모의고사 시작하기"
-      renderIcon={({ color, size }) => (
-        <AntDesign color={color} name="audio" size={size} />
-      )}
+      renderIcon={({ color, size }) => <AntDesign color={color} name="audio" size={size} />}
       size="lg"
       onPress={onPress}
     />

@@ -1,14 +1,14 @@
-import { AppState } from "react-native";
-import { exchangeFirebaseProof } from "@/features/auth/api/exchange-firebase-proof";
-import { prepareGuestEnrollment } from "@/features/auth/api/prepare-guest-enrollment";
-import { createFirebaseAuthController } from "@/features/auth/firebase-auth-controller";
-import type { FirebaseAuthSdk } from "@/features/auth/firebase-auth-types";
+import { AppState } from 'react-native';
+import { exchangeFirebaseProof } from '@/features/auth/api/exchange-firebase-proof';
+import { prepareGuestEnrollment } from '@/features/auth/api/prepare-guest-enrollment';
+import { createFirebaseAuthController } from '@/features/auth/firebase-auth-controller';
+import type { FirebaseAuthSdk } from '@/features/auth/firebase-auth-types';
 
-import { createAuthConsentController } from "@/features/auth/auth-consent-controller";
-import { createAuthCoordinator } from "@/features/auth/auth-coordinator";
-import { observeAuthForegroundRecovery } from "@/features/auth/auth-foreground-recovery";
-import { createSessionController } from "@/features/auth/session-controller";
-import { createAuthenticatedApiClient } from "@/lib/api/authenticated-client";
+import { createAuthConsentController } from '@/features/auth/auth-consent-controller';
+import { createAuthCoordinator } from '@/features/auth/auth-coordinator';
+import { observeAuthForegroundRecovery } from '@/features/auth/auth-foreground-recovery';
+import { createSessionController } from '@/features/auth/session-controller';
+import { createAuthenticatedApiClient } from '@/lib/api/authenticated-client';
 
 /**
  * 전환용 조립 함수. 현재 App에서는 호출하지 않는다.
@@ -30,11 +30,9 @@ export function createAuthRuntime(options: {
     prepare: prepareGuestEnrollment,
   });
   const api = createAuthenticatedApiClient(session);
-  const unsubscribe = session.subscribeRestoration(
-    coordinator.handleSessionResult,
-  );
-  const appState = AppState.addEventListener("change", (state) => {
-    if (state === "active") session.retryPersistence();
+  const unsubscribe = session.subscribeRestoration(coordinator.handleSessionResult);
+  const appState = AppState.addEventListener('change', (state) => {
+    if (state === 'active') session.retryPersistence();
   });
   const stopRecovery = observeAuthForegroundRecovery({
     getState: coordinator.getForegroundRecoveryState,

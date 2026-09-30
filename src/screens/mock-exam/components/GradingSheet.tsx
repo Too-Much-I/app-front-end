@@ -1,12 +1,12 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useState } from "react";
-import { View, type LayoutChangeEvent } from "react-native";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useState } from 'react';
+import { View, type LayoutChangeEvent } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
-import { GRADING_PART_COUNT } from "@/features/exam/use-grading-status";
-import { getExamPartMeta } from "@/features/exam/part-meta";
-import { RedPenCheck } from "@/screens/mock-exam/components/RedPenCheck";
-import { colors, shadows } from "@/theme";
+import { Text } from '@/components/ui/Text';
+import { GRADING_PART_COUNT } from '@/features/exam/use-grading-status';
+import { getExamPartMeta } from '@/features/exam/part-meta';
+import { RedPenCheck } from '@/screens/mock-exam/components/RedPenCheck';
+import { colors, shadows } from '@/theme';
 
 /** 한 줄의 높이. 괘선 간격이자 파트 한 줄의 높이다. */
 const ROW_HEIGHT = 44;
@@ -120,7 +120,7 @@ export function GradingSheet({ gradedPartCount }: GradingSheetProps) {
                       name="lead-pencil"
                       size={20}
                       color={colors.grading.ink}
-                      style={{ transform: [{ rotate: "-8deg" }] }}
+                      style={{ transform: [{ rotate: '-8deg' }] }}
                     />
                   ) : null
                 }
@@ -128,7 +128,7 @@ export function GradingSheet({ gradedPartCount }: GradingSheetProps) {
                 {/* 밑줄이 글자 너비에만 깔리도록 self-start로 폭을 글자에 맞춘다 */}
                 <View className="self-start">
                   <Text
-                    className={`text-base ${isGraded || isGrading ? "text-ink" : "text-ink-disabled"}`}
+                    className={`text-base ${isGraded || isGrading ? 'text-ink' : 'text-ink-disabled'}`}
                     numberOfLines={1}
                   >
                     파트 {partNumber} · {getExamPartMeta(partNumber).titleKo}

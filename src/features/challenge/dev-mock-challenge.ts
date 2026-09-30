@@ -5,7 +5,7 @@ import type {
   ChallengeDayResult,
   ChallengeQuestion,
   ChallengeToday,
-} from "@/types/challenge";
+} from '@/types/challenge';
 
 /**
  * 백엔드가 붙기 전까지 챌린지 화면을 끝까지 걸어보기 위한 임시 목 데이터.
@@ -36,40 +36,39 @@ export const DEV_SUBMIT_DELAY_MS = 1_200;
  * 예시 응답(D005Q01 / beginner)을 그대로 옮겼다. `transcript` 안에 `original`이 그대로
  * 들어 있어야 `findCorrectionSpans`가 자리를 찾는다.
  */
-const DEV_MOCK_PROMPT_KO = "그녀는 검은색 신발을 신고 있어요.";
+const DEV_MOCK_PROMPT_KO = '그녀는 검은색 신발을 신고 있어요.';
 const DEV_MOCK_REFERENCE_ANSWER = "She's wearing black shoes.";
-const DEV_MOCK_TRANSCRIPT = "She wear black shoe.";
-const DEV_MOCK_FEEDBACK_SUMMARY = "현재진행형과 복수형을 사용하면 문장이 자연스러워져요.";
-const DEV_MOCK_CORRECTED_ANSWER = "She is wearing black shoes.";
+const DEV_MOCK_TRANSCRIPT = 'She wear black shoe.';
+const DEV_MOCK_FEEDBACK_SUMMARY = '현재진행형과 복수형을 사용하면 문장이 자연스러워져요.';
+const DEV_MOCK_CORRECTED_ANSWER = 'She is wearing black shoes.';
 
 const DEV_MOCK_CORRECTIONS: ChallengeCorrectionItem[] = [
   {
-    type: "GRAMMAR",
-    original: "wear",
-    issue: "현재진행형이 필요해요",
+    type: 'GRAMMAR',
+    original: 'wear',
+    issue: '현재진행형이 필요해요',
     explanation:
-      "지금 입고 있는 상태를 말하므로 주어 She 뒤에 is를 쓰고 동사에 -ing를 붙여야 해요.",
-    suggested: "is wearing",
-    severity: "high",
+      '지금 입고 있는 상태를 말하므로 주어 She 뒤에 is를 쓰고 동사에 -ing를 붙여야 해요.',
+    suggested: 'is wearing',
+    severity: 'high',
   },
   {
-    type: "GRAMMAR",
-    original: "shoe",
-    issue: "복수형이 필요해요",
-    explanation:
-      "한국어의 ‘신발’은 여기서 한 켤레를 뜻하므로 shoes처럼 복수형으로 표현해요.",
-    suggested: "shoes",
-    severity: "medium",
+    type: 'GRAMMAR',
+    original: 'shoe',
+    issue: '복수형이 필요해요',
+    explanation: '한국어의 ‘신발’은 여기서 한 켤레를 뜻하므로 shoes처럼 복수형으로 표현해요.',
+    suggested: 'shoes',
+    severity: 'medium',
   },
 ];
 
 export const DEV_MOCK_CHALLENGE_QUESTION: ChallengeQuestion = {
-  date: "2026-08-25",
+  date: '2026-08-25',
   questionNumber: 1,
   totalQuestionCount: 3,
   promptKo: DEV_MOCK_PROMPT_KO,
-  attemptStatus: "not_started",
-  gradingStatus: "not_requested",
+  attemptStatus: 'not_started',
+  gradingStatus: 'not_requested',
 };
 
 /**
@@ -90,27 +89,27 @@ export function createDevMockToday(): ChallengeToday {
   return {
     date: DEV_MOCK_CHALLENGE_QUESTION.date,
     expiresInSeconds: DEV_MOCK_TODAY_EXPIRES_IN_SEC,
-    dailyStatus: "in_progress",
+    dailyStatus: 'in_progress',
     totalQuestionCount: DEV_MOCK_CHALLENGE_QUESTION.totalQuestionCount,
     nextQuestionNumber: 2,
     completedQuestionNumbers: [1],
     questions: [
       {
         questionNumber: 1,
-        attemptStatus: "submitted",
-        gradingStatus: "completed",
+        attemptStatus: 'submitted',
+        gradingStatus: 'completed',
         resultAvailable: true,
       },
       {
         questionNumber: 2,
-        attemptStatus: "not_started",
-        gradingStatus: "not_requested",
+        attemptStatus: 'not_started',
+        gradingStatus: 'not_requested',
         resultAvailable: false,
       },
       {
         questionNumber: 3,
-        attemptStatus: "not_started",
-        gradingStatus: "not_requested",
+        attemptStatus: 'not_started',
+        gradingStatus: 'not_requested',
         resultAvailable: false,
       },
     ],
@@ -118,10 +117,7 @@ export function createDevMockToday(): ChallengeToday {
 }
 
 /** attempt 발급 응답. 제출 유효시간은 명세대로 생성 시각 + 1시간이다. */
-export function createDevMockAttempt(
-  date: string,
-  questionNumber: number,
-): ChallengeAttempt {
+export function createDevMockAttempt(date: string, questionNumber: number): ChallengeAttempt {
   return {
     attemptId: `dev-attempt-${date}-${questionNumber}`,
     date,
@@ -144,24 +140,21 @@ export function createDevMockAccepted(
     attemptId: `dev-attempt-${date}-${questionNumber}`,
     date,
     questionNumber,
-    gradingStatus: "processing",
+    gradingStatus: 'processing',
     referenceAnswer: DEV_MOCK_REFERENCE_ANSWER,
     feedbackAvailable: true,
   };
 }
 
 /** 결과 조회 응답. 폴링이 한 번 돌면 채점이 끝난 것으로 보인다. */
-export function createDevMockDayResult(
-  date: string,
-  questionNumber: number,
-): ChallengeDayResult {
+export function createDevMockDayResult(date: string, questionNumber: number): ChallengeDayResult {
   return {
     date,
     solvedQuestionCount: questionNumber,
     question: {
       questionNumber,
       promptKo: DEV_MOCK_PROMPT_KO,
-      gradingStatus: "completed",
+      gradingStatus: 'completed',
       referenceAnswer: DEV_MOCK_REFERENCE_ANSWER,
       // 로컬 파일은 제출과 함께 지워지므로 재생할 원본이 없다.
       audioUrl: null,

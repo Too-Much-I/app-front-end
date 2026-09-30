@@ -5,16 +5,16 @@ import type {
   ExamTableMetadata,
   ExamTableNote,
   ExamTableScalar,
-} from "@/types/exam";
+} from '@/types/exam';
 
 export type ExamTableContractIssueCode =
-  | "invalid-context"
-  | "invalid-field"
-  | "invalid-entry"
-  | "invalid-scalar"
-  | "missing-cell"
-  | "extra-cell"
-  | "duplicate-column";
+  | 'invalid-context'
+  | 'invalid-field'
+  | 'invalid-entry'
+  | 'invalid-scalar'
+  | 'missing-cell'
+  | 'extra-cell'
+  | 'duplicate-column';
 
 export interface ExamTableContractIssue {
   code: ExamTableContractIssueCode;
@@ -32,19 +32,19 @@ export type ExamTableContextMapping =
       issues: ExamTableContractIssue[];
     };
 
-const EMPTY_DISPLAY_VALUE = "—";
-const UNKNOWN_STATUS = "unknown";
+const EMPTY_DISPLAY_VALUE = '—';
+const UNKNOWN_STATUS = 'unknown';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function isScalar(value: unknown): value is ExamTableScalar {
   return (
     value === null ||
-    typeof value === "string" ||
-    typeof value === "boolean" ||
-    (typeof value === "number" && Number.isFinite(value))
+    typeof value === 'string' ||
+    typeof value === 'boolean' ||
+    (typeof value === 'number' && Number.isFinite(value))
   );
 }
 
@@ -62,18 +62,14 @@ function stringOr(
   path: string,
   issues: ExamTableContractIssue[],
 ): string {
-  if (typeof value === "string") return value;
-  issue(issues, "invalid-field", path);
+  if (typeof value === 'string') return value;
+  issue(issues, 'invalid-field', path);
   return fallback;
 }
 
-function arrayOrEmpty(
-  value: unknown,
-  path: string,
-  issues: ExamTableContractIssue[],
-): unknown[] {
+function arrayOrEmpty(value: unknown, path: string, issues: ExamTableContractIssue[]): unknown[] {
   if (Array.isArray(value)) return value;
-  issue(issues, "invalid-field", path);
+  issue(issues, 'invalid-field', path);
   return [];
 }
 
@@ -84,14 +80,14 @@ function mapMetadata(
 ): ExamTableMetadata {
   const path = `metadata[${index}]`;
   if (!isRecord(raw)) {
-    issue(issues, "invalid-entry", path);
+    issue(issues, 'invalid-entry', path);
     return { key: `metadata-${index}`, label: EMPTY_DISPLAY_VALUE, value: null };
   }
 
   const key = stringOr(raw.key, `metadata-${index}`, `${path}.key`, issues);
   const label = stringOr(raw.label, key || EMPTY_DISPLAY_VALUE, `${path}.label`, issues);
   const value = isScalar(raw.value) ? raw.value : null;
-  if (!isScalar(raw.value)) issue(issues, "invalid-scalar", `${path}.value`);
+  if (!isScalar(raw.value)) issue(issues, 'invalid-scalar', `${path}.value`);
   return { key, label, value };
 }
 
@@ -102,18 +98,18 @@ function mapColumn(
 ): ExamTableColumn | null {
   const path = `columns[${index}]`;
   if (!isRecord(raw)) {
-    issue(issues, "invalid-entry", path);
+    issue(issues, 'invalid-entry', path);
     return null;
   }
-  if (typeof raw.key !== "string" || raw.key.length === 0) {
-    issue(issues, "invalid-field", `${path}.key`);
+  if (typeof raw.key !== 'string' || raw.key.length === 0) {
+    issue(issues, 'invalid-field', `${path}.key`);
     return null;
   }
 
   return {
     key: raw.key,
     label: stringOr(raw.label, raw.key, `${path}.label`, issues),
-    valueType: stringOr(raw.value_type, "unknown", `${path}.value_type`, issues),
+    valueType: stringOr(raw.value_type, 'unknown', `${path}.value_type`, issues),
   };
 }
 
@@ -123,7 +119,7 @@ function mapCells(
   issues: ExamTableContractIssue[],
 ): Record<string, ExamTableScalar> {
   if (!isRecord(raw)) {
-    issue(issues, "invalid-field", path);
+    issue(issues, 'invalid-field', path);
     return {};
   }
 
@@ -132,21 +128,17 @@ function mapCells(
     if (isScalar(value)) {
       entries.push([key, value]);
     } else {
-      issue(issues, "invalid-scalar", `${path}.${key}`);
+      issue(issues, 'invalid-scalar', `${path}.${key}`);
       entries.push([key, null]);
     }
   }
   return Object.fromEntries(entries);
 }
 
-function mapItem(
-  raw: unknown,
-  index: number,
-  issues: ExamTableContractIssue[],
-): ExamTableItem {
+function mapItem(raw: unknown, index: number, issues: ExamTableContractIssue[]): ExamTableItem {
   const path = `items[${index}]`;
   if (!isRecord(raw)) {
-    issue(issues, "invalid-entry", path);
+    issue(issues, 'invalid-entry', path);
     return {
       cells: {},
       status: UNKNOWN_STATUS,
@@ -156,15 +148,15 @@ function mapItem(
   }
 
   let statusNote: string | null = null;
-  if (typeof raw.status_note === "string" || raw.status_note === null) {
+  if (typeof raw.status_note === 'string' || raw.status_note === null) {
     statusNote = raw.status_note;
   } else {
-    issue(issues, "invalid-field", `${path}.status_note`);
+    issue(issues, 'invalid-field', `${path}.status_note`);
   }
 
-  const strikeThrough = typeof raw.strike_through === "boolean" && raw.strike_through;
-  if (typeof raw.strike_through !== "boolean") {
-    issue(issues, "invalid-field", `${path}.strike_through`);
+  const strikeThrough = typeof raw.strike_through === 'boolean' && raw.strike_through;
+  if (typeof raw.strike_through !== 'boolean') {
+    issue(issues, 'invalid-field', `${path}.strike_through`);
   }
 
   return {
@@ -175,18 +167,14 @@ function mapItem(
   };
 }
 
-function mapNote(
-  raw: unknown,
-  index: number,
-  issues: ExamTableContractIssue[],
-): ExamTableNote {
+function mapNote(raw: unknown, index: number, issues: ExamTableContractIssue[]): ExamTableNote {
   const path = `notes[${index}]`;
   if (!isRecord(raw)) {
-    issue(issues, "invalid-entry", path);
-    return { scope: "unknown", text: EMPTY_DISPLAY_VALUE };
+    issue(issues, 'invalid-entry', path);
+    return { scope: 'unknown', text: EMPTY_DISPLAY_VALUE };
   }
   return {
-    scope: stringOr(raw.scope, "unknown", `${path}.scope`, issues),
+    scope: stringOr(raw.scope, 'unknown', `${path}.scope`, issues),
     text: stringOr(raw.text, EMPTY_DISPLAY_VALUE, `${path}.text`, issues),
   };
 }
@@ -200,18 +188,18 @@ function mapNote(
 export function mapExamTableContext(raw: unknown): ExamTableContextMapping {
   const issues: ExamTableContractIssue[] = [];
   if (!isRecord(raw)) {
-    issue(issues, "invalid-context", "tableContext");
+    issue(issues, 'invalid-context', 'tableContext');
     return { ok: false, issues };
   }
 
   if (
-    typeof raw.table_type !== "string" ||
-    typeof raw.title !== "string" ||
+    typeof raw.table_type !== 'string' ||
+    typeof raw.title !== 'string' ||
     !Array.isArray(raw.columns) ||
     raw.columns.length === 0 ||
     !Array.isArray(raw.items)
   ) {
-    issue(issues, "invalid-context", "tableContext");
+    issue(issues, 'invalid-context', 'tableContext');
     return { ok: false, issues };
   }
 
@@ -226,7 +214,7 @@ export function mapExamTableContext(raw: unknown): ExamTableContextMapping {
   for (let index = 0; index < validColumns.length; index += 1) {
     const column = validColumns[index];
     if (seenColumnKeys.has(column.key)) {
-      issue(issues, "duplicate-column", `columns[${index}].key`);
+      issue(issues, 'duplicate-column', `columns[${index}].key`);
     }
     seenColumnKeys.add(column.key);
   }
@@ -236,24 +224,23 @@ export function mapExamTableContext(raw: unknown): ExamTableContextMapping {
     const cells = items[rowIndex].cells;
     for (const column of validColumns) {
       if (!Object.prototype.hasOwnProperty.call(cells, column.key)) {
-        issue(issues, "missing-cell", `items[${rowIndex}].cells.${column.key}`);
+        issue(issues, 'missing-cell', `items[${rowIndex}].cells.${column.key}`);
       }
     }
     for (const cellKey of Object.keys(cells)) {
       if (!seenColumnKeys.has(cellKey)) {
-        issue(issues, "extra-cell", `items[${rowIndex}].cells.${cellKey}`);
+        issue(issues, 'extra-cell', `items[${rowIndex}].cells.${cellKey}`);
       }
     }
   }
 
-  const subtitles = arrayOrEmpty(raw.subtitles, "subtitles", issues).map(
-    (subtitle, index) =>
-      stringOr(subtitle, EMPTY_DISPLAY_VALUE, `subtitles[${index}]`, issues),
+  const subtitles = arrayOrEmpty(raw.subtitles, 'subtitles', issues).map((subtitle, index) =>
+    stringOr(subtitle, EMPTY_DISPLAY_VALUE, `subtitles[${index}]`, issues),
   );
-  const metadata = arrayOrEmpty(raw.metadata, "metadata", issues).map((entry, index) =>
+  const metadata = arrayOrEmpty(raw.metadata, 'metadata', issues).map((entry, index) =>
     mapMetadata(entry, index, issues),
   );
-  const notes = arrayOrEmpty(raw.notes, "notes", issues).map((entry, index) =>
+  const notes = arrayOrEmpty(raw.notes, 'notes', issues).map((entry, index) =>
     mapNote(entry, index, issues),
   );
 
@@ -289,7 +276,9 @@ export function areExamTableContextsEqual(
   left: ExamTableContext,
   right: ExamTableContext,
 ): boolean {
-  return JSON.stringify(comparableTableContext(left)) === JSON.stringify(comparableTableContext(right));
+  return (
+    JSON.stringify(comparableTableContext(left)) === JSON.stringify(comparableTableContext(right))
+  );
 }
 
 export function reportExamTableContractIssues(
@@ -297,7 +286,7 @@ export function reportExamTableContractIssues(
   issues: readonly ExamTableContractIssue[],
 ): void {
   if (!__DEV__ || issues.length === 0) return;
-  console.warn("[ExamTable] public contract issue", { location, issues });
+  console.warn('[ExamTable] public contract issue', { location, issues });
 }
 
 export class ExamTableContextError extends Error {
@@ -306,6 +295,6 @@ export class ExamTableContextError extends Error {
     readonly issues: readonly ExamTableContractIssue[],
   ) {
     super(message);
-    this.name = "ExamTableContextError";
+    this.name = 'ExamTableContextError';
   }
 }

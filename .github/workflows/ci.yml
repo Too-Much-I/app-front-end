@@ -37,7 +37,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: pnpm format:check
+        run: pnpm format:check
+
       - name: pnpm lint
+        if: ${{ !cancelled() }}
         run: pnpm lint
 
       # lint가 실패해도 실행해, 한 번의 CI로 세 결과를 모두 본다.

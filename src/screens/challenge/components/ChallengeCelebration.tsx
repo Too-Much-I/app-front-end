@@ -1,9 +1,9 @@
-import { Image, View } from "react-native";
+import { Image, View } from 'react-native';
 
-import { colors } from "@/theme";
+import { colors } from '@/theme';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
-const graduateTurtle = require("../../../../public/mascots/graduate_turtle.png");
+const graduateTurtle = require('../../../../public/mascots/graduate_turtle.png');
 
 /**
  * 흩날리는 색종이 한 조각씩.
@@ -13,14 +13,14 @@ const graduateTurtle = require("../../../../public/mascots/graduate_turtle.png")
  * 화면 너비가 달라져도 좌우 균형이 유지된다.
  */
 const CONFETTI = [
-  { top: 4, left: "10%", size: 13, rotate: "24deg", color: colors.challenge.confetti.mint },
-  { top: 26, left: "20%", size: 10, rotate: "-16deg", color: colors.challenge.confetti.pink },
-  { top: 62, left: "8%", size: 15, rotate: "40deg", color: colors.challenge.confetti.pink },
-  { top: 96, left: "16%", size: 9, rotate: "-8deg", color: colors.challenge.confetti.yellow },
-  { top: 8, left: "76%", size: 14, rotate: "-28deg", color: colors.challenge.confetti.yellow },
-  { top: 40, left: "88%", size: 10, rotate: "18deg", color: colors.challenge.confetti.sky },
-  { top: 74, left: "80%", size: 13, rotate: "-36deg", color: colors.challenge.confetti.mint },
-  { top: 104, left: "72%", size: 9, rotate: "12deg", color: colors.challenge.confetti.sky },
+  { top: 4, left: '10%', size: 13, rotate: '24deg', color: colors.challenge.confetti.mint },
+  { top: 26, left: '20%', size: 10, rotate: '-16deg', color: colors.challenge.confetti.pink },
+  { top: 62, left: '8%', size: 15, rotate: '40deg', color: colors.challenge.confetti.pink },
+  { top: 96, left: '16%', size: 9, rotate: '-8deg', color: colors.challenge.confetti.yellow },
+  { top: 8, left: '76%', size: 14, rotate: '-28deg', color: colors.challenge.confetti.yellow },
+  { top: 40, left: '88%', size: 10, rotate: '18deg', color: colors.challenge.confetti.sky },
+  { top: 74, left: '80%', size: 13, rotate: '-36deg', color: colors.challenge.confetti.mint },
+  { top: 104, left: '72%', size: 9, rotate: '12deg', color: colors.challenge.confetti.sky },
 ] as const;
 
 /**
@@ -40,7 +40,7 @@ export function ChallengeCelebration() {
           key={index}
           pointerEvents="none"
           style={{
-            position: "absolute",
+            position: 'absolute',
             top: piece.top,
             left: piece.left,
             width: piece.size,

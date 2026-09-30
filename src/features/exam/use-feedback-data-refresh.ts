@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef } from "react";
-import { AppState } from "react-native";
+import { useCallback, useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
 
 /**
  * 피드백 응답에 담긴 사용자 답변 오디오 URL은 presigned라 발급 후 1시간이면 만료된다.
@@ -108,8 +108,8 @@ export function useFeedbackDataRefresh({
   );
 
   useEffect(() => {
-    const subscription = AppState.addEventListener("change", (nextState) => {
-      if (nextState !== "active") return;
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState !== 'active') return;
       evaluate();
     });
     return () => subscription.remove();

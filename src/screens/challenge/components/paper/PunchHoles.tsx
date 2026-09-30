@@ -1,6 +1,6 @@
-import { View } from "react-native";
+import { View } from 'react-native';
 
-import { colors } from "@/theme";
+import { colors } from '@/theme';
 
 /**
  * 구멍이 놓이는 자리.
@@ -9,12 +9,12 @@ import { colors } from "@/theme";
  * 더 필요하고, 카드는 위아래 같은 간격이면 된다. 호출부가 px를 정하기 시작하면 같은
  * 구멍이 화면마다 다른 자리에 뚫린다.
  */
-export type PunchHolesFit = "note" | "card";
+export type PunchHolesFit = 'note' | 'card';
 
 const FIT_INSET: Record<PunchHolesFit, string> = {
-  note: "bottom-6 top-5 left-2",
+  note: 'bottom-6 top-5 left-2',
   /** 카드는 구멍을 가장자리에 걸쳐 뚫는다 — 부모가 클리핑해 반원만 남는다. */
-  card: "inset-y-4 -left-1",
+  card: 'inset-y-4 -left-1',
 };
 
 /** 자리에 맞는 구멍 수. `justify-between`이라 카드가 길어지면 간격이 벌어진다. */
@@ -40,7 +40,7 @@ interface PunchHolesProps {
  * 부모가 `overflow-hidden`이면 구멍의 바깥쪽이 잘려 반원으로 보이고, 아니면 온전한
  * 타원이 남는다. 즉 같은 컴포넌트가 부모의 클리핑 정책에 따라 다르게 보인다.
  */
-export function PunchHoles({ carvedFrom, fit = "card" }: PunchHolesProps) {
+export function PunchHoles({ carvedFrom, fit = 'card' }: PunchHolesProps) {
   return (
     <View
       accessibilityElementsHidden

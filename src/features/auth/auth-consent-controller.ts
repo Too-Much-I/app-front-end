@@ -1,23 +1,17 @@
-import { getConsentStatus } from "@/features/auth/api/get-consent-status";
-import { updateConsents } from "@/features/auth/api/update-consents";
-import type {
-  RequestAuthSnapshot,
-  ServerConsentStatus,
-} from "@/features/auth/types";
-import { persistConsent } from "@/features/consent/consent-storage";
+import { getConsentStatus } from '@/features/auth/api/get-consent-status';
+import { updateConsents } from '@/features/auth/api/update-consents';
+import type { RequestAuthSnapshot, ServerConsentStatus } from '@/features/auth/types';
+import { persistConsent } from '@/features/consent/consent-storage';
 import {
   createOptionalConsentRecord,
   persistOptionalConsent,
-} from "@/features/consent/optional-consent-storage";
-import { SessionRestorationError } from "@/features/auth/session-restoration-types";
-import { ApiError } from "@/lib/api/transport";
+} from '@/features/consent/optional-consent-storage';
+import { SessionRestorationError } from '@/features/auth/session-restoration-types';
+import { ApiError } from '@/lib/api/transport';
 
 interface ConsentSessionAccess {
   prepareRequest: () => Promise<RequestAuthSnapshot>;
-  recoverUnauthorized: (
-    generation: number,
-    code?: string,
-  ) => Promise<RequestAuthSnapshot>;
+  recoverUnauthorized: (generation: number, code?: string) => Promise<RequestAuthSnapshot>;
 }
 
 /** 약관 API는 새 세션만 사용한다. 선택 동의 저장이 필수 동의 버전을 올리지 않는다. */
@@ -25,18 +19,13 @@ export function createAuthConsentController(session: ConsentSessionAccess) {
   let current: ServerConsentStatus | null = null;
   let acceptedChoice: boolean | null = null;
 
-  async function withSession<T>(
-    request: (token: string) => Promise<T>,
-  ): Promise<T> {
+  async function withSession<T>(request: (token: string) => Promise<T>): Promise<T> {
     const snapshot = await session.prepareRequest();
     try {
       return await request(snapshot.accessToken);
     } catch (error) {
       if (!(error instanceof ApiError) || error.status !== 401) throw error;
-      const retry = await session.recoverUnauthorized(
-        snapshot.generation,
-        error.code,
-      );
+      const retry = await session.recoverUnauthorized(snapshot.generation, error.code);
       return request(retry.accessToken);
     }
   }
@@ -70,14 +59,14 @@ export function createAuthConsentController(session: ConsentSessionAccess) {
           },
         });
       } catch {
-        throw new SessionRestorationError("storage");
+        throw new SessionRestorationError('storage');
       }
     }
     return current;
   }
 
   async function accept(qualityReview: boolean): Promise<ServerConsentStatus> {
-    if (!current) throw new Error("동의 상태가 준비되지 않았습니다.");
+    if (!current) throw new Error('동의 상태가 준비되지 않았습니다.');
     const status = current;
     if (acceptedChoice !== qualityReview) {
       await withSession((token) =>

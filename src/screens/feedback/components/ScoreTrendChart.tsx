@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { Image, View, type LayoutChangeEvent } from "react-native";
+import { useState } from 'react';
+import { Image, View, type LayoutChangeEvent } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
-import type { ExamHistoryItem } from "@/features/exam/map-exam-history";
-import { historyToneColors } from "@/screens/feedback/exam-history-format";
-import { colors } from "@/theme";
+import { Text } from '@/components/ui/Text';
+import type { ExamHistoryItem } from '@/features/exam/map-exam-history';
+import { historyToneColors } from '@/screens/feedback/exam-history-format';
+import { colors } from '@/theme';
 
 const CHART_HEIGHT = 112;
 const CHART_TOP = 28;
@@ -14,7 +14,7 @@ const CHART_POINT_SIZE = 12;
 /** 점과 날짜 라벨이 겹치지 않는 상한. 이력이 더 쌓여도 최근 이만큼만 그린다. */
 const CHART_MAX_POINTS = 5;
 
-const historyTrendBird = require("../../../../public/mascots/headset_bird.png");
+const historyTrendBird = require('../../../../public/mascots/headset_bird.png');
 
 function scoreToY(score: number, maxScore: number): number {
   const boundedScore = Math.min(maxScore, Math.max(0, score));

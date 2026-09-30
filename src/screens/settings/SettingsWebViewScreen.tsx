@@ -1,32 +1,26 @@
-import { Feather } from "@expo/vector-icons";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { ActivityIndicator, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import WebView from "react-native-webview";
+import { Feather } from '@expo/vector-icons';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { ActivityIndicator, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import WebView from 'react-native-webview';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import { WEB_BASE_URL, withRemScale } from "@/lib/web-base-url";
-import type { RootStackParamList } from "@/navigation/types";
-import { colors } from "@/theme";
-import { useScaleValue } from "@/theme/rem-scale";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import { WEB_BASE_URL, withRemScale } from '@/lib/web-base-url';
+import type { RootStackParamList } from '@/navigation/types';
+import { colors } from '@/theme';
+import { useScaleValue } from '@/theme/rem-scale';
 
-type SettingsWebViewScreenProps = NativeStackScreenProps<
-  RootStackParamList,
-  "SettingsWebView"
->;
+type SettingsWebViewScreenProps = NativeStackScreenProps<RootStackParamList, 'SettingsWebView'>;
 
-export function SettingsWebViewScreen({
-  navigation,
-  route,
-}: SettingsWebViewScreenProps) {
+export function SettingsWebViewScreen({ navigation, route }: SettingsWebViewScreenProps) {
   const { path, title } = route.params;
   // 웹뷰가 앱과 같은 비율로 커지도록 주소에 실어 보낸다.
   const scale = useScaleValue();
   const url = WEB_BASE_URL ? withRemScale(`${WEB_BASE_URL}${path}`, scale) : null;
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-surface-subtle">
+    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-surface-subtle">
       <View className="h-16 flex-row items-center px-screen">
         <Pressable
           accessibilityLabel="뒤로 가기"

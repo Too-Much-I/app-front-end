@@ -5,25 +5,25 @@ type ToeicSpeakingLevel = {
 
 /** 종합 피드백 웹 화면과 동일한 TOEIC Speaking 등급명·축약 코드 대응표. */
 const TOEIC_SPEAKING_LEVELS: readonly ToeicSpeakingLevel[] = [
-  { abbreviation: "AH", levelLabel: "Advanced High" },
-  { abbreviation: "AM", levelLabel: "Advanced Mid" },
-  { abbreviation: "AL", levelLabel: "Advanced Low" },
-  { abbreviation: "IH", levelLabel: "Intermediate High" },
-  { abbreviation: "IM3", levelLabel: "Intermediate Mid 3" },
-  { abbreviation: "IM2", levelLabel: "Intermediate Mid 2" },
-  { abbreviation: "IM1", levelLabel: "Intermediate Mid 1" },
-  { abbreviation: "IL", levelLabel: "Intermediate Low" },
-  { abbreviation: "NH", levelLabel: "Novice High" },
-  { abbreviation: "NM/NL", levelLabel: "Novice Mid / Low" },
+  { abbreviation: 'AH', levelLabel: 'Advanced High' },
+  { abbreviation: 'AM', levelLabel: 'Advanced Mid' },
+  { abbreviation: 'AL', levelLabel: 'Advanced Low' },
+  { abbreviation: 'IH', levelLabel: 'Intermediate High' },
+  { abbreviation: 'IM3', levelLabel: 'Intermediate Mid 3' },
+  { abbreviation: 'IM2', levelLabel: 'Intermediate Mid 2' },
+  { abbreviation: 'IM1', levelLabel: 'Intermediate Mid 1' },
+  { abbreviation: 'IL', levelLabel: 'Intermediate Low' },
+  { abbreviation: 'NH', levelLabel: 'Novice High' },
+  { abbreviation: 'NM/NL', levelLabel: 'Novice Mid / Low' },
 ];
 
 /** 비교에 영향을 주지 않는 공백·괄호·구분자·보이지 않는 문자를 제거한다. */
 function normalizeLevelForComparison(level: string): string {
   return level
-    .normalize("NFKC")
+    .normalize('NFKC')
     .toLowerCase()
-    .replace(/[\u200B-\u200D\uFEFF]/g, "")
-    .replace(/[^a-z0-9]/g, "");
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/[^a-z0-9]/g, '');
 }
 
 /** 두 문자열을 같게 만들기 위해 필요한 삽입·삭제·교체 횟수를 구한다. */
@@ -36,8 +36,7 @@ function getEditDistance(source: string, target: string): number {
 
     for (let targetIndex = 1; targetIndex <= target.length; targetIndex += 1) {
       const above = previousRow[targetIndex];
-      const substitutionCost =
-        source[sourceIndex - 1] === target[targetIndex - 1] ? 0 : 1;
+      const substitutionCost = source[sourceIndex - 1] === target[targetIndex - 1] ? 0 : 1;
 
       previousRow[targetIndex] = Math.min(
         previousRow[targetIndex] + 1,

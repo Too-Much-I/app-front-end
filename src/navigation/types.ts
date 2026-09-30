@@ -1,7 +1,7 @@
-import type { NavigatorScreenParams } from "@react-navigation/native";
+import type { NavigatorScreenParams } from '@react-navigation/native';
 
-import type { ChallengeInitialResult } from "@/types/challenge";
-import type { ExamSession } from "@/types/exam";
+import type { ChallengeInitialResult } from '@/types/challenge';
+import type { ExamSession } from '@/types/exam';
 
 /** 개발용 화면 미리보기. 인증 정보와 전화번호는 navigation params에 넣지 않는다. */
 export type AuthPreviewStackParamList = {
@@ -18,9 +18,7 @@ export type MainTabParamList = {
    * 피드백 웹뷰. `examId`만 있으면 종합 피드백을, `questionNumber`가 함께 오면 해당 문제의
    * 문제별 피드백을 연다. 최초 답변은 회차를 생략하고 재답변 결과는 `retryCount`로 특정한다.
    */
-  Feedback:
-    | { examId?: string; questionNumber?: number; retryCount?: number }
-    | undefined;
+  Feedback: { examId?: string; questionNumber?: number; retryCount?: number } | undefined;
 };
 
 export type MockExamStackParamList = {

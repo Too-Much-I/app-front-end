@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
-import { View } from "react-native";
+import type { ReactNode } from 'react';
+import { View } from 'react-native';
 
-import { Text } from "@/components/ui/Text";
-import { StarSticker } from "@/screens/challenge/components/paper/StarSticker";
-import { shadows } from "@/theme";
+import { Text } from '@/components/ui/Text';
+import { StarSticker } from '@/screens/challenge/components/paper/StarSticker';
+import { shadows } from '@/theme';
 
 interface ChallengeVerdictCardProps {
   /** 토선생의 한마디 본문. 화면에서 가장 먼저 읽히는 문장이다. */
@@ -23,11 +23,7 @@ interface ChallengeVerdictCardProps {
  * 문장 카드와 같은 이유로 겹이 둘이다 — 안쪽은 클리핑, 바깥은 별 스티커와 테이프가
  * 카드 밖으로 나갈 수 있게 열어둔다.
  */
-export function ChallengeVerdictCard({
-  message,
-  children,
-  decoration,
-}: ChallengeVerdictCardProps) {
+export function ChallengeVerdictCard({ message, children, decoration }: ChallengeVerdictCardProps) {
   return (
     <View>
       <View className="overflow-hidden rounded-card bg-challenge-verdict" style={shadows.card}>

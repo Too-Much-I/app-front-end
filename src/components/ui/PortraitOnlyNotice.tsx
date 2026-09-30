@@ -1,12 +1,12 @@
-import { useEffect } from "react";
+import { useEffect } from 'react';
 
-import { MascotModal } from "@/components/ui/MascotModal";
-import { useLandscapeDetection } from "@/features/orientation/use-landscape-detection";
-import { useOrientation } from "@/features/orientation/orientation-context";
-import { getLastScreenName, trackEvent } from "@/lib/amplitude";
+import { MascotModal } from '@/components/ui/MascotModal';
+import { useLandscapeDetection } from '@/features/orientation/use-landscape-detection';
+import { useOrientation } from '@/features/orientation/orientation-context';
+import { getLastScreenName, trackEvent } from '@/lib/amplitude';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
-const rabbitFace = require("../../../public/mascots/rabbit_face.png");
+const rabbitFace = require('../../../public/mascots/rabbit_face.png');
 
 /**
  * 기기를 가로로 눕혔을 때 세로 전용임을 알리는 전역 오버레이.
@@ -33,8 +33,8 @@ export function PortraitOnlyNotice() {
     if (!isVisible) return;
 
     trackEvent({
-      name: "portrait_notice_shown",
-      properties: { routeName: getLastScreenName() ?? "unknown" },
+      name: 'portrait_notice_shown',
+      properties: { routeName: getLastScreenName() ?? 'unknown' },
     });
   }, [isVisible]);
 

@@ -1,26 +1,17 @@
-import { Feather } from "@expo/vector-icons";
-import { View } from "react-native";
+import { Feather } from '@expo/vector-icons';
+import { View } from 'react-native';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
-import type { ExamHistoryItem } from "@/features/exam/map-exam-history";
-import {
-  formatCompletedDate,
-  historyToneColors,
-} from "@/screens/feedback/exam-history-format";
-import { colors, shadows } from "@/theme";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
+import type { ExamHistoryItem } from '@/features/exam/map-exam-history';
+import { formatCompletedDate, historyToneColors } from '@/screens/feedback/exam-history-format';
+import { colors, shadows } from '@/theme';
 
-export function ExamHistoryCard({
-  item,
-  onPress,
-}: {
-  item: ExamHistoryItem;
-  onPress: () => void;
-}) {
+export function ExamHistoryCard({ item, onPress }: { item: ExamHistoryItem; onPress: () => void }) {
   const badgeColor = historyToneColors[item.tone];
   // NM/NL처럼 한 등급에 코드가 둘인 경우 원 안에는 대표 코드 하나만 표시한다.
   // 접근성 라벨에는 아래에서 원래 등급명을 그대로 읽어 정보 손실을 피한다.
-  const badgeLevel = item.level.split("/", 1)[0]?.trim() || item.level;
+  const badgeLevel = item.level.split('/', 1)[0]?.trim() || item.level;
   const completedDate = formatCompletedDate(item.completedAt);
   const subtitle =
     item.retriedQuestionCount > 0

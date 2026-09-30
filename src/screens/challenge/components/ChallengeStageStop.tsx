@@ -1,7 +1,7 @@
-import { Image, View } from "react-native";
+import { Image, View } from 'react-native';
 
-import { Pressable } from "@/components/ui/Pressable";
-import { Text } from "@/components/ui/Text";
+import { Pressable } from '@/components/ui/Pressable';
+import { Text } from '@/components/ui/Text';
 import {
   CARROT_HEIGHT,
   CARROT_WIDTH,
@@ -10,12 +10,12 @@ import {
   DONE_CARROT_WIDTH,
   HOLE_HEIGHT,
   HOLE_WIDTH,
-} from "@/screens/challenge/challenge-stage-layout";
-import type { ChallengeStageCardStatus } from "@/screens/challenge/challenge-stage-status";
+} from '@/screens/challenge/challenge-stage-layout';
+import type { ChallengeStageCardStatus } from '@/screens/challenge/challenge-stage-status';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
-const hole = require("../../../../public/challenge/hole.png");
-const carrot = require("../../../../public/challenge/carrot.png");
+const hole = require('../../../../public/challenge/hole.png');
+const carrot = require('../../../../public/challenge/carrot.png');
 
 interface ChallengeStageStopProps {
   questionNumber: number;
@@ -25,9 +25,9 @@ interface ChallengeStageStopProps {
 }
 
 const STATUS_HINT: Record<ChallengeStageCardStatus, string> = {
-  next: "10초 안에 이 문장을 영어로 말합니다",
-  done: "이 문장의 채점 결과를 봅니다",
-  locked: "앞 문장을 마치면 열립니다",
+  next: '10초 안에 이 문장을 영어로 말합니다',
+  done: '이 문장의 채점 결과를 봅니다',
+  locked: '앞 문장을 마치면 열립니다',
 };
 
 /**
@@ -39,12 +39,8 @@ const STATUS_HINT: Record<ChallengeStageCardStatus, string> = {
  * 아직 차례가 아닌 문장은 흐리게만 두고 자물쇠를 얹지 않는다. 세 자리가 한 화면에 같이
  * 보여서 어디까지 왔는지는 색만으로 읽히고, 자물쇠는 밭 그림에 어울리지 않는다.
  */
-export function ChallengeStageStop({
-  questionNumber,
-  status,
-  onPress,
-}: ChallengeStageStopProps) {
-  const isLocked = status === "locked";
+export function ChallengeStageStop({ questionNumber, status, onPress }: ChallengeStageStopProps) {
+  const isLocked = status === 'locked';
 
   return (
     <Pressable
@@ -63,7 +59,7 @@ export function ChallengeStageStop({
         resizeMode="contain"
         source={hole}
         style={{
-          position: "absolute",
+          position: 'absolute',
           left: 0,
           top: (CHALLENGE_STAGE_STOP_SIZE.height - HOLE_HEIGHT) / 2,
           width: HOLE_WIDTH,
@@ -71,26 +67,26 @@ export function ChallengeStageStop({
         }}
       />
 
-      {status === "done" ? (
+      {status === 'done' ? (
         // 뽑아서 구덩이 옆에 눕혀둔 당근.
         <Image
           accessibilityElementsHidden
           resizeMode="contain"
           source={carrot}
           style={{
-            position: "absolute",
+            position: 'absolute',
             right: -14,
             // 구덩이 한가운데보다 조금 아래. 굴러 나온 자리로 보이게 한다.
             top: CHALLENGE_STAGE_STOP_SIZE.height / 2 - DONE_CARROT_HEIGHT / 2 + 8,
             width: DONE_CARROT_WIDTH,
             height: DONE_CARROT_HEIGHT,
-            transform: [{ rotate: "115deg" }],
+            transform: [{ rotate: '115deg' }],
           }}
         />
       ) : (
         <View
           style={{
-            position: "absolute",
+            position: 'absolute',
             left: (CHALLENGE_STAGE_STOP_SIZE.width - CARROT_WIDTH) / 2,
             // 뿌리 끝이 구덩이 한가운데에 잠기는 높이.
             bottom: CHALLENGE_STAGE_STOP_SIZE.height / 2 - 10,

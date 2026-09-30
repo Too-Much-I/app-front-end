@@ -1,8 +1,8 @@
-import { View } from "react-native";
+import { View } from 'react-native';
 
-import type { ChallengeStageQuestion } from "@/screens/challenge/challenge-stage-status";
-import { CHALLENGE_STAGE_STOP_SIZE } from "@/screens/challenge/challenge-stage-layout";
-import { ChallengeStageStop } from "@/screens/challenge/components/ChallengeStageStop";
+import type { ChallengeStageQuestion } from '@/screens/challenge/challenge-stage-status';
+import { CHALLENGE_STAGE_STOP_SIZE } from '@/screens/challenge/challenge-stage-layout';
+import { ChallengeStageStop } from '@/screens/challenge/components/ChallengeStageStop';
 
 /** 밭 한 판의 가로세로 비. 길이 한 번 굽었다 펴지는 데 필요한 세로 길이다. */
 const FIELD_ASPECT_RATIO = 0.7857;

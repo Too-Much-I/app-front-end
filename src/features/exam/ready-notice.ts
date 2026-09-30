@@ -1,8 +1,8 @@
-import type { Feather } from "@expo/vector-icons";
-import type { ComponentProps } from "react";
+import type { Feather } from '@expo/vector-icons';
+import type { ComponentProps } from 'react';
 
 export interface ExamReadyNotice {
-  icon: ComponentProps<typeof Feather>["name"];
+  icon: ComponentProps<typeof Feather>['name'];
   title: string;
   /** 본문. `highlight`가 있으면 그 뒤에 이어 붙는다. */
   description: string;
@@ -22,24 +22,24 @@ export interface ExamReadyNotice {
  */
 export const EXAM_READY_NOTICES: ExamReadyNotice[] = [
   {
-    icon: "volume-x",
-    title: "조용한 곳에서 응시해주세요",
-    description: "주변 소리가 함께 녹음되면 채점 정확도가 떨어져요.",
+    icon: 'volume-x',
+    title: '조용한 곳에서 응시해주세요',
+    description: '주변 소리가 함께 녹음되면 채점 정확도가 떨어져요.',
   },
   {
-    icon: "clock",
-    title: "약 20분이 걸려요",
-    description: "앞 문제로 돌아갈 수 없으니 시간을 넉넉히 두고 시작해주세요.",
+    icon: 'clock',
+    title: '약 20분이 걸려요',
+    description: '앞 문제로 돌아갈 수 없으니 시간을 넉넉히 두고 시작해주세요.',
   },
   {
-    icon: "columns",
-    title: "준비 시간과 답변 시간이 나뉘어요",
-    description: "파트마다 길이가 달라요.",
+    icon: 'columns',
+    title: '준비 시간과 답변 시간이 나뉘어요',
+    description: '파트마다 길이가 달라요.',
   },
   {
-    icon: "skip-forward",
-    title: "남은 시간은 건너뛸 수 있어요",
-    description: "준비가 끝나면 바로 답변하고, 답변이 끝나면 바로 제출할 수 있어요.",
-    highlight: "실제 시험에서는 안 되니, 실전처럼 연습하려면 시간을 그대로 써보세요.",
+    icon: 'skip-forward',
+    title: '남은 시간은 건너뛸 수 있어요',
+    description: '준비가 끝나면 바로 답변하고, 답변이 끝나면 바로 제출할 수 있어요.',
+    highlight: '실제 시험에서는 안 되니, 실전처럼 연습하려면 시간을 그대로 써보세요.',
   },
 ];

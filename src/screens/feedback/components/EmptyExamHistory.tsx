@@ -1,7 +1,7 @@
-import { StartMockExamButton } from "@/components/ui/StartMockExamButton";
-import { EmptyHistoryCard } from "@/screens/feedback/components/EmptyHistoryCard";
+import { StartMockExamButton } from '@/components/ui/StartMockExamButton';
+import { EmptyHistoryCard } from '@/screens/feedback/components/EmptyHistoryCard';
 
-const greetingCat = require("../../../../public/mascots/greeting_cat.png");
+const greetingCat = require('../../../../public/mascots/greeting_cat.png');
 
 /** 시험 이력이 비었을 때 고양이 마스코트와 첫 응시 CTA를 함께 보여준다. */
 export function EmptyExamHistory({ onStartExam }: { onStartExam: () => void }) {

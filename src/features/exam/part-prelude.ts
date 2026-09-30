@@ -1,16 +1,16 @@
-import type { AudioSource } from "expo-audio";
+import type { AudioSource } from 'expo-audio';
 
 import {
   areExamTableContextsEqual,
   mapExamTableContext,
   reportExamTableContractIssues,
-} from "@/features/exam/map-exam-table-context";
+} from '@/features/exam/map-exam-table-context';
 import type {
   ExamPartPrelude,
   ExamPartPreludeInvalidReason,
   ExamTableContext,
   RawExamQuestion,
-} from "@/types/exam";
+} from '@/types/exam';
 
 export const PART4_READING_DURATION_SEC = 45 as const;
 const PART4_FIRST_QUESTION_NUMBER = 8;
@@ -26,7 +26,7 @@ const PART4_FIRST_QUESTION_NUMBER = 8;
 const REMOTE_AUDIO_URL_PATTERN = /^https?:\/\//i;
 
 function trimNonEmpty(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
+  if (typeof value !== 'string') return undefined;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
 }
@@ -44,38 +44,38 @@ interface ExamPartPreludeNormalization {
   canonicalPart4TableContext?: ExamTableContext;
 }
 
-function invalidPrelude(
-  partNumber: 3 | 4,
-  reason: ExamPartPreludeInvalidReason,
-): ExamPartPrelude {
-  return { kind: "invalid", partNumber, reason };
+function invalidPrelude(partNumber: 3 | 4, reason: ExamPartPreludeInvalidReason): ExamPartPrelude {
+  return { kind: 'invalid', partNumber, reason };
 }
 
 function normalizePart3Prelude(questions: RawExamQuestion[]): ExamPartPrelude {
   const firstQuestion = questions[0];
   const text = trimNonEmpty(firstQuestion?.partIntroText);
   const guideAudioUrl = trimNonEmpty(firstQuestion?.guideAudioUrl);
-  const hasLaterContent = questions.slice(1).some(
-    (question) =>
-      trimNonEmpty(question.partIntroText) !== undefined ||
-      trimNonEmpty(question.guideAudioUrl) !== undefined,
-  );
+  const hasLaterContent = questions
+    .slice(1)
+    .some(
+      (question) =>
+        trimNonEmpty(question.partIntroText) !== undefined ||
+        trimNonEmpty(question.guideAudioUrl) !== undefined,
+    );
 
   if ((!text || !guideAudioUrl) && hasLaterContent) {
-    return invalidPrelude(3, "misplaced-part3-content");
+    return invalidPrelude(3, 'misplaced-part3-content');
   }
-  if (!text) return invalidPrelude(3, "missing-part3-intro");
-  if (!guideAudioUrl) return invalidPrelude(3, "missing-part3-guide-audio");
+  if (!text) return invalidPrelude(3, 'missing-part3-intro');
+  if (!guideAudioUrl) return invalidPrelude(3, 'missing-part3-guide-audio');
   if (!isSupportedExamPartIntroAudioUrl(guideAudioUrl)) {
-    return invalidPrelude(3, "unsupported-part3-guide-audio");
+    return invalidPrelude(3, 'unsupported-part3-guide-audio');
   }
 
-  return { kind: "part3-intro", partNumber: 3, text, guideAudioUrl };
+  return { kind: 'part3-intro', partNumber: 3, text, guideAudioUrl };
 }
 
-function normalizePart4Prelude(
-  questions: RawExamQuestion[],
-): { prelude: ExamPartPrelude; canonicalTableContext?: ExamTableContext } {
+function normalizePart4Prelude(questions: RawExamQuestion[]): {
+  prelude: ExamPartPrelude;
+  canonicalTableContext?: ExamTableContext;
+} {
   const firstQuestion = questions.find(
     (question) => question.questionNumber === PART4_FIRST_QUESTION_NUMBER,
   );
@@ -84,45 +84,34 @@ function normalizePart4Prelude(
   );
 
   if (firstQuestion?.tableContext === undefined) {
-    const hasLaterTable = laterQuestions.some(
-      (question) => question.tableContext !== undefined,
-    );
+    const hasLaterTable = laterQuestions.some((question) => question.tableContext !== undefined);
     return {
-      prelude: invalidPrelude(
-        4,
-        hasLaterTable ? "misplaced-part4-table" : "missing-part4-table",
-      ),
+      prelude: invalidPrelude(4, hasLaterTable ? 'misplaced-part4-table' : 'missing-part4-table'),
     };
   }
 
   const firstMapping = mapExamTableContext(firstQuestion.tableContext);
-  reportExamTableContractIssues(
-    `question ${firstQuestion.questionNumber}`,
-    firstMapping.issues,
-  );
+  reportExamTableContractIssues(`question ${firstQuestion.questionNumber}`, firstMapping.issues);
   if (!firstMapping.ok) {
-    return { prelude: invalidPrelude(4, "invalid-part4-table") };
+    return { prelude: invalidPrelude(4, 'invalid-part4-table') };
   }
   const canonicalTableContext = firstMapping.value;
 
   for (const question of laterQuestions) {
     if (question.tableContext === undefined) continue;
     const repeatedMapping = mapExamTableContext(question.tableContext);
-    reportExamTableContractIssues(
-      `question ${question.questionNumber}`,
-      repeatedMapping.issues,
-    );
+    reportExamTableContractIssues(`question ${question.questionNumber}`, repeatedMapping.issues);
     if (!repeatedMapping.ok) {
-      return { prelude: invalidPrelude(4, "invalid-part4-table") };
+      return { prelude: invalidPrelude(4, 'invalid-part4-table') };
     }
     if (!areExamTableContextsEqual(repeatedMapping.value, canonicalTableContext)) {
-      return { prelude: invalidPrelude(4, "conflicting-part4-table") };
+      return { prelude: invalidPrelude(4, 'conflicting-part4-table') };
     }
   }
 
   return {
     prelude: {
-      kind: "part4-reading",
+      kind: 'part4-reading',
       partNumber: 4,
       tableContext: canonicalTableContext,
       durationSec: PART4_READING_DURATION_SEC,
@@ -139,13 +128,13 @@ function normalizePart4Prelude(
  * `reason`만 다르기 때문이다.
  */
 export type PartPreludeDecision =
-  | { kind: "none" }
-  | { kind: "part3-intro" }
-  | { kind: "part4-reading"; durationMs: number }
+  | { kind: 'none' }
+  | { kind: 'part3-intro' }
+  | { kind: 'part4-reading'; durationMs: number }
   | {
-      kind: "failed";
+      kind: 'failed';
       partNumber: 3 | 4;
-      reason: ExamPartPreludeInvalidReason | "missing-prelude";
+      reason: ExamPartPreludeInvalidReason | 'missing-prelude';
     };
 
 /**
@@ -161,22 +150,22 @@ export function decidePartPrelude(
 ): PartPreludeDecision {
   if (partPrelude === undefined) {
     if (partNumber === 3 || partNumber === 4) {
-      return { kind: "failed", partNumber, reason: "missing-prelude" };
+      return { kind: 'failed', partNumber, reason: 'missing-prelude' };
     }
-    return { kind: "none" };
+    return { kind: 'none' };
   }
 
   switch (partPrelude.kind) {
-    case "invalid":
+    case 'invalid':
       return {
-        kind: "failed",
+        kind: 'failed',
         partNumber: partPrelude.partNumber,
         reason: partPrelude.reason,
       };
-    case "part3-intro":
-      return { kind: "part3-intro" };
-    case "part4-reading":
-      return { kind: "part4-reading", durationMs: partPrelude.durationSec * 1_000 };
+    case 'part3-intro':
+      return { kind: 'part3-intro' };
+    case 'part4-reading':
+      return { kind: 'part4-reading', durationMs: partPrelude.durationSec * 1_000 };
   }
 }
 

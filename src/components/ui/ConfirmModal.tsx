@@ -1,13 +1,13 @@
-import { View } from "react-native";
+import { View } from 'react-native';
 
-import { Button } from "@/components/ui/Button";
-import { MascotModal } from "@/components/ui/MascotModal";
-import { Text } from "@/components/ui/Text";
+import { Button } from '@/components/ui/Button';
+import { MascotModal } from '@/components/ui/MascotModal';
+import { Text } from '@/components/ui/Text';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
 // 마스코트를 prop으로 열지 않고 고정한 이유: 세 사용처(시험 나가기, 재답변 폐기,
 // 학습 기록 삭제)가 모두 "지금 것이 사라진다"는 같은 신호라 표정이 갈릴 이유가 없다.
-const shockedRabbit = require("../../../public/mascots/shocked_rabbit.png");
+const shockedRabbit = require('../../../public/mascots/shocked_rabbit.png');
 
 interface ConfirmModalProps {
   visible: boolean;
@@ -20,7 +20,7 @@ interface ConfirmModalProps {
   cancelLabel: string;
   /** 보조(외곽선) 버튼 — 파괴적이거나 되돌릴 수 없는 쪽. */
   confirmLabel: string;
-  confirmTone?: "danger" | "neutral";
+  confirmTone?: 'danger' | 'neutral';
   confirmHint?: string;
   /** 확인 동작이 네트워크를 기다리는 중. 두 버튼을 모두 잠근다. */
   pending?: boolean;
@@ -43,7 +43,7 @@ export function ConfirmModal({
   warningBadge = false,
   cancelLabel,
   confirmLabel,
-  confirmTone = "neutral",
+  confirmTone = 'neutral',
   confirmHint,
   pending = false,
   errorMessage,
@@ -66,7 +66,7 @@ export function ConfirmModal({
 
       {/* Pressable이 자체 Animated opacity를 style 배열 끝에 덧붙여 className의
           opacity-*를 덮어쓴다. 대기 중 흐림 처리는 바깥 View에서 해야 먹는다. */}
-      <View className={`w-full ${pending ? "opacity-50" : ""}`}>
+      <View className={`w-full ${pending ? 'opacity-50' : ''}`}>
         <Button
           className="mt-section w-full"
           disabled={pending}
@@ -81,7 +81,7 @@ export function ConfirmModal({
           disabled={pending}
           label={confirmLabel}
           size="lg"
-          variant={confirmTone === "danger" ? "danger" : "neutral"}
+          variant={confirmTone === 'danger' ? 'danger' : 'neutral'}
           onPress={onConfirm}
         />
       </View>

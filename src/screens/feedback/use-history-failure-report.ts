@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react';
 
-import { reportOperationalError } from "@/lib/operational-error-reporting";
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 /**
  * 화면이 실제로 오류를 보여주는 동안 한 번만 운영 오류로 보고한다.
@@ -13,7 +13,7 @@ import { reportOperationalError } from "@/lib/operational-error-reporting";
  * 몇 번째로 실패를 마주쳤는가다.
  */
 export function useHistoryFailureReport(
-  surface: "exam-history" | "reanswer-history",
+  surface: 'exam-history' | 'reanswer-history',
   logMessage: string,
   error: Error | null,
 ) {
@@ -25,7 +25,7 @@ export function useHistoryFailureReport(
     // 화면 문구만으로는 네트워크·서버·계약 중 무엇이었는지 알 수 없다.
     console.error(logMessage, error);
     reportOperationalError({
-      code: "FEEDBACK_HISTORY_LOAD_FAILED",
+      code: 'FEEDBACK_HISTORY_LOAD_FAILED',
       surface,
       attempt: attemptRef.current,
       cause: error,

@@ -1,18 +1,18 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 import type {
   IdentityEnrollment,
   IdentityExchangeResult,
   IdentityGuestPreparationResult,
   IdentityLoginOrigin,
-} from "@/features/auth/identity-login-types";
-import { AuthProtocolError, createAuthSession } from "@/features/auth/types";
+} from '@/features/auth/identity-login-types';
+import { AuthProtocolError, createAuthSession } from '@/features/auth/types';
 
 const enrollmentSchema = z.object({
-  type: z.literal("ENROLLMENT_REQUIRED"),
+  type: z.literal('ENROLLMENT_REQUIRED'),
   enrollmentId: z.string().trim().min(1),
   missingRequirements: z.array(
-    z.enum(["EMAIL_VERIFICATION", "PHONE_VERIFICATION", "PROFILE", "CONSENTS"]),
+    z.enum(['EMAIL_VERIFICATION', 'PHONE_VERIFICATION', 'PROFILE', 'CONSENTS']),
   ),
   expiresIn: z.number().int().positive(),
 });
@@ -35,7 +35,7 @@ function parseEnrollment(
     missingRequirements: data.missingRequirements,
     expiresAt: now + data.expiresIn,
   };
-  if (origin === "noSession") return { ...common, origin };
+  if (origin === 'noSession') return { ...common, origin };
   const guest = guestEnrollmentSchema.safeParse(value);
   if (!guest.success) throw new AuthProtocolError();
   return {
@@ -46,19 +46,16 @@ function parseEnrollment(
   };
 }
 
-export function mapIdentityExchange(
-  value: unknown,
-  now = Date.now(),
-): IdentityExchangeResult {
-  if (typeof value !== "object" || value === null || !("type" in value))
+export function mapIdentityExchange(value: unknown, now = Date.now()): IdentityExchangeResult {
+  if (typeof value !== 'object' || value === null || !('type' in value))
     throw new AuthProtocolError();
   switch (value.type) {
-    case "AUTHENTICATED":
-      return { kind: "authenticated", session: createAuthSession(value, now) };
-    case "ENROLLMENT_REQUIRED":
+    case 'AUTHENTICATED':
+      return { kind: 'authenticated', session: createAuthSession(value, now) };
+    case 'ENROLLMENT_REQUIRED':
       return {
-        kind: "enrollment-required",
-        enrollment: parseEnrollment(value, "noSession", now),
+        kind: 'enrollment-required',
+        enrollment: parseEnrollment(value, 'noSession', now),
       };
     default:
       throw new AuthProtocolError();
@@ -69,15 +66,15 @@ export function mapIdentityGuestPreparation(
   value: unknown,
   now = Date.now(),
 ): IdentityGuestPreparationResult {
-  if (typeof value !== "object" || value === null || !("type" in value))
+  if (typeof value !== 'object' || value === null || !('type' in value))
     throw new AuthProtocolError();
   switch (value.type) {
-    case "MERGE_REQUIRED":
-      return { kind: "merge-required" };
-    case "ENROLLMENT_REQUIRED":
+    case 'MERGE_REQUIRED':
+      return { kind: 'merge-required' };
+    case 'ENROLLMENT_REQUIRED':
       return {
-        kind: "enrollment-required",
-        enrollment: parseEnrollment(value, "guest", now),
+        kind: 'enrollment-required',
+        enrollment: parseEnrollment(value, 'guest', now),
       };
     default:
       throw new AuthProtocolError();

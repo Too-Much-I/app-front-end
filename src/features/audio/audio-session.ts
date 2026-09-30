@@ -1,12 +1,12 @@
-import { RecordingPresets } from "expo-audio";
-import type { AudioMode, RecordingOptions } from "expo-audio";
+import { RecordingPresets } from 'expo-audio';
+import type { AudioMode, RecordingOptions } from 'expo-audio';
 
 export const AUDIO_METER_UPDATE_INTERVAL_MS = 100;
 
 export const VOICE_RECORDING_OPTIONS = {
   ...RecordingPresets.HIGH_QUALITY,
-  directory: "cache",
-  extension: ".m4a",
+  directory: 'cache',
+  extension: '.m4a',
   sampleRate: 44_100,
   numberOfChannels: 1,
   bitRate: 96_000,
@@ -17,7 +17,7 @@ export const RECORDING_AUDIO_MODE = {
   allowsRecording: true,
   allowsBackgroundRecording: false,
   playsInSilentMode: true,
-  interruptionMode: "doNotMix",
+  interruptionMode: 'doNotMix',
   shouldPlayInBackground: false,
   shouldRouteThroughEarpiece: false,
 } satisfies Partial<AudioMode>;
@@ -25,7 +25,7 @@ export const RECORDING_AUDIO_MODE = {
 export const PLAYBACK_AUDIO_MODE = {
   allowsRecording: false,
   playsInSilentMode: true,
-  interruptionMode: "doNotMix",
+  interruptionMode: 'doNotMix',
   shouldPlayInBackground: false,
   shouldRouteThroughEarpiece: false,
 } satisfies Partial<AudioMode>;
