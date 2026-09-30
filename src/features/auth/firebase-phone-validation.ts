@@ -222,3 +222,5 @@ export function createFirebasePhoneValidation() {
     },
   });
 }
+
+export const firebasePhoneValidation = createFirebasePhoneValidation();

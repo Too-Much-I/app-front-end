@@ -7,17 +7,14 @@ import { useStore } from 'zustand';
 
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
-import { createFirebasePhoneValidation } from '@/features/auth/firebase-phone-validation';
+import { firebasePhoneValidation } from '@/features/auth/firebase-phone-validation';
 import type { FirebaseValidationStackParamList } from '@/navigation/types';
 import { FONT_FAMILY } from '@/theme';
-
-// 네비게이션 pop에도 입력과 재전송 제한을 유지한다. 개발 검증 모드에서만 로드된다.
-const phoneValidation = createFirebasePhoneValidation();
 
 export function FirebasePhoneValidationScreen({
   navigation,
 }: NativeStackScreenProps<FirebaseValidationStackParamList, 'Phone'>) {
-  const state = useStore(phoneValidation);
+  const state = useStore(firebasePhoneValidation);
   const [now, setNow] = useState(Date.now);
   const connecting = state.connection.status !== 'idle';
   const pending =
@@ -27,7 +24,6 @@ export function FirebasePhoneValidationScreen({
   const requestBlocked = connecting || state.stage.status === 'refreshing';
   // native-stack의 시스템 뒤로 가기와 iOS pop gesture도 동일하게 차단한다.
   usePreventRemove(pending, () => {});
-  useEffect(() => phoneValidation.observeUser(), []);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
@@ -51,7 +47,7 @@ export function FirebasePhoneValidationScreen({
           <TextInput
             accessibilityLabel="테스트 인증번호 6자리"
             value={state.code}
-            onChangeText={phoneValidation.setCode}
+            onChangeText={firebasePhoneValidation.setCode}
             editable={!requestBlocked}
             keyboardType="number-pad"
             autoComplete="sms-otp"
@@ -64,12 +60,15 @@ export function FirebasePhoneValidationScreen({
           <Button
             label={connecting ? '연결 응답 대기 중' : '인증 완료하기'}
             disabled={requestBlocked || state.code.length !== 6}
-            onPress={() => void phoneValidation.verifyCode()}
+            onPress={() => void firebasePhoneValidation.verifyCode()}
           />
         </View>
       ) : null}
       {state.stage.status === 'linked' ? (
-        <Button label="토큰 갱신 다시 시도" onPress={() => void phoneValidation.refreshProof()} />
+        <Button
+          label="토큰 갱신 다시 시도"
+          onPress={() => void firebasePhoneValidation.refreshProof()}
+        />
       ) : null}
       {state.stage.status !== 'complete' &&
       state.stage.status !== 'linked' &&
@@ -83,7 +82,7 @@ export function FirebasePhoneValidationScreen({
                 : '인증번호 다시 받기'
           }
           disabled={requestBlocked || !state.uid || remaining > 0 || state.attempts >= 5}
-          onPress={phoneValidation.requestCode}
+          onPress={firebasePhoneValidation.requestCode}
         />
       ) : null}
       {state.attempts >= 2 ? (

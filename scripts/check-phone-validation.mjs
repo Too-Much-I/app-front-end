@@ -22,9 +22,11 @@ function setup() {
   const timers = new Map();
   let timerId = 0;
   const observers = [];
+  const authListeners = [];
   const sdk = {
     getAuth: () => ({ currentUser: user }),
     onAuthStateChanged: (_, callback) => {
+      authListeners.push(callback);
       callback(user);
       return () => {};
     },
@@ -77,9 +79,9 @@ function setup() {
     sent(index, id) {
       observers[index]({ state: 'sent', verificationId: id });
     },
-    changeUser() {
-      user = { uid: 'second', phoneNumber: null };
-      store.observeUser();
+    changeUser(uid) {
+      user = { uid, phoneNumber: null };
+      for (const callback of authListeners) callback(user);
     },
     finish: () => finishLink(),
     links: () => links,
@@ -165,4 +167,24 @@ function setup() {
   t.store.requestCode();
   assert.equal(t.observers.length, 5);
 }
-console.log('Phone validation: 5 lifecycle scenarios passed');
+// Navigator 구독은 Phone 화면이 닫힌 동안에도 A → B → A를 감지하고 매번 초기화한다.
+{
+  const t = setup();
+  t.store.requestCode();
+  t.sent(0, 'account-a');
+  t.store.setCode('111111');
+  t.advance(15000);
+  t.store.requestCode();
+  assert.equal(t.store.getState().attempts, 2);
+  t.changeUser('second');
+  assert.equal(t.store.getState().uid, 'second');
+  assert.equal(t.store.getState().attempts, 0);
+  assert.equal(t.store.getState().code, '');
+  t.changeUser('first');
+  assert.equal(t.store.getState().uid, 'first');
+  assert.equal(t.store.getState().attempts, 0);
+  assert.equal(t.store.getState().stage.status, 'idle');
+  assert.equal(t.store.getState().nextSendAt, 0);
+}
+
+console.log('Phone validation: 6 lifecycle scenarios passed');
