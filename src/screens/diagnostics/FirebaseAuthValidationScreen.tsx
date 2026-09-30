@@ -1,3 +1,5 @@
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { FirebaseValidationStackParamList } from '@/navigation/types';
 import { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,7 +28,9 @@ const controller = createFirebaseAuthController(
   }),
 );
 
-export function FirebaseAuthValidationScreen() {
+export function FirebaseAuthValidationScreen({
+  navigation,
+}: NativeStackScreenProps<FirebaseValidationStackParamList, 'Providers'>) {
   const operation = useStore(controller, (state) => state.operation);
   const [message, setMessage] = useState('로그인 수단을 선택해 Firebase 인증을 확인하세요.');
   const busy = operation.status === 'running' || operation.status === 'cancelling';
@@ -78,6 +82,11 @@ export function FirebaseAuthValidationScreen() {
             <Button label="인증 취소" onPress={controller.cancel} />
           ) : null}
         </View>
+        <Button
+          label="전화번호 인증 검증"
+          disabled={busy}
+          onPress={() => navigation.navigate('Phone')}
+        />
         <Text accessibilityRole="alert">
           {operation.status === 'cancelling' ? '이전 인증이 끝나기를 기다리고 있습니다.' : message}
         </Text>

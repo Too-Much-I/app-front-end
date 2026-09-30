@@ -90,7 +90,7 @@ export function PhoneVerificationScreen({
                   includeFontPadding: false,
                   textAlignVertical: 'center',
                 }}
-                placeholder="010 0000 0000"
+                placeholder="010 1234 5678"
                 placeholderTextColor={colors.ink.disabled}
                 value={formatSignupPhone(state.phone)}
                 onChangeText={(value) => onChangePhone(value.replace(/\D/g, '').slice(0, 11))}

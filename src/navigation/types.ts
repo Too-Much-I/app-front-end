@@ -100,3 +100,8 @@ export type RootStackParamList = {
    */
   SettingsWebView: { path: string; title: string };
 };
+
+export type FirebaseValidationStackParamList = {
+  Providers: undefined;
+  Phone: undefined;
+};
