@@ -9,10 +9,10 @@ import { createAuthCoordinator } from '@/features/auth/auth-coordinator';
 import { observeAuthForegroundRecovery } from '@/features/auth/auth-foreground-recovery';
 import { createSessionController } from '@/features/auth/session-controller';
 import { createAuthenticatedApiClient } from '@/lib/api/authenticated-client';
+import { queryClient } from '@/lib/query-client';
 
 /**
- * 전환용 조립 함수. 현재 App에서는 호출하지 않는다.
- * 전환 시 App과 공용 API가 이 인스턴스를 공유해야 한다.
+ * 인증 조립 함수. 앱은 `app-auth-runtime.ts`에서 한 번만 호출해 App과 공용 API가 공유한다.
  * 생성은 저장소·네트워크를 실행하지 않고 bootstrap이 복원을 시작한다.
  * 앱 활성화 리스너를 등록하므로 소유자가 dispose를 호출한다.
  */
@@ -31,6 +31,8 @@ export function createAuthRuntime(options: {
   });
   const api = createAuthenticatedApiClient(session);
   const unsubscribe = session.subscribeRestoration(coordinator.handleSessionResult);
+  // 캐시는 화면 밖에 남으므로 계정이 바뀌면 이전 계정의 조회 결과를 보여주지 않게 비운다.
+  const stopCacheReset = session.subscribeAccountChange(() => queryClient.clear());
   const appState = AppState.addEventListener('change', (state) => {
     if (state === 'active') session.retryPersistence();
   });
@@ -43,6 +45,7 @@ export function createAuthRuntime(options: {
     stopRecovery();
     coordinator.dispose();
     unsubscribe();
+    stopCacheReset();
     appState.remove();
     session.dispose();
   };

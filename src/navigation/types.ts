@@ -36,8 +36,8 @@ export type RootStackParamList = {
   /** 인증 세션 없이도 열 수 있는 문의 입력 화면. */
   SupportInquiry: undefined;
   /**
-   * 신규 Guest 동의 또는 서버가 요구한 기존 사용자 재동의를 받는 인증 게이트.
-   * 현재 AuthBootstrapState에 따라 controller가 이 route의 노출을 결정한다.
+   * 서버가 요구한 회원 필수 약관 재동의를 받는 인증 게이트.
+   * 인증 코디네이터 상태에 따라 RootNavigator가 이 route의 노출을 결정한다.
    */
   Consent: undefined;
   /** 앱 시작 인증 복구가 실패했을 때 실패한 작업만 다시 실행하는 화면. */

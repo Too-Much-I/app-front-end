@@ -71,6 +71,12 @@ export function createSessionController(
   let pending: Promise<AuthSessionRestoreResult> | null = null;
   let generation = 0;
   const listeners = new Set<(result: AuthSessionRestoreResult) => void>();
+  const accountChangeListeners = new Set<() => void>();
+
+  // 토큰 회전은 같은 계정이므로 알리지 않는다. 새 세션 활성화와 세션 삭제만 알린다.
+  function notifyAccountChange(): void {
+    if (!disposed) accountChangeListeners.forEach((listener) => listener());
+  }
 
   function prepareRefresh(session: AuthSession): void {
     progress = {
@@ -196,6 +202,7 @@ export function createSessionController(
           case 'remove-legacy':
             await dependencies.removeLegacy();
             activeSession = null;
+            notifyAccountChange();
             return { kind: 'login-required' };
           case 'blocked':
             return progress.result;
@@ -241,6 +248,7 @@ export function createSessionController(
       progress = { step: 'check-account', session, refreshed: false };
       persistence.saveInBackground(session);
       accepted = true;
+      notifyAccountChange();
       return { kind: 'ready', accountType: 'MEMBER' };
     })();
     pending = activation;
@@ -257,6 +265,7 @@ export function createSessionController(
     activationVersion += 1;
     persistence.dispose();
     listeners.clear();
+    accountChangeListeners.clear();
   }
 
   async function prepareRequest(): Promise<RequestAuthSnapshot> {
@@ -302,6 +311,13 @@ export function createSessionController(
     };
   }
 
+  function subscribeAccountChange(listener: () => void): () => void {
+    accountChangeListeners.add(listener);
+    return () => {
+      accountChangeListeners.delete(listener);
+    };
+  }
+
   return {
     restore,
     acceptSession,
@@ -310,6 +326,7 @@ export function createSessionController(
     prepareRequest,
     recoverUnauthorized,
     subscribeRestoration,
+    subscribeAccountChange,
     getSession: (): AuthSession | null => activeSession,
   };
 }
