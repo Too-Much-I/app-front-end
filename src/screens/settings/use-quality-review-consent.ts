@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useAuth } from '@/features/auth/auth-context';
+import { appAuthRuntime } from '@/features/auth/app-auth-runtime';
 import { reportOperationalError } from '@/lib/operational-error-reporting';
+
+const { readQualityReviewConsent, setQualityReviewConsent } = appAuthRuntime.consent;
 
 /**
  * 설정 화면의 "채점 품질 개선을 위한 답변 검토" 스위치.
@@ -12,16 +14,15 @@ import { reportOperationalError } from '@/lib/operational-error-reporting';
  * 되돌릴 때 `setEnabled(!next)`가 아니라 저장해 둔 이전 값을 쓴다. 요청이 도는
  * 사이에 다른 경로가 값을 바꿨을 수 있어 부정 연산은 안전하지 않다.
  */
+
 export function useQualityReviewConsent() {
-  const { readQualityReviewConsent, setQualityReviewConsent } = useAuth();
   const [enabled, setEnabled] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   // 상태 반영 전 한 프레임 동안의 연타를 막는다.
   const isUpdatingRef = useRef(false);
 
-  // `readQualityReviewConsent`는 AuthProvider가 모듈 레벨에 고정해 둔 참조라
-  // 이 이펙트는 마운트 시 한 번만 돈다.
+  // 앱 runtime의 고정 참조를 쓰므로 이 이펙트는 마운트 시 한 번만 돈다.
   useEffect(() => {
     let cancelled = false;
     readQualityReviewConsent()
@@ -37,7 +38,7 @@ export function useQualityReviewConsent() {
     return () => {
       cancelled = true;
     };
-  }, [readQualityReviewConsent]);
+  }, []);
 
   const toggle = useCallback(async () => {
     if (isUpdatingRef.current || !isLoaded) {
@@ -64,7 +65,7 @@ export function useQualityReviewConsent() {
     } finally {
       isUpdatingRef.current = false;
     }
-  }, [enabled, isLoaded, setQualityReviewConsent]);
+  }, [enabled, isLoaded]);
 
   return { enabled, isLoaded, hasError, toggle };
 }

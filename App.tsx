@@ -8,8 +8,7 @@ import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { PortraitOnlyNotice } from '@/components/ui/PortraitOnlyNotice';
-import { useAuth } from '@/features/auth/auth-context';
-import { AuthProvider } from '@/features/auth/AuthProvider';
+import { appAuthRuntime } from '@/features/auth/app-auth-runtime';
 import { OrientationProvider } from '@/features/orientation/OrientationProvider';
 import { useOrientation } from '@/features/orientation/orientation-context';
 import { AuthPreviewNavigator } from '@/navigation/AuthPreviewNavigator';
@@ -19,9 +18,13 @@ import { IS_AUTH_UI_PREVIEW } from '@/lib/auth-ui-preview';
 import { trackScreenView } from '@/lib/amplitude';
 import { queryClient } from '@/lib/query-client';
 import { IS_SENTRY_VALIDATION_MODE } from '@/lib/sentry-validation-mode';
+import { EnrollmentUnavailableScreen } from '@/screens/auth/EnrollmentUnavailableScreen';
 import { SentryValidationScreen } from '@/screens/diagnostics/SentryValidationScreen';
 import { useRemScale } from '@/theme/rem-scale';
 import { useAppFonts } from '@/theme/use-app-fonts';
+
+// 둘러보기·닫기의 목적지는 아직 정하지 않았다. 신규 Guest 생성으로 연결하지 않는다.
+function ignoreLoginExit() {}
 
 function AppContent() {
   const { isLandscapeTableRequested } = useOrientation();
@@ -32,15 +35,9 @@ function AppContent() {
   const previousRouteNameRef = useRef<string | undefined>(undefined);
 
   const { ready: fontsReady, onLayoutRootView } = useAppFonts();
-  const { state } = useAuth();
-  const authHasRenderableState =
-    state.status === 'AUTHENTICATED' ||
-    state.status === 'CONSENT_REQUIRED' ||
-    state.status === 'CONSENT_UPDATING' ||
-    state.status === 'RETRYABLE_ERROR' ||
-    (state.status === 'GUEST_RECOVERING' && state.source === 'consent-submit');
 
-  if (!fontsReady || !authHasRenderableState) {
+  // 인증 복원 중 로딩은 RootNavigator가 코디네이터 상태에 따라 직접 그린다.
+  if (!fontsReady) {
     return null;
   }
 
@@ -62,7 +59,15 @@ function AppContent() {
           previousRouteNameRef.current = routeName;
         }}
       >
-        <RootNavigator state={state} />
+        <RootNavigator
+          coordinator={appAuthRuntime.coordinator}
+          // 가입·Guest 승격·병합 흐름 구현 전까지 로그인 화면으로 돌려보낸다.
+          renderEnrollment={(state, { onCancel }) => (
+            <EnrollmentUnavailableScreen status={state.status} onCancel={onCancel} />
+          )}
+          onBrowse={ignoreLoginExit}
+          onClose={ignoreLoginExit}
+        />
       </NavigationContainer>
       <StatusBar style="auto" />
       {/* NavigationContainer 바깥이라 웹뷰를 포함한 모든 화면 위에 뜬다. */}
@@ -113,9 +118,7 @@ export default function App() {
         // 검증 모드는 화면 하나만 띄우고 서버 조회를 하지 않으므로 캐시도 필요 없다.
         <QueryClientProvider client={queryClient}>
           <OrientationProvider>
-            <AuthProvider>
-              <AppContent />
-            </AuthProvider>
+            <AppContent />
           </OrientationProvider>
         </QueryClientProvider>
       )}
