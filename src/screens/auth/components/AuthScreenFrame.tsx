@@ -8,14 +8,23 @@ import { colors, size } from '@/theme';
 
 interface AuthScreenFrameProps {
   title: string;
-  step: 1 | 2;
+  /** 1부터 센다. 가입 요구사항에 따라 전체 단계 수가 달라진다. */
+  step: number;
+  totalSteps: number;
   onBack: () => void;
   children: ReactNode;
   footer: ReactNode;
 }
 
 /** Safe area는 인증 흐름의 root가 소유한다. 키보드가 올라오면 입력과 하단 행동을 함께 올린다. */
-export function AuthScreenFrame({ title, step, onBack, children, footer }: AuthScreenFrameProps) {
+export function AuthScreenFrame({
+  title,
+  step,
+  totalSteps,
+  onBack,
+  children,
+  footer,
+}: AuthScreenFrameProps) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -34,15 +43,15 @@ export function AuthScreenFrame({ title, step, onBack, children, footer }: AuthS
           {title}
         </Text>
         <View
-          accessibilityLabel={`가입 ${step}/2단계`}
-          className="w-11 flex-row justify-end gap-xs"
+          accessibilityLabel={`가입 ${step}/${totalSteps}단계`}
+          className="min-w-11 flex-row justify-end gap-xs"
         >
-          <View
-            className={`h-2 rounded-pill ${step === 1 ? 'w-6 bg-brand' : 'w-2 bg-brand-200'}`}
-          />
-          <View
-            className={`h-2 rounded-pill ${step === 2 ? 'w-6 bg-brand' : 'w-2 bg-brand-200'}`}
-          />
+          {Array.from({ length: totalSteps }, (_, index) => (
+            <View
+              key={index}
+              className={`h-2 rounded-pill ${index + 1 === step ? 'w-6 bg-brand' : 'w-2 bg-brand-200'}`}
+            />
+          ))}
         </View>
       </View>
       <ScrollView

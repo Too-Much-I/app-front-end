@@ -4,43 +4,44 @@ import { useStore } from 'zustand';
 
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
-import { AuthScreenFrame } from '@/screens/auth/components/AuthScreenFrame';
-import { SignupConsentRow } from '@/screens/auth/components/SignupConsentRow';
-import { colors, FONT_FAMILY } from '@/theme';
+import { isSignupNicknameValid } from '@/features/auth/signup-flow';
 import type { createSignupDraftStore } from '@/features/auth/signup-draft-store';
+import { AuthScreenFrame } from '@/screens/auth/components/AuthScreenFrame';
+import { colors, FONT_FAMILY } from '@/theme';
 
-interface SignupProfileScreenProps {
+interface SignupNicknameScreenProps {
   draftStore: ReturnType<typeof createSignupDraftStore>;
+  step: number;
+  totalSteps: number;
+  /** 미리보기 전용 중복 확인. 실제 가입은 서버가 제출 시 검증한다. */
   validateNickname?: (nickname: string) => string | null;
   onBack: () => void;
   onContinue: () => void;
-  onOpenPolicy: (policy: 'terms' | 'privacy') => void;
 }
 
-export function SignupProfileScreen({
+export function SignupNicknameScreen({
   draftStore,
+  step,
+  totalSteps,
   validateNickname,
   onBack,
   onContinue,
-  onOpenPolicy,
-}: SignupProfileScreenProps) {
+}: SignupNicknameScreenProps) {
   const nickname = useStore(draftStore, (draft) => draft.nickname);
-  const consents = useStore(draftStore, (draft) => draft.consents);
   const [nicknameError, setNicknameError] = useState<string | null>(null);
   const length = Array.from(nickname.trim()).length;
-  const allChecked = consents.terms.agreed && consents.privacy.agreed;
-  const canContinue = length >= 2 && length <= 20 && allChecked;
 
   return (
     <AuthScreenFrame
       title="회원가입"
-      step={1}
+      step={step}
+      totalSteps={totalSteps}
       onBack={onBack}
       footer={
         <Button
-          label="휴대전화 인증으로 계속하기"
+          label="다음"
           size="lg"
-          disabled={!canContinue}
+          disabled={!isSignupNicknameValid(nickname)}
           onPress={() => {
             const error = validateNickname?.(nickname) ?? null;
             setNicknameError(error);
@@ -101,29 +102,6 @@ export function SignupProfileScreen({
             2~20자로 입력해 주세요.
           </Text>
           <Text className="text-sm text-ink-muted">{length} / 20</Text>
-        </View>
-      </View>
-      <View className="mt-section gap-content">
-        <Text className="text-xl">시작하기 전에 확인해 주세요</Text>
-        <SignupConsentRow
-          label="약관 전체 동의"
-          all
-          checked={allChecked}
-          onToggle={() => draftStore.setAllConsents(!allChecked)}
-        />
-        <View>
-          <SignupConsentRow
-            label="서비스 이용약관 동의"
-            checked={consents.terms.agreed}
-            onToggle={() => draftStore.setConsent('terms', !consents.terms.agreed)}
-            onDetail={() => onOpenPolicy('terms')}
-          />
-          <SignupConsentRow
-            label="개인정보 수집·이용 동의"
-            checked={consents.privacy.agreed}
-            onToggle={() => draftStore.setConsent('privacy', !consents.privacy.agreed)}
-            onDetail={() => onOpenPolicy('privacy')}
-          />
         </View>
       </View>
     </AuthScreenFrame>

@@ -7,7 +7,8 @@ import type { ExamSession } from '@/types/exam';
 export type AuthPreviewStackParamList = {
   LoginPreview: undefined;
   SupportInquiryPreview: undefined;
-  SignupProfilePreview: undefined;
+  SignupNicknamePreview: undefined;
+  SignupConsentPreview: undefined;
   PhoneVerificationPreview: undefined;
 };
 
@@ -33,6 +34,11 @@ export type MockExamStackParamList = {
 export type RootStackParamList = {
   /** 세션 없음·기존 Guest의 SNS 로그인 진입점. */
   AuthLogin: undefined;
+  /**
+   * 신규 가입(direct signup) 단계 화면. 단계는 가입 흐름 상태가 고르며 route로 나누지 않는다.
+   * 닉네임·전화번호·인증 자료를 params에 넣지 않는다.
+   */
+  Signup: undefined;
   /** 인증 세션 없이도 열 수 있는 문의 입력 화면. */
   SupportInquiry: undefined;
   /**

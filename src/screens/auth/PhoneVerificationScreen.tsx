@@ -13,6 +13,10 @@ export type PhoneVerificationViewState =
 
 interface PhoneVerificationScreenProps {
   state: PhoneVerificationViewState;
+  step: number;
+  totalSteps: number;
+  /** 발송·확인 요청을 기다리는 중. 같은 요청을 중복으로 보내지 않게 버튼을 잠근다. */
+  busy?: boolean;
   onBack: () => void;
   onChangePhone: (value: string) => void;
   onRequestCode: () => void;
@@ -20,6 +24,9 @@ interface PhoneVerificationScreenProps {
   onChangeCode: (value: string) => void;
   onResendCode: () => void;
   onVerify: () => void;
+  /** 인증을 마친 뒤 다음 단계로 넘어간다. 없으면 완료 버튼은 표시만 한다. */
+  onContinue?: () => void;
+  continueLabel?: string;
 }
 
 function formatSignupPhone(value: string): string {
@@ -29,6 +36,9 @@ function formatSignupPhone(value: string): string {
 /** 서버/SDK 호출과 단계 전환을 포함하지 않는 표시 컴포넌트. */
 export function PhoneVerificationScreen({
   state,
+  step,
+  totalSteps,
+  busy = false,
   onBack,
   onChangePhone,
   onRequestCode,
@@ -36,6 +46,8 @@ export function PhoneVerificationScreen({
   onChangeCode,
   onResendCode,
   onVerify,
+  onContinue,
+  continueLabel = '가입 완료하기',
 }: PhoneVerificationScreenProps) {
   const footer = (() => {
     switch (state.step) {
@@ -44,7 +56,8 @@ export function PhoneVerificationScreen({
           <Button
             label="인증번호 받기"
             size="lg"
-            disabled={!/^010\d{8}$/.test(state.phone)}
+            loading={busy}
+            disabled={busy || !/^010\d{8}$/.test(state.phone)}
             onPress={onRequestCode}
           />
         );
@@ -53,17 +66,28 @@ export function PhoneVerificationScreen({
           <Button
             label="인증 완료하기"
             size="lg"
-            disabled={state.code.length !== 6}
+            loading={busy}
+            disabled={busy || state.code.length !== 6}
             onPress={onVerify}
           />
         );
       case 'complete':
-        return <Button label="인증 완료" size="lg" disabled onPress={onVerify} />;
+        return onContinue ? (
+          <Button label={continueLabel} size="lg" onPress={onContinue} />
+        ) : (
+          <Button label="인증 완료" size="lg" disabled onPress={onVerify} />
+        );
     }
   })();
 
   return (
-    <AuthScreenFrame title="휴대전화 인증" step={2} onBack={onBack} footer={footer}>
+    <AuthScreenFrame
+      title="휴대전화 인증"
+      step={step}
+      totalSteps={totalSteps}
+      onBack={onBack}
+      footer={footer}
+    >
       <View>
         {state.step === 'number' ? (
           <View className="gap-content">
@@ -110,12 +134,18 @@ export function PhoneVerificationScreen({
           <View className="gap-section">
             <View className="flex-row items-center justify-between border-b border-line pb-card">
               <Text className="text-lg">{formatSignupPhone(state.phone)}</Text>
-              <Button label="수정" variant="text" size="sm" onPress={onEditPhone} />
+              <Button label="수정" variant="text" size="sm" disabled={busy} onPress={onEditPhone} />
             </View>
             <View className="gap-content">
               <View className="flex-row items-center justify-between">
                 <Text className="text-lg">인증번호</Text>
-                <Button label="다시 받기" variant="text" size="sm" onPress={onResendCode} />
+                <Button
+                  label="다시 받기"
+                  variant="text"
+                  size="sm"
+                  disabled={busy}
+                  onPress={onResendCode}
+                />
               </View>
               <TextInput
                 accessibilityLabel="인증번호 6자리"

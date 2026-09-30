@@ -1185,7 +1185,7 @@ await check('가입 초안 구독 해제·재구독은 입력 유지, 인스턴�
   const unsubscribe = draft.subscribe(() => {});
   draft.setNickname('가입자');
   draft.setPhone('01012345678');
-  draft.setPolicyVersions({ terms: 'terms-v1', privacy: 'privacy-v1' });
+  draft.setPolicyVersions({ terms: 'terms-v1', privacy: 'privacy-v1', qualityReview: 'qr-v1' });
   draft.setAllConsents(true);
   const saved = draft.getState();
   unsubscribe();
@@ -1198,6 +1198,7 @@ await check('가입 초안 구독 해제·재구독은 입력 유지, 인스턴�
   assert.deepEqual(draft.getState().consents, {
     terms: { version: null, agreed: false },
     privacy: { version: null, agreed: false },
+    qualityReview: { version: null, agreed: false },
   });
   assert.equal(saved.nickname, '가입자');
   resubscribe();
@@ -1208,15 +1209,21 @@ await check('약관 버전 미확인 시 동의 불가, 변경된 약관만 재�
   draft.setAllConsents(true);
   draft.setConsent('terms', true);
   assert.equal(draft.getState().consents.terms.agreed, false);
-  draft.setPolicyVersions({ terms: 'terms-v1', privacy: 'privacy-v1' });
+  draft.setPolicyVersions({ terms: 'terms-v1', privacy: 'privacy-v1', qualityReview: 'qr-v1' });
   draft.setAllConsents(true);
-  draft.setPolicyVersions({ terms: 'terms-v2', privacy: 'privacy-v1' });
+  draft.setPolicyVersions({ terms: 'terms-v2', privacy: 'privacy-v1', qualityReview: 'qr-v1' });
   assert.deepEqual(draft.getState().consents, {
     terms: { version: 'terms-v2', agreed: false },
     privacy: { version: 'privacy-v1', agreed: true },
+    qualityReview: { version: 'qr-v1', agreed: true },
   });
-  draft.setPolicyVersions({ terms: 'terms-v2', privacy: null });
+  draft.setPolicyVersions({ terms: 'terms-v2', privacy: null, qualityReview: 'qr-v1' });
   assert.deepEqual(draft.getState().consents.privacy, { version: null, agreed: false });
+  // 선택 동의는 개별로 끌 수 있고 전체 동의가 함께 켜고 끈다.
+  draft.setConsent('qualityReview', false);
+  assert.equal(draft.getState().consents.qualityReview.agreed, false);
+  draft.setAllConsents(true);
+  assert.equal(draft.getState().consents.qualityReview.agreed, true);
 });
 
 await check('전화번호 변경·reset은 이전 인증 시도 무효화, 같은 값 설정은 유지', async () => {
@@ -1290,6 +1297,7 @@ await check('Guest prepare의 정책 버전을 가입 초안에 전달', async (
   assert.deepEqual(h.coordinator.signupDraft.getState().consents, {
     terms: { version: 'server-terms', agreed: false },
     privacy: { version: 'server-privacy', agreed: false },
+    qualityReview: { version: null, agreed: false },
   });
   h.coordinator.dispose();
 });

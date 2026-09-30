@@ -8,9 +8,10 @@ type EnrollmentStatus = 'signingUp' | 'mergeRequired';
 
 // mergeRequired는 방금 로그인한 SNS 계정이 이미 회원이라는 뜻이라 다시 로그인하라고 안내하지 않는다.
 const ENROLLMENT_COPY = {
+  // 신규 가입은 가입 흐름으로 연결됐다. 이 화면의 signingUp은 기존 Guest의 회원 전환이다.
   signingUp: {
-    title: '아직 가입을 지원하지 않아요',
-    body: '회원가입은 준비 중이에요. 지금은 이미 가입한 계정으로만 로그인할 수 있어요.',
+    title: '회원 전환을 준비하고 있어요',
+    body: '기존 학습 기록을 유지한 채 회원으로 전환하는 기능은 준비 중이에요.',
   },
   mergeRequired: {
     title: '기록 통합을 준비하고 있어요',
@@ -23,7 +24,7 @@ interface EnrollmentUnavailableScreenProps {
   onCancel: () => void;
 }
 
-/** 가입·Guest 승격·병합 흐름을 구현하기 전까지 가입 대상자에게 보여주는 임시 화면. */
+/** Guest 승격·병합 흐름을 구현하기 전까지 대상자에게 보여주는 임시 화면. */
 export function EnrollmentUnavailableScreen({
   status,
   onCancel,

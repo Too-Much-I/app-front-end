@@ -43,7 +43,8 @@ export type AuthCoordinatorState =
     }
   | { status: 'submittingProof'; origin: IdentityLoginOrigin }
   | { status: 'activatingSession' }
-  | { status: 'signingUp'; flowId: number; enrollment: IdentityEnrollment }
+  /** uid는 가입 제출 전 같은 Firebase 사용자의 증명을 강제 갱신할 때 쓴다. 토큰은 담지 않는다. */
+  | { status: 'signingUp'; flowId: number; uid: string; enrollment: IdentityEnrollment }
   | { status: 'mergeRequired'; flowId: number }
   | {
       status: 'loginError';
@@ -346,18 +347,21 @@ export function createAuthCoordinator(
           await activateIdentitySession(attempt, result.session);
           return;
         case 'enrollment-required':
+          // direct signup의 버전은 가입 흐름이 약관 화면에서 공개 API로 받는다.
           signupDraft.setPolicyVersions(
             result.enrollment.origin === 'guest'
               ? {
                   terms: result.enrollment.termConsentVersion,
                   privacy: result.enrollment.privacyConsentVersion,
+                  qualityReview: null,
                 }
-              : { terms: null, privacy: null },
+              : { terms: null, privacy: null, qualityReview: null },
           );
           store.setState({
             state: {
               status: 'signingUp',
               flowId: attempt.run,
+              uid: proof.uid,
               enrollment: result.enrollment,
             },
           });
