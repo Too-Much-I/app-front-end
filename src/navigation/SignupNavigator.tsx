@@ -27,7 +27,7 @@ import { colors } from '@/theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-type StartSignup = ReturnType<typeof createAuthRuntime>['startSignup'];
+type StartSignup = ReturnType<typeof createAuthRuntime>['startEnrollment'];
 type Signup = ReturnType<StartSignup>;
 type DraftStore = ReturnType<typeof createSignupDraftStore>;
 
@@ -42,21 +42,26 @@ interface SignupNavigatorProps {
   draftStore: DraftStore;
   startSignup: StartSignup;
   onComplete: (session: AuthSession) => Promise<void>;
+  /** Guest 승격 중 이 SNS 계정이 다른 MEMBER 소유로 확인됐을 때. direct signup은 부르지 않는다. */
+  onMergeRequired: () => void;
   onCancel: () => void;
 }
 
-/** direct signup 한 흐름. 소유자는 flowId를 key로 넘겨 새 로그인마다 새 흐름을 만든다. */
+/** 가입·Guest 승격 한 흐름. 소유자는 flowId를 key로 넘겨 새 로그인마다 새 흐름을 만든다. */
 export function SignupNavigator({
   enrollment,
   uid,
   draftStore,
   startSignup,
   onComplete,
+  onMergeRequired,
   onCancel,
 }: SignupNavigatorProps): ReactElement | null {
   // 부모가 렌더마다 새 콜백을 넘겨도 흐름을 다시 만들지 않는다.
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
+  const onMergeRequiredRef = useRef(onMergeRequired);
+  onMergeRequiredRef.current = onMergeRequired;
   const [signup, setSignup] = useState<Signup | null>(null);
 
   useEffect(() => {
@@ -64,6 +69,7 @@ export function SignupNavigator({
       enrollment,
       uid,
       onComplete: (session) => onCompleteRef.current(session),
+      onMergeRequired: () => onMergeRequiredRef.current(),
     });
     setSignup(created);
     return () => created.flow.dispose();

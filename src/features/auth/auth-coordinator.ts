@@ -226,10 +226,22 @@ export function createAuthCoordinator(
 
   function handleSessionResult(result: AuthSessionRestoreResult): void {
     const { state } = store.getState();
-    if (state.status !== 'authenticated' && state.status !== 'consent') return;
-    if (result.kind === 'ready' && result.accountType === 'MEMBER') return;
+    // Guest 승격·병합은 Guest 세션으로 요청한다. 그 세션이 무효가 되면 흐름을 이어갈 수 없다.
+    const usesGuestSession =
+      (state.status === 'signingUp' && state.enrollment.origin === 'guest') ||
+      state.status === 'mergeRequired';
+    if (state.status !== 'authenticated' && state.status !== 'consent' && !usesGuestSession) return;
+    if (result.kind === 'ready') {
+      if (result.accountType === 'MEMBER' || usesGuestSession) return;
+    }
     // 일시적인 요청 실패는 현재 화면에서 처리한다. 세션 무효·복구 불가는 루트로 전달한다.
     if (result.kind === 'recovery-required' && result.action === 'retry') return;
+    if (usesGuestSession) {
+      loginAttempt?.abort.abort();
+      loginAttempt = null;
+      identityRetry = null;
+      signupDraft.reset();
+    }
     flowGeneration += 1;
     store.setState({ state: resolveAuthRestoration(result) });
   }
@@ -332,11 +344,20 @@ export function createAuthCoordinator(
       if (attempt.origin === 'guest') {
         const guest = await login.session.prepareRequest();
         if (!isCurrent(attempt)) return;
-        result = await login.prepare(
-          proof.firebaseIdToken,
-          guest.accessToken,
-          attempt.abort.signal,
-        );
+        try {
+          result = await login.prepare(
+            proof.firebaseIdToken,
+            guest.accessToken,
+            attempt.abort.signal,
+          );
+        } catch (error) {
+          // 저장된 Guest가 이미 MEMBER로 승격됐다(승격 응답 유실·활성화 실패 뒤 다시 로그인).
+          // 계약은 "로그인 초기화"이므로 같은 증명으로 exchange해 그 MEMBER 세션을 받는다.
+          if (!(error instanceof ApiError && error.code === 'GUEST_UPGRADE_NOT_ALLOWED'))
+            throw error;
+          if (!isCurrent(attempt)) return;
+          result = await login.exchange(proof.firebaseIdToken, attempt.abort.signal);
+        }
       } else {
         result = await login.exchange(proof.firebaseIdToken, attempt.abort.signal);
       }
@@ -347,7 +368,11 @@ export function createAuthCoordinator(
           await activateIdentitySession(attempt, result.session);
           return;
         case 'enrollment-required':
-          // direct signup의 버전은 가입 흐름이 약관 화면에서 공개 API로 받는다.
+          // 두 경로 모두 제출 전에 약관 버전이 필요하지만 받는 곳이 다르다.
+          // Guest: 필수 약관 버전은 prepare 응답에 있어 여기서 넣는다. 품질 검토 버전은 승격 흐름이
+          // 약관 화면에서 공개 API로 받고, 이때 prepare의 필수 버전을 덮어쓰지 않는다.
+          // direct signup: exchange 응답에 버전이 없어 null로 두고, 가입 흐름이 약관 화면에
+          // 들어갈 때 공개 API로 받아 채운다(signup-flow.ts `loadPolicies`).
           signupDraft.setPolicyVersions(
             result.enrollment.origin === 'guest'
               ? {
@@ -489,6 +514,15 @@ export function createAuthCoordinator(
     store.setState({ state: { status: attempt.origin } });
   }
 
+  /** 승격 흐름이 이 SNS 계정의 주인이 다른 MEMBER임을 알았다. 이전 흐름의 늦은 알림은 무시한다. */
+  function requireMerge(flowId: number): void {
+    const { state } = store.getState();
+    if (!loginAttempt || state.status !== 'signingUp' || state.flowId !== flowId) return;
+    identityRetry = null;
+    signupDraft.reset();
+    store.setState({ state: { status: 'mergeRequired', flowId } });
+  }
+
   /** 가입/병합 담당이 서버에서 받은 세션을 전달한다. 이전 가입 화면의 완료는 무시한다. */
   async function completeEnrollment(flowId: number, session: AuthSession): Promise<void> {
     const { state } = store.getState();
@@ -602,6 +636,7 @@ export function createAuthCoordinator(
     signIn,
     cancelLogin,
     completeEnrollment,
+    requireMerge,
     dispose,
     getState: store.getState,
     getInitialState: store.getInitialState,

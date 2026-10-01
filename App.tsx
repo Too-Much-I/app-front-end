@@ -62,19 +62,20 @@ function AppContent() {
       >
         <RootNavigator
           coordinator={appAuthRuntime.coordinator}
-          renderEnrollment={(state, { draftStore, onComplete, onCancel }) =>
-            state.status === 'signingUp' && state.enrollment.origin === 'noSession' ? (
+          renderEnrollment={(state, { draftStore, onComplete, onMergeRequired, onCancel }) =>
+            state.status === 'signingUp' ? (
               <SignupNavigator
                 key={state.flowId}
                 enrollment={state.enrollment}
                 uid={state.uid}
                 draftStore={draftStore}
-                startSignup={appAuthRuntime.startSignup}
+                startSignup={appAuthRuntime.startEnrollment}
                 onComplete={onComplete}
+                onMergeRequired={onMergeRequired}
                 onCancel={onCancel}
               />
             ) : (
-              // Guest 승격·병합 구현 전까지 로그인 화면으로 돌려보낸다.
+              // Guest 병합 구현 전까지 로그인 화면으로 돌려보낸다.
               <EnrollmentUnavailableScreen status={state.status} onCancel={onCancel} />
             )
           }

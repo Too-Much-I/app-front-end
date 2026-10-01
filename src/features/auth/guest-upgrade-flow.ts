@@ -1,173 +1,181 @@
 import { createStore } from 'zustand/vanilla';
 
 import type { PolicyVersions } from '@/features/auth/api/get-policy-versions';
-import type { FirebaseSignupRequest } from '@/features/auth/api/submit-firebase-signup';
+import type { GuestUpgradeRequest } from '@/features/auth/api/submit-guest-upgrade';
 import {
   observeAuthForegroundRecovery,
   type AuthForegroundRecoveryState,
 } from '@/features/auth/auth-foreground-recovery';
-import { AUTH_RECOVERY_MESSAGES, classifyAuthRecovery } from '@/features/auth/auth-recovery';
+import { classifyAuthRecovery } from '@/features/auth/auth-recovery';
 import type { FirebaseProofResult } from '@/features/auth/firebase-auth-types';
 import type {
-  IdentityEnrollment,
+  GuestIdentityEnrollment,
   IdentityExchangeResult,
+  IdentityGuestPreparationResult,
 } from '@/features/auth/identity-login-types';
 import type { createSignupDraftStore } from '@/features/auth/signup-draft-store';
-import type { AuthSession } from '@/features/auth/types';
-import { ApiError } from '@/lib/api/transport';
+import {
+  decideProofFailureNotice,
+  decideRequestFailureNotice,
+  decideSignupSteps,
+  isSignupNicknameValid,
+  type SignupFailureNotice,
+  type SignupFlowState,
+  type SignupStep,
+} from '@/features/auth/signup-flow';
+import type { AuthSession, RequestAuthSnapshot } from '@/features/auth/types';
+import { ApiError, TransportConnectionError } from '@/lib/api/transport';
 
-export type SignupStep = 'nickname' | 'consents' | 'phone';
-
-/**
- * retry: 같은 제출을 다시 시도 / edit: 입력을 고치러 첫 단계로
- * sign-in-again: SNS 로그인부터 다시 / exit: 가입을 멈추고 로그인 화면으로
- */
-export type SignupFailureAction = 'retry' | 'edit' | 'sign-in-again' | 'exit';
-
-export type SignupFlowState =
-  | { status: 'editing'; step: 'nickname' }
-  | { status: 'editing'; step: 'consents'; policies: 'loading' | 'ready' }
-  | { status: 'editing'; step: 'phone' }
-  | { status: 'policyUnavailable'; message: string }
-  | { status: 'submitting'; step: SignupStep }
-  | {
-      status: 'failed';
-      step: SignupStep;
-      message: string;
-      nextAction: SignupFailureAction;
-    };
-
-// 세션 저장 재시도와 같은 방식(지연 + 20% 지터)이며 간격만 약관 조회에 맞췄다.
+// 가입 흐름과 같은 약관 조회 간격이다(지연 + 20% 지터).
 const POLICY_RETRY_DELAYS_MS = [5_000, 10_000, 20_000] as const;
-// 입력 검증 실패로 볼 HTTP 상태. 계약에 입력 검증 오류 code가 없어 상태로만 구분한다.
-const INPUT_ERROR_STATUSES: readonly number[] = [400, 422];
-const NICKNAME_MIN_LENGTH = 2;
-const NICKNAME_MAX_LENGTH = 20;
+// 서버 표가 처리를 정해 둔 5xx. 나머지 5xx는 서버가 처리했는지 알 수 없다.
+const DEFINED_SERVER_ERROR_CODES: readonly string[] = [
+  'FIREBASE_UNAVAILABLE',
+  'SESSION_SECURITY_UNAVAILABLE',
+];
 
-const SIGNUP_MESSAGES = {
+const GUEST_UPGRADE_MESSAGES = {
   policyUnavailable: '약관 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
   signInAgain: '로그인 확인이 필요해요. SNS 로그인부터 다시 진행해 주세요.',
   withdrawalPending: '이전 탈퇴 처리가 아직 끝나지 않았어요. 잠시 후 다시 가입해 주세요.',
-  invalidInput: '가입 정보를 확인하지 못했어요. 입력한 내용을 확인한 뒤 다시 시도해 주세요.',
   phoneRequired: '휴대전화 인증을 다시 진행해 주세요.',
   unexpected: '가입을 완료하지 못했어요. 잠시 후 다시 시도해 주세요.',
+  outcomeUnknown: '가입 결과를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.',
+  identityConflict: '계정 상태를 확인하지 못했어요. 문제가 계속되면 도움을 요청해 주세요.',
   activationFailed: '가입은 완료됐어요. 로그인 화면에서 같은 SNS 계정으로 다시 로그인해 주세요.',
 } as const;
 
-/**
- * 닉네임·약관은 signup body에 항상 필요하고 이를 서버에 보내는 API가 signup뿐이라 항상 받는다.
- * 요구사항에 따라 건너뛰는 단계는 전화 인증뿐이다(이미 Firebase 사용자에 번호가 연결된 경우).
- */
-export function decideSignupSteps(enrollment: IdentityEnrollment): SignupStep[] {
-  return enrollment.missingRequirements.includes('PHONE_VERIFICATION')
-    ? ['nickname', 'consents', 'phone']
-    : ['nickname', 'consents'];
-}
-
-export function isSignupNicknameValid(nickname: string): boolean {
-  const length = Array.from(nickname.trim()).length;
-  return length >= NICKNAME_MIN_LENGTH && length <= NICKNAME_MAX_LENGTH;
-}
-
-export type SignupFailureNotice = { message: string; nextAction: SignupFailureAction };
-
 /** 이번 제출에서 이미 한 번씩 써 버린 자동 복구. 같은 복구를 반복하지 않는 기준이다. */
-export type SignupSubmitAttempts = { proofRetried: boolean; restarted: boolean };
+export type GuestUpgradeAttempts = {
+  proofRetried: boolean;
+  restarted: boolean;
+  reconciled: boolean;
+};
 
 /**
  * resubmit: 증명을 다시 강제 갱신해 같은 enrollment로 제출
- * restart-enrollment: 같은 ID를 버리고 exchange로 새 enrollment를 받아 제출
- * phone-required: 전화 인증을 처음부터 다시 받는다
+ * restart-enrollment: 같은 ID를 버리고 prepare로 새 enrollment를 받아 제출(direct signup으로 우회하지 않음)
+ * reconcile: 결과를 모르므로 exchange와 Guest 토큰 prepare로 승격 여부를 판별
+ * merge-required: 이 SNS 계정은 다른 MEMBER 소유다
  */
-export type SignupRecoveryDecision =
+export type GuestUpgradeRecoveryDecision =
   | { kind: 'resubmit' }
   | { kind: 'restart-enrollment' }
   | { kind: 'phone-required' }
+  | { kind: 'reconcile' }
+  | { kind: 'merge-required' }
   | ({ kind: 'fail' } & SignupFailureNotice);
 
+/**
+ * 응답을 받지 못했거나 서버가 처리 후 실패했을 수 있는 오류. 실패를 "불명"으로 잘못 보면 조회가 한 번
+ * 늘 뿐이지만, 불명을 실패로 잘못 보면 이미 성공한 승격을 놓친다. 그래서 애매하면 불명으로 본다.
+ */
+export function isUpgradeOutcomeUnknown(error: unknown): boolean {
+  if (error instanceof TransportConnectionError) return true;
+  return (
+    error instanceof ApiError &&
+    error.status >= 500 &&
+    !DEFINED_SERVER_ERROR_CODES.includes(error.code ?? '')
+  );
+}
+
 /** 만료·enrollment 충돌 공통. 재시작은 제출 한 번에 한 번만 한다. */
-export function decideEnrollmentRestart(attempts: SignupSubmitAttempts): SignupRecoveryDecision {
+export function decideGuestIdentityEnrollmentRestart(
+  attempts: GuestUpgradeAttempts,
+): GuestUpgradeRecoveryDecision {
   return attempts.restarted
-    ? { kind: 'fail', message: SIGNUP_MESSAGES.unexpected, nextAction: 'retry' }
+    ? { kind: 'fail', message: GUEST_UPGRADE_MESSAGES.unexpected, nextAction: 'retry' }
     : { kind: 'restart-enrollment' };
 }
 
-/** code로 구분되지 않는 요청 실패(입력 검증·연결·서버 장애 등). */
-export function decideRequestFailureNotice(error: unknown): SignupFailureNotice {
-  if (error instanceof ApiError && INPUT_ERROR_STATUSES.includes(error.status)) {
-    // 닉네임 형식·약관 버전 불일치 등. 서버 오류 code가 확정되면 해당 단계로 좁힌다.
-    // 그 밖의 4xx(404·401 등)는 입력을 고쳐도 해결되지 않으므로 아래 복구 분류를 따른다.
-    return { message: SIGNUP_MESSAGES.invalidInput, nextAction: 'edit' };
-  }
-  const recovery = classifyAuthRecovery(error);
-  return recovery.action === 'retry'
-    ? { message: AUTH_RECOVERY_MESSAGES[recovery.reason], nextAction: 'retry' }
-    : { message: SIGNUP_MESSAGES.unexpected, nextAction: 'exit' };
-}
-
-export function decideProofFailureNotice(
-  proof: Exclude<FirebaseProofResult, { kind: 'proof-ready' }>,
-): SignupFailureNotice {
-  if (proof.kind === 'failed' && proof.nextAction === 'retry')
-    return { message: AUTH_RECOVERY_MESSAGES.connection, nextAction: 'retry' };
-  if (proof.kind === 'failed' && proof.nextAction === 'get-help')
-    return { message: SIGNUP_MESSAGES.unexpected, nextAction: 'exit' };
-  // 강제 갱신을 못 하면 같은 Firebase 사용자를 더 이상 증명할 수 없다.
-  return { message: SIGNUP_MESSAGES.signInAgain, nextAction: 'sign-in-again' };
-}
-
-/** 서버 code는 열린 집합이라 알 수 없는 값은 요청 실패로 분류한다. 같은 자동 복구는 제출 한 번에 한 번만 한다. */
-export function decideSignupRecovery(
+/** upgrade 요청 실패의 다음 행동. 서버 code는 열린 집합이라 알 수 없는 값은 요청 실패로 분류한다. */
+export function decideGuestUpgradeRecovery(
   error: unknown,
-  attempts: SignupSubmitAttempts,
-): SignupRecoveryDecision {
+  attempts: GuestUpgradeAttempts,
+): GuestUpgradeRecoveryDecision {
   const code = error instanceof ApiError ? error.code : undefined;
   switch (code) {
     case 'INVALID_FIREBASE_ID_TOKEN':
-      // 계약: 강제 갱신 후 한 번만 다시 제출하고, 또 실패하면 SNS 재로그인.
       return attempts.proofRetried
-        ? { kind: 'fail', message: SIGNUP_MESSAGES.signInAgain, nextAction: 'sign-in-again' }
+        ? { kind: 'fail', message: GUEST_UPGRADE_MESSAGES.signInAgain, nextAction: 'sign-in-again' }
         : { kind: 'resubmit' };
     case 'FIREBASE_RECENT_AUTH_REQUIRED':
-      return { kind: 'fail', message: SIGNUP_MESSAGES.signInAgain, nextAction: 'sign-in-again' };
+      return {
+        kind: 'fail',
+        message: GUEST_UPGRADE_MESSAGES.signInAgain,
+        nextAction: 'sign-in-again',
+      };
     case 'FIREBASE_PHONE_VERIFICATION_REQUIRED':
       return { kind: 'phone-required' };
     case 'FIREBASE_ENROLLMENT_CONFLICT':
     case 'FIREBASE_ENROLLMENT_RESTART_REQUIRED':
-      return decideEnrollmentRestart(attempts);
+      return decideGuestIdentityEnrollmentRestart(attempts);
+    case 'MERGE_REQUIRED':
+      return { kind: 'merge-required' };
+    case 'GUEST_UPGRADE_NOT_ALLOWED':
+      // 현재 사용자가 ACTIVE GUEST가 아니다. 이전 승격이 이미 성공했을 수 있어 상태를 다시 조회한다.
+      return decideReconcile(attempts);
+    case 'IDENTITY_STATE_CONFLICT':
+      // 계약: 자동 승격·병합 금지. 재인증 후에도 반복되면 지원 안내.
+      return { kind: 'fail', message: GUEST_UPGRADE_MESSAGES.identityConflict, nextAction: 'exit' };
     case 'WITHDRAWAL_CLEANUP_PENDING':
-      // 자동 재시도하지 않는다. 정리가 끝난 뒤 사용자가 다시 시작한다.
-      return { kind: 'fail', message: SIGNUP_MESSAGES.withdrawalPending, nextAction: 'exit' };
+      return {
+        kind: 'fail',
+        message: GUEST_UPGRADE_MESSAGES.withdrawalPending,
+        nextAction: 'exit',
+      };
     default:
+      if (isUpgradeOutcomeUnknown(error)) return decideReconcile(attempts);
       return { kind: 'fail', ...decideRequestFailureNotice(error) };
   }
 }
 
-interface SignupPhoneVerificationPort {
+/** 판별은 제출 한 번에 한 번만 자동으로 한다. 그 뒤는 사용자의 수동 재시도다. */
+function decideReconcile(attempts: GuestUpgradeAttempts): GuestUpgradeRecoveryDecision {
+  return attempts.reconciled
+    ? { kind: 'fail', message: GUEST_UPGRADE_MESSAGES.outcomeUnknown, nextAction: 'retry' }
+    : { kind: 'reconcile' };
+}
+
+interface GuestUpgradePhoneVerificationPort {
   isVerified: () => boolean;
   reset: (message?: string | null) => void;
   dispose: () => void;
 }
 
-export interface SignupFlowDependencies {
+export interface GuestUpgradeFlowDependencies {
   /** 같은 Firebase 사용자의 ID Token을 강제 갱신한다. */
   refreshProof: (uid: string) => Promise<FirebaseProofResult>;
+  /** 현재 Guest Access Token. 만료가 가까우면 세션 컨트롤러가 먼저 재발급한다. */
+  prepareRequest: () => Promise<RequestAuthSnapshot>;
+  prepare: (
+    proof: string,
+    guestToken: string,
+    signal?: AbortSignal,
+  ) => Promise<IdentityGuestPreparationResult>;
   exchange: (proof: string, signal?: AbortSignal) => Promise<IdentityExchangeResult>;
-  submit: (request: FirebaseSignupRequest, signal?: AbortSignal) => Promise<AuthSession>;
+  submit: (
+    request: GuestUpgradeRequest,
+    guestToken: string,
+    signal?: AbortSignal,
+  ) => Promise<AuthSession>;
+  /** 품질 검토 version만 쓴다. 필수 약관 version은 prepare 응답 값을 유지한다. */
   loadPolicyVersions: (signal?: AbortSignal) => Promise<PolicyVersions>;
 }
 
 /**
- * direct signup 한 번의 흐름을 소유한다. 코디네이터는 진입(signingUp)과 출구(onComplete/onCancel)만 맡는다.
+ * 기존 Guest의 MEMBER 승격 한 번의 흐름. 가입 흐름과 같은 화면을 쓰도록 같은 상태·액션 모양을 갖는다.
+ * 코디네이터는 진입(signingUp)과 출구(onComplete, onMergeRequired, onCancel)만 맡는다.
  * 화면이 사라지면 소유자가 dispose해 늦게 도착한 응답을 무시한다.
  */
-export function createSignupFlow(options: {
-  enrollment: IdentityEnrollment;
+export function createGuestUpgradeFlow(options: {
+  enrollment: GuestIdentityEnrollment;
   uid: string;
   draftStore: ReturnType<typeof createSignupDraftStore>;
-  phone: SignupPhoneVerificationPort;
-  dependencies: SignupFlowDependencies;
+  phone: GuestUpgradePhoneVerificationPort;
+  dependencies: GuestUpgradeFlowDependencies;
   onComplete: (session: AuthSession) => Promise<void>;
+  onMergeRequired: () => void;
 }) {
   const { uid, draftStore, phone, dependencies } = options;
   let enrollment = options.enrollment;
@@ -200,18 +208,25 @@ export function createSignupFlow(options: {
     setState({ status: 'editing', step });
   }
 
-  /** 약관 화면에 들어올 때마다 부른다. 버전이 같으면 초안의 기존 동의가 유지된다. */
+  /** 필수 약관은 prepare 응답을 쓴다. 공개 API에서는 품질 검토 version만 가져온다. */
   async function loadPolicies(current: number, attempt: number): Promise<void> {
     try {
       const versions = await dependencies.loadPolicyVersions(abort.signal);
       if (!isCurrent(current)) return;
-      draftStore.setPolicyVersions(versions);
+      draftStore.setPolicyVersions({
+        terms: enrollment.termConsentVersion,
+        privacy: enrollment.privacyConsentVersion,
+        qualityReview: versions.qualityReview,
+      });
       setState({ status: 'editing', step: 'consents', policies: 'ready' });
     } catch (error) {
       if (!isCurrent(current)) return;
       const delay = POLICY_RETRY_DELAYS_MS[attempt];
       if (classifyAuthRecovery(error).action !== 'retry' || delay === undefined) {
-        setState({ status: 'policyUnavailable', message: SIGNUP_MESSAGES.policyUnavailable });
+        setState({
+          status: 'policyUnavailable',
+          message: GUEST_UPGRADE_MESSAGES.policyUnavailable,
+        });
         return;
       }
       policyTimer = setTimeout(
@@ -245,18 +260,15 @@ export function createSignupFlow(options: {
     advanceFrom('nickname');
   }
 
-  function hasRequiredConsents(): boolean {
-    const { consents } = draftStore.getState();
-    return consents.terms.agreed && consents.privacy.agreed;
-  }
-
   function completeConsents(): void {
     const { state } = store.getState();
+    const { consents } = draftStore.getState();
     if (
       state.status !== 'editing' ||
       state.step !== 'consents' ||
       state.policies !== 'ready' ||
-      !hasRequiredConsents()
+      !consents.terms.agreed ||
+      !consents.privacy.agreed
     )
       return;
     advanceFrom('consents');
@@ -292,24 +304,54 @@ export function createSignupFlow(options: {
     setState({ status: 'failed', step, ...notice });
   }
 
-  /**
-   * 서버가 발급한 세션을 코디네이터에 넘긴다. 가입 요청과 다른 try로 감싸 활성화 실패가
-   * 가입 실패로 분류되지 않게 한다. 계정은 이미 만들어졌으므로 같은 enrollment를 다시
-   * 제출하지 않고 재로그인으로 안내한다(exchange가 AUTHENTICATED를 준다).
-   */
+  /** 서버가 발급한 MEMBER 세션을 코디네이터에 넘긴다. 승격 요청과 다른 try로 감싸 분류를 섞지 않는다. */
   async function complete(session: AuthSession, step: SignupStep): Promise<void> {
     try {
       await options.onComplete(session);
     } catch {
       if (!disposed)
-        fail(step, { message: SIGNUP_MESSAGES.activationFailed, nextAction: 'sign-in-again' });
+        fail(step, {
+          message: GUEST_UPGRADE_MESSAGES.activationFailed,
+          nextAction: 'sign-in-again',
+        });
     }
   }
 
-  /**
-   * 만료·enrollment 충돌 시 같은 ID를 재사용하지 않고 exchange부터 다시 받는다. 입력 초안은 유지한다.
-   * 'continue'면 새 enrollment로 제출을 이어간다. 그 밖에는 이 함수가 다음 상태를 정했다.
-   */
+  /** 새 enrollment의 필수 약관 version으로 바꾼다. 같으면 초안의 동의가 유지되고, 바뀌면 다시 받는다. */
+  function applyEnrollment(next: GuestIdentityEnrollment): void {
+    enrollment = next;
+    steps = decideSignupSteps(next);
+    draftStore.setPolicyVersions({
+      terms: next.termConsentVersion,
+      privacy: next.privacyConsentVersion,
+      qualityReview: draftStore.getState().consents.qualityReview.version,
+    });
+  }
+
+  /** prepare 결과를 반영한다. 'continue'면 새 enrollment로 제출을 이어간다. */
+  function followPreparation(result: IdentityGuestPreparationResult): 'continue' | 'stop' {
+    if (result.kind === 'merge-required') {
+      options.onMergeRequired();
+      return 'stop';
+    }
+    applyEnrollment(result.enrollment);
+    if (steps.includes('phone') && !phone.isVerified()) {
+      goTo('phone');
+      return 'stop';
+    }
+    return 'continue';
+  }
+
+  /** prepare 요청 실패. 409 MERGE_REQUIRED는 결과와 같은 뜻이다. */
+  function failPreparation(error: unknown, step: SignupStep): void {
+    if (error instanceof ApiError && error.code === 'MERGE_REQUIRED') {
+      options.onMergeRequired();
+      return;
+    }
+    fail(step, decideRequestFailureNotice(error));
+  }
+
+  /** 만료·enrollment 충돌 시 같은 ID를 재사용하지 않고 prepare부터 다시 받는다. 입력 초안은 유지한다. */
   async function restartEnrollment(
     current: number,
     step: SignupStep,
@@ -320,34 +362,71 @@ export function createSignupFlow(options: {
       fail(step, decideProofFailureNotice(proof));
       return 'stop';
     }
-    let result: IdentityExchangeResult;
+    let result: IdentityGuestPreparationResult;
     try {
-      result = await dependencies.exchange(proof.firebaseIdToken, abort.signal);
+      const guest = await dependencies.prepareRequest();
+      if (!isCurrent(current)) return 'stop';
+      result = await dependencies.prepare(proof.firebaseIdToken, guest.accessToken, abort.signal);
+    } catch (error) {
+      if (isCurrent(current)) failPreparation(error, step);
+      return 'stop';
+    }
+    if (!isCurrent(current)) return 'stop';
+    return followPreparation(result);
+  }
+
+  /**
+   * 승격 결과를 모를 때 판별한다. exchange의 AUTHENTICATED는 "이 SNS 계정에 MEMBER가 있다"일 뿐이라
+   * 바로 수락하지 않는다. 승격에 쓴 Guest 토큰으로 prepare를 불러 Guest가 아직 살아 있는지 본다.
+   *   403 GUEST_UPGRADE_NOT_ALLOWED → Guest가 승격됨 = 내 승격 성공 → exchange 세션 수락
+   *   MERGE_REQUIRED → Guest가 살아 있고 다른 MEMBER가 주인 → 병합
+   *   ENROLLMENT_REQUIRED → 승격되지 않음 → 새 enrollment로 제출
+   * exchange가 ENROLLMENT_REQUIRED면 승격되지 않은 것이다. direct signup이 아니라 prepare로 돌아간다.
+   */
+  async function reconcile(
+    current: number,
+    step: SignupStep,
+    guestToken: string,
+  ): Promise<'continue' | 'stop'> {
+    const proof = await dependencies.refreshProof(uid);
+    if (!isCurrent(current)) return 'stop';
+    if (proof.kind !== 'proof-ready') {
+      fail(step, decideProofFailureNotice(proof));
+      return 'stop';
+    }
+    let exchanged: IdentityExchangeResult;
+    try {
+      exchanged = await dependencies.exchange(proof.firebaseIdToken, abort.signal);
     } catch (error) {
       if (isCurrent(current)) fail(step, decideRequestFailureNotice(error));
       return 'stop';
     }
     if (!isCurrent(current)) return 'stop';
-    if (result.kind === 'authenticated') {
-      // 이전 제출이 서버에서 성공했지만 응답을 받지 못한 경우다.
-      await complete(result.session, step);
+    if (exchanged.kind === 'enrollment-required') return restartEnrollment(current, step);
+
+    let result: IdentityGuestPreparationResult;
+    try {
+      result = await dependencies.prepare(proof.firebaseIdToken, guestToken, abort.signal);
+    } catch (error) {
+      if (!isCurrent(current)) return 'stop';
+      if (error instanceof ApiError && error.code === 'GUEST_UPGRADE_NOT_ALLOWED') {
+        await complete(exchanged.session, step);
+        return 'stop';
+      }
+      failPreparation(error, step);
       return 'stop';
     }
-    enrollment = result.enrollment;
-    steps = decideSignupSteps(enrollment);
-    if (steps.includes('phone') && !phone.isVerified()) {
-      goTo('phone');
-      return 'stop';
-    }
-    return 'continue';
+    if (!isCurrent(current)) return 'stop';
+    return followPreparation(result);
   }
 
   /** 판단 함수가 고른 행동을 실행한다. 'continue'면 제출 루프를 이어간다. */
   async function carryOut(
-    decision: SignupRecoveryDecision,
-    attempts: SignupSubmitAttempts,
+    decision: GuestUpgradeRecoveryDecision,
+    attempts: GuestUpgradeAttempts,
     current: number,
     step: SignupStep,
+    guestToken: string | null,
   ): Promise<'continue' | 'stop'> {
     switch (decision.kind) {
       case 'resubmit':
@@ -356,9 +435,20 @@ export function createSignupFlow(options: {
       case 'restart-enrollment':
         attempts.restarted = true;
         return restartEnrollment(current, step);
+      case 'reconcile':
+        attempts.reconciled = true;
+        // 토큰 없이 판별할 수 없다. 제출 전에 실패한 경우라 일어나지 않지만 실패로 둔다.
+        if (guestToken === null) {
+          fail(step, { message: GUEST_UPGRADE_MESSAGES.outcomeUnknown, nextAction: 'retry' });
+          return 'stop';
+        }
+        return reconcile(current, step, guestToken);
+      case 'merge-required':
+        options.onMergeRequired();
+        return 'stop';
       case 'phone-required':
         if (!steps.includes('phone')) steps = [...steps, 'phone'];
-        phone.reset(SIGNUP_MESSAGES.phoneRequired);
+        phone.reset(GUEST_UPGRADE_MESSAGES.phoneRequired);
         goTo('phone');
         return 'stop';
       case 'fail':
@@ -373,12 +463,16 @@ export function createSignupFlow(options: {
     const current = run;
     clearPolicyTimer();
     setState({ status: 'submitting', step });
-    const attempts: SignupSubmitAttempts = { proofRetried: false, restarted: false };
+    const attempts: GuestUpgradeAttempts = {
+      proofRetried: false,
+      restarted: false,
+      reconciled: false,
+    };
 
     for (;;) {
       if (Date.now() >= enrollment.expiresAt) {
-        const decision = decideEnrollmentRestart(attempts);
-        if ((await carryOut(decision, attempts, current, step)) === 'stop') return;
+        const decision = decideGuestIdentityEnrollmentRestart(attempts);
+        if ((await carryOut(decision, attempts, current, step, null)) === 'stop') return;
       }
 
       const draft = draftStore.getState();
@@ -400,6 +494,16 @@ export function createSignupFlow(options: {
         return;
       }
 
+      let guest: RequestAuthSnapshot;
+      try {
+        guest = await dependencies.prepareRequest();
+      } catch (error) {
+        // Guest 세션이 무효면 세션 컨트롤러 알림으로 코디네이터가 흐름을 끝낸다.
+        if (isCurrent(current)) fail(step, decideRequestFailureNotice(error));
+        return;
+      }
+      if (!isCurrent(current)) return;
+
       let session: AuthSession;
       try {
         session = await dependencies.submit(
@@ -412,12 +516,14 @@ export function createSignupFlow(options: {
             isQualityReviewConsented: qualityReview.agreed,
             qualityReviewConsentVersion: qualityReview.version,
           },
+          guest.accessToken,
           abort.signal,
         );
       } catch (error) {
         if (!isCurrent(current)) return;
-        const decision = decideSignupRecovery(error, attempts);
-        if ((await carryOut(decision, attempts, current, step)) === 'stop') return;
+        const decision = decideGuestUpgradeRecovery(error, attempts);
+        if ((await carryOut(decision, attempts, current, step, guest.accessToken)) === 'stop')
+          return;
         continue;
       }
       if (!isCurrent(current)) return;
@@ -433,7 +539,7 @@ export function createSignupFlow(options: {
     const step = state.status === 'policyUnavailable' ? 'consents' : state.step;
     run += 1;
     clearPolicyTimer();
-    fail(step, { message: SIGNUP_MESSAGES.signInAgain, nextAction: 'sign-in-again' });
+    fail(step, { message: GUEST_UPGRADE_MESSAGES.signInAgain, nextAction: 'sign-in-again' });
   }
 
   function retrySubmit(): void {
@@ -452,7 +558,7 @@ export function createSignupFlow(options: {
         return;
     }
     const unhandled: never = state.nextAction;
-    throw new Error(`처리하지 않은 가입 실패 행동: ${unhandled}`);
+    throw new Error(`처리하지 않은 승격 실패 행동: ${unhandled}`);
   }
 
   function getForegroundRecoveryState(): AuthForegroundRecoveryState {

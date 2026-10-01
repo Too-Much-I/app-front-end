@@ -847,6 +847,88 @@ await check('가입 요구사항 전달 및 이전 가입 흐름의 완료 무�
   assert.equal(h.coordinator.getState().state.status, 'authenticated');
 });
 
+await check(
+  'Guest 승격: 이전 흐름의 병합 요청 무시, Guest 세션 무효면 승격 흐름만 종료',
+  async () => {
+    const guestEnrollment = {
+      origin: 'guest',
+      enrollmentId: 'guest-enrollment',
+      missingRequirements: ['PROFILE'],
+      expiresAt: now + 1000,
+      privacyConsentVersion: 'privacy-v1',
+      termConsentVersion: 'term-v1',
+    };
+    const h = identityHarness('guest');
+    h.login.prepare = async () => ({ kind: 'enrollment-required', enrollment: guestEnrollment });
+    await h.coordinator.bootstrap();
+    await h.coordinator.signIn('google');
+    const old = h.coordinator.getState().state;
+    assert.equal(old.status, 'signingUp');
+    h.coordinator.cancelLogin();
+    await h.coordinator.signIn('apple');
+    h.coordinator.requireMerge(old.flowId);
+    const current = h.coordinator.getState().state;
+    assert.equal(current.status, 'signingUp');
+    h.coordinator.requireMerge(current.flowId);
+    assert.deepEqual(h.coordinator.getState().state, {
+      status: 'mergeRequired',
+      flowId: current.flowId,
+    });
+
+    const lost = identityHarness('guest');
+    lost.login.prepare = async () => ({ kind: 'enrollment-required', enrollment: guestEnrollment });
+    await lost.coordinator.bootstrap();
+    await lost.coordinator.signIn('google');
+    // Guest가 그대로이거나 일시적인 실패면 승격 화면을 유지한다.
+    lost.coordinator.handleSessionResult({ kind: 'ready', accountType: 'GUEST' });
+    lost.coordinator.handleSessionResult({
+      kind: 'recovery-required',
+      reason: 'connection',
+      action: 'retry',
+    });
+    assert.equal(lost.coordinator.getState().state.status, 'signingUp');
+    lost.coordinator.handleSessionResult({ kind: 'login-required' });
+    assert.equal(lost.coordinator.getState().state.status, 'noSession');
+
+    // direct signup은 Guest 세션을 쓰지 않으므로 세션 알림에 영향받지 않는다.
+    const direct = identityHarness();
+    direct.login.exchange = async () => ({
+      kind: 'enrollment-required',
+      enrollment: { ...guestEnrollment, origin: 'noSession' },
+    });
+    await direct.coordinator.bootstrap();
+    await direct.coordinator.signIn('google');
+    direct.coordinator.handleSessionResult({ kind: 'login-required' });
+    assert.equal(direct.coordinator.getState().state.status, 'signingUp');
+  },
+);
+
+await check(
+  '이미 승격된 Guest로 다시 로그인하면 exchange로 MEMBER 세션, 다른 prepare 오류는 기존 처리',
+  async () => {
+    const upgraded = identityHarness('guest');
+    upgraded.login.prepare = async () => {
+      upgraded.calls.prepare++;
+      throw new ApiError(403, 'not guest', 'GUEST_UPGRADE_NOT_ALLOWED');
+    };
+    await upgraded.coordinator.bootstrap();
+    await upgraded.coordinator.signIn('google');
+    assert.equal(upgraded.calls.prepare, 1);
+    assert.equal(upgraded.calls.exchange, 1);
+    assert.equal(upgraded.calls.activate, 1);
+    assert.equal(upgraded.coordinator.getState().state.status, 'authenticated');
+
+    const conflict = identityHarness('guest');
+    conflict.login.prepare = async () => {
+      throw new ApiError(409, 'conflict', 'IDENTITY_STATE_CONFLICT');
+    };
+    await conflict.coordinator.bootstrap();
+    await conflict.coordinator.signIn('google');
+    assert.equal(conflict.calls.exchange, 0);
+    assert.equal(conflict.coordinator.getState().state.status, 'loginError');
+  },
+);
+
 await check('저장 실패에도 새 세션으로 API 사용 / 재활성화 시 저장만 재시도', async () => {
   const h = harness(null);
   let fail = true;

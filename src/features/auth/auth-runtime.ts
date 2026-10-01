@@ -3,12 +3,14 @@ import { exchangeFirebaseProof } from '@/features/auth/api/exchange-firebase-pro
 import { getPolicyVersions } from '@/features/auth/api/get-policy-versions';
 import { prepareGuestEnrollment } from '@/features/auth/api/prepare-guest-enrollment';
 import { submitFirebaseSignup } from '@/features/auth/api/submit-firebase-signup';
+import { submitGuestUpgrade } from '@/features/auth/api/submit-guest-upgrade';
 import { createFirebaseAuthController } from '@/features/auth/firebase-auth-controller';
 import type { FirebaseAuthSdk } from '@/features/auth/firebase-auth-types';
 
 import { createAuthConsentController } from '@/features/auth/auth-consent-controller';
 import { createAuthCoordinator } from '@/features/auth/auth-coordinator';
 import { observeAuthForegroundRecovery } from '@/features/auth/auth-foreground-recovery';
+import { createGuestUpgradeFlow } from '@/features/auth/guest-upgrade-flow';
 import { createSessionController } from '@/features/auth/session-controller';
 import { createSignupFlow } from '@/features/auth/signup-flow';
 import { createSignupPhoneVerification } from '@/features/auth/signup-phone-verification';
@@ -47,11 +49,15 @@ export function createAuthRuntime(options: {
     subscribe: coordinator.subscribe,
     retry: coordinator.retry,
   });
-  /** direct signup 화면이 흐름마다 한 번 만들고, 화면이 사라질 때 dispose한다. */
-  function startSignup(input: {
+  /**
+   * 가입 화면이 흐름마다 한 번 만들고, 화면이 사라질 때 dispose한다. enrollment 출처로 흐름을 고른다:
+   * exchange에서 받은 것은 direct signup, Guest prepare에서 받은 것은 승격. 화면은 같다.
+   */
+  function startEnrollment(input: {
     enrollment: IdentityEnrollment;
     uid: string;
     onComplete: (session: AuthSession) => Promise<void>;
+    onMergeRequired: () => void;
   }) {
     const phone = createSignupPhoneVerification({
       uid: input.uid,
@@ -59,19 +65,38 @@ export function createAuthRuntime(options: {
       // 흐름은 전화 인증 컨트롤러를 받아 만들어지므로 호출 시점에 참조한다.
       onReauthRequired: () => flow.requireSignInAgain(),
     });
-    const flow = createSignupFlow({
-      enrollment: input.enrollment,
-      uid: input.uid,
-      draftStore: coordinator.signupDraft,
-      phone,
-      dependencies: {
-        refreshProof: firebase.refreshProof,
-        exchange: exchangeFirebaseProof,
-        submit: submitFirebaseSignup,
-        loadPolicyVersions: getPolicyVersions,
-      },
-      onComplete: input.onComplete,
-    });
+    const { enrollment } = input;
+    const flow =
+      enrollment.origin === 'guest'
+        ? createGuestUpgradeFlow({
+            enrollment,
+            uid: input.uid,
+            draftStore: coordinator.signupDraft,
+            phone,
+            dependencies: {
+              refreshProof: firebase.refreshProof,
+              prepareRequest: session.prepareRequest,
+              prepare: prepareGuestEnrollment,
+              exchange: exchangeFirebaseProof,
+              submit: submitGuestUpgrade,
+              loadPolicyVersions: getPolicyVersions,
+            },
+            onComplete: input.onComplete,
+            onMergeRequired: input.onMergeRequired,
+          })
+        : createSignupFlow({
+            enrollment,
+            uid: input.uid,
+            draftStore: coordinator.signupDraft,
+            phone,
+            dependencies: {
+              refreshProof: firebase.refreshProof,
+              exchange: exchangeFirebaseProof,
+              submit: submitFirebaseSignup,
+              loadPolicyVersions: getPolicyVersions,
+            },
+            onComplete: input.onComplete,
+          });
     return { flow, phone };
   }
   const dispose = () => {
@@ -83,5 +108,5 @@ export function createAuthRuntime(options: {
     session.dispose();
   };
 
-  return { session, consent, coordinator, api, startSignup, dispose };
+  return { session, consent, coordinator, api, startEnrollment, dispose };
 }
