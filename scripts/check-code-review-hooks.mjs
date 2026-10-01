@@ -21,8 +21,8 @@ const root = mkdtempSync(join(tmpdir(), 'code-review-hook-test-'));
 const cli = resolve(dirname(fileURLToPath(import.meta.url)), 'code-review/cli.mjs');
 const key = reviewSessionKey('session-A');
 const LEARNING = 'docs/learning/2026-10-01-test.md';
-const learningRecord = ({ prediction = '- 예상: 값이 2가 된다', rest = '' } = {}) =>
-  `# 작업\n\n## 구현 전 예상\n<!-- 안내 -->\n${prediction}\n\n## 시나리오 지도\n\n${rest}`;
+const learningRecord = ({ design = '- 최종: 값이 2가 된다', rest = '' } = {}) =>
+  `# 작업\n\n## 설계 논의\n<!-- 안내 -->\n${design}\n\n## 시나리오 지도\n\n${rest}`;
 const event = {
   session_id: 'session-A',
   hook_event_name: 'Stop',
@@ -349,35 +349,41 @@ try {
     assert.deepEqual(handleReviewStop(root, event), {});
     assert.equal(runRecord(runId).evaluationRequest.status, 'resolved');
   });
-  check('학습 기록 없이, 또는 예상이 비어 있으면 구현을 시작하지 않는다', () => {
+  check('학습 기록 없이, 또는 설계 논의가 비어 있으면 구현을 시작하지 않는다', () => {
     const blank = 'docs/learning/2026-10-01-blank.md';
-    write(blank, learningRecord({ prediction: '- 예상:\n- 이유:\n- 반증:' }));
+    write(
+      blank,
+      learningRecord({
+        design:
+          '- 쟁점:\n  - 처음 판단:\n  - 바뀐 계기:\n  - 최종:\n- 다룬 실패 범위:\n- 다루지 않은 것:\n- 반증:',
+      }),
+    );
     assert.throws(() => beginReviewCycle(root, key, '경로 없음'), /학습 기록 경로/);
     assert.throws(
       () => beginReviewCycle(root, key, 'README', 'docs/learning/README.md'),
       /학습 기록 경로/,
     );
-    assert.throws(() => beginReviewCycle(root, key, '빈 예상', blank), /비어 있습니다/);
+    assert.throws(() => beginReviewCycle(root, key, '빈 설계 논의', blank), /비어 있습니다/);
     assert.throws(
       () => beginReviewCycle(root, key, '없는 파일', 'docs/learning/none.md'),
       /없습니다/,
     );
   });
-  check('시작 시점의 예상을 고정하고, 완료 때 바뀐 예상과 빈 섹션을 알린다', () => {
+  check('시작 시점의 설계 논의를 고정하고, 완료 때 바뀐 기록과 빈 섹션을 알린다', () => {
     write(LEARNING, learningRecord());
-    ({ runId } = beginReviewCycle(root, key, '예상 고정', LEARNING));
-    assert.equal(runRecord(runId).learning.prediction, '- 예상: 값이 2가 된다');
+    ({ runId } = beginReviewCycle(root, key, '설계 논의 고정', LEARNING));
+    assert.equal(runRecord(runId).learning.design, '- 최종: 값이 2가 된다');
     write(
       LEARNING,
-      learningRecord({ prediction: '- 예상: 나중에 고친 예상', rest: '## 흐름 설명\n설명함\n' }),
+      learningRecord({ design: '- 최종: 나중에 고친 설계', rest: '## 흐름 설명\n설명함\n' }),
     );
     write('src/new.ts', 'export const next = 7;\n');
     readyReviewCycle(root, key, ['src/new.ts']);
     handleReviewStop(root, event, passed);
     const report = submitReview(root, runId, { summary: '지적 없음', findings: [] });
-    assert.equal(runRecord(runId).learning.prediction, '- 예상: 값이 2가 된다');
-    assert.equal(report.learning.predictionChanged, true);
-    assert.deepEqual(report.learning.missing, ['내가 찾은 것', '예상과 달라진 것']);
+    assert.equal(runRecord(runId).learning.design, '- 최종: 값이 2가 된다');
+    assert.equal(report.learning.designChanged, true);
+    assert.deepEqual(report.learning.missing, ['내가 찾은 것', '설계와 달라진 것']);
   });
   check('동작 변화 없음 선언은 학습 기록 없이 시작한다', () => {
     ({ runId } = beginReviewCycle(root, key, '포맷', '동작 변화 없음'));
@@ -385,7 +391,7 @@ try {
     cancelReviewCycle(root, key);
   });
   check('CI 머지 조건: 문서만·선언·완성된 학습 기록만 통과', () => {
-    const filled = `## 구현 전 예상\n- 예상: A\n## 내가 찾은 것\nB\n## 흐름 설명\nC\n## 예상과 달라진 것\nD\n`;
+    const filled = `## 설계 논의\n- 최종: A\n## 내가 찾은 것\nB\n## 흐름 설명\nC\n## 설계와 달라진 것\nD\n`;
     const files = { 'docs/learning/2026-10-01-a.md': filled };
     const decide = (changedFiles, prBody = '', addedFiles = changedFiles) =>
       evaluateLearningRecord({ changedFiles, addedFiles, prBody, readFile: (path) => files[path] })
@@ -404,7 +410,7 @@ try {
     assert.equal(decide(['src/a.ts', 'docs/learning/README.md']), false);
     // 제목 표기(# 개수, # 뒤 공백, 제목 안 띄어쓰기)는 너그럽게 받는다.
     files['docs/learning/2026-10-01-c.md'] =
-      `### 구현 전 예상\nA\n##내가 찾은 것\nB\n## 흐름설명\nC\n#### 예상과  달라진 것 ##\nD\n`;
+      `### 설계 논의\nA\n##내가 찾은 것\nB\n## 흐름설명\nC\n#### 설계와  달라진 것 ##\nD\n`;
     assert.equal(decide(['src/a.ts', 'docs/learning/2026-10-01-c.md']), true);
     // 이미 채워진 이전 작업의 기록을 수정만 한 PR은 통과하지 않는다.
     const oldRecord = ['src/a.ts', 'docs/learning/2026-10-01-a.md'];

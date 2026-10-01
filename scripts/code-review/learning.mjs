@@ -2,14 +2,15 @@
 // 형식과 배경: docs/learning/README.md, docs/how-we-work.md
 
 export const LEARNING_DIRECTORY = 'docs/learning/';
-export const PREDICTION_SECTION = '구현 전 예상';
-/** 사람이 쓰는 섹션. 시나리오 지도는 AI가 쓰므로 머지 조건에 넣지 않는다. */
-export const HUMAN_SECTIONS = [PREDICTION_SECTION, '내가 찾은 것', '흐름 설명', '예상과 달라진 것'];
+/** 1·2단계 대화를 AI가 모으고 사람이 확인한다. 구현 시작 시점의 내용을 고정한다. */
+export const DESIGN_SECTION = '설계 논의';
+/** 채워야 머지되는 섹션. 시나리오 지도는 AI가 쓰므로 넣지 않는다. 나머지 셋은 사람이 쓴다. */
+export const REQUIRED_SECTIONS = [DESIGN_SECTION, '내가 찾은 것', '흐름 설명', '설계와 달라진 것'];
 /** PR 본문에 이 줄과 사유가 있으면 학습 기록 없이 통과한다. */
 export const NO_BEHAVIOR_CHANGE = '동작 변화 없음';
 
 // 템플릿이 미리 채워 두는 빈 항목. 이것만 남아 있으면 쓰지 않은 것으로 본다.
-const TEMPLATE_LINE = /^-\s*(예상|이유|반증)\s*:\s*$/;
+const TEMPLATE_LINE = /^-\s*(쟁점|처음 판단|바뀐 계기|최종|다룬 실패 범위|다루지 않은 것|반증)\s*:\s*$/;
 
 export function isLearningRecordPath(path) {
   return (
@@ -65,7 +66,7 @@ export function sectionContent(text = '') {
     .join('\n');
 }
 
-export function missingHumanSections(markdown, sections = HUMAN_SECTIONS) {
+export function missingSections(markdown, sections = REQUIRED_SECTIONS) {
   return sections.filter((title) => !readSectionContent(markdown, title));
 }
 
@@ -106,7 +107,7 @@ export function evaluateLearningRecord({ changedFiles, addedFiles, prBody, readF
       reason: `${modifiedOnly ? '이전 학습 기록을 수정한 것은 인정되지 않습니다. ' : ''}이 작업의 학습 기록(${LEARNING_DIRECTORY}YYYY-MM-DD-<작업>.md)을 새로 추가하거나, 설명할 동작 변화가 없으면 PR 본문에 "${NO_BEHAVIOR_CHANGE}: <실제 사유>"를 적어주세요.`,
     };
   }
-  const results = records.map((path) => ({ path, missing: missingHumanSections(readFile(path)) }));
+  const results = records.map((path) => ({ path, missing: missingSections(readFile(path)) }));
   const complete = results.find((result) => result.missing.length === 0);
   if (complete) return { ok: true, reason: `학습 기록: ${complete.path}` };
   return {

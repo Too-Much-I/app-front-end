@@ -4,8 +4,8 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync
 import { dirname, join } from "node:path";
 
 import {
-  HUMAN_SECTIONS, NO_BEHAVIOR_CHANGE, PREDICTION_SECTION, isLearningRecordPath,
-  missingHumanSections, readSectionContent,
+  REQUIRED_SECTIONS, NO_BEHAVIOR_CHANGE, DESIGN_SECTION, isLearningRecordPath,
+  missingSections, readSectionContent,
 } from "./learning.mjs";
 
 const SKILL = ".agents/skills/review-completed-code/SKILL.md";
@@ -92,7 +92,7 @@ function save(root, run) {
 }
 
 /**
- * 구현 전 예상을 이 시점의 내용으로 고정한다. 구현 뒤 예상을 고쳐 써도 원래 예상이 남는다.
+ * 설계 논의를 이 시점의 내용으로 고정한다. 구현 뒤 고쳐 써도 원래 기록이 남는다.
  * 설명할 동작 변화가 없다고 선언한 작업만 학습 기록 없이 시작한다.
  */
 function learningSnapshot(root, learning) {
@@ -102,11 +102,11 @@ function learningSnapshot(root, learning) {
   }
   const absolute = join(root, learning);
   if (!existsSync(absolute)) throw new Error(`학습 기록이 없습니다: ${learning}`);
-  const prediction = readSectionContent(readFileSync(absolute, "utf8"), PREDICTION_SECTION);
-  if (!prediction) {
-    throw new Error(`"${PREDICTION_SECTION}"이 비어 있습니다. 사용자가 예상을 쓴 뒤 시작하세요. AI가 대신 쓰지 않습니다.`);
+  const design = readSectionContent(readFileSync(absolute, "utf8"), DESIGN_SECTION);
+  if (!design) {
+    throw new Error(`"${DESIGN_SECTION}"가 비어 있습니다. 1·2단계 대화를 모아 쓰고 사용자가 확인한 뒤 시작하세요.`);
   }
-  return { path: learning, prediction, capturedAt: new Date().toISOString() };
+  return { path: learning, design, capturedAt: new Date().toISOString() };
 }
 
 /** 리뷰 완료 시 사용자에게 전할 학습 기록 상태. 머지 조건은 CI가 판단한다. */
@@ -114,13 +114,13 @@ function learningStatus(root, run) {
   const learning = run.learning;
   if (!learning?.path) return learning ?? null;
   const absolute = join(root, learning.path);
-  if (!existsSync(absolute)) return { path: learning.path, missing: HUMAN_SECTIONS, predictionChanged: true };
+  if (!existsSync(absolute)) return { path: learning.path, missing: REQUIRED_SECTIONS, designChanged: true };
   const markdown = readFileSync(absolute, "utf8");
-  const current = readSectionContent(markdown, PREDICTION_SECTION);
+  const current = readSectionContent(markdown, DESIGN_SECTION);
   return {
     path: learning.path,
-    missing: missingHumanSections(markdown),
-    predictionChanged: current !== learning.prediction,
+    missing: missingSections(markdown),
+    designChanged: current !== learning.design,
   };
 }
 
@@ -380,7 +380,7 @@ export function reviewSessionContext(sessionId) {
   return {
     hookSpecificOutput: {
       hookEventName: "SessionStart",
-      additionalContext: `이 저장소의 코드 리뷰 세션 키: ${key}. 문서/상담에는 리뷰를 시작하지 않는다. 코드 구현 전 사용자가 docs/learning/YYYY-MM-DD-<작업>.md의 "구현 전 예상"을 쓰게 하고(AI가 대신 쓰지 않는다), node scripts/code-review/cli.mjs begin ${key} "작업 설명" <학습 기록 경로>로 기준 상태와 예상을 저장한다. 설명할 동작 변화가 없다고 사용자가 선언한 작업만 경로 대신 "동작 변화 없음"을 쓴다. 구현을 마친 뒤 node scripts/code-review/cli.mjs ready ${key} <직접 구현한 파일 경로들>을 실행하면 Stop 훅이 필수 검사 후 리뷰를 요청한다. 현재 세션의 실행은 status ${key}로 확인한다. 재개 시 중복 begin하지 않는다. 사용자 평가를 대신 작성하지 않는다. 상세: docs/code-review-cycle.md.`,
+      additionalContext: `이 저장소의 코드 리뷰 세션 키: ${key}. 문서/상담에는 리뷰를 시작하지 않는다. 코드 구현 전 1·2단계 대화를 모아 docs/learning/YYYY-MM-DD-<작업>.md의 "설계 논의"를 쓰고(사용자 판단은 원문 인용, AI 발언은 "AI 제안" 표시, 반증은 사용자가 쓴다) 사용자 확인을 받은 뒤, node scripts/code-review/cli.mjs begin ${key} "작업 설명" <학습 기록 경로>로 기준 상태와 설계 논의를 저장한다. 설명할 동작 변화가 없다고 사용자가 선언한 작업만 경로 대신 "동작 변화 없음"을 쓴다. 구현을 마친 뒤 node scripts/code-review/cli.mjs ready ${key} <직접 구현한 파일 경로들>을 실행하면 Stop 훅이 필수 검사 후 리뷰를 요청한다. 현재 세션의 실행은 status ${key}로 확인한다. 재개 시 중복 begin하지 않는다. 사용자 평가를 대신 작성하지 않는다. 상세: docs/code-review-cycle.md.`,
     },
   };
 }
