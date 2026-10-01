@@ -1,1 +1,39 @@
+# CodeRabbit 설정. 스키마: https://coderabbit.ai/integrations/schema.v2.json
 language: ko-KR
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - '**/AGENTS.md'
+      # 정본(사람이 검증한 기준 구현과 지켜야 할 성질)과 함수 동사 사전은 앱 코드에만 적용한다.
+      - files: 'docs/architecture/05-declarative-code.md,docs/architecture/01-naming-dictionary.md'
+        applyTo: 'src/**/*.ts,src/**/*.tsx'
+
+reviews:
+  path_instructions:
+    # 정본이 정해진 영역만 지시한다. 새 영역의 정본이 정해지면 여기에 추가한다.
+    - path: 'src/**/*.{ts,tsx}'
+      instructions: |
+        판단 함수(결과를 값으로 돌려주는 순수 함수, 보통 decide*/resolve*)와 그 결과를 소비하는 switch는
+        docs/architecture/05-declarative-code.md의 "정본: 판단 함수" 절과 비교해 리뷰한다.
+        정본: src/screens/challenge/challenge-stage-status.ts(파일 전체),
+        src/features/exam/part-prelude.ts의 PartPreludeDecision·decidePartPrelude(이 두 선언만),
+        src/screens/mock-exam/hooks/exam-session-store.ts에서 decidePartPrelude 결과를 소비하는 switch.
+
+        특히 다음을 확인한다.
+        1. 상태와 그 상태에서 유효한 데이터를 union으로 묶었는가(공통 타입의 선택 필드로 흩지 않았는가).
+        2. 판단 함수가 스토어·네트워크·로그 같은 부수효과 없이 값을 돌려주는가.
+        3. 판단 함수가 다른 판단 함수를 연달아 불러 읽는 시점이 옮겨 다니지 않는가.
+        4. 동사가 docs/architecture/01-naming-dictionary.md C절과 맞는가. 분기 판정은 decide*,
+           여러 입력에서 하나를 고르는 것은 resolve*. I/O를 하는 함수에 resolve*를 쓰지 않는다.
+        5. 함수 이름·매개변수 이름·반환 타입 이름만으로 "무엇을 받아 무엇을 돌려주는지" 한 문장으로
+           말할 수 있는가. 주석은 무엇이 아니라 이유와 정책을 설명하는가.
+        6. 결과 union을 소비하는 switch는 default에 `const unhandled: never` 검사를 두고, 판단 함수는
+           명시적 반환 타입으로 입력 union의 누락을 드러내는가.
+        7. switch의 default가 실행 시점에 타입을 피해 들어온 값(서버가 타입에 없는 값을 보내는 경우 등)을
+           만나도 앱을 멈추지 않고 기능의 오류 정책(오류 화면 전환, 운영 오류 보고 등)을 따르는가.
+        8. 한 파일이 한 주제만 다루는가(판정과 원본 데이터 정리 등을 섞지 않는가).
+
+        지적에는 어긋난 성질 번호와 정본의 어느 부분과 다른지를 함께 적는다. 정본이 아직 없는 영역
+        (컨트롤러 수명주기, API 모듈·매퍼, 표시 컴포넌트, 훅)은 이 지시를 근거로 지적하지 않는다.
