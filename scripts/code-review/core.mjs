@@ -3,6 +3,11 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
+import {
+  HUMAN_SECTIONS, NO_BEHAVIOR_CHANGE, PREDICTION_SECTION, isLearningRecordPath,
+  missingHumanSections, readSectionContent,
+} from "./learning.mjs";
+
 const SKILL = ".agents/skills/review-completed-code/SKILL.md";
 const DATA = "output/code-review";
 const LABELS = ["useful", "out-of-scope", "unsupported", "incorrect", "deferred"];
@@ -62,7 +67,7 @@ function fingerprint(snapshotValue) {
 }
 
 function revision(root) {
-  const files = [SKILL, "scripts/code-review/core.mjs", "scripts/code-review/cli.mjs"];
+  const files = [SKILL, "scripts/code-review/core.mjs", "scripts/code-review/cli.mjs", "scripts/code-review/learning.mjs"];
   return hash(files.map((file) => readFileSync(join(root, file), "utf8")).join("\0")).slice(0, 12);
 }
 
@@ -86,7 +91,40 @@ function save(root, run) {
   atomicJson(runPath(root, run.id), run);
 }
 
-export function beginReviewCycle(root, key, task, mode = "review") {
+/**
+ * 구현 전 예상을 이 시점의 내용으로 고정한다. 구현 뒤 예상을 고쳐 써도 원래 예상이 남는다.
+ * 설명할 동작 변화가 없다고 선언한 작업만 학습 기록 없이 시작한다.
+ */
+function learningSnapshot(root, learning) {
+  if (learning === NO_BEHAVIOR_CHANGE) return { declared: NO_BEHAVIOR_CHANGE };
+  if (!learning || !isLearningRecordPath(learning)) {
+    throw new Error(`학습 기록 경로(docs/learning/YYYY-MM-DD-<작업>.md) 또는 "${NO_BEHAVIOR_CHANGE}" 선언이 필요합니다.`);
+  }
+  const absolute = join(root, learning);
+  if (!existsSync(absolute)) throw new Error(`학습 기록이 없습니다: ${learning}`);
+  const prediction = readSectionContent(readFileSync(absolute, "utf8"), PREDICTION_SECTION);
+  if (!prediction) {
+    throw new Error(`"${PREDICTION_SECTION}"이 비어 있습니다. 사용자가 예상을 쓴 뒤 시작하세요. AI가 대신 쓰지 않습니다.`);
+  }
+  return { path: learning, prediction, capturedAt: new Date().toISOString() };
+}
+
+/** 리뷰 완료 시 사용자에게 전할 학습 기록 상태. 머지 조건은 CI가 판단한다. */
+function learningStatus(root, run) {
+  const learning = run.learning;
+  if (!learning?.path) return learning ?? null;
+  const absolute = join(root, learning.path);
+  if (!existsSync(absolute)) return { path: learning.path, missing: HUMAN_SECTIONS, predictionChanged: true };
+  const markdown = readFileSync(absolute, "utf8");
+  const current = readSectionContent(markdown, PREDICTION_SECTION);
+  return {
+    path: learning.path,
+    missing: missingHumanSections(markdown),
+    predictionChanged: current !== learning.prediction,
+  };
+}
+
+export function beginReviewCycle(root, key, task, learning, mode = "review") {
   if (!task?.trim()) throw new Error("작업 설명이 필요합니다.");
   if (!["review", "checks-only"].includes(mode)) throw new Error("mode: review 또는 checks-only");
   const previous = active(root, key);
@@ -96,6 +134,7 @@ export function beginReviewCycle(root, key, task, mode = "review") {
   const run = {
     schemaVersion: 1, id: randomUUID(), key, task, mode,
     revision: revision(root), startedAt: new Date().toISOString(), phase: "implementing",
+    learning: learningSnapshot(root, learning),
     baseline: snapshot(root), findings: [], evaluations: [], checks: [], attempts: [],
   };
   save(root, run);
@@ -229,7 +268,7 @@ function processReadyReview(root, run, runChecks) {
   save(root, run);
   return {
     decision: "block",
-    reason: `구현 검사 통과. ${SKILL}을 읽고 node scripts/code-review/cli.mjs packet ${run.id}로 변경 범위를 확인해 구조 리뷰하세요. 자동 수정하지 마세요. 결과 JSON을 작성하고 node scripts/code-review/cli.mjs submit ${run.id} <결과파일>로 기록한 뒤 사용자에게 제안과 평가 방법을 알려주세요. 지적이 없으면 빈 findings를 제출하세요. 이 실행의 리뷰 요청은 한 번만 전달됩니다.`,
+    reason: `구현 검사 통과. ${SKILL}을 읽고 node scripts/code-review/cli.mjs packet ${run.id}로 변경 범위를 확인해 구조 리뷰하세요. 자동 수정하지 마세요. 결과 JSON을 작성하고 node scripts/code-review/cli.mjs submit ${run.id} <결과파일>로 기록한 뒤 사용자에게 제안과 평가 방법을 알려주세요. 지적이 없으면 빈 findings를 제출하세요. 학습 기록이 있으면 그 파일의 "시나리오 지도"에 깨질 수 있는 시나리오 3개(시작 조건·찾을 질문·파일:줄, 답과 힌트 없이)를 쓰고, submit 응답의 learning.missing을 사용자에게 알리세요. 사람이 쓰는 섹션은 대신 쓰지 마세요. 이 실행의 리뷰 요청은 한 번만 전달됩니다.`,
   };
 }
 
@@ -237,7 +276,7 @@ export function reviewPacket(root, id) {
   const run = readJson(runPath(root, id));
   return {
     runId: run.id, task: run.task, phase: run.phase, revision: run.revision,
-    changes: run.changes, checks: run.checks,
+    changes: run.changes, checks: run.checks, learning: run.learning ?? null,
   };
 }
 
@@ -270,7 +309,10 @@ export function submitReview(root, id, report) {
   const question = evaluationQuestion(run);
   if (question) run.evaluationRequest = { status: "pending", text: question };
   save(root, run);
-  return { runId: id, findings: run.findings, awaitingHumanEvaluation: run.findings.length, evaluationQuestion: question };
+  return {
+    runId: id, findings: run.findings, awaitingHumanEvaluation: run.findings.length, evaluationQuestion: question,
+    learning: learningStatus(root, run),
+  };
 }
 
 export function evaluateFinding(root, id, findingId, label, note = "") {
@@ -338,7 +380,7 @@ export function reviewSessionContext(sessionId) {
   return {
     hookSpecificOutput: {
       hookEventName: "SessionStart",
-      additionalContext: `이 저장소의 코드 리뷰 세션 키: ${key}. 사용자 스켈레톤/문서/상담에는 리뷰를 시작하지 않는다. 승인된 코드 구현을 시작하기 전 node scripts/code-review/cli.mjs begin ${key} "작업 설명"으로 기준 상태를 저장한다. 구현을 마친 뒤 node scripts/code-review/cli.mjs ready ${key} <직접 구현한 파일 경로들>을 실행하면 Stop 훅이 필수 검사 후 리뷰를 요청한다. 현재 세션의 실행은 status ${key}로 확인한다. 재개 시 중복 begin하지 않는다. 사용자 평가를 대신 작성하지 않는다. 상세: docs/code-review-cycle.md.`,
+      additionalContext: `이 저장소의 코드 리뷰 세션 키: ${key}. 문서/상담에는 리뷰를 시작하지 않는다. 코드 구현 전 사용자가 docs/learning/YYYY-MM-DD-<작업>.md의 "구현 전 예상"을 쓰게 하고(AI가 대신 쓰지 않는다), node scripts/code-review/cli.mjs begin ${key} "작업 설명" <학습 기록 경로>로 기준 상태와 예상을 저장한다. 설명할 동작 변화가 없다고 사용자가 선언한 작업만 경로 대신 "동작 변화 없음"을 쓴다. 구현을 마친 뒤 node scripts/code-review/cli.mjs ready ${key} <직접 구현한 파일 경로들>을 실행하면 Stop 훅이 필수 검사 후 리뷰를 요청한다. 현재 세션의 실행은 status ${key}로 확인한다. 재개 시 중복 begin하지 않는다. 사용자 평가를 대신 작성하지 않는다. 상세: docs/code-review-cycle.md.`,
     },
   };
 }

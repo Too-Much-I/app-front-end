@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "check:architecture": "node scripts/check-architecture.mjs",
     "check:naming": "node scripts/check-naming.mjs",
+    "check:learning": "node scripts/check-learning-record.mjs",
     "deps:graph": "depcruise index.ts App.tsx src --config .dependency-cruiser.cjs --output-type mermaid --collapse '^(?:src/(?:features|screens|components)/[^/]+|src/(?:navigation|lib|theme|types))' --output-to docs/architecture/generated/dependency-graph.mmd",
     "format": "prettier --write \"src/**/*.{ts,tsx,js}\" \"scripts/**/*.{js,mjs,cjs}\" \"*.{js,cjs,mjs,ts,tsx,json}\" \".github/**/*.{yml,yaml}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js}\" \"scripts/**/*.{js,mjs,cjs}\" \"*.{js,cjs,mjs,ts,tsx,json}\" \".github/**/*.{yml,yaml}\""

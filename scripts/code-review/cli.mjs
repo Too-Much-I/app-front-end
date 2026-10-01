@@ -21,7 +21,7 @@ try {
       else if (event.hook_event_name === "Stop") result = handleReviewStop(root, event);
       else result = {};
       break;
-    case "begin": result = beginReviewCycle(root, args[0], args[1], args[2]); break;
+    case "begin": result = beginReviewCycle(root, args[0], args[1], args[2], args[3]); break;
     case "ready": result = readyReviewCycle(root, args[0], args.slice(1)); break;
     case "submit": result = submitReview(root, args[0], JSON.parse(readFileSync(args[1], "utf8"))); break;
     case "rate": result = evaluateFinding(root, args[0], args[1], args[2], args[3]); break;
@@ -32,10 +32,10 @@ try {
       if (!/^[a-f0-9]{16}$/.test(args[0] ?? "")) throw new Error("올바른 세션 키가 필요합니다.");
       const { runId } = JSON.parse(readFileSync(join(root, "output/code-review/sessions", `${args[0]}.json`), "utf8"));
       const run = JSON.parse(readFileSync(join(root, "output/code-review/runs", `${runId}.json`), "utf8"));
-      result = { runId, phase: run.phase, files: run.files, checks: run.checks, findings: run.findings, evaluationRequest: run.evaluationRequest };
+      result = { runId, phase: run.phase, files: run.files, checks: run.checks, findings: run.findings, evaluationRequest: run.evaluationRequest, learning: run.learning ?? null };
       break;
     }
-    default: throw new Error("명령: begin <세션키> <작업> [review|checks-only], ready <세션키> <파일...>, packet <실행ID>, submit <실행ID> <JSON>, rate <실행ID> <F번호> <평가> [메모], status <세션키>, cancel <세션키>, stats");
+    default: throw new Error("명령: begin <세션키> <작업> <docs/learning/…md|동작 변화 없음> [review|checks-only], ready <세션키> <파일...>, packet <실행ID>, submit <실행ID> <JSON>, rate <실행ID> <F번호> <평가> [메모], status <세션키>, cancel <세션키>, stats");
   }
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 } catch (error) {

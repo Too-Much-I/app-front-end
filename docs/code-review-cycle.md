@@ -6,7 +6,10 @@
 ## 동작
 
 1. `SessionStart`가 현재 대화의 세션 키와 사용법을 AI에 전달한다.
-2. 승인된 코드 구현 직전에 AI가 `begin`으로 현재 소스를 기준 상태로 저장한다.
+2. 승인된 코드 구현 직전에 AI가 `begin`으로 현재 소스를 기준 상태로 저장한다. 이때 학습 기록
+   (`docs/learning/YYYY-MM-DD-<작업>.md`) 경로를 받아, 사용자가 쓴 "구현 전 예상"이 비어 있으면
+   시작하지 않고 예상을 스냅샷으로 남긴다. 설명할 동작 변화가 없다고 사용자가 선언한 작업만
+   경로 대신 `동작 변화 없음`을 넘긴다. AI는 예상을 대신 쓰지 않는다.
 3. 구현 완료 후 AI가 직접 구현한 파일을 명시해 `ready`를 호출한다.
 4. `Stop`이 TypeScript·lint·architecture·naming을 실행한다. 모두 통과할 때만
    같은 AI에게 리뷰 스킬을 읽고 계속하라는 피드백을 한 번 보낸다.
@@ -30,6 +33,12 @@
 사용자의 기존 변경을 AI 변경으로 간주하지 않는다. 이후 다른 사람이 같은 파일을
 수정한 경우까지 작성자를 자동 판별하지는 못하므로 `ready` 범위를 직접 확인한다.
 
+## 학습 기록과의 연결
+
+`submit` 응답의 `learning`은 학습 기록 경로, 비어 있는 사람 섹션(`missing`), 시작 후 예상이 바뀌었는지
+(`predictionChanged`)를 담는다. AI는 리뷰 후 학습 기록의 "시나리오 지도"를 쓰고 이 상태를 사용자에게
+알린다. 머지 조건은 훅이 아니라 CI(`pnpm check:learning`)가 판단한다. 규칙: [학습 기록](learning/README.md).
+
 ## 최초 활성화
 
 설정은 `.codex/hooks.json`, 지시문은 `.agents/skills/review-completed-code/SKILL.md`다.
@@ -49,7 +58,7 @@ CLI의 `/hooks`에서 두 command hook의 정의를 확인하고 신뢰해야 �
 `<실행ID>`는 begin/ready/리뷰 결과에 표시되는 UUID다.
 
 ```sh
-node scripts/code-review/cli.mjs begin <세션키> '인증 재시도 구현'
+node scripts/code-review/cli.mjs begin <세션키> '인증 재시도 구현' docs/learning/2026-10-01-auth-retry.md
 # 실제 구현 후, 직접 변경한 파일만 지정
 node scripts/code-review/cli.mjs ready <세션키> src/features/auth/example.ts
 node scripts/code-review/cli.mjs status <세션키>
