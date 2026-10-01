@@ -58,7 +58,7 @@ const SIGNUP_MESSAGES = {
  * 닉네임·약관은 signup body에 항상 필요하고 이를 서버에 보내는 API가 signup뿐이라 항상 받는다.
  * 요구사항에 따라 건너뛰는 단계는 전화 인증뿐이다(이미 Firebase 사용자에 번호가 연결된 경우).
  */
-export function resolveSignupSteps(enrollment: IdentityEnrollment): SignupStep[] {
+export function decideSignupSteps(enrollment: IdentityEnrollment): SignupStep[] {
   return enrollment.missingRequirements.includes('PHONE_VERIFICATION')
     ? ['nickname', 'consents', 'phone']
     : ['nickname', 'consents'];
@@ -69,7 +69,7 @@ export function isSignupNicknameValid(nickname: string): boolean {
   return length >= NICKNAME_MIN_LENGTH && length <= NICKNAME_MAX_LENGTH;
 }
 
-export type SignupFailure = { message: string; nextAction: SignupFailureAction };
+export type SignupFailureNotice = { message: string; nextAction: SignupFailureAction };
 
 /** 이번 제출에서 이미 한 번씩 써 버린 자동 복구. 같은 복구를 반복하지 않는 기준이다. */
 export type SignupSubmitAttempts = { proofRetried: boolean; restarted: boolean };
@@ -79,21 +79,21 @@ export type SignupSubmitAttempts = { proofRetried: boolean; restarted: boolean }
  * restart-enrollment: 같은 ID를 버리고 exchange로 새 enrollment를 받아 제출
  * phone-required: 전화 인증을 처음부터 다시 받는다
  */
-export type SignupSubmitDecision =
+export type SignupRecoveryDecision =
   | { kind: 'resubmit' }
   | { kind: 'restart-enrollment' }
   | { kind: 'phone-required' }
-  | ({ kind: 'fail' } & SignupFailure);
+  | ({ kind: 'fail' } & SignupFailureNotice);
 
 /** 만료·enrollment 충돌 공통. 재시작은 제출 한 번에 한 번만 한다. */
-export function resolveEnrollmentRestart(attempts: SignupSubmitAttempts): SignupSubmitDecision {
+export function decideEnrollmentRestart(attempts: SignupSubmitAttempts): SignupRecoveryDecision {
   return attempts.restarted
     ? { kind: 'fail', message: SIGNUP_MESSAGES.unexpected, nextAction: 'retry' }
     : { kind: 'restart-enrollment' };
 }
 
 /** code로 구분되지 않는 요청 실패(입력 검증·연결·서버 장애 등). */
-export function resolveSignupRequestFailure(error: unknown): SignupFailure {
+export function decideRequestFailureNotice(error: unknown): SignupFailureNotice {
   if (error instanceof ApiError && INPUT_ERROR_STATUSES.includes(error.status)) {
     // 닉네임 형식·약관 버전 불일치 등. 서버 오류 code가 확정되면 해당 단계로 좁힌다.
     // 그 밖의 4xx(404·401 등)는 입력을 고쳐도 해결되지 않으므로 아래 복구 분류를 따른다.
@@ -105,9 +105,9 @@ export function resolveSignupRequestFailure(error: unknown): SignupFailure {
     : { message: SIGNUP_MESSAGES.unexpected, nextAction: 'exit' };
 }
 
-export function resolveSignupProofFailure(
+export function decideProofFailureNotice(
   proof: Exclude<FirebaseProofResult, { kind: 'proof-ready' }>,
-): SignupFailure {
+): SignupFailureNotice {
   if (proof.kind === 'failed' && proof.nextAction === 'retry')
     return { message: AUTH_RECOVERY_MESSAGES.connection, nextAction: 'retry' };
   if (proof.kind === 'failed' && proof.nextAction === 'get-help')
@@ -116,11 +116,11 @@ export function resolveSignupProofFailure(
   return { message: SIGNUP_MESSAGES.signInAgain, nextAction: 'sign-in-again' };
 }
 
-/** signup 실패를 다음 행동으로 바꾼다. 서버 code는 열린 집합이라 알 수 없는 값은 요청 실패로 분류한다. */
-export function resolveSignupSubmitFailure(
+/** 서버 code는 열린 집합이라 알 수 없는 값은 요청 실패로 분류한다. 같은 자동 복구는 제출 한 번에 한 번만 한다. */
+export function decideSignupRecovery(
   error: unknown,
   attempts: SignupSubmitAttempts,
-): SignupSubmitDecision {
+): SignupRecoveryDecision {
   const code = error instanceof ApiError ? error.code : undefined;
   switch (code) {
     case 'INVALID_FIREBASE_ID_TOKEN':
@@ -134,12 +134,12 @@ export function resolveSignupSubmitFailure(
       return { kind: 'phone-required' };
     case 'FIREBASE_ENROLLMENT_CONFLICT':
     case 'FIREBASE_ENROLLMENT_RESTART_REQUIRED':
-      return resolveEnrollmentRestart(attempts);
+      return decideEnrollmentRestart(attempts);
     case 'WITHDRAWAL_CLEANUP_PENDING':
       // 자동 재시도하지 않는다. 정리가 끝난 뒤 사용자가 다시 시작한다.
       return { kind: 'fail', message: SIGNUP_MESSAGES.withdrawalPending, nextAction: 'exit' };
     default:
-      return { kind: 'fail', ...resolveSignupRequestFailure(error) };
+      return { kind: 'fail', ...decideRequestFailureNotice(error) };
   }
 }
 
@@ -171,7 +171,7 @@ export function createSignupFlow(options: {
 }) {
   const { uid, draftStore, phone, dependencies } = options;
   let enrollment = options.enrollment;
-  let steps = resolveSignupSteps(enrollment);
+  let steps = decideSignupSteps(enrollment);
   const store = createStore<{ state: SignupFlowState }>(() => ({
     state: { status: 'editing', step: 'nickname' },
   }));
@@ -288,8 +288,8 @@ export function createSignupFlow(options: {
     }
   }
 
-  function fail(step: SignupStep, failure: SignupFailure): void {
-    setState({ status: 'failed', step, ...failure });
+  function fail(step: SignupStep, notice: SignupFailureNotice): void {
+    setState({ status: 'failed', step, ...notice });
   }
 
   /**
@@ -317,14 +317,14 @@ export function createSignupFlow(options: {
     const proof = await dependencies.refreshProof(uid);
     if (!isCurrent(current)) return 'stop';
     if (proof.kind !== 'proof-ready') {
-      fail(step, resolveSignupProofFailure(proof));
+      fail(step, decideProofFailureNotice(proof));
       return 'stop';
     }
     let result: IdentityExchangeResult;
     try {
       result = await dependencies.exchange(proof.firebaseIdToken, abort.signal);
     } catch (error) {
-      if (isCurrent(current)) fail(step, resolveSignupRequestFailure(error));
+      if (isCurrent(current)) fail(step, decideRequestFailureNotice(error));
       return 'stop';
     }
     if (!isCurrent(current)) return 'stop';
@@ -334,7 +334,7 @@ export function createSignupFlow(options: {
       return 'stop';
     }
     enrollment = result.enrollment;
-    steps = resolveSignupSteps(enrollment);
+    steps = decideSignupSteps(enrollment);
     if (steps.includes('phone') && !phone.isVerified()) {
       goTo('phone');
       return 'stop';
@@ -344,7 +344,7 @@ export function createSignupFlow(options: {
 
   /** 판단 함수가 고른 행동을 실행한다. 'continue'면 제출 루프를 이어간다. */
   async function carryOut(
-    decision: SignupSubmitDecision,
+    decision: SignupRecoveryDecision,
     attempts: SignupSubmitAttempts,
     current: number,
     step: SignupStep,
@@ -377,7 +377,7 @@ export function createSignupFlow(options: {
 
     for (;;) {
       if (Date.now() >= enrollment.expiresAt) {
-        const decision = resolveEnrollmentRestart(attempts);
+        const decision = decideEnrollmentRestart(attempts);
         if ((await carryOut(decision, attempts, current, step)) === 'stop') return;
       }
 
@@ -391,7 +391,7 @@ export function createSignupFlow(options: {
       const proof = await dependencies.refreshProof(uid);
       if (!isCurrent(current)) return;
       if (proof.kind !== 'proof-ready') {
-        fail(step, resolveSignupProofFailure(proof));
+        fail(step, decideProofFailureNotice(proof));
         return;
       }
 
@@ -409,7 +409,7 @@ export function createSignupFlow(options: {
         );
       } catch (error) {
         if (!isCurrent(current)) return;
-        const decision = resolveSignupSubmitFailure(error, attempts);
+        const decision = decideSignupRecovery(error, attempts);
         if ((await carryOut(decision, attempts, current, step)) === 'stop') return;
         continue;
       }

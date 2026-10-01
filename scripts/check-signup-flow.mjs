@@ -103,7 +103,7 @@ function load(file) {
   return module.exports;
 }
 
-const { createSignupFlow, resolveSignupSteps, resolveSignupSubmitFailure } = load(
+const { createSignupFlow, decideSignupSteps, decideSignupRecovery } = load(
   'src/features/auth/signup-flow.ts',
 );
 const { createSignupPhoneVerification } = load('src/features/auth/signup-phone-verification.ts');
@@ -200,9 +200,9 @@ async function check(name, run) {
 }
 
 await check('닉네임·약관은 항상, 전화 인증은 요구될 때만 단계에 포함', async () => {
-  assert.deepEqual(resolveSignupSteps(enrollment()), ['nickname', 'consents', 'phone']);
+  assert.deepEqual(decideSignupSteps(enrollment()), ['nickname', 'consents', 'phone']);
   assert.deepEqual(
-    resolveSignupSteps(enrollment({ missingRequirements: ['PROFILE', 'CONSENTS'] })),
+    decideSignupSteps(enrollment({ missingRequirements: ['PROFILE', 'CONSENTS'] })),
     ['nickname', 'consents'],
   );
 });
@@ -213,7 +213,7 @@ await check(
     const fresh = { proofRetried: false, restarted: false };
     const used = { proofRetried: true, restarted: true };
     const decide = (error, attempts = fresh) => {
-      const decision = resolveSignupSubmitFailure(error, attempts);
+      const decision = decideSignupRecovery(error, attempts);
       return decision.kind === 'fail' ? `fail:${decision.nextAction}` : decision.kind;
     };
     const coded = (status, code) => new ApiError(status, code, code);
