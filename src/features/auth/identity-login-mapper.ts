@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import type {
+  GuestIdentityEnrollment,
   IdentityEnrollment,
   IdentityExchangeResult,
   IdentityGuestPreparationResult,
@@ -19,6 +20,12 @@ const guestEnrollmentSchema = enrollmentSchema.extend({
   termConsentVersion: z.string().trim().min(1),
 });
 
+function parseEnrollment(
+  value: unknown,
+  origin: 'noSession',
+  now: number,
+): Extract<IdentityEnrollment, { origin: 'noSession' }>;
+function parseEnrollment(value: unknown, origin: 'guest', now: number): GuestIdentityEnrollment;
 function parseEnrollment(
   value: unknown,
   origin: IdentityLoginOrigin,

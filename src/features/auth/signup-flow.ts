@@ -153,7 +153,7 @@ export interface SignupFlowDependencies {
   /** 같은 Firebase 사용자의 ID Token을 강제 갱신한다. */
   refreshProof: (uid: string) => Promise<FirebaseProofResult>;
   exchange: (proof: string, signal?: AbortSignal) => Promise<IdentityExchangeResult>;
-  submit: (request: FirebaseSignupRequest, signal?: AbortSignal) => Promise<AuthSession>;
+  submitSignup: (request: FirebaseSignupRequest, signal?: AbortSignal) => Promise<AuthSession>;
   loadPolicyVersions: (signal?: AbortSignal) => Promise<PolicyVersions>;
 }
 
@@ -382,8 +382,13 @@ export function createSignupFlow(options: {
       }
 
       const draft = draftStore.getState();
-      const { terms, privacy } = draft.consents;
-      if (!terms.agreed || !privacy.agreed || !isSignupNicknameValid(draft.nickname)) {
+      const { terms, privacy, qualityReview } = draft.consents;
+      if (
+        !terms.agreed ||
+        !privacy.agreed ||
+        qualityReview.version === null ||
+        !isSignupNicknameValid(draft.nickname)
+      ) {
         goTo(isSignupNicknameValid(draft.nickname) ? 'consents' : 'nickname');
         return;
       }
@@ -397,13 +402,15 @@ export function createSignupFlow(options: {
 
       let session: AuthSession;
       try {
-        session = await dependencies.submit(
+        session = await dependencies.submitSignup(
           {
             enrollmentId: enrollment.enrollmentId,
             firebaseIdToken: proof.firebaseIdToken,
             nickname: draft.nickname.trim(),
             privacyConsentVersion: privacy.version,
             termConsentVersion: terms.version,
+            isQualityReviewConsented: qualityReview.agreed,
+            qualityReviewConsentVersion: qualityReview.version,
           },
           abort.signal,
         );

@@ -4,15 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 
-type EnrollmentStatus = 'signingUp' | 'mergeRequired';
+type EnrollmentStatus = 'mergeRequired';
 
 // mergeRequired는 방금 로그인한 SNS 계정이 이미 회원이라는 뜻이라 다시 로그인하라고 안내하지 않는다.
 const ENROLLMENT_COPY = {
-  // 신규 가입은 가입 흐름으로 연결됐다. 이 화면의 signingUp은 기존 Guest의 회원 전환이다.
-  signingUp: {
-    title: '회원 전환을 준비하고 있어요',
-    body: '기존 학습 기록을 유지한 채 회원으로 전환하는 기능은 준비 중이에요.',
-  },
   mergeRequired: {
     title: '기록 통합을 준비하고 있어요',
     body: '이 계정은 이미 가입돼 있어요. 기존 학습 기록을 이 계정으로 옮기는 기능은 준비 중이에요.',
@@ -24,7 +19,7 @@ interface EnrollmentUnavailableScreenProps {
   onCancel: () => void;
 }
 
-/** Guest 승격·병합 흐름을 구현하기 전까지 대상자에게 보여주는 임시 화면. */
+/** Guest 병합 흐름을 구현하기 전까지 대상자에게 보여주는 임시 화면. 신규 가입·승격은 가입 흐름으로 연결됐다. */
 export function EnrollmentUnavailableScreen({
   status,
   onCancel,

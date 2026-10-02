@@ -121,7 +121,9 @@ Guest Identity Access Token의 존재 여부는 Firebase에 묻지 않는다. �
   "isPrivacyConsented": true,
   "privacyConsentVersion": "privacy-v1",
   "isTermConsented": true,
-  "termConsentVersion": "term-v1"
+  "termConsentVersion": "term-v1",
+  "isQualityReviewConsented": false,
+  "qualityReviewConsentVersion": "quality-review-v1"
 }
 ```
 
@@ -137,7 +139,7 @@ direct signup의 version은 exchange 응답에 없으므로 공개 API `GET /api
 }
 ```
 
-`qualityReviewConsentVersion`은 선택 동의(품질 검토)다. 서버가 signup body에 품질 검토 동의 필드를 추가할 예정이며 필드 이름은 미정이다(2026-09-30). 동의하지 않아도 생략하지 않고 `false`와 version을 보낸다. Guest upgrade body에도 같은 필드가 없어 추가를 요청한다. `ApiEnvelope` 여부는 배포 후 확인한다.
+`qualityReviewConsentVersion`은 선택 동의(품질 검토)다. signup과 Guest upgrade body 모두 `isQualityReviewConsented`·`qualityReviewConsentVersion`으로 보낸다(2026-10-01 서버 확인). 동의하지 않아도 생략하지 않고 `false`와 version을 보낸다. version은 두 경로 모두 이 공개 API에서 받는다. `ApiEnvelope` 여부는 배포 후 확인한다.
 
 ### 5.3 Guest prepare — TMI-169
 
@@ -195,11 +197,15 @@ Authorization: Bearer <guest-identity-access-token>
   "isPrivacyConsented": true,
   "privacyConsentVersion": "<latest-prepare-version>",
   "isTermConsented": true,
-  "termConsentVersion": "<latest-prepare-version>"
+  "termConsentVersion": "<latest-prepare-version>",
+  "isQualityReviewConsented": true,
+  "qualityReviewConsentVersion": "<policies-consents-version>"
 }
 ```
 
-전화번호, `userId`, `missingRequirements`를 추가하지 않는다. 서버가 Firebase proof로 phone 상태를 검증한다. 성공하면 canonical userId는 유지되고 기존 Guest RefreshSession은 폐기되며 새 MEMBER Access/Refresh Token을 반환한다.
+전화번호, `userId`, `missingRequirements`를 추가하지 않는다. 서버가 Firebase proof로 phone 상태를 검증한다. 성공하면 canonical userId는 유지되고 기존 Guest RefreshSession은 폐기되며 새 MEMBER Access/Refresh Token을 반환한다. 응답은 signup과 같은 `ApiEnvelope` + 토큰 응답이다(2026-10-01 서버 확인).
+
+필수 약관 version은 prepare 응답, 품질 검토 version은 `GET /api/v1/policies/consents`에서 받는다. 승격 후 옛 Guest Access Token으로 prepare를 호출하면 `403 GUEST_UPGRADE_NOT_ALLOWED`가 온다(2026-10-01 서버 확인). 응답 유실 시 승격 성공 판별에 쓴다.
 
 ### 5.5 Guest merge
 
@@ -215,7 +221,24 @@ Authorization: Bearer <guest-identity-access-token>
 }
 ```
 
-성공하면 target MEMBER Access/Refresh Token을 반환한다. 프론트는 이메일·전화번호·닉네임으로 target을 추정하지 않는다.
+성공하면 target MEMBER Access/Refresh Token을 반환한다. 응답은 signup과 같은 `ApiEnvelope` + 토큰 응답이다(2026-10-01 서버 확인).
+
+```json
+{
+  "isSuccess": true,
+  "code": "SUCCESS",
+  "message": "요청에 성공했습니다.",
+  "result": {
+    "accessToken": "<target-member-identity-access-token>",
+    "refreshToken": "<target-member-identity-refresh-token>",
+    "grantType": "Bearer",
+    "accessTokenExpiresIn": 1800000,
+    "refreshTokenExpiresIn": 1209600000
+  }
+}
+```
+
+프론트는 이메일·전화번호·닉네임으로 target을 추정하지 않는다. 병합 후 옛 Guest Access Token으로 prepare를 호출하면 `401 ACCOUNT_MERGED_TOKEN_REJECTED`가 온다. 응답 유실 시 병합 성공 판별에 쓴다(2026-10-01 서버 확인).
 
 ## 6. 가입 재개와 만료
 
@@ -232,20 +255,44 @@ Authorization: Bearer <guest-identity-access-token>
 
 ## 7. 공통 오류 처리 기준
 
-| HTTP/code | 프론트 처리 |
-|---|---|
-| `401 INVALID_FIREBASE_ID_TOKEN` | Firebase ID Token 강제 갱신 후 한 번 재시도, 실패 시 Provider 재로그인 |
-| `401 FIREBASE_RECENT_AUTH_REQUIRED` | Token 강제 갱신 반복 금지, Provider credential로 명시적 재인증 |
-| `403 FIREBASE_PHONE_VERIFICATION_REQUIRED` | 현재 Firebase User에 phone link 후 ID Token 갱신 |
-| `409 FIREBASE_ENROLLMENT_CONFLICT` | 기존 enrollment 폐기, 현재 진입점의 prepare/exchange 재시작 |
-| `409 FIREBASE_ENROLLMENT_RESTART_REQUIRED` | 같은 ID 재사용 금지, 현재 진입점부터 재시작 |
-| `409 IDENTITY_STATE_CONFLICT` | 자동 승격·merge 금지, 재인증 후 지속되면 지원 |
-| `409 MERGE_REQUIRED` | 사용자 확인 후 Guest merge |
-| `403 GUEST_UPGRADE_NOT_ALLOWED` | 계정·Token 상태 재조회, 자동 upgrade 반복 금지 |
-| `401 INVALID_REFRESH_TOKEN` / `REFRESH_TOKEN_EXPIRED` | 로컬 Identity Token 삭제 후 SNS 로그인 |
-| `401 REFRESH_TOKEN_REUSE_DETECTED` | 모든 로컬 Token 삭제, 보안상 재로그인 |
-| `401 ACCOUNT_MERGED_TOKEN_REJECTED` | 옛 Guest Token 사용 중단, target MEMBER 인증 상태 확인 |
-| `409 WITHDRAWAL_CLEANUP_PENDING` | 가입·로그인 중단, cleanup 완료 후 재시도 |
+2026-10-01 서버 공유 오류 표. 의미·권장 처리는 서버 문서 문구를 그대로 옮겼다.
+
+| HTTP / code | 의미 | 권장 처리 |
+| --- | --- | --- |
+| `400 INVALID_REQUEST` | JSON·필드 검증 실패 | `result` 필드 오류를 화면에 연결. 민감값은 표시하지 않음 |
+| `401 COMMON_UNAUTHORIZED` | Identity Access Token 누락·만료·검증 실패 | single-flight reissue 한 번 후 원 요청 한 번 재시도 |
+| `401 INVALID_FIREBASE_ID_TOKEN` | Firebase Token 누락·만료·검증 실패 | 강제 갱신 한 번, 실패하면 Provider 재로그인 |
+| `401 FIREBASE_RECENT_AUTH_REQUIRED` | `auth_time`이 목적별 허용시간 초과 | Provider credential로 명시적 재인증 후 재시도 |
+| `403 FIREBASE_ACCOUNT_NOT_ALLOWED` | disabled·삭제됨·불완전 Firebase 계정 | Firebase signOut 후 재인증, 반복 시 지원 안내 |
+| `403 FIREBASE_PROVIDER_NOT_ALLOWED` | Provider flag off, 미지원 Provider, phone-only login | 해당 버튼/흐름 중단, 지원 로그인 수단 안내 |
+| `403 FIREBASE_EMAIL_VERIFICATION_REQUIRED` | password account email 미인증 | Firebase email 인증 완료 후 재인증·Token 갱신 |
+| `403 FIREBASE_PHONE_VERIFICATION_REQUIRED` | signup/upgrade에 same-UID verified phone 없음 | 현재 Firebase User에 phone link 후 Token 강제 갱신 |
+| `409 PHONE_ALREADY_LINKED` | 번호가 다른 User/Firebase User 소유 | 자동 merge 금지, 기존 계정 로그인·복구 안내 |
+| `409 MERGE_REQUIRED` | Guest upgrade 대상 identity가 기존 MEMBER 소유 | 명시적 확인 후 Guest merge 흐름 |
+| `409 FIREBASE_ENROLLMENT_CONFLICT` | attempt 없음·만료·소비·UID 불일치 | enrollment 폐기. Guest 승격은 `/guest/prepare`, direct 가입은 `/exchange`부터 재시작 |
+| `409 FIREBASE_ENROLLMENT_RESTART_REQUIRED` | lifecycle상 가입 재시작 필요 | enrollment 폐기. 현재 진입점의 prepare/exchange부터 재시작 |
+| `409 IDENTITY_STATE_CONFLICT` | Guest인데 현재 identity owner로 판정된 불가능 상태 | 자동 승격·merge 금지, 재인증 후 반복되면 지원 안내 |
+| `409 FIREBASE_IDENTITY_CONFLICT` | Firebase owner 불일치 | 로컬 추정 복구 금지, 재로그인 후 반복 시 지원 |
+| `409 SOCIAL_IDENTITY_CONFLICT` | Provider subject owner 불일치 | 자동 연결 금지, 재로그인 후 반복 시 지원 |
+| `403 GUEST_UPGRADE_NOT_ALLOWED` | 현재 User가 ACTIVE GUEST가 아님 | 프로필·Token 상태 재조회 후 로그인 초기화 |
+| `403 GUEST_MERGE_NOT_ALLOWED` | merge source가 ACTIVE GUEST가 아님 | merge 중단, 현재 계정 재확인 |
+| `409 GUEST_MERGE_TARGET_CONFLICT` | target MEMBER를 하나로 확정할 수 없음 | 자동 선택 금지, 처음부터 재인증 또는 지원 |
+| `409 GUEST_MERGE_CONFLICT` | merge 동시성 충돌 | Token·프로필 재조회 후 한 번만 재시도 |
+| `429 FIREBASE_RATE_LIMITED` | Firebase quota·rate limit | 입력 차단, backoff 후 재시도 |
+| `503 FIREBASE_UNAVAILABLE` | Firebase 기능 off 또는 일시 장애 | 계정 없음으로 간주하지 말고 일시 장애 표시 |
+| `401 INVALID_REFRESH_TOKEN` | RefreshSession 없음·일반 폐기 | Identity Token 삭제 후 로그인 |
+| `401 REFRESH_TOKEN_EXPIRED` | Refresh Token 만료 | Identity Token 삭제 후 로그인 |
+| `401 REFRESH_TOKEN_REUSE_DETECTED` | rotation된 Token 재사용 | 모든 로컬 Token 삭제, 보안상 전체 재로그인 안내 |
+| `401 ACCOUNT_WITHDRAWN` | 탈퇴로 Session 폐기 또는 User 탈퇴 | terminal signed-out 처리 후 안내 한 번 표시 |
+| `401 ACCOUNT_MERGED_TOKEN_REJECTED` | MERGED Guest의 옛 Access Token 사용 | 옛 Guest 상태 삭제 후 target MEMBER 로그인 |
+| `403 ACCOUNT_NOT_ACTIVE` | SUSPENDED 등 비활성 User | 재발급 반복 금지, 상태 안내·지원 |
+| `409 WITHDRAWAL_CLEANUP_PENDING` | 탈퇴 identity 정리 진행 중 | 가입·로그인 중단 후 나중에 재시도 안내 |
+| `400 INVALID_REISSUE_REQUEST_ID` | 재발급 요청 ID 누락/형식 오류 | 구현 점검. 이미 보낸 요청 ID를 새로 바꿔 재시도하지 않음 |
+| `409 REISSUE_REQUEST_CONFLICT` | 재발급 요청 ID 재사용 충돌 | 해당 복구 중단, 최신 로컬 인증 상태 확인 |
+| `409 REISSUE_RECOVERY_EXPIRED` | 같은 응답의 복구 기한 만료 | 최신 Token이 없다면 SNS 재인증 |
+| `409 REISSUE_RESULT_SUPERSEDED` | 이미 교체된 재발급 결과 | 최신 결과 유지, 없으면 재인증 |
+| `401 SESSION_LOGGED_OUT` | 세션/epoch/인증 시각 무효화 | 자체 Token 삭제·Firebase signOut·재로그인 |
+| `503 SESSION_SECURITY_UNAVAILABLE` | 세션 처리를 확정할 수 없음 | 동일 요청으로 제한 재시도, 성공으로 간주하지 않음 |
 
 `message`가 아니라 안정적인 `code`로 분기한다. 명확한 terminal 오류를 무한 재시도하지 않는다.
 

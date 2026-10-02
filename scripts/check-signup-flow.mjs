@@ -151,7 +151,7 @@ function harness(options = {}) {
         enrollment: enrollment({ enrollmentId: `enrollment-${calls.exchange + 1}` }),
       };
     },
-    submit: async (request) => {
+    submitSignup: async (request) => {
       calls.submit.push(request);
       return session;
     },
@@ -321,6 +321,7 @@ await check('전화 인증 후 제출: 강제 갱신 증명·다듬은 닉네임
   await h.fillUntilPhone();
   h.flow.completePhoneVerification();
   await flush();
+  // 품질 검토는 선택 동의라 동의하지 않아도 false와 version을 보낸다.
   assert.deepEqual(h.calls.submit, [
     {
       enrollmentId: 'enrollment-1',
@@ -328,6 +329,8 @@ await check('전화 인증 후 제출: 강제 갱신 증명·다듬은 닉네임
       nickname: '토스마스터',
       privacyConsentVersion: 'privacy-v1',
       termConsentVersion: 'term-v1',
+      isQualityReviewConsented: false,
+      qualityReviewConsentVersion: 'qr-v1',
     },
   ]);
   assert.deepEqual(h.calls.completed, [session]);
@@ -357,7 +360,7 @@ await check(
     const invalid = () => new ApiError(401, 'invalid', 'INVALID_FIREBASE_ID_TOKEN');
     const h = harness({
       dependencies: {
-        submit: async (request) => {
+        submitSignup: async (request) => {
           h.calls.submit.push(request);
           if (failures-- > 0) throw invalid();
           return session;
@@ -377,7 +380,7 @@ await check(
     failures = 2;
     const twice = harness({
       dependencies: {
-        submit: async () => {
+        submitSignup: async () => {
           if (failures-- > 0) throw invalid();
           return session;
         },
@@ -397,7 +400,7 @@ await check(
     let conflicted = false;
     const h = harness({
       dependencies: {
-        submit: async (request) => {
+        submitSignup: async (request) => {
           h.calls.submit.push(request);
           if (!conflicted) {
             conflicted = true;
@@ -452,7 +455,7 @@ await check('서버가 전화 인증을 요구하면 인증을 초기화하고 �
   const h = harness({
     enrollment: enrollment({ missingRequirements: ['PROFILE', 'CONSENTS'] }),
     dependencies: {
-      submit: async () => {
+      submitSignup: async () => {
         throw new ApiError(403, 'phone', 'FIREBASE_PHONE_VERIFICATION_REQUIRED');
       },
     },
@@ -479,7 +482,7 @@ await check('오류 code별 다음 행동: 재인증·탈퇴 정리 중·입력 
   for (const [error, nextAction] of cases) {
     const h = harness({
       dependencies: {
-        submit: async () => {
+        submitSignup: async () => {
           throw error;
         },
       },
@@ -499,7 +502,7 @@ await check(
     let fail = true;
     const h = harness({
       dependencies: {
-        submit: async (request) => {
+        submitSignup: async (request) => {
           h.calls.submit.push(request);
           if (fail) throw new ApiError(503, 'down');
           return session;
@@ -521,7 +524,7 @@ await check(
 
     const edit = harness({
       dependencies: {
-        submit: async () => {
+        submitSignup: async () => {
           throw new ApiError(400, 'bad');
         },
       },
@@ -594,7 +597,7 @@ await check(
     let finish;
     const late = harness({
       dependencies: {
-        submit: () =>
+        submitSignup: () =>
           new Promise((resolveSubmit) => {
             finish = () => resolveSubmit(session);
           }),
@@ -733,4 +736,295 @@ await check(
 );
 
 assert.equal(appStateListeners.size, 0);
-console.log(`가입 흐름 검사 ${passed}개 통과`);
+
+// ---- Guest 승격: 같은 화면 상태를 쓰고, 결과를 모르면 exchange + Guest 토큰 prepare로 판별한다 ----
+const { createGuestUpgradeFlow, decideGuestUpgradeRecovery, isUpgradeOutcomeUnknown } = load(
+  'src/features/auth/guest-upgrade-flow.ts',
+);
+
+function guestEnrollment(overrides = {}) {
+  return {
+    origin: 'guest',
+    enrollmentId: 'enrollment-g1',
+    missingRequirements: ['PROFILE', 'CONSENTS'],
+    expiresAt: now + 600_000,
+    privacyConsentVersion: 'privacy-v1',
+    termConsentVersion: 'term-v1',
+    ...overrides,
+  };
+}
+
+function guestHarness(options = {}) {
+  const draftStore = createSignupDraftStore();
+  const calls = {
+    submit: [],
+    prepare: [],
+    exchange: 0,
+    refresh: 0,
+    completed: [],
+    merged: 0,
+  };
+  const phone = { isVerified: () => true, reset: () => {}, dispose: () => {} };
+  const dependencies = {
+    refreshProof: async () => {
+      calls.refresh += 1;
+      return {
+        kind: 'proof-ready',
+        uid: 'firebase-user',
+        firebaseIdToken: `proof-${calls.refresh}`,
+      };
+    },
+    prepareRequest: async () => ({ accessToken: 'guest-access', generation: 1 }),
+    prepare: async (proof, guestToken) => {
+      calls.prepare.push({ proof, guestToken });
+      return {
+        kind: 'enrollment-required',
+        enrollment: guestEnrollment({ enrollmentId: 'enrollment-g2' }),
+      };
+    },
+    exchange: async () => {
+      calls.exchange += 1;
+      return { kind: 'authenticated', session: { accessToken: 'exchanged-member' } };
+    },
+    submitUpgrade: async (request, guestToken) => {
+      calls.submit.push({ request, guestToken });
+      return session;
+    },
+    // 공개 API도 필수 약관 version을 주지만 승격은 prepare 값을 써야 한다.
+    loadPolicyVersions: async () => ({
+      terms: 'public-term',
+      privacy: 'public-privacy',
+      qualityReview: 'qr-v1',
+    }),
+    ...options.dependencies,
+  };
+  const flow = createGuestUpgradeFlow({
+    enrollment: options.enrollment ?? guestEnrollment(),
+    uid: 'firebase-user',
+    draftStore,
+    phone,
+    dependencies,
+    onComplete: async (value) => {
+      calls.completed.push(value);
+    },
+    onMergeRequired: () => {
+      calls.merged += 1;
+    },
+  });
+  async function fillAndSubmit({ qualityReview = true } = {}) {
+    draftStore.setNickname('게스트');
+    flow.completeNickname();
+    await flush();
+    draftStore.setConsent('terms', true);
+    draftStore.setConsent('privacy', true);
+    draftStore.setConsent('qualityReview', qualityReview);
+    flow.completeConsents();
+    await flush();
+  }
+  return { flow, draftStore, calls, state: () => flow.getState().state, fillAndSubmit };
+}
+
+/** 첫 upgrade만 실패시키고 다음 제출은 성공한다. */
+function failFirstSubmit(error, calls) {
+  return async (request, guestToken) => {
+    calls().submit.push({ request, guestToken });
+    if (calls().submit.length === 1) throw error;
+    return session;
+  };
+}
+
+await check(
+  '승격 판단: 결과 불명은 code 없는 5xx·연결 오류, 판별은 제출 한 번에 한 번',
+  async () => {
+    const fresh = { proofRetried: false, restarted: false, reconciled: false };
+    const used = { proofRetried: true, restarted: true, reconciled: true };
+    const decide = (error, attempts = fresh) => decideGuestUpgradeRecovery(error, attempts).kind;
+    assert.equal(isUpgradeOutcomeUnknown(new TransportConnectionError()), true);
+    assert.equal(isUpgradeOutcomeUnknown(new ApiError(502, 'bad gateway')), true);
+    assert.equal(isUpgradeOutcomeUnknown(new ApiError(500, 'x', 'COMMON500')), true);
+    assert.equal(isUpgradeOutcomeUnknown(new ApiError(503, 'x', 'FIREBASE_UNAVAILABLE')), false);
+    assert.equal(
+      isUpgradeOutcomeUnknown(new ApiError(503, 'x', 'SESSION_SECURITY_UNAVAILABLE')),
+      false,
+    );
+    assert.equal(isUpgradeOutcomeUnknown(new ApiError(400, 'x')), false);
+    assert.equal(decide(new TransportConnectionError()), 'reconcile');
+    assert.equal(decide(new TransportConnectionError(), used), 'fail');
+    assert.equal(decide(new ApiError(403, 'x', 'GUEST_UPGRADE_NOT_ALLOWED')), 'reconcile');
+    assert.equal(decide(new ApiError(409, 'x', 'MERGE_REQUIRED')), 'merge-required');
+    assert.equal(
+      decide(new ApiError(409, 'x', 'FIREBASE_ENROLLMENT_CONFLICT')),
+      'restart-enrollment',
+    );
+    assert.equal(decide(new ApiError(409, 'x', 'IDENTITY_STATE_CONFLICT')), 'fail');
+    assert.equal(decide(new ApiError(503, 'x', 'FIREBASE_UNAVAILABLE')), 'fail');
+  },
+);
+
+await check(
+  '승격 제출: 필수 약관은 prepare 버전, 품질 검토는 공개 API 버전, Guest 토큰으로 upgrade',
+  async () => {
+    const h = guestHarness();
+    await h.fillAndSubmit();
+    assert.deepEqual(h.calls.submit, [
+      {
+        request: {
+          enrollmentId: 'enrollment-g1',
+          firebaseIdToken: 'proof-1',
+          nickname: '게스트',
+          privacyConsentVersion: 'privacy-v1',
+          termConsentVersion: 'term-v1',
+          isQualityReviewConsented: true,
+          qualityReviewConsentVersion: 'qr-v1',
+        },
+        guestToken: 'guest-access',
+      },
+    ]);
+    assert.deepEqual(h.calls.completed, [session]);
+    assert.equal(h.calls.exchange, 0);
+    h.flow.dispose();
+  },
+);
+
+await check(
+  '결과 불명 → exchange AUTHENTICATED → Guest 토큰 prepare가 GUEST_UPGRADE_NOT_ALLOWED면 승격 성공',
+  async () => {
+    let h;
+    h = guestHarness({
+      dependencies: {
+        submitUpgrade: failFirstSubmit(new TransportConnectionError(), () => h.calls),
+        prepare: async (proof, guestToken) => {
+          h.calls.prepare.push({ proof, guestToken });
+          throw new ApiError(403, 'not guest', 'GUEST_UPGRADE_NOT_ALLOWED');
+        },
+      },
+    });
+    await h.fillAndSubmit();
+    assert.equal(h.calls.submit.length, 1);
+    assert.equal(h.calls.exchange, 1);
+    // 판별에는 승격 요청에 썼던 Guest 토큰을 쓴다.
+    assert.deepEqual(h.calls.prepare, [{ proof: 'proof-2', guestToken: 'guest-access' }]);
+    assert.deepEqual(h.calls.completed, [{ accessToken: 'exchanged-member' }]);
+    h.flow.dispose();
+  },
+);
+
+await check(
+  '결과 불명 → exchange AUTHENTICATED → prepare MERGE_REQUIRED면 다른 MEMBER 소유: 병합으로 넘김',
+  async () => {
+    for (const prepare of [
+      async () => ({ kind: 'merge-required' }),
+      async () => {
+        throw new ApiError(409, 'merge', 'MERGE_REQUIRED');
+      },
+    ]) {
+      let h;
+      h = guestHarness({
+        dependencies: {
+          submitUpgrade: failFirstSubmit(new ApiError(500, 'oops'), () => h.calls),
+          prepare,
+        },
+      });
+      await h.fillAndSubmit();
+      assert.equal(h.calls.merged, 1);
+      assert.deepEqual(h.calls.completed, []);
+      h.flow.dispose();
+    }
+  },
+);
+
+await check(
+  '결과 불명 → exchange ENROLLMENT_REQUIRED면 승격 안 됨: direct signup이 아니라 prepare로 새 enrollment',
+  async () => {
+    let h;
+    h = guestHarness({
+      dependencies: {
+        submitUpgrade: failFirstSubmit(new TransportConnectionError(), () => h.calls),
+        exchange: async () => {
+          h.calls.exchange += 1;
+          return { kind: 'enrollment-required', enrollment: enrollment() };
+        },
+      },
+    });
+    await h.fillAndSubmit();
+    assert.equal(h.calls.exchange, 1);
+    assert.equal(h.calls.prepare.length, 1);
+    assert.deepEqual(
+      h.calls.submit.map((call) => call.request.enrollmentId),
+      ['enrollment-g1', 'enrollment-g2'],
+    );
+    assert.deepEqual(h.calls.completed, [session]);
+    h.flow.dispose();
+  },
+);
+
+await check(
+  '판별은 한 번: 다시 결과를 모르면 수동 재시도 실패, code 있는 503은 판별하지 않음',
+  async () => {
+    const h = guestHarness({
+      dependencies: {
+        submitUpgrade: async () => {
+          throw new TransportConnectionError();
+        },
+        prepare: async () => ({
+          kind: 'enrollment-required',
+          enrollment: guestEnrollment({ enrollmentId: 'enrollment-g2' }),
+        }),
+      },
+    });
+    await h.fillAndSubmit();
+    assert.equal(h.calls.exchange, 1);
+    assert.equal(h.state().status, 'failed');
+    assert.equal(h.state().nextAction, 'retry');
+    h.flow.dispose();
+
+    const unavailable = guestHarness({
+      dependencies: {
+        submitUpgrade: async () => {
+          throw new ApiError(503, 'down', 'FIREBASE_UNAVAILABLE');
+        },
+      },
+    });
+    await unavailable.fillAndSubmit();
+    assert.equal(unavailable.calls.exchange, 0);
+    assert.equal(unavailable.state().nextAction, 'retry');
+    unavailable.flow.dispose();
+  },
+);
+
+await check(
+  'enrollment 충돌은 prepare로 재시작, 필수 약관 버전이 바뀌면 동의를 다시 받음',
+  async () => {
+    let h;
+    h = guestHarness({
+      dependencies: {
+        submitUpgrade: failFirstSubmit(
+          new ApiError(409, 'x', 'FIREBASE_ENROLLMENT_CONFLICT'),
+          () => h.calls,
+        ),
+        prepare: async (proof, guestToken) => {
+          h.calls.prepare.push({ proof, guestToken });
+          return {
+            kind: 'enrollment-required',
+            enrollment: guestEnrollment({
+              enrollmentId: 'enrollment-g2',
+              privacyConsentVersion: 'privacy-v2',
+            }),
+          };
+        },
+      },
+    });
+    await h.fillAndSubmit();
+    assert.equal(h.calls.exchange, 0);
+    assert.equal(h.calls.prepare.length, 1);
+    assert.equal(h.calls.submit.length, 1);
+    assert.equal(h.state().step, 'consents');
+    assert.equal(h.draftStore.getState().consents.privacy.version, 'privacy-v2');
+    assert.equal(h.draftStore.getState().consents.privacy.agreed, false);
+    // 품질 검토 동의는 버전이 같아 유지된다.
+    assert.equal(h.draftStore.getState().consents.qualityReview.agreed, true);
+    h.flow.dispose();
+  },
+);
+
+console.log(`가입·승격 흐름 검사 ${passed}개 통과`);

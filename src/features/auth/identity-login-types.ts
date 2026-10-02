@@ -17,9 +17,12 @@ export type IdentityEnrollment = {
     }
 );
 
+/** prepare가 주는 Guest 승격용 enrollment. 필수 약관 version을 함께 받는다. */
+export type GuestIdentityEnrollment = Extract<IdentityEnrollment, { origin: 'guest' }>;
+
 export type IdentityExchangeResult =
   | { kind: 'authenticated'; session: AuthSession }
   | { kind: 'enrollment-required'; enrollment: IdentityEnrollment };
 
 export type IdentityGuestPreparationResult =
-  { kind: 'enrollment-required'; enrollment: IdentityEnrollment } | { kind: 'merge-required' };
+  { kind: 'enrollment-required'; enrollment: GuestIdentityEnrollment } | { kind: 'merge-required' };
