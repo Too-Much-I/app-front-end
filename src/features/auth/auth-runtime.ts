@@ -78,7 +78,7 @@ export function createAuthRuntime(options: {
               prepareRequest: session.prepareRequest,
               prepare: prepareGuestEnrollment,
               exchange: exchangeFirebaseProof,
-              submit: submitGuestUpgrade,
+              submitUpgrade: submitGuestUpgrade,
               loadPolicyVersions: getPolicyVersions,
             },
             onComplete: input.onComplete,
@@ -92,7 +92,7 @@ export function createAuthRuntime(options: {
             dependencies: {
               refreshProof: firebase.refreshProof,
               exchange: exchangeFirebaseProof,
-              submit: submitFirebaseSignup,
+              submitSignup: submitFirebaseSignup,
               loadPolicyVersions: getPolicyVersions,
             },
             onComplete: input.onComplete,

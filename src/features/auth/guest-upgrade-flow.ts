@@ -84,7 +84,7 @@ export function isUpgradeOutcomeUnknown(error: unknown): boolean {
  * 판별(`reconcile`)에서 "승격되지 않음"을 확인해 다시 받는 재시작은 이 횟수에 넣지 않는다.
  * 그래서 한 제출에서 재시작은 최대 두 번(판별 뒤 한 번 + 충돌·만료 한 번)이다.
  */
-export function decideGuestIdentityEnrollmentRestart(
+export function decideGuestEnrollmentRestart(
   attempts: GuestUpgradeAttempts,
 ): GuestUpgradeRecoveryDecision {
   return attempts.restarted
@@ -113,7 +113,7 @@ export function decideGuestUpgradeRecovery(
       return { kind: 'phone-required' };
     case 'FIREBASE_ENROLLMENT_CONFLICT':
     case 'FIREBASE_ENROLLMENT_RESTART_REQUIRED':
-      return decideGuestIdentityEnrollmentRestart(attempts);
+      return decideGuestEnrollmentRestart(attempts);
     case 'MERGE_REQUIRED':
       return { kind: 'merge-required' };
     case 'GUEST_UPGRADE_NOT_ALLOWED':
@@ -158,7 +158,7 @@ export interface GuestUpgradeFlowDependencies {
     signal?: AbortSignal,
   ) => Promise<IdentityGuestPreparationResult>;
   exchange: (proof: string, signal?: AbortSignal) => Promise<IdentityExchangeResult>;
-  submit: (
+  submitUpgrade: (
     request: GuestUpgradeRequest,
     guestToken: string,
     signal?: AbortSignal,
@@ -476,7 +476,7 @@ export function createGuestUpgradeFlow(options: {
 
     for (;;) {
       if (Date.now() >= enrollment.expiresAt) {
-        const decision = decideGuestIdentityEnrollmentRestart(attempts);
+        const decision = decideGuestEnrollmentRestart(attempts);
         if ((await carryOut(decision, attempts, current, step, null)) === 'stop') return;
       }
 
@@ -511,7 +511,7 @@ export function createGuestUpgradeFlow(options: {
 
       let session: AuthSession;
       try {
-        session = await dependencies.submit(
+        session = await dependencies.submitUpgrade(
           {
             enrollmentId: enrollment.enrollmentId,
             firebaseIdToken: proof.firebaseIdToken,

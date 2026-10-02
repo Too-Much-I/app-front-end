@@ -153,7 +153,7 @@ export interface SignupFlowDependencies {
   /** 같은 Firebase 사용자의 ID Token을 강제 갱신한다. */
   refreshProof: (uid: string) => Promise<FirebaseProofResult>;
   exchange: (proof: string, signal?: AbortSignal) => Promise<IdentityExchangeResult>;
-  submit: (request: FirebaseSignupRequest, signal?: AbortSignal) => Promise<AuthSession>;
+  submitSignup: (request: FirebaseSignupRequest, signal?: AbortSignal) => Promise<AuthSession>;
   loadPolicyVersions: (signal?: AbortSignal) => Promise<PolicyVersions>;
 }
 
@@ -402,7 +402,7 @@ export function createSignupFlow(options: {
 
       let session: AuthSession;
       try {
-        session = await dependencies.submit(
+        session = await dependencies.submitSignup(
           {
             enrollmentId: enrollment.enrollmentId,
             firebaseIdToken: proof.firebaseIdToken,

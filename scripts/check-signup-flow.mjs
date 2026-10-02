@@ -151,7 +151,7 @@ function harness(options = {}) {
         enrollment: enrollment({ enrollmentId: `enrollment-${calls.exchange + 1}` }),
       };
     },
-    submit: async (request) => {
+    submitSignup: async (request) => {
       calls.submit.push(request);
       return session;
     },
@@ -360,7 +360,7 @@ await check(
     const invalid = () => new ApiError(401, 'invalid', 'INVALID_FIREBASE_ID_TOKEN');
     const h = harness({
       dependencies: {
-        submit: async (request) => {
+        submitSignup: async (request) => {
           h.calls.submit.push(request);
           if (failures-- > 0) throw invalid();
           return session;
@@ -380,7 +380,7 @@ await check(
     failures = 2;
     const twice = harness({
       dependencies: {
-        submit: async () => {
+        submitSignup: async () => {
           if (failures-- > 0) throw invalid();
           return session;
         },
@@ -400,7 +400,7 @@ await check(
     let conflicted = false;
     const h = harness({
       dependencies: {
-        submit: async (request) => {
+        submitSignup: async (request) => {
           h.calls.submit.push(request);
           if (!conflicted) {
             conflicted = true;
@@ -455,7 +455,7 @@ await check('서버가 전화 인증을 요구하면 인증을 초기화하고 �
   const h = harness({
     enrollment: enrollment({ missingRequirements: ['PROFILE', 'CONSENTS'] }),
     dependencies: {
-      submit: async () => {
+      submitSignup: async () => {
         throw new ApiError(403, 'phone', 'FIREBASE_PHONE_VERIFICATION_REQUIRED');
       },
     },
@@ -482,7 +482,7 @@ await check('오류 code별 다음 행동: 재인증·탈퇴 정리 중·입력 
   for (const [error, nextAction] of cases) {
     const h = harness({
       dependencies: {
-        submit: async () => {
+        submitSignup: async () => {
           throw error;
         },
       },
@@ -502,7 +502,7 @@ await check(
     let fail = true;
     const h = harness({
       dependencies: {
-        submit: async (request) => {
+        submitSignup: async (request) => {
           h.calls.submit.push(request);
           if (fail) throw new ApiError(503, 'down');
           return session;
@@ -524,7 +524,7 @@ await check(
 
     const edit = harness({
       dependencies: {
-        submit: async () => {
+        submitSignup: async () => {
           throw new ApiError(400, 'bad');
         },
       },
@@ -597,7 +597,7 @@ await check(
     let finish;
     const late = harness({
       dependencies: {
-        submit: () =>
+        submitSignup: () =>
           new Promise((resolveSubmit) => {
             finish = () => resolveSubmit(session);
           }),
@@ -786,7 +786,7 @@ function guestHarness(options = {}) {
       calls.exchange += 1;
       return { kind: 'authenticated', session: { accessToken: 'exchanged-member' } };
     },
-    submit: async (request, guestToken) => {
+    submitUpgrade: async (request, guestToken) => {
       calls.submit.push({ request, guestToken });
       return session;
     },
@@ -892,7 +892,7 @@ await check(
     let h;
     h = guestHarness({
       dependencies: {
-        submit: failFirstSubmit(new TransportConnectionError(), () => h.calls),
+        submitUpgrade: failFirstSubmit(new TransportConnectionError(), () => h.calls),
         prepare: async (proof, guestToken) => {
           h.calls.prepare.push({ proof, guestToken });
           throw new ApiError(403, 'not guest', 'GUEST_UPGRADE_NOT_ALLOWED');
@@ -921,7 +921,7 @@ await check(
       let h;
       h = guestHarness({
         dependencies: {
-          submit: failFirstSubmit(new ApiError(500, 'oops'), () => h.calls),
+          submitUpgrade: failFirstSubmit(new ApiError(500, 'oops'), () => h.calls),
           prepare,
         },
       });
@@ -939,7 +939,7 @@ await check(
     let h;
     h = guestHarness({
       dependencies: {
-        submit: failFirstSubmit(new TransportConnectionError(), () => h.calls),
+        submitUpgrade: failFirstSubmit(new TransportConnectionError(), () => h.calls),
         exchange: async () => {
           h.calls.exchange += 1;
           return { kind: 'enrollment-required', enrollment: enrollment() };
@@ -963,7 +963,7 @@ await check(
   async () => {
     const h = guestHarness({
       dependencies: {
-        submit: async () => {
+        submitUpgrade: async () => {
           throw new TransportConnectionError();
         },
         prepare: async () => ({
@@ -980,7 +980,7 @@ await check(
 
     const unavailable = guestHarness({
       dependencies: {
-        submit: async () => {
+        submitUpgrade: async () => {
           throw new ApiError(503, 'down', 'FIREBASE_UNAVAILABLE');
         },
       },
@@ -998,7 +998,7 @@ await check(
     let h;
     h = guestHarness({
       dependencies: {
-        submit: failFirstSubmit(
+        submitUpgrade: failFirstSubmit(
           new ApiError(409, 'x', 'FIREBASE_ENROLLMENT_CONFLICT'),
           () => h.calls,
         ),
