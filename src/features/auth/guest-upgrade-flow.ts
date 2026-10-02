@@ -79,7 +79,11 @@ export function isUpgradeOutcomeUnknown(error: unknown): boolean {
   );
 }
 
-/** 만료·enrollment 충돌 공통. 재시작은 제출 한 번에 한 번만 한다. */
+/**
+ * 만료·enrollment 충돌 공통. 충돌·만료로 인한 재시작은 제출 한 번에 한 번만 한다.
+ * 판별(`reconcile`)에서 "승격되지 않음"을 확인해 다시 받는 재시작은 이 횟수에 넣지 않는다.
+ * 그래서 한 제출에서 재시작은 최대 두 번(판별 뒤 한 번 + 충돌·만료 한 번)이다.
+ */
 export function decideGuestIdentityEnrollmentRestart(
   attempts: GuestUpgradeAttempts,
 ): GuestUpgradeRecoveryDecision {
@@ -402,6 +406,7 @@ export function createGuestUpgradeFlow(options: {
       return 'stop';
     }
     if (!isCurrent(current)) return 'stop';
+    // 승격되지 않았으니 새 enrollment를 받는다. 충돌·만료 재시작 횟수(`attempts.restarted`)와 따로 센다.
     if (exchanged.kind === 'enrollment-required') return restartEnrollment(current, step);
 
     let result: IdentityGuestPreparationResult;
