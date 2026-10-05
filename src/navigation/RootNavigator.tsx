@@ -15,10 +15,12 @@ import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { colors } from '@/theme';
 
+import type { IdentityEnrollment } from '@/features/auth/identity-login-types';
 import type { AuthSession } from '@/features/auth/types';
 import { MainTabNavigator } from '@/navigation/MainTabNavigator';
 import type { RootStackParamList } from '@/navigation/types';
 import { AuthRecoveryScreen } from '@/screens/auth/AuthRecoveryScreen';
+import { SignupFailureScreen } from '@/screens/auth/SignupFailureScreen';
 import { ConsentScreen } from '@/screens/consent/ConsentScreen';
 import { NotificationsScreen } from '@/screens/notifications/NotificationsScreen';
 import { ReanswerScreen } from '@/screens/reanswer/ReanswerScreen';
@@ -62,6 +64,7 @@ type CoordinatorNavigationProps = {
       draftStore: ReturnType<typeof createAuthCoordinator>['signupDraft'];
       onComplete: (session: AuthSession) => Promise<void>;
       onMergeRequired: () => void;
+      onEnrollmentRequired: (enrollment: IdentityEnrollment) => void;
       onCancel: () => void;
     },
   ) => ReactElement;
@@ -122,8 +125,21 @@ export function RootNavigator({
         draftStore: coordinator.signupDraft,
         onComplete: (session) => coordinator.completeEnrollment(state.flowId, session),
         onMergeRequired: () => coordinator.requireMerge(state.flowId),
+        onEnrollmentRequired: (enrollment) =>
+          coordinator.continueWithEnrollment(state.flowId, enrollment),
         onCancel: coordinator.cancelLogin,
       });
+    case 'accountInactive':
+      // 문구는 2026-10-05 사용자 결정. 로그인됐다고 생각한 사용자가 갑자기 로그인 화면을 보지 않게 먼저 알린다.
+      return (
+        <SafeAreaView className="flex-1 bg-surface-subtle" edges={['top', 'bottom']}>
+          <SignupFailureScreen
+            title="계정이 활성화되지 않았어요"
+            message="계정을 계속 사용하려면 다시 로그인해 주세요."
+            primary={{ label: '다시 로그인하기', onPress: coordinator.acknowledgeAccountInactive }}
+          />
+        </SafeAreaView>
+      );
     case 'authenticated':
       return <MemberRootNavigator />;
     case 'consent':

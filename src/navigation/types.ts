@@ -39,6 +39,8 @@ export type RootStackParamList = {
    * 닉네임·전화번호·인증 자료를 params에 넣지 않는다.
    */
   Signup: undefined;
+  /** 이 SNS 계정이 이미 회원일 때 Guest 학습 기록 병합을 확인·진행하는 화면. 단계는 병합 흐름 상태가 고른다. */
+  GuestMerge: undefined;
   /** 인증 세션 없이도 열 수 있는 문의 입력 화면. */
   SupportInquiry: undefined;
   /**

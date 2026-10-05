@@ -238,7 +238,29 @@ Authorization: Bearer <guest-identity-access-token>
 }
 ```
 
-프론트는 이메일·전화번호·닉네임으로 target을 추정하지 않는다. 병합 후 옛 Guest Access Token으로 prepare를 호출하면 `401 ACCOUNT_MERGED_TOKEN_REJECTED`가 온다. 응답 유실 시 병합 성공 판별에 쓴다(2026-10-01 서버 확인).
+프론트는 이메일·전화번호·닉네임으로 target을 추정하지 않는다. 병합된 Guest 토큰으로 merge를 다시 호출하면 `401 ACCOUNT_MERGED_TOKEN_REJECTED`가 오며, 기존 MEMBER로 로그인하려면 exchange를 호출한다. 병합 후 옛 Guest 토큰으로 prepare를 호출하면 `403 GUEST_UPGRADE_NOT_ALLOWED`가 온다. 응답 유실 판별에서는 둘 다 병합 성공으로 보고 exchange한다(2026-10-02 서버 확인. 2026-10-01에 prepare가 401을 준다고 적었던 내용을 정정).
+
+성공 응답의 `result`에는 토큰과 함께 `mergeId`(실제 UserMerged eventId)가 온다. 추적이 꺼졌거나 legacy면
+`null`이다. merge 성공은 계정 병합 완료이며 학습 기록(Learning Core·Billing) 이전 완료를 뜻하지 않는다
+(2026-10-05 Swagger 확인).
+
+```http
+GET /api/v1/users/me/merges/{mergeId}
+Authorization: Bearer <target-member-identity-access-token>
+```
+
+`result.status`는 `PROCESSING`·`ACTION_REQUIRED`·`COMPLETED`이고, 구성 요소(`learningCore`·`billing`)별로
+`PENDING`·`COMPLETED`·`ACTION_REQUIRED`·`NOT_REQUIRED`를 준다. `nextPollAfterSeconds`는 다음 조회 간격이다.
+`COMPLETED`는 생성 당시 필수 consumer의 commit 확인을 뜻한다. `ACTION_REQUIRED`는 자동 진행이 막혀 운영
+확인이 필요하다는 뜻이다(2026-10-05 서버 답). 응답을 잃어 mergeId를 모르면 회원 exchange 뒤
+`GET /api/v1/users/me/merges?activeOnly=true`로 찾는다. 오류: `400 INVALID_MERGE_STATUS_REQUEST`,
+`404 MERGE_STATUS_NOT_FOUND`, `429 MERGE_STATUS_RATE_LIMITED`, `503 MERGE_STATUS_UNAVAILABLE`,
+`401 COMMON_UNAUTHORIZED`, `403 ACCOUNT_NOT_ACTIVE`.
+
+merge 오류 중 병합 조건 오류(2026-10-02 서버 답): `403 GUEST_MERGE_NOT_ALLOWED`(활성 Guest 아님),
+`403 GUEST_MERGE_TARGET_WITHDRAWN`(대상 MEMBER 탈퇴), `403 GUEST_MERGE_TARGET_NOT_ACTIVE`(대상 MEMBER 정지),
+`409 GUEST_MERGE_TARGET_CONFLICT`(대상을 하나로 확정 못 함), `409 GUEST_MERGE_CONFLICT`(처리 중 상태 변경, 같은
+Guest 요청 겹침 포함). `503`은 Firebase 또는 Guest merge 기능 비활성이다.
 
 ## 6. 가입 재개와 만료
 

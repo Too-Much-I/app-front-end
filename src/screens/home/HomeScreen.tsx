@@ -130,6 +130,7 @@ export function HomeScreen() {
           {/* 최근 피드백 카드 — 옅은 배경 위에서 유일하게 흰색인 카드 */}
           <RecentFeedbackCard
             state={recentFeedback.state}
+            isMergePending={recentFeedback.isMergePending}
             onOpenFeedback={(examId) => navigation.navigate('Feedback', { examId })}
             onRetry={recentFeedback.retry}
           />

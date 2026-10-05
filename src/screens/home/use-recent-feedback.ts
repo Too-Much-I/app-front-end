@@ -1,5 +1,8 @@
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useStore } from 'zustand';
+
+import { appAuthRuntime } from '@/features/auth/app-auth-runtime';
 
 import { getExamHistory } from '@/features/exam/api/exam-history';
 import { reportOperationalError } from '@/lib/operational-error-reporting';
@@ -55,5 +58,16 @@ export function useRecentFeedback() {
     setReloadNonce((nonce) => nonce + 1);
   }, []);
 
-  return { state, retry };
+  // 병합 직후에는 아직 합쳐지지 않은 기록을 먼저 보여주고, 학습 기록 이전이 끝나면 다시 조회한다.
+  const { mergeProgress } = appAuthRuntime;
+  const isMergePending = useStore(mergeProgress, (snapshot) => snapshot.status === 'tracking');
+  useEffect(
+    () =>
+      mergeProgress.subscribe((next, previous) => {
+        if (next.status === 'completed' && previous.status !== 'completed') retry();
+      }),
+    [mergeProgress, retry],
+  );
+
+  return { state, retry, isMergePending };
 }
