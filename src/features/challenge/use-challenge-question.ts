@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { getChallengeToday } from '@/features/challenge/api/challenge-today';
 import { getChallengeErrorCode } from '@/features/challenge/challenge-error-codes';
-import { DEV_MOCK_CHALLENGE_QUESTION } from '@/features/challenge/dev-mock-challenge';
 import { getChallengeTodayQuestion } from '@/features/challenge/api/challenge-today-question';
 import type { ChallengeQuestion } from '@/types/challenge';
 
@@ -38,15 +37,6 @@ export function useChallengeQuestion(
   const [reloadCount, setReloadCount] = useState(0);
 
   useEffect(() => {
-    if (__DEV__) {
-      setState({
-        status: 'ready',
-        question: { ...DEV_MOCK_CHALLENGE_QUESTION, questionNumber },
-        errorCode: null,
-      });
-      return;
-    }
-
     const controller = new AbortController();
     setState({ status: 'loading', question: null, errorCode: null });
 

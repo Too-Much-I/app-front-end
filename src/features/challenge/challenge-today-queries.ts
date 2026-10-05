@@ -1,8 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
 import { getChallengeToday } from '@/features/challenge/api/challenge-today';
-import { createDevMockToday, withDevMockFallback } from '@/features/challenge/dev-mock-challenge';
-import type { ChallengeToday } from '@/types/challenge';
 
 /**
  * 오늘 진행도의 쿼리 키.
@@ -23,19 +21,7 @@ export const CHALLENGE_TODAY_QUERY_KEY = ['challenge', 'today'] as const;
 export function challengeTodayQueryOptions() {
   return queryOptions({
     queryKey: CHALLENGE_TODAY_QUERY_KEY,
-    queryFn: ({ signal }) => loadChallengeToday(signal),
+    queryFn: ({ signal }) => getChallengeToday(signal),
     staleTime: (query) => (query.state.data?.expiresInSeconds ?? 0) * 1_000,
   });
-}
-
-/*
- * 임시: 백엔드가 붙기 전까지 실제 조회를 먼저 시도하고 답이 없으면 목으로 대신한다.
- * 서버가 준비되면 이 함수를 `getChallengeToday` 호출로 되돌리고 `dev-mock-challenge`의
- * 분기를 함께 지운다.
- */
-function loadChallengeToday(signal: AbortSignal): Promise<ChallengeToday> {
-  if (__DEV__) {
-    return withDevMockFallback(() => getChallengeToday(signal), createDevMockToday);
-  }
-  return getChallengeToday(signal);
 }

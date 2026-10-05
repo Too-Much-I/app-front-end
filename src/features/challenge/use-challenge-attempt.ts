@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { createChallengeAttempt } from '@/features/challenge/api/challenge-attempt';
 import { getChallengeErrorCode } from '@/features/challenge/challenge-error-codes';
-import { createDevMockAttempt } from '@/features/challenge/dev-mock-challenge';
 import type { ChallengeAttempt, ChallengeQuestion } from '@/types/challenge';
 
 type ChallengeAttemptState =
@@ -45,15 +44,6 @@ export function useChallengeAttempt(question: ChallengeQuestion | null) {
     if (date === undefined || questionNumber === undefined) return;
     // 이미 끝난 응시면 서버가 409로 거절한다. 화면이 결과로 보낼 참이라 부르지 않는다.
     if (question?.attemptStatus === 'submitted') return;
-
-    if (__DEV__) {
-      setState({
-        status: 'ready',
-        attempt: createDevMockAttempt(date, questionNumber),
-        errorCode: null,
-      });
-      return;
-    }
 
     const controller = new AbortController();
     setState({ status: 'creating', attempt: null, errorCode: null });
