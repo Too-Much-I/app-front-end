@@ -199,6 +199,10 @@ function GuestMergeContent({
             <SignupFailureScreen title={state.title} message={state.message} primary={toLogin} />
           );
       }
+      // 타입 밖 값이 들어와도 빈 화면에 갇히지 않게 로그인 화면으로 보낸다.
+      const unhandled: never = state.nextAction;
+      void unhandled;
+      return <SignupFailureScreen title={state.title} message={state.message} primary={toLogin} />;
     }
   }
 }
