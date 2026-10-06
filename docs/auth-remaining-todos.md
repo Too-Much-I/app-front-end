@@ -1,6 +1,6 @@
 # 로그인 연동: 남은 작업
 
-기준: 2026-09-30 현재 코드와 대화에서 확인한 내용. 이 문서는 작업 목록이며, 미결정 상태 설계를 확정하거나 구현을 시작하는 문서가 아니다. 번호는 현재 상태를 기준으로 다시 정리했다.
+기준: 2026-09-30 현재 코드와 대화에서 확인한 내용. 7번의 Guest 병합 진행 상태는 2026-10-02 기준. 이 문서는 작업 목록이며, 미결정 상태 설계를 확정하거나 구현을 시작하는 문서가 아니다. 번호는 현재 상태를 기준으로 다시 정리했다.
 
 ## 현재 어디까지 됐나
 
@@ -112,7 +112,7 @@
 - [x] enrollment 만료·충돌, 재인증 필요, 증명 불일치, 전화 인증 필요, 탈퇴 정리 중, 서버 장애를 각각 처리한다. 입력 검증 오류 code는 계약에 없어 4xx를 "정보 수정"으로 묶었다. code가 확정되면 해당 단계로 좁힌다.
 - [x] 제출 중 중복 입력을 막는다. 응답 유실 후 재제출이 충돌이면 exchange를 다시 해 AUTHENTICATED로 완료한다.
 - [ ] 응답 유실 시 서버가 실제로 충돌 code를 주는지 테스트 서버에서 확인한다.
-- [ ] 품질 검토(선택) 동의를 가입 중에 받아 signup body로 함께 보낸다. 동의하지 않으면 `false`와 version을 보낸다. 서버가 필드를 추가할 예정이며(2026-09-30), 필드가 확정되기 전에는 임의 이름으로 보내지 않는다.
+- [x] 품질 검토(선택) 동의를 가입 중에 받아 signup body로 함께 보낸다. 동의하지 않으면 `false`와 version을 보낸다(서버 필드 추가 확인, Swagger 2026-10-05).
 
 **완료 기준:** 신규 사용자가 필요한 인증·동의를 마치면 MEMBER 세션으로 진입하고 재실행 후에도 복원된다.
 
@@ -120,14 +120,59 @@
 
 **하는 일:** 구버전 Guest의 학습 기록 소유 증명을 유지하면서 회원으로 전환한다.
 
-- [ ] prepare가 가입을 요구하면 `/firebase/guest/upgrade`로 같은 계정을 MEMBER로 승격한다.
-- [ ] upgrade body에도 품질 검토 동의 필드가 없다. 서버에 추가를 요청했고(2026-09-30), 확정되면 signup과 같은 방식(`false`+version 포함)으로 보낸다.
-- [ ] `MERGE_REQUIRED`이면 사용자에게 기록 통합을 설명하고 확인받은 뒤 `/firebase/guest/merge`를 호출한다. 확인·취소 UI는 추가 구현이 필요하다.
+- [x] prepare가 가입을 요구하면 `/firebase/guest/upgrade`로 같은 계정을 MEMBER로 승격한다(#64).
+- [x] upgrade body의 품질 검토 동의 필드: 서버에 추가됐고(Swagger 2026-10-05) 앱도 `false`+version까지 보낸다.
+- [x] `MERGE_REQUIRED`이면 사용자에게 기록 통합을 설명하고 확인받은 뒤 `/firebase/guest/merge`를 호출한다(`guest-merge-flow.ts`, `GuestMergeNavigator.tsx`). 실서버 검증은 남아 있다.
 - [ ] 성공 응답을 새 MEMBER 세션으로 확정하고, 중간 실패 시 기존 Guest 증명을 성급하게 지우지 않는다.
 - [ ] 소유권 충돌·만료·응답 유실은 해당 계약에 맞춰 복구한다. 새 Guest 생성이나 direct signup으로 우회하지 않는다.
 - [ ] Identity 병합 성공 이후 Learning의 실제 기록 이전까지 확인한다.
 
 **완료 기준:** 기존 사용자 기록이 보존되고, 명시적인 사용자 확인 없이 계정이 병합되지 않는다.
+
+### Guest 병합 진행 상태 (2026-10-02, 브랜치 `feat/guest-merge`)
+
+결정 초안: [Guest 병합](decisions/2026-10-01-guest-병합.md). 아래 결정은 3단계 설계 논의 기록으로 옮긴 뒤 구현한다.
+
+결정한 것:
+
+- 실행 담당: `guest-merge-flow.ts`가 실행하고 코디네이터는 진입(`mergeRequired`)·출구(`completeEnrollment`, `cancelLogin`, `mergeRequired → signingUp`)만 맡는다.
+- 응답 유실 판별: Guest 토큰으로 prepare. `403 GUEST_UPGRADE_NOT_ALLOWED`는 병합 성공으로 보고 exchange, `MERGE_REQUIRED`면 merge 재전송. 결정 초안의 401 표기는 고친다(계약 5.5는 정정됨).
+- 오류 처리: `TARGET_WITHDRAWN`은 안내 후 승격으로 이어가기, `GUEST_MERGE_TARGET_NOT_ACTIVE`는 정지 안내와 다른 계정 로그인, `TARGET_CONFLICT`는 다시 로그인 1회 후 도움받기, `USER_NOT_FOUND`·`GUEST_MERGE_NOT_ALLOWED`·`ACCOUNT_MERGED_TOKEN_REJECTED`는 exchange, `PROVIDER_RELINK_REQUIRED`는 기본 처리.
+- 병합 흐름 밖에서 옛 Guest 토큰이 `401 ACCOUNT_MERGED_TOKEN_REJECTED`·`403 ACCOUNT_NOT_ACTIVE`로 거절되면: "계정이 활성화되지 않았어요" 안내 → 저장된 세션 삭제 → 다시 로그인 버튼 → 로그인 화면. 기기에 남은 Firebase `currentUser`로 자동 exchange하지 않는다.
+- `mergeRequired`에 uid를 싣는다. `requireMerge(flowId)` 시그니처는 유지하고 직전 `signingUp`의 `state.uid`를 옮긴다. 입구 1·2는 `proof.uid`. `App.tsx`가 병합 흐름에 넘긴다.
+- 확인 화면: 제목 "지금까지의 학습 기록이 이 SNS 계정으로 옮겨져요", 작은 글씨 "이제 여러 기기에 흩어져 있던 학습 기록을 한곳에서 확인할 수 있어요.", 메인 버튼 "학습 기록 합치기", 상단 취소 아이콘. 취소 아이콘은 "다른 SNS 계정으로 로그인하시겠어요?" [취소 / 확인] 대화상자를 띄우고, 확인이면 SNS 로그인 화면(Guest 유지)으로 간다. 되돌릴 수 없다는 문구는 넣지 않는다.
+- 병합으로 옮겨지는 것은 학습 기록뿐이며 되돌릴 수 없다(사용자 확인).
+- 사용자는 구현 초안을 직접 쓰지 않는다. TEMP 코드(`TEMP-DEBUG`·`TEMP-GUEST`·`[TEMP firebase login]`)는 실기기 테스트가 끝나면 지운다.
+
+서버 답(2026-10-05 사용자 전달):
+
+- 정지된 사용자는 스스로 풀 수 없고, 문의하면 복구해 준다. 앱에 문의 전송 경로가 아직 없다(아래 "문의 API").
+- 학습 기록 이전은 계정 병합과 별개로 진행된다. 오래 걸리지 않으며, 서버가 기록 병합 완료를 조회하는 API를 하나 만든다.
+- 승격은 기록을 합치지 않으므로 이전 대기와 상관없다(#64 영향 없음).
+
+아직 답을 받지 못한 것:
+
+- [ ] 정지된 MEMBER의 exchange 응답 code
+- [ ] prepare 단계에서 target이 정지일 때의 흐름
+- [x] 기록 병합 조회 API(Swagger 2026-10-05): merge 응답의 `mergeId`(추적 OFF/legacy면 null)로 `GET /api/v1/users/me/merges/{mergeId}`를 MEMBER 토큰으로 조회. `status` PROCESSING/ACTION_REQUIRED/COMPLETED, 구성 요소(learningCore·billing)별 상태, `nextPollAfterSeconds`. 응답 유실 시에는 exchange 후 `GET /api/v1/users/me/merges`로 찾는다. 계약 문서 5.5에 옮긴다.
+- [x] `ACTION_REQUIRED`: 자동 진행이 막혀 운영 확인 필요(2026-10-05 서버 답). 앱은 받는 즉시 조회를 멈춘다.
+- [x] 병합 성공 뒤 화면(2026-10-05): 홈으로 보내 둘러볼 수 있게 하고, 학습 기록 영역에만 로딩을 보인다. `nextPollAfterSeconds` 간격으로 최대 5분 조회한다. `mergeId`가 null이면 조회하지 않고 넘어간다. 완료 문구는 띄우지 않고 기록이 보이는 것으로 충분하다. 5분이 지나면 로딩만 멈춘다. 앱을 다시 켜면 이어서 조회하지 않는다. 진행 상태는 스토어에 두고 홈 `RecentFeedbackCard`가 읽어 로딩을 보이고, 완료되면 다시 조회한다.
+- [ ] 종단 이전 검증 완료 여부 → 기능 플래그(A 빌드 환경 변수 / B 원격 설정 / C 검증 뒤 머지) 결정
+
+아직 정할 것:
+
+- [x] 오류 안내 문구(AI 제안, 사용자 승인 2026-10-02). 해요체, 사용자가 본 말("학습 기록 합치기")을 쓴다.
+  - 결과 불명: "학습 기록을 합쳤는지 확인하지 못했어요. 잠시 후 다시 시도해 주세요." [다시 시도] → 반복 시 "…문제가 계속되면 도움을 요청해 주세요." [다시 시도] [도움 요청하기]. 기록 안전 문장은 넣지 않는다.
+  - 대상 탈퇴: "이 SNS 계정은 탈퇴한 계정이에요. 이 계정으로 새로 가입하면 지금까지의 학습 기록을 그대로 이어서 쓸 수 있어요." [가입 이어가기]
+  - 대상 충돌: "계정 상태를 확인하지 못했어요. SNS 로그인부터 다시 진행해 주세요." [다시 로그인] → 반복 시 기존 `identityConflict` 문구 [도움 요청하기]
+  - 흐름 밖 거절: 제목 "계정이 활성화되지 않았어요", 본문 "계정을 계속 사용하려면 다시 로그인해 주세요." [다시 로그인하기]
+  - 예상 못 한 오류: "학습 기록을 합치지 못했어요. 잠시 후 다시 시도해 주세요." [다시 시도]
+  - 연결·서버 오류는 `AUTH_RECOVERY_MESSAGES` 재사용.
+- [ ] 대상 정지: 행동은 "다른 계정으로 로그인" 대신 **도움 요청하기**로 결정(2026-10-05). 정지는 문의로만 복구되고, 번호당 계정 하나라 다른 계정은 막다른 길이다. 문구는 이에 맞춰 다시 정한다. 문의 API가 전제다.
+- [ ] 완료 문구와 보여 주는 방식. 후보 "이전 학습기록이 통합됐어요. 이제부터는 어느 기기에서든 학습 기록을 잃지 않아요." 이전 완료 확인 방법을 받은 뒤 확정한다.
+- [x] `403 ACCOUNT_NOT_ACTIVE`가 unexpected 화면에 갇히지 않게 한다. `DEFINITIVE_REFRESH_CODES` 대신
+  `isAccountInactiveFailure`(`src/features/auth/api/reissue-tokens.ts`)로 분리해, 세션을 지우고 "계정이
+  활성화되지 않았어요" 안내 뒤 로그인 화면으로 보낸다(`session-controller.ts`).
 
 주의: 최신 명세에서 Guest `ALREADY_LINKED`는 폐기됐다. 오래된 검토 문서의 해당 분기를 새 구현에 가져오지 않는다.
 

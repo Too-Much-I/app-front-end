@@ -4,7 +4,10 @@ import { createSessionPersistence } from '@/features/auth/session-persistence';
 
 import { getCurrentAccount } from '@/features/auth/api/get-current-account';
 import { reissueSession } from '@/features/auth/api/reissue-session';
-import { isDefinitiveRefreshFailure } from '@/features/auth/api/reissue-tokens';
+import {
+  isAccountInactiveFailure,
+  isDefinitiveRefreshFailure,
+} from '@/features/auth/api/reissue-tokens';
 import { classifyAuthRecovery } from '@/features/auth/auth-recovery';
 import {
   readAuthRestorationRecord,
@@ -23,14 +26,15 @@ import { ApiError } from '@/lib/api/transport';
 // 기존 요청 경로와 동일하게 만료 1분 전부터 재발급한다.
 const RESTORE_REFRESH_WINDOW_MS = 60_000;
 type PendingRefresh = Extract<AuthRestorationRecord, { phase: 'refresh-pending' }>;
+type SignedOutNotice = Extract<AuthSessionRestoreResult, { kind: 'login-required' }>['notice'];
 type RestorationProgress =
   | { step: 'read' }
   | { step: 'save-refresh'; record: PendingRefresh }
   | { step: 'refresh'; record: PendingRefresh }
   | { step: 'save-session'; session: AuthSession; refreshed: boolean }
   | { step: 'check-account'; session: AuthSession; refreshed: boolean }
-  | { step: 'clear-session' }
-  | { step: 'remove-legacy' }
+  | { step: 'clear-session'; notice?: SignedOutNotice }
+  | { step: 'remove-legacy'; notice?: SignedOutNotice }
   | {
       step: 'blocked';
       result: Extract<AuthSessionRestoreResult, { kind: 'recovery-required' }>;
@@ -49,6 +53,9 @@ interface SessionControllerDependencies {
 function blocksUnauthorizedRefresh(code?: string): boolean {
   return code === 'ACCOUNT_MERGED_TOKEN_REJECTED' || code === 'WITHDRAWAL_CLEANUP_PENDING';
 }
+
+/** 비활성 계정의 세션은 지우고, 다음 화면이 사용자에게 알리도록 표시를 남긴다. */
+const CLEAR_INACTIVE_SESSION = { step: 'clear-session', notice: 'account-inactive' } as const;
 
 /** 앱 전체에서 한 인스턴스를 공유한다. 기존 authController와 동시에 활성화하지 않는다. */
 export function createSessionController(
@@ -134,6 +141,11 @@ export function createSessionController(
               // 저장·계정 조회 실패 뒤 재개할 때도 재발급 성공 이력을 유지한다.
               progress = { step: 'save-session', session, refreshed: true };
             } catch (error) {
+              if (isAccountInactiveFailure(error)) {
+                activeSession = null;
+                progress = CLEAR_INACTIVE_SESSION;
+                break;
+              }
               if (isDefinitiveRefreshFailure(error)) {
                 activeSession = null;
                 progress = { step: 'clear-session' };
@@ -175,6 +187,11 @@ export function createSessionController(
             try {
               accountType = await dependencies.getAccount(session.accessToken);
             } catch (error) {
+              if (isAccountInactiveFailure(error)) {
+                activeSession = null;
+                progress = CLEAR_INACTIVE_SESSION;
+                break;
+              }
               if (
                 error instanceof ApiError &&
                 error.status === 401 &&
@@ -197,13 +214,15 @@ export function createSessionController(
               schemaVersion: 2,
               phase: 'signed-out',
             });
-            progress = { step: 'remove-legacy' };
+            progress = { step: 'remove-legacy', notice: progress.notice };
             break;
-          case 'remove-legacy':
+          case 'remove-legacy': {
+            const { notice } = progress;
             await dependencies.removeLegacy();
             activeSession = null;
             notifyAccountChange();
-            return { kind: 'login-required' };
+            return notice ? { kind: 'login-required', notice } : { kind: 'login-required' };
+          }
           case 'blocked':
             return progress.result;
           default: {
@@ -289,7 +308,10 @@ export function createSessionController(
       const result = await pending;
       if (result.kind !== 'ready') throw new SessionRequestError(result);
     } else if (generation === usedGeneration && activeSession) {
-      if (blocksUnauthorizedRefresh(code)) {
+      if (code === 'ACCOUNT_MERGED_TOKEN_REJECTED') {
+        activeSession = null;
+        progress = CLEAR_INACTIVE_SESSION;
+      } else if (blocksUnauthorizedRefresh(code)) {
         progress = {
           step: 'blocked',
           result: classifyAuthRecovery(new SessionRestorationError('unexpected')),

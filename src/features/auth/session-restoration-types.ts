@@ -13,7 +13,8 @@ export type AuthRecoveryAction = 'retry' | 'get-help';
 
 export type AuthSessionRestoreResult =
   | { kind: 'ready'; accountType: 'MEMBER' | 'GUEST' }
-  | { kind: 'login-required' }
+  /** notice: 서버가 이 세션의 계정을 비활성으로 거절해 세션을 지웠다. 사용자에게 알린 뒤 로그인으로 보낸다. */
+  | { kind: 'login-required'; notice?: 'account-inactive' }
   | {
       kind: 'recovery-required';
       reason: AuthRecoveryReason;

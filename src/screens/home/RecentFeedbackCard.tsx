@@ -142,7 +142,17 @@ function ErrorFeedbackCard({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-export function RecentFeedbackCard({
+/** 병합한 학습 기록을 옮기는 동안 카드 위에 보인다. 홈의 다른 영역은 그대로 쓸 수 있다. */
+function MergePendingNotice() {
+  return (
+    <View accessibilityLiveRegion="polite" className="mt-3 flex-row items-center gap-content">
+      <ActivityIndicator size="small" color={colors.brand.DEFAULT} />
+      <Text className="text-sm text-ink-muted">학습 기록을 합치고 있어요.</Text>
+    </View>
+  );
+}
+
+function FeedbackCardContent({
   state,
   onOpenFeedback,
   onRetry,
@@ -156,4 +166,23 @@ export function RecentFeedbackCard({
   if (!state.item) return <EmptyFeedbackCard />;
 
   return <ReadyFeedbackCard item={state.item} onOpenFeedback={onOpenFeedback} />;
+}
+
+export function RecentFeedbackCard({
+  state,
+  isMergePending,
+  onOpenFeedback,
+  onRetry,
+}: {
+  state: RecentFeedbackState;
+  isMergePending: boolean;
+  onOpenFeedback: (examId: string) => void;
+  onRetry: () => void;
+}) {
+  return (
+    <>
+      {isMergePending && state.status !== 'loading' ? <MergePendingNotice /> : null}
+      <FeedbackCardContent state={state} onOpenFeedback={onOpenFeedback} onRetry={onRetry} />
+    </>
+  );
 }

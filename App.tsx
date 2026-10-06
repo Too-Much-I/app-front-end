@@ -13,13 +13,13 @@ import { OrientationProvider } from '@/features/orientation/OrientationProvider'
 import { useOrientation } from '@/features/orientation/orientation-context';
 import { AuthPreviewNavigator } from '@/navigation/AuthPreviewNavigator';
 import { RootNavigator } from '@/navigation/RootNavigator';
+import { GuestMergeNavigator } from '@/navigation/GuestMergeNavigator';
 import { SignupNavigator } from '@/navigation/SignupNavigator';
 import type { RootStackParamList } from '@/navigation/types';
 import { IS_AUTH_UI_PREVIEW } from '@/lib/auth-ui-preview';
 import { trackScreenView } from '@/lib/amplitude';
 import { queryClient } from '@/lib/query-client';
 import { IS_SENTRY_VALIDATION_MODE } from '@/lib/sentry-validation-mode';
-import { EnrollmentUnavailableScreen } from '@/screens/auth/EnrollmentUnavailableScreen';
 import { SentryValidationScreen } from '@/screens/diagnostics/SentryValidationScreen';
 import { useRemScale } from '@/theme/rem-scale';
 import { useAppFonts } from '@/theme/use-app-fonts';
@@ -62,7 +62,10 @@ function AppContent() {
       >
         <RootNavigator
           coordinator={appAuthRuntime.coordinator}
-          renderEnrollment={(state, { draftStore, onComplete, onMergeRequired, onCancel }) =>
+          renderEnrollment={(
+            state,
+            { draftStore, onComplete, onMergeRequired, onEnrollmentRequired, onCancel },
+          ) =>
             state.status === 'signingUp' ? (
               <SignupNavigator
                 key={state.flowId}
@@ -75,8 +78,14 @@ function AppContent() {
                 onCancel={onCancel}
               />
             ) : (
-              // Guest 병합 구현 전까지 로그인 화면으로 돌려보낸다.
-              <EnrollmentUnavailableScreen status={state.status} onCancel={onCancel} />
+              <GuestMergeNavigator
+                key={state.flowId}
+                uid={state.uid}
+                startMerge={appAuthRuntime.startMerge}
+                onComplete={onComplete}
+                onEnrollmentRequired={onEnrollmentRequired}
+                onCancel={onCancel}
+              />
             )
           }
           onBrowse={ignoreLoginExit}

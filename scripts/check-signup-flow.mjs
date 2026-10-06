@@ -1027,4 +1027,196 @@ await check(
   },
 );
 
+const { createGuestMergeFlow, decideGuestMergeRecovery, isMergeOutcomeUnknown } = load(
+  'src/features/auth/guest-merge-flow.ts',
+);
+
+function mergeHarness(options = {}) {
+  const calls = { merge: [], prepare: [], exchange: 0, refresh: 0, completed: [], enrollments: [] };
+  let conflictSeen = options.conflictSeen ?? false;
+  const dependencies = {
+    refreshProof: async () => {
+      calls.refresh += 1;
+      return {
+        kind: 'proof-ready',
+        uid: 'firebase-user',
+        firebaseIdToken: `proof-${calls.refresh}`,
+      };
+    },
+    prepareRequest: async () => ({ accessToken: 'guest-access', generation: 1 }),
+    prepare: async (proof, guestToken) => {
+      calls.prepare.push({ proof, guestToken });
+      return { kind: 'merge-required' };
+    },
+    exchange: async () => {
+      calls.exchange += 1;
+      return { kind: 'authenticated', session: { accessToken: 'exchanged-member' } };
+    },
+    submitMerge: async (proof, guestToken) => {
+      calls.merge.push({ proof, guestToken });
+      return { session, mergeId: 'merge-1' };
+    },
+    targetConflicts: {
+      hasSeen: () => conflictSeen,
+      record: () => {
+        conflictSeen = true;
+      },
+    },
+    ...options.dependencies,
+  };
+  const flow = createGuestMergeFlow({
+    uid: 'firebase-user',
+    dependencies,
+    onComplete: async (value) => {
+      calls.completed.push(value);
+    },
+    onEnrollmentRequired: (value) => {
+      calls.enrollments.push(value);
+    },
+  });
+  async function confirm() {
+    flow.confirm();
+    await flush();
+  }
+  return { flow, calls, state: () => flow.getState().state, confirm };
+}
+
+/** 앞의 merge만 실패시키고 이후는 성공한다. */
+function failMerges(errors, calls) {
+  return async (proof, guestToken) => {
+    calls().merge.push({ proof, guestToken });
+    const error = errors[calls().merge.length - 1];
+    if (error) throw error;
+    return { session, mergeId: 'merge-1' };
+  };
+}
+
+await check('병합 판단: 결과 불명·판별 1회·대상 상태별 행동', async () => {
+  const fresh = { proofRetried: false, reconciled: false };
+  const used = { proofRetried: true, reconciled: true };
+  const decide = (error, attempts = fresh) => decideGuestMergeRecovery(error, attempts);
+  assert.equal(isMergeOutcomeUnknown(new TransportConnectionError()), true);
+  assert.equal(isMergeOutcomeUnknown(new ApiError(500, 'x', 'INTERNAL_SERVER_ERROR')), true);
+  assert.equal(isMergeOutcomeUnknown(new ApiError(409, 'x', 'GUEST_MERGE_CONFLICT')), true);
+  assert.equal(isMergeOutcomeUnknown(new ApiError(503, 'x', 'FIREBASE_UNAVAILABLE')), false);
+  assert.equal(decide(new TransportConnectionError()).kind, 'reconcile');
+  assert.equal(decide(new TransportConnectionError(), used).kind, 'outcome-unknown');
+  assert.equal(decide(new ApiError(401, 'x', 'INVALID_FIREBASE_ID_TOKEN')).kind, 'resubmit');
+  assert.equal(decide(new ApiError(401, 'x', 'INVALID_FIREBASE_ID_TOKEN'), used).kind, 'fail');
+  for (const code of ['ACCOUNT_MERGED_TOKEN_REJECTED', 'GUEST_MERGE_NOT_ALLOWED', 'USER_NOT_FOUND'])
+    assert.equal(decide(new ApiError(403, 'x', code)).kind, 'exchange');
+  const withdrawn = decide(new ApiError(403, 'x', 'GUEST_MERGE_TARGET_WITHDRAWN'));
+  assert.equal(withdrawn.notice.nextAction, 'continue-signup');
+  const suspended = decide(new ApiError(403, 'x', 'GUEST_MERGE_TARGET_NOT_ACTIVE'));
+  assert.equal(suspended.notice.nextAction, 'get-help');
+  assert.equal(
+    decide(new ApiError(409, 'x', 'GUEST_MERGE_TARGET_CONFLICT')).kind,
+    'target-conflict',
+  );
+});
+
+await check('병합 제출: 확인 전에는 보내지 않고, 갱신한 증명과 Guest 토큰으로 merge', async () => {
+  const h = mergeHarness();
+  assert.equal(h.state().status, 'confirming');
+  assert.deepEqual(h.calls.merge, []);
+  await h.confirm();
+  assert.deepEqual(h.calls.merge, [{ proof: 'proof-1', guestToken: 'guest-access' }]);
+  assert.deepEqual(h.calls.completed, [{ session, mergeId: 'merge-1' }]);
+  h.flow.dispose();
+});
+
+await check(
+  '병합 결과 불명 → Guest 토큰 prepare가 403이면 병합됨: exchange, mergeId 없음',
+  async () => {
+    for (const rejected of [
+      new ApiError(403, 'x', 'GUEST_UPGRADE_NOT_ALLOWED'),
+      new ApiError(401, 'x', 'ACCOUNT_MERGED_TOKEN_REJECTED'),
+    ]) {
+      let h;
+      h = mergeHarness({
+        dependencies: {
+          submitMerge: failMerges([new TransportConnectionError()], () => h.calls),
+          prepare: async (proof, guestToken) => {
+            h.calls.prepare.push({ proof, guestToken });
+            throw rejected;
+          },
+        },
+      });
+      await h.confirm();
+      assert.equal(h.calls.merge.length, 1);
+      assert.deepEqual(h.calls.prepare, [{ proof: 'proof-2', guestToken: 'guest-access' }]);
+      assert.equal(h.calls.exchange, 1);
+      assert.deepEqual(h.calls.completed, [
+        { session: { accessToken: 'exchanged-member' }, mergeId: null },
+      ]);
+      h.flow.dispose();
+    }
+  },
+);
+
+await check('병합 결과 불명 → prepare MERGE_REQUIRED면 확인 없이 merge를 다시 보냄', async () => {
+  let h;
+  h = mergeHarness({
+    dependencies: { submitMerge: failMerges([new ApiError(500, 'oops')], () => h.calls) },
+  });
+  await h.confirm();
+  assert.equal(h.calls.merge.length, 2);
+  assert.equal(h.calls.exchange, 0);
+  assert.deepEqual(h.calls.completed, [{ session, mergeId: 'merge-1' }]);
+  h.flow.dispose();
+});
+
+await check('병합 판별은 제출당 한 번: 두 번째 실패부터 도움 요청을 함께 보임', async () => {
+  let h;
+  const unknown = () => new ApiError(409, 'x', 'GUEST_MERGE_CONFLICT');
+  h = mergeHarness({
+    dependencies: {
+      submitMerge: failMerges([unknown(), unknown(), unknown(), unknown()], () => h.calls),
+    },
+  });
+  await h.confirm();
+  assert.equal(h.calls.merge.length, 2);
+  assert.equal(h.state().nextAction, 'retry');
+  h.flow.retry();
+  await flush();
+  assert.equal(h.calls.merge.length, 4);
+  assert.equal(h.state().nextAction, 'retry-or-help');
+  h.flow.dispose();
+});
+
+await check('대상 충돌은 다시 로그인을 한 번 허용한 뒤 도움 요청', async () => {
+  const conflict = async () => {
+    throw new ApiError(409, 'x', 'GUEST_MERGE_TARGET_CONFLICT');
+  };
+  const first = mergeHarness({ dependencies: { submitMerge: conflict } });
+  await first.confirm();
+  assert.equal(first.state().nextAction, 'sign-in-again');
+  first.flow.dispose();
+  const second = mergeHarness({ conflictSeen: true, dependencies: { submitMerge: conflict } });
+  await second.confirm();
+  assert.equal(second.state().nextAction, 'get-help');
+  second.flow.dispose();
+});
+
+await check('대상 탈퇴 → 가입 이어가기는 prepare의 새 enrollment로 승격 흐름에 넘김', async () => {
+  let h;
+  h = mergeHarness({
+    dependencies: {
+      submitMerge: async () => {
+        throw new ApiError(403, 'x', 'GUEST_MERGE_TARGET_WITHDRAWN');
+      },
+      prepare: async (proof, guestToken) => {
+        h.calls.prepare.push({ proof, guestToken });
+        return { kind: 'enrollment-required', enrollment: guestEnrollment() };
+      },
+    },
+  });
+  await h.confirm();
+  assert.equal(h.state().nextAction, 'continue-signup');
+  h.flow.retry();
+  await flush();
+  assert.deepEqual(h.calls.enrollments, [guestEnrollment()]);
+  h.flow.dispose();
+});
+
 console.log(`가입·승격 흐름 검사 ${passed}개 통과`);

@@ -45,7 +45,8 @@ export type AuthCoordinatorState =
   | { status: 'activatingSession' }
   /** uid는 가입 제출 전 같은 Firebase 사용자의 증명을 강제 갱신할 때 쓴다. 토큰은 담지 않는다. */
   | { status: 'signingUp'; flowId: number; uid: string; enrollment: IdentityEnrollment }
-  | { status: 'mergeRequired'; flowId: number }
+  /** uid는 병합 제출 전 같은 Firebase 사용자의 증명을 강제 갱신할 때 쓴다. */
+  | { status: 'mergeRequired'; flowId: number; uid: string }
   | {
       status: 'loginError';
       origin: IdentityLoginOrigin;
@@ -56,6 +57,8 @@ export type AuthCoordinatorState =
   | { status: 'idle' }
   | { status: 'restoring' }
   | { status: 'noSession' }
+  /** 서버가 계정을 비활성으로 거절해 세션을 지웠다. 알린 뒤 사용자가 누르면 로그인 화면으로 간다. */
+  | { status: 'accountInactive' }
   | { status: 'guest' }
   | { status: 'authenticated' }
   | {
@@ -88,7 +91,9 @@ function resolveAuthRestoration(result: AuthSessionRestoreResult): AuthCoordinat
           return { status: 'guest' };
       }
     case 'login-required':
-      return { status: 'noSession' };
+      return result.notice === 'account-inactive'
+        ? { status: 'accountInactive' }
+        : { status: 'noSession' };
     case 'recovery-required':
       return {
         status: 'error',
@@ -329,6 +334,25 @@ export function createAuthCoordinator(
     await checkMemberConsent(attempt.run);
   }
 
+  /** 가입·승격 화면으로 넘긴다. 승격 Guest의 필수 약관 version은 prepare 응답에만 있어 여기서 넣는다. */
+  function enterEnrollment(flowId: number, uid: string, enrollment: IdentityEnrollment): void {
+    // 두 경로 모두 제출 전에 약관 버전이 필요하지만 받는 곳이 다르다.
+    // Guest: 필수 약관 버전은 prepare 응답에 있어 여기서 넣는다. 품질 검토 버전은 승격 흐름이
+    // 약관 화면에서 공개 API로 받고, 이때 prepare의 필수 버전을 덮어쓰지 않는다.
+    // direct signup: exchange 응답에 버전이 없어 null로 두고, 가입 흐름이 약관 화면에
+    // 들어갈 때 공개 API로 받아 채운다(signup-flow.ts `loadPolicies`).
+    signupDraft.setPolicyVersions(
+      enrollment.origin === 'guest'
+        ? {
+            terms: enrollment.termConsentVersion,
+            privacy: enrollment.privacyConsentVersion,
+            qualityReview: null,
+          }
+        : { terms: null, privacy: null, qualityReview: null },
+    );
+    store.setState({ state: { status: 'signingUp', flowId, uid, enrollment } });
+  }
+
   async function submitIdentityProof(
     attempt: IdentityAttempt,
     proof: Extract<FirebaseProofResult, { kind: 'proof-ready' }>,
@@ -368,32 +392,11 @@ export function createAuthCoordinator(
           await activateIdentitySession(attempt, result.session);
           return;
         case 'enrollment-required':
-          // 두 경로 모두 제출 전에 약관 버전이 필요하지만 받는 곳이 다르다.
-          // Guest: 필수 약관 버전은 prepare 응답에 있어 여기서 넣는다. 품질 검토 버전은 승격 흐름이
-          // 약관 화면에서 공개 API로 받고, 이때 prepare의 필수 버전을 덮어쓰지 않는다.
-          // direct signup: exchange 응답에 버전이 없어 null로 두고, 가입 흐름이 약관 화면에
-          // 들어갈 때 공개 API로 받아 채운다(signup-flow.ts `loadPolicies`).
-          signupDraft.setPolicyVersions(
-            result.enrollment.origin === 'guest'
-              ? {
-                  terms: result.enrollment.termConsentVersion,
-                  privacy: result.enrollment.privacyConsentVersion,
-                  qualityReview: null,
-                }
-              : { terms: null, privacy: null, qualityReview: null },
-          );
-          store.setState({
-            state: {
-              status: 'signingUp',
-              flowId: attempt.run,
-              uid: proof.uid,
-              enrollment: result.enrollment,
-            },
-          });
+          enterEnrollment(attempt.run, proof.uid, result.enrollment);
           return;
         case 'merge-required':
           store.setState({
-            state: { status: 'mergeRequired', flowId: attempt.run },
+            state: { status: 'mergeRequired', flowId: attempt.run, uid: proof.uid },
           });
           return;
       }
@@ -424,7 +427,7 @@ export function createAuthCoordinator(
         if (error.code === 'MERGE_REQUIRED' && attempt.origin === 'guest') {
           identityRetry = null;
           store.setState({
-            state: { status: 'mergeRequired', flowId: attempt.run },
+            state: { status: 'mergeRequired', flowId: attempt.run, uid: proof.uid },
           });
           return;
         }
@@ -520,7 +523,26 @@ export function createAuthCoordinator(
     if (!loginAttempt || state.status !== 'signingUp' || state.flowId !== flowId) return;
     identityRetry = null;
     signupDraft.reset();
-    store.setState({ state: { status: 'mergeRequired', flowId } });
+    // 같은 flowId 안에서 uid는 바뀌지 않는다. 승격 흐름에게 돌려받지 않고 원래 상태의 값을 옮긴다.
+    store.setState({ state: { status: 'mergeRequired', flowId, uid: state.uid } });
+  }
+
+  /**
+   * 병합 흐름이 대상 MEMBER가 사라졌음을 알았다(탈퇴 등). 받은 enrollment로 승격 또는 신규 가입을 잇는다.
+   * 이전 흐름의 늦은 알림은 무시한다.
+   */
+  function continueWithEnrollment(flowId: number, enrollment: IdentityEnrollment): void {
+    const { state } = store.getState();
+    if (!loginAttempt || state.status !== 'mergeRequired' || state.flowId !== flowId) return;
+    identityRetry = null;
+    signupDraft.reset();
+    enterEnrollment(flowId, state.uid, enrollment);
+  }
+
+  /** 계정 비활성 안내를 확인했다. 지워진 세션 대신 로그인 화면을 보여준다. */
+  function acknowledgeAccountInactive(): void {
+    if (store.getState().state.status !== 'accountInactive') return;
+    store.setState({ state: { status: 'noSession' } });
   }
 
   /** 가입/병합 담당이 서버에서 받은 세션을 전달한다. 이전 가입 화면의 완료는 무시한다. */
@@ -597,6 +619,7 @@ export function createAuthCoordinator(
       case 'signingUp':
       case 'mergeRequired':
       case 'noSession':
+      case 'accountInactive':
       case 'guest':
       case 'authenticated':
       case 'consent':
@@ -637,6 +660,8 @@ export function createAuthCoordinator(
     cancelLogin,
     completeEnrollment,
     requireMerge,
+    continueWithEnrollment,
+    acknowledgeAccountInactive,
     dispose,
     getState: store.getState,
     getInitialState: store.getInitialState,
@@ -652,6 +677,7 @@ export function createAuthCoordinator(
  * RootNavigator에서 표현할 UI 대응(여기서 router.replace를 호출하지 않는다):
  * idle / restoring → 초기 로딩
  * noSession / guest → 로그인(이후 exchange/prepare 분기를 위해 상태는 구분)
+ * accountInactive → 계정 비활성 안내 후 로그인
  * consent → 필수 약관 재동의
  * authenticated → 메인
  * error → 안내·재시도 버튼. isRetrying이면 진행 표시 및 버튼 비활성화

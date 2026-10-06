@@ -187,8 +187,45 @@ await check('계정 401 재발급도 refresh 무효 시 로그인으로 복귀',
   assert.deepEqual(await h.create().restore(), { kind: 'login-required' });
   assert.equal(h.record().phase, 'signed-out');
 });
-await check('계정 401의 병합·탈퇴 코드는 재발급 없이 차단', async () => {
-  for (const code of ['ACCOUNT_MERGED_TOKEN_REJECTED', 'WITHDRAWAL_CLEANUP_PENDING']) {
+await check(
+  '병합된 옛 Guest·비활성 계정은 재발급 없이 세션을 지우고 안내 표시를 남김',
+  async () => {
+    for (const error of [
+      new ApiError(401, 'merged', 'ACCOUNT_MERGED_TOKEN_REJECTED'),
+      new ApiError(403, 'inactive', 'ACCOUNT_NOT_ACTIVE'),
+    ]) {
+      const h = harness();
+      h.deps.getAccount = async () => {
+        throw error;
+      };
+      assert.deepEqual(await h.create().restore(), {
+        kind: 'login-required',
+        notice: 'account-inactive',
+      });
+      assert.equal(h.record().phase, 'signed-out');
+      assert.equal(h.calls.reissue.length, 0);
+    }
+    // 재발급 단계에서 거절돼도 같다.
+    const h = harness(active({ ...oldSession, accessTokenExpiresAt: now - 1 }));
+    h.deps.reissue = async () => {
+      throw new ApiError(403, 'inactive', 'ACCOUNT_NOT_ACTIVE');
+    };
+    assert.deepEqual(await h.create().restore(), {
+      kind: 'login-required',
+      notice: 'account-inactive',
+    });
+    assert.equal(h.record().phase, 'signed-out');
+    const c = createAuthCoordinator({
+      restore: async () => ({ kind: 'login-required', notice: 'account-inactive' }),
+    });
+    await c.bootstrap();
+    assert.equal(c.getState().state.status, 'accountInactive');
+    c.acknowledgeAccountInactive();
+    assert.equal(c.getState().state.status, 'noSession');
+  },
+);
+await check('계정 401의 탈퇴 정리 코드는 재발급 없이 차단', async () => {
+  for (const code of ['WITHDRAWAL_CLEANUP_PENDING']) {
     const h = harness();
     let calls = 0;
     h.deps.getAccount = async () => {
@@ -870,9 +907,11 @@ await check(
     const current = h.coordinator.getState().state;
     assert.equal(current.status, 'signingUp');
     h.coordinator.requireMerge(current.flowId);
+    // uid는 승격 흐름에게 돌려받지 않고 직전 signingUp 상태의 값을 옮긴다.
     assert.deepEqual(h.coordinator.getState().state, {
       status: 'mergeRequired',
       flowId: current.flowId,
+      uid: current.uid,
     });
 
     const lost = identityHarness('guest');
