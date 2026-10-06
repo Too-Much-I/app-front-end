@@ -113,11 +113,12 @@ interface MemberConsentGate {
 interface IdentityLoginDependencies {
   firebase: Pick<
     ReturnType<typeof createFirebaseAuthController>,
-    'signIn' | 'retry' | 'cancel' | 'refreshProof'
+    'signIn' | 'retry' | 'cancel' | 'refreshProof' | 'signOut'
   >;
   session: {
     acceptSession: (session: AuthSession, signal?: AbortSignal) => Promise<boolean>;
     prepareRequest: () => Promise<RequestAuthSnapshot>;
+    signOut: () => Promise<void>;
   };
   exchange: (proof: string, signal?: AbortSignal) => Promise<IdentityExchangeResult>;
   prepare: (
@@ -156,6 +157,7 @@ export function createAuthCoordinator(
   let restorationPromise: Promise<void> | null = null;
   let flowGeneration = 0;
   let loginAttempt: IdentityAttempt | null = null;
+  let signingOut: Promise<void> | null = null;
   let identityRetry: IdentityRetry | null = null;
 
   function consentState(status: ServerConsentStatus): AuthCoordinatorState {
@@ -497,6 +499,27 @@ export function createAuthCoordinator(
     await handleFirebaseProof(attempt, await login.firebase.signIn(provider));
   }
 
+  /** 회원 로그아웃. 기기 정리 뒤 로그인 화면으로 보낸다. 서버 폐기는 세션 담당이 뒤에서 보낸다. */
+  function signOut(): Promise<void> {
+    if (signingOut) return signingOut;
+    const { state } = store.getState();
+    if (!login || (state.status !== 'authenticated' && state.status !== 'consent'))
+      return Promise.resolve();
+    const { session, firebase } = login;
+    flowGeneration += 1;
+    // 연속으로 눌러도 정리를 한 번만 한다.
+    signingOut = (async () => {
+      try {
+        await session.signOut();
+        await firebase.signOut();
+        store.setState({ state: { status: 'noSession' } });
+      } finally {
+        signingOut = null;
+      }
+    })();
+    return signingOut;
+  }
+
   function cancelLogin(): void {
     const attempt = loginAttempt;
     const { state } = store.getState();
@@ -657,6 +680,7 @@ export function createAuthCoordinator(
     signupDraft,
     getForegroundRecoveryState,
     signIn,
+    signOut,
     cancelLogin,
     completeEnrollment,
     requireMerge,

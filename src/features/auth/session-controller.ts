@@ -4,6 +4,7 @@ import { createSessionPersistence } from '@/features/auth/session-persistence';
 
 import { getCurrentAccount } from '@/features/auth/api/get-current-account';
 import { reissueSession } from '@/features/auth/api/reissue-session';
+import { revokeRefreshSession } from '@/features/auth/api/revoke-refresh-session';
 import {
   isAccountInactiveFailure,
   isDefinitiveRefreshFailure,
@@ -45,6 +46,7 @@ interface SessionControllerDependencies {
   write: (record: AuthRestorationRecord) => Promise<void>;
   removeLegacy: () => Promise<void>;
   reissue: typeof reissueSession;
+  revoke: typeof revokeRefreshSession;
   getAccount: typeof getCurrentAccount;
   createRequestId: () => string;
   now: () => number;
@@ -65,6 +67,7 @@ export function createSessionController(
     write: writeAuthRestorationRecord,
     removeLegacy: removeLegacyAuthSession,
     reissue: reissueSession,
+    revoke: revokeRefreshSession,
     getAccount: getCurrentAccount,
     createRequestId: Crypto.randomUUID,
     now: Date.now,
@@ -279,6 +282,29 @@ export function createSessionController(
     }
   }
 
+  /**
+   * 사용자 로그아웃. 기기 정리를 먼저 끝내고 서버 폐기는 기다리지 않는다(2026-10-06 결정).
+   * 진행 중인 복원·토큰 회전이 끝난 뒤 지워야 늦게 도착한 세션이 다시 활성화되지 않고,
+   * 서버에도 회전 뒤의 refresh token을 보낸다.
+   */
+  async function signOut(): Promise<void> {
+    activationVersion += 1;
+    if (pending) await pending;
+    const session = activeSession;
+    activeSession = null;
+    generation += 1;
+    // 다음 복원은 저장된 signed-out 기록을 읽어 로그인 필요로 끝난다.
+    progress = { step: 'read' };
+    try {
+      await persistence.writeRequired({ schemaVersion: 2, phase: 'signed-out' });
+    } catch {
+      // 디스크에 옛 세션이 남아도 서버 폐기가 성공하면 다음 실행의 재발급이 확정 실패로 정리한다.
+    }
+    notifyAccountChange();
+    // 실패해도 기기 토큰은 이미 지워졌다. 남은 서버 세션은 만료까지 고립된다.
+    if (session) dependencies.revoke(session.refreshToken).catch(() => {});
+  }
+
   function dispose(): void {
     disposed = true;
     activationVersion += 1;
@@ -343,6 +369,7 @@ export function createSessionController(
   return {
     restore,
     acceptSession,
+    signOut,
     retryPersistence: persistence.retryPersistence,
     dispose,
     prepareRequest,

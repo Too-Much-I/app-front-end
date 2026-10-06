@@ -39,6 +39,8 @@ export interface FirebaseAuthSdk {
   ) => Promise<{ kind: 'signed-in'; user: User } | { kind: 'cancelled' }>;
   getIdToken: (user: User, forceRefresh: boolean) => Promise<string>;
   getCurrentUid: () => string | null;
+  /** 기기의 Firebase·Provider 로그인을 끊는다. 실패해도 던지지 않는다. */
+  signOut: () => Promise<void>;
 }
 
 /** 원문 SDK 오류·인증 자료를 외부 상태나 로그로 전달하지 않는다. */
