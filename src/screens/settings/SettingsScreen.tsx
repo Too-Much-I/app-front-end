@@ -12,6 +12,7 @@ import type { RootStackParamList } from '@/navigation/types';
 import { SettingsRow } from '@/screens/settings/components/SettingsRow';
 import { SettingsSection } from '@/screens/settings/components/SettingsSection';
 import { useQualityReviewConsent } from '@/screens/settings/use-quality-review-consent';
+import { useSignOutConfirmation } from '@/screens/settings/use-sign-out-confirmation';
 import { colors, shadows } from '@/theme';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
@@ -35,6 +36,7 @@ function formatApplicationVersion(version: string | null): string {
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [consentAgreedAt, setConsentAgreedAt] = useState<string | null>(null);
   const qualityReview = useQualityReviewConsent();
+  const confirmSignOut = useSignOutConfirmation();
 
   useEffect(() => {
     getStoredConsent()
@@ -169,6 +171,15 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               trailing={null}
               showDivider={false}
               title="모든 학습 기록 삭제"
+            />
+          </SettingsSection>
+
+          <SettingsSection title="계정">
+            <SettingsRow
+              icon="log-out"
+              onPress={confirmSignOut}
+              showDivider={false}
+              title="로그아웃"
             />
           </SettingsSection>
         </View>

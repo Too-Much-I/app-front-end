@@ -160,6 +160,13 @@ export function createFirebaseAuthController(sdk: FirebaseAuthSdk) {
     store.setState({ operation: { status: 'cancelling' } });
   }
 
+  /** 로그아웃 뒤 이전 사용자의 증명으로 재시도·재발급하지 않게 함께 비운다. */
+  async function signOut(): Promise<void> {
+    cancel();
+    retryForceRefresh = false;
+    await sdk.signOut();
+  }
+
   return {
     getState: store.getState,
     getInitialState: store.getInitialState,
@@ -168,5 +175,6 @@ export function createFirebaseAuthController(sdk: FirebaseAuthSdk) {
     refreshProof,
     retry,
     cancel,
+    signOut,
   };
 }

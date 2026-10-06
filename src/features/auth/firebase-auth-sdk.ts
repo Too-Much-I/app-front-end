@@ -5,6 +5,7 @@ import {
   OAuthProvider,
   signInWithCredential,
   signInWithPopup,
+  signOut,
 } from '@react-native-firebase/auth';
 import {
   GoogleSignin,
@@ -137,9 +138,30 @@ export function createFirebaseAuthSdk(config: FirebaseProviderConfiguration): Fi
     }
   };
 
+  const signOutDevice: FirebaseAuthSdk['signOut'] = async () => {
+    if (Platform.OS !== 'ios' && Platform.OS !== 'android') return;
+    try {
+      await signOut(getAuth());
+    } catch {
+      // 다음 SNS 로그인이 currentUser를 새 사용자로 바꾸므로 남아도 흐름을 막지 않는다.
+    }
+    if (!config.google?.webClientId.trim()) return;
+    try {
+      // Google SDK는 자체 로그인을 따로 기억해, 끊지 않으면 다음 로그인이 같은 계정을 바로 고른다.
+      GoogleSignin.configure({
+        webClientId: config.google.webClientId,
+        iosClientId: config.google.iosClientId,
+      });
+      await GoogleSignin.signOut();
+    } catch {
+      // 계정 선택 화면이 생략될 뿐 로그아웃 자체에는 영향이 없다.
+    }
+  };
+
   return {
     signInProvider,
     getIdToken,
     getCurrentUid: () => getAuth().currentUser?.uid ?? null,
+    signOut: signOutDevice,
   };
 }
