@@ -12,14 +12,19 @@ type ReadRequestInit = Omit<JsonRequestInit, 'body' | 'method'> & {
   method?: 'GET';
 };
 
-function waitForCaller<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+/**
+ * 취소를 먼저 확인한 뒤 작업을 시작한다. promise를 받으면 이미 시작된 뒤라, 로그아웃으로 취소된 요청도
+ * 세션 복구(재발급·복원)를 일으킬 수 있었다.
+ */
+function waitForCaller<T>(start: () => Promise<T>, signal?: AbortSignal): Promise<T> {
   if (!signal) {
-    return promise;
+    return start();
   }
   if (signal.aborted) {
     return Promise.reject(signal.reason ?? new Error('요청이 취소되었습니다.'));
   }
 
+  const promise = start();
   return new Promise<T>((resolve, reject) => {
     const handleAbort = () => reject(signal.reason ?? new Error('요청이 취소되었습니다.'));
     signal.addEventListener('abort', handleAbort, { once: true });
@@ -56,7 +61,7 @@ export function createAuthenticatedApiClient(session: ApiSessionAccess) {
     init: JsonRequestInit = {},
     timeoutMs?: number,
   ): Promise<T> {
-    const snapshot = await waitForCaller(session.prepareRequest(), init.signal ?? undefined);
+    const snapshot = await waitForCaller(() => session.prepareRequest(), init.signal ?? undefined);
 
     return requestWithToken<T>(path, snapshot, init, timeoutMs);
   }
@@ -66,7 +71,10 @@ export function createAuthenticatedApiClient(session: ApiSessionAccess) {
     init: ReadRequestInit = {},
     timeoutMs?: number,
   ): Promise<T> {
-    const firstSnapshot = await waitForCaller(session.prepareRequest(), init.signal ?? undefined);
+    const firstSnapshot = await waitForCaller(
+      () => session.prepareRequest(),
+      init.signal ?? undefined,
+    );
 
     let unauthorizedCode: string | undefined;
     try {
@@ -79,7 +87,7 @@ export function createAuthenticatedApiClient(session: ApiSessionAccess) {
     }
 
     const retrySnapshot = await waitForCaller(
-      session.recoverUnauthorized(firstSnapshot.generation, unauthorizedCode),
+      () => session.recoverUnauthorized(firstSnapshot.generation, unauthorizedCode),
       init.signal ?? undefined,
     );
     return requestWithToken<T>(path, retrySnapshot, init, timeoutMs);
