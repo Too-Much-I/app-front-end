@@ -170,7 +170,9 @@
   - 연결·서버 오류는 `AUTH_RECOVERY_MESSAGES` 재사용.
 - [ ] 대상 정지: 행동은 "다른 계정으로 로그인" 대신 **도움 요청하기**로 결정(2026-10-05). 정지는 문의로만 복구되고, 번호당 계정 하나라 다른 계정은 막다른 길이다. 문구는 이에 맞춰 다시 정한다. 문의 API가 전제다.
 - [ ] 완료 문구와 보여 주는 방식. 후보 "이전 학습기록이 통합됐어요. 이제부터는 어느 기기에서든 학습 기록을 잃지 않아요." 이전 완료 확인 방법을 받은 뒤 확정한다.
-- [ ] `403 ACCOUNT_NOT_ACTIVE`를 `DEFINITIVE_REFRESH_CODES`에 넣어 unexpected 화면에 갇히지 않게 한다(구현 항목).
+- [x] `403 ACCOUNT_NOT_ACTIVE`가 unexpected 화면에 갇히지 않게 한다. `DEFINITIVE_REFRESH_CODES` 대신
+  `isAccountInactiveFailure`(`src/features/auth/api/reissue-tokens.ts`)로 분리해, 세션을 지우고 "계정이
+  활성화되지 않았어요" 안내 뒤 로그인 화면으로 보낸다(`session-controller.ts`).
 
 주의: 최신 명세에서 Guest `ALREADY_LINKED`는 폐기됐다. 오래된 검토 문서의 해당 분기를 새 구현에 가져오지 않는다.
 
