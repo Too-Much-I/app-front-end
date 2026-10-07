@@ -33,13 +33,6 @@ import { useRemScale } from '@/theme/rem-scale';
 
 const Stack = createNativeStackNavigator<AuthPreviewStackParamList>();
 
-function explainPreviewOnly() {
-  Alert.alert(
-    '화면 미리보기',
-    '현재는 로그인·가입 화면만 확인할 수 있어요. 실제 로그인과 둘러보기는 연결하지 않았어요.',
-  );
-}
-
 function LoginPreviewRoute({
   navigation,
 }: NativeStackScreenProps<AuthPreviewStackParamList, 'LoginPreview'>) {
@@ -53,11 +46,7 @@ function LoginPreviewRoute({
   };
   return (
     <View className="flex-1">
-      <LoginScreen
-        onSelectProvider={startSignupPreview}
-        onBrowse={explainPreviewOnly}
-        onClose={explainPreviewOnly}
-      />
+      <LoginScreen onSelectProvider={startSignupPreview} />
       <Button
         label="문의 화면 미리보기"
         variant="text"

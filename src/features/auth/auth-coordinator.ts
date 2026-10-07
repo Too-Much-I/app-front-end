@@ -1,4 +1,6 @@
+import type { AccountRecoveryEntry } from '@/features/auth/account-recovery-flow';
 import type { createFirebaseAuthController } from '@/features/auth/firebase-auth-controller';
+import type { PhoneCollisionCredential } from '@/features/auth/firebase-auth-errors';
 import { createSignupDraftStore } from '@/features/auth/signup-draft-store';
 import type { AuthForegroundRecoveryState } from '@/features/auth/auth-foreground-recovery';
 import type {
@@ -47,6 +49,13 @@ export type AuthCoordinatorState =
   | { status: 'signingUp'; flowId: number; uid: string; enrollment: IdentityEnrollment }
   /** uid는 병합 제출 전 같은 Firebase 사용자의 증명을 강제 갱신할 때 쓴다. */
   | { status: 'mergeRequired'; flowId: number; uid: string }
+  /** 가입한 로그인 수단을 전화번호로 찾는다. 끝나면 origin의 로그인 화면으로 돌아간다. */
+  | {
+      status: 'findingAccount';
+      flowId: number;
+      origin: IdentityLoginOrigin;
+      entry: AccountRecoveryEntry;
+    }
   | {
       status: 'loginError';
       origin: IdentityLoginOrigin;
@@ -126,6 +135,8 @@ interface IdentityLoginDependencies {
     guestToken: string,
     signal?: AbortSignal,
   ) => Promise<IdentityGuestPreparationResult>;
+  /** 서버 세션을 받은 로그인 수단을 기기에 남긴다. 실패해도 던지지 않는다. */
+  rememberLoginProvider: (provider: FirebaseLoginProvider) => void;
 }
 
 type IdentityAttempt = {
@@ -330,6 +341,8 @@ export function createAuthCoordinator(
       });
       return;
     }
+    // 기존 회원 로그인·가입·Guest 승격·병합이 모두 여기로 모인다. Guest 세션은 이 경로를 지나지 않는다.
+    login.rememberLoginProvider(attempt.provider);
     // 로그인 성공과 가입 완료 모두 같은 메모리 세션·약관 확인 경로를 사용한다.
     signupDraft.reset();
     identityRetry = null;
@@ -562,6 +575,59 @@ export function createAuthCoordinator(
     enterEnrollment(flowId, state.uid, enrollment);
   }
 
+  /** 로그인 화면의 계정 찾기. */
+  function findAccount(): void {
+    const { state } = store.getState();
+    if (state.status !== 'noSession' && state.status !== 'guest') return;
+    store.setState({
+      state: {
+        status: 'findingAccount',
+        flowId: ++flowGeneration,
+        origin: state.status,
+        entry: { phone: '', credential: null, abandonedUid: null },
+      },
+    });
+  }
+
+  /**
+   * 가입 중 번호가 다른 계정 소유로 확인됐다(Firebase 충돌·서버 PHONE_ALREADY_LINKED).
+   * 진행 중인 가입은 버린다. 입력한 번호는 계정 찾기 화면에 채운다. 이전 흐름의 늦은 알림은 무시한다.
+   */
+  function findAccountFromSignup(
+    flowId: number,
+    credential: PhoneCollisionCredential | null,
+  ): void {
+    const { state } = store.getState();
+    const attempt = loginAttempt;
+    if (!attempt || state.status !== 'signingUp' || state.flowId !== flowId) return;
+    const { phone } = signupDraft.getState();
+    attempt.abort.abort();
+    login?.firebase.cancel();
+    loginAttempt = null;
+    identityRetry = null;
+    signupDraft.reset();
+    store.setState({
+      state: {
+        status: 'findingAccount',
+        flowId: ++flowGeneration,
+        origin: attempt.origin,
+        entry: { phone, credential, abandonedUid: state.uid },
+      },
+    });
+  }
+
+  /** 계정 찾기를 마쳤다. provider가 있으면 그 SNS 로그인을 바로 시작한다. 이전 흐름의 늦은 알림은 무시한다. */
+  async function finishAccountRecovery(
+    flowId: number,
+    provider: FirebaseLoginProvider | null,
+  ): Promise<void> {
+    const { state } = store.getState();
+    if (state.status !== 'findingAccount' || state.flowId !== flowId) return;
+    flowGeneration += 1;
+    store.setState({ state: { status: state.origin } });
+    if (provider) await signIn(provider);
+  }
+
   /** 계정 비활성 안내를 확인했다. 지워진 세션 대신 로그인 화면을 보여준다. */
   function acknowledgeAccountInactive(): void {
     if (store.getState().state.status !== 'accountInactive') return;
@@ -641,6 +707,7 @@ export function createAuthCoordinator(
         return 'busy';
       case 'signingUp':
       case 'mergeRequired':
+      case 'findingAccount':
       case 'noSession':
       case 'accountInactive':
       case 'guest':
@@ -685,6 +752,9 @@ export function createAuthCoordinator(
     completeEnrollment,
     requireMerge,
     continueWithEnrollment,
+    findAccount,
+    findAccountFromSignup,
+    finishAccountRecovery,
     acknowledgeAccountInactive,
     dispose,
     getState: store.getState,
@@ -708,5 +778,6 @@ export function createAuthCoordinator(
  *
  * signingIn / submittingProof / activatingSession → 단계별 로딩
  * signingUp / mergeRequired → 별도 가입·병합 영역에 연결
+ * findingAccount → 계정 찾기 영역. 끝나면 로그인 화면(또는 찾은 SNS 로그인)으로
  * loginError → 로그인 단계별 복구, cancelLogin으로 시작 화면 복귀
  */

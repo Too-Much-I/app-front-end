@@ -6,6 +6,7 @@ import { Text } from '@/components/ui/Text';
 interface SignupFailureAction {
   label: string;
   onPress: () => void;
+  disabled?: boolean;
 }
 
 interface SignupFailureScreenProps {
@@ -15,7 +16,7 @@ interface SignupFailureScreenProps {
   secondary?: SignupFailureAction;
 }
 
-/** 가입 중 약관 조회·제출 실패 안내. Safe area는 가입 흐름의 root가 소유한다. */
+/** 인증 흐름의 결과·실패 안내 카드(가입·병합·계정 찾기). Safe area는 각 흐름의 root가 소유한다. */
 export function SignupFailureScreen({
   title,
   message,
@@ -38,6 +39,7 @@ export function SignupFailureScreen({
           className="mt-section w-full"
           label={primary.label}
           size="lg"
+          disabled={primary.disabled}
           onPress={primary.onPress}
         />
         {secondary ? (

@@ -10,6 +10,7 @@ import { useStore } from 'zustand';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Text } from '@/components/ui/Text';
 import type { createAuthRuntime } from '@/features/auth/auth-runtime';
+import type { PhoneCollisionCredential } from '@/features/auth/firebase-auth-errors';
 import type { IdentityEnrollment } from '@/features/auth/identity-login-types';
 import type { SignupFlowState, SignupStep } from '@/features/auth/signup-flow';
 import type { createSignupDraftStore } from '@/features/auth/signup-draft-store';
@@ -44,6 +45,8 @@ interface SignupNavigatorProps {
   onComplete: (session: AuthSession) => Promise<void>;
   /** Guest 승격 중 이 SNS 계정이 다른 MEMBER 소유로 확인됐을 때. direct signup은 부르지 않는다. */
   onMergeRequired: () => void;
+  /** 번호가 이미 다른 계정 소유다. 이 가입을 버리고 계정 찾기로 간다. */
+  onFindAccount: (credential: PhoneCollisionCredential | null) => void;
   onCancel: () => void;
 }
 
@@ -55,6 +58,7 @@ export function SignupNavigator({
   startSignup,
   onComplete,
   onMergeRequired,
+  onFindAccount,
   onCancel,
 }: SignupNavigatorProps): ReactElement | null {
   // 부모가 렌더마다 새 콜백을 넘겨도 흐름을 다시 만들지 않는다.
@@ -81,7 +85,13 @@ export function SignupNavigator({
     <Stack.Navigator key="signup" screenOptions={{ headerShown: false, gestureEnabled: false }}>
       <Stack.Screen name="Signup">
         {(props) => (
-          <SignupFlowRoute {...props} signup={signup} draftStore={draftStore} onCancel={onCancel} />
+          <SignupFlowRoute
+            {...props}
+            signup={signup}
+            draftStore={draftStore}
+            onFindAccount={onFindAccount}
+            onCancel={onCancel}
+          />
         )}
       </Stack.Screen>
       <Stack.Screen
@@ -97,10 +107,12 @@ function SignupFlowRoute({
   navigation,
   signup,
   draftStore,
+  onFindAccount,
   onCancel,
 }: NativeStackScreenProps<RootStackParamList, 'Signup'> & {
   signup: Signup;
   draftStore: DraftStore;
+  onFindAccount: (credential: PhoneCollisionCredential | null) => void;
   onCancel: () => void;
 }) {
   const { flow } = signup;
@@ -137,6 +149,7 @@ function SignupFlowRoute({
         position={position}
         isLastStep={(step) => steps[steps.length - 1] === step}
         onBack={goBack}
+        onFindAccount={onFindAccount}
         onCancel={onCancel}
         onOpenPolicy={(policy) => navigation.navigate('SettingsWebView', POLICY_PAGES[policy])}
       />
@@ -165,6 +178,7 @@ function SignupStepContent({
   position,
   isLastStep,
   onBack,
+  onFindAccount,
   onCancel,
   onOpenPolicy,
 }: {
@@ -174,6 +188,7 @@ function SignupStepContent({
   position: (step: SignupStep) => { step: number; totalSteps: number };
   isLastStep: (step: SignupStep) => boolean;
   onBack: () => void;
+  onFindAccount: (credential: PhoneCollisionCredential | null) => void;
   onCancel: () => void;
   onOpenPolicy: (policy: 'terms' | 'privacy') => void;
 }): ReactElement {
@@ -211,6 +226,7 @@ function SignupStepContent({
               draftStore={draftStore}
               {...position('phone')}
               onBack={onBack}
+              onFindAccount={onFindAccount}
             />
           );
       }
@@ -249,6 +265,15 @@ function SignupStepContent({
               primary={{ label: '정보 수정하기', onPress: flow.retrySubmit }}
             />
           );
+        case 'find-account':
+          return (
+            <SignupFailureScreen
+              title="이미 가입된 번호예요"
+              message={state.message}
+              primary={{ label: '이전 로그인 수단 확인', onPress: () => onFindAccount(null) }}
+              secondary={{ label: '로그인 화면으로', onPress: onCancel }}
+            />
+          );
         case 'sign-in-again':
         case 'exit':
           return (
@@ -268,17 +293,19 @@ function SignupPhoneStep({
   step,
   totalSteps,
   onBack,
+  onFindAccount,
 }: {
   signup: Signup;
   draftStore: DraftStore;
   step: number;
   totalSteps: number;
   onBack: () => void;
+  onFindAccount: (credential: PhoneCollisionCredential | null) => void;
 }) {
   const { flow, phone } = signup;
   const draftPhone = useStore(draftStore, (draft) => draft.phone);
   const verification = useStore(phone, (snapshot) => snapshot);
-  const { stage, code, error } = verification;
+  const { stage, code, error, conflict } = verification;
 
   const view: PhoneVerificationViewState = (() => {
     switch (stage.status) {
@@ -309,6 +336,11 @@ function SignupPhoneStep({
       onResendCode={phone.requestCode}
       onVerify={() => void phone.verifyCode()}
       onContinue={flow.completePhoneVerification}
+      numberAction={
+        conflict
+          ? { label: '이전 로그인 수단 확인', onPress: () => onFindAccount(conflict.credential) }
+          : undefined
+      }
     />
   );
 }

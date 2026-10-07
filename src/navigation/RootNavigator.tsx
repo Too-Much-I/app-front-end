@@ -2,15 +2,20 @@ import {
   createNativeStackNavigator,
   type NativeStackScreenProps,
 } from '@react-navigation/native-stack';
-import type { ReactElement } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from 'zustand';
 
 import { SupportInquiryScreen } from '@/screens/support/SupportInquiryScreen';
 import type { AuthCoordinatorState, createAuthCoordinator } from '@/features/auth/auth-coordinator';
+import type { PhoneCollisionCredential } from '@/features/auth/firebase-auth-errors';
+import type { FirebaseLoginProvider } from '@/features/auth/firebase-auth-types';
+import type { createLastLoginProviderStore } from '@/features/auth/last-login-provider';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useAuthBootstrap } from '@/features/auth/use-auth-bootstrap';
 import { LoginScreen } from '@/screens/auth/LoginScreen';
+import { getLoginProviderLabel } from '@/screens/auth/login-provider-label';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { colors } from '@/theme';
@@ -65,17 +70,22 @@ type CoordinatorNavigationProps = {
       onComplete: (session: AuthSession) => Promise<void>;
       onMergeRequired: () => void;
       onEnrollmentRequired: (enrollment: IdentityEnrollment) => void;
+      onFindAccount: (credential: PhoneCollisionCredential | null) => void;
       onCancel: () => void;
     },
   ) => ReactElement;
-  onBrowse: () => void;
-  onClose: () => void;
+  renderAccountRecovery: (
+    state: Extract<AuthCoordinatorState, { status: 'findingAccount' }>,
+    actions: { onFinish: (provider: FirebaseLoginProvider | null) => void },
+  ) => ReactElement;
+  lastLoginProvider: ReturnType<typeof createLastLoginProviderStore>;
 };
 
 export function RootNavigator({
   coordinator,
   renderEnrollment,
-  ...loginActions
+  renderAccountRecovery,
+  lastLoginProvider,
 }: CoordinatorNavigationProps): ReactElement {
   useAuthBootstrap(coordinator);
   const state = useStore(coordinator, (snapshot) => snapshot.state);
@@ -108,14 +118,7 @@ export function RootNavigator({
       return (
         <Stack.Navigator key="login" screenOptions={{ headerShown: false, gestureEnabled: false }}>
           <Stack.Screen name="AuthLogin">
-            {() => (
-              <SafeAreaView className="flex-1 bg-surface-subtle">
-                <LoginScreen
-                  {...loginActions}
-                  onSelectProvider={(provider) => void coordinator.signIn(provider)}
-                />
-              </SafeAreaView>
-            )}
+            {() => <LoginRoute coordinator={coordinator} lastLoginProvider={lastLoginProvider} />}
           </Stack.Screen>
         </Stack.Navigator>
       );
@@ -127,7 +130,12 @@ export function RootNavigator({
         onMergeRequired: () => coordinator.requireMerge(state.flowId),
         onEnrollmentRequired: (enrollment) =>
           coordinator.continueWithEnrollment(state.flowId, enrollment),
+        onFindAccount: (credential) => coordinator.findAccountFromSignup(state.flowId, credential),
         onCancel: coordinator.cancelLogin,
+      });
+    case 'findingAccount':
+      return renderAccountRecovery(state, {
+        onFinish: (provider) => void coordinator.finishAccountRecovery(state.flowId, provider),
       });
     case 'accountInactive':
       // 문구는 2026-10-05 사용자 결정. 로그인됐다고 생각한 사용자가 갑자기 로그인 화면을 보지 않게 먼저 알린다.
@@ -191,6 +199,54 @@ export function RootNavigator({
         </Stack.Navigator>
       );
   }
+}
+
+function LoginRoute({
+  coordinator,
+  lastLoginProvider,
+}: {
+  coordinator: ReturnType<typeof createAuthCoordinator>;
+  lastLoginProvider: ReturnType<typeof createLastLoginProviderStore>;
+}) {
+  const recentProvider = useStore(lastLoginProvider, (snapshot) =>
+    snapshot.status === 'loaded' ? snapshot.provider : null,
+  );
+  // 저장된 수단과 다른 SNS를 눌렀을 때 한 번 확인한다. 그 SNS로는 새 가입이 될 수 있다.
+  const [differentProvider, setDifferentProvider] = useState<FirebaseLoginProvider | null>(null);
+
+  useEffect(() => {
+    void lastLoginProvider.load();
+  }, [lastLoginProvider]);
+
+  const selectProvider = (provider: FirebaseLoginProvider) => {
+    if (recentProvider && recentProvider !== provider) setDifferentProvider(provider);
+    else void coordinator.signIn(provider);
+  };
+
+  return (
+    <SafeAreaView className="flex-1 bg-surface-subtle">
+      <LoginScreen
+        recentProvider={recentProvider}
+        onSelectProvider={selectProvider}
+        onFindAccount={coordinator.findAccount}
+      />
+      {recentProvider && differentProvider ? (
+        <ConfirmModal
+          visible
+          title={`최근에 ${getLoginProviderLabel(recentProvider)}로 로그인했어요`}
+          // 그 SNS가 이미 회원이면 번호가 필요 없어 "새로 가입하려면"으로 조건을 단다. 전화번호당 계정 하나다.
+          message={`${getLoginProviderLabel(differentProvider)}로 새로 가입하려면 이전 계정과 다른 휴대전화 번호가 필요해요.`}
+          cancelLabel="돌아가기"
+          confirmLabel={`${getLoginProviderLabel(differentProvider)}로 계속하기`}
+          onCancel={() => setDifferentProvider(null)}
+          onConfirm={() => {
+            setDifferentProvider(null);
+            void coordinator.signIn(differentProvider);
+          }}
+        />
+      ) : null}
+    </SafeAreaView>
+  );
 }
 
 function SupportInquiryRoute({

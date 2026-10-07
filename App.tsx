@@ -11,6 +11,7 @@ import { PortraitOnlyNotice } from '@/components/ui/PortraitOnlyNotice';
 import { appAuthRuntime } from '@/features/auth/app-auth-runtime';
 import { OrientationProvider } from '@/features/orientation/OrientationProvider';
 import { useOrientation } from '@/features/orientation/orientation-context';
+import { AccountRecoveryNavigator } from '@/navigation/AccountRecoveryNavigator';
 import { AuthPreviewNavigator } from '@/navigation/AuthPreviewNavigator';
 import { RootNavigator } from '@/navigation/RootNavigator';
 import { GuestMergeNavigator } from '@/navigation/GuestMergeNavigator';
@@ -23,9 +24,6 @@ import { IS_SENTRY_VALIDATION_MODE } from '@/lib/sentry-validation-mode';
 import { SentryValidationScreen } from '@/screens/diagnostics/SentryValidationScreen';
 import { useRemScale } from '@/theme/rem-scale';
 import { useAppFonts } from '@/theme/use-app-fonts';
-
-// 둘러보기·닫기의 목적지는 아직 정하지 않았다. 신규 Guest 생성으로 연결하지 않는다.
-function ignoreLoginExit() {}
 
 function AppContent() {
   const { isLandscapeTableRequested } = useOrientation();
@@ -64,7 +62,14 @@ function AppContent() {
           coordinator={appAuthRuntime.coordinator}
           renderEnrollment={(
             state,
-            { draftStore, onComplete, onMergeRequired, onEnrollmentRequired, onCancel },
+            {
+              draftStore,
+              onComplete,
+              onMergeRequired,
+              onEnrollmentRequired,
+              onFindAccount,
+              onCancel,
+            },
           ) =>
             state.status === 'signingUp' ? (
               <SignupNavigator
@@ -75,6 +80,7 @@ function AppContent() {
                 startSignup={appAuthRuntime.startEnrollment}
                 onComplete={onComplete}
                 onMergeRequired={onMergeRequired}
+                onFindAccount={onFindAccount}
                 onCancel={onCancel}
               />
             ) : (
@@ -88,8 +94,15 @@ function AppContent() {
               />
             )
           }
-          onBrowse={ignoreLoginExit}
-          onClose={ignoreLoginExit}
+          renderAccountRecovery={(state, { onFinish }) => (
+            <AccountRecoveryNavigator
+              key={state.flowId}
+              entry={state.entry}
+              startAccountRecovery={appAuthRuntime.startAccountRecovery}
+              onFinish={onFinish}
+            />
+          )}
+          lastLoginProvider={appAuthRuntime.lastLoginProvider}
         />
       </NavigationContainer>
       <StatusBar style="auto" />
