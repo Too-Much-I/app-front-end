@@ -1,5 +1,6 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
+import type { SupportInquiryEntry } from '@/features/support/support-inquiry';
 import type { ChallengeInitialResult } from '@/types/challenge';
 import type { ExamSession } from '@/types/exam';
 
@@ -43,8 +44,8 @@ export type RootStackParamList = {
   GuestMerge: undefined;
   /** 전화번호 인증으로 가입한 로그인 수단을 찾는 화면. 단계는 계정 찾기 흐름 상태가 고른다. 번호를 params에 넣지 않는다. */
   AccountRecovery: undefined;
-  /** 인증 세션 없이도 열 수 있는 문의 입력 화면. */
-  SupportInquiry: undefined;
+  /** 인증 세션 없이도 열 수 있는 문의 입력 화면. 진입한 곳이 분류를 정하고, 정하지 않으면 사용자가 고른다. */
+  SupportInquiry: SupportInquiryEntry;
   /**
    * 서버가 요구한 회원 필수 약관 재동의를 받는 인증 게이트.
    * 인증 코디네이터 상태에 따라 RootNavigator가 이 route의 노출을 결정한다.

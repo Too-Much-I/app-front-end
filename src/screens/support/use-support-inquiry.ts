@@ -1,24 +1,33 @@
+import * as Crypto from 'expo-crypto';
 import { useEffect, useRef, useState } from 'react';
 
 import {
+  describeSupportInquiryFailure,
+  isSameSupportInquiry,
   validateSupportInquiry,
   type SupportInquiry,
+  type SupportInquiryDraft,
+  type SupportInquiryEntry,
   type SupportInquirySender,
 } from '@/features/support/support-inquiry';
 
 type InquiryFormState =
-  | { status: 'editing'; draft: SupportInquiry }
-  | { status: 'submitting'; draft: SupportInquiry }
-  | { status: 'failed'; draft: SupportInquiry; message: string }
+  | { status: 'editing'; draft: SupportInquiryDraft }
+  | { status: 'submitting'; draft: SupportInquiryDraft }
+  | { status: 'failed'; draft: SupportInquiryDraft; message: string }
   | { status: 'submitted' };
 
-export function useSupportInquiry(send?: SupportInquirySender) {
+type InquiryField = 'message' | 'replyEmail';
+
+export function useSupportInquiry(entry: SupportInquiryEntry, send?: SupportInquirySender) {
   const [state, setState] = useState<InquiryFormState>({
     status: 'editing',
-    draft: { message: '', replyEmail: '' },
+    draft: { category: entry.category ?? null, message: '', replyEmail: '' },
   });
   const submitting = useRef(false);
   const mounted = useRef(true);
+  // 마지막으로 보낸 문의와 그 키. 같은 문의를 다시 보낼 때만 키를 재사용한다.
+  const lastAttempt = useRef<{ inquiry: SupportInquiry; idempotencyKey: string } | null>(null);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -26,13 +35,21 @@ export function useSupportInquiry(send?: SupportInquirySender) {
     };
   }, []);
 
-  function update(field: keyof SupportInquiry, value: string): void {
+  function updateDraft(change: Partial<SupportInquiryDraft>): void {
     if (submitting.current) return;
     setState((current) =>
       current.status === 'submitted' || current.status === 'submitting'
         ? current
-        : { status: 'editing', draft: { ...current.draft, [field]: value } },
+        : { status: 'editing', draft: { ...current.draft, ...change } },
     );
+  }
+
+  function update(field: InquiryField, value: string): void {
+    updateDraft(field === 'message' ? { message: value } : { replyEmail: value });
+  }
+
+  function selectCategory(category: SupportInquiryDraft['category']): void {
+    updateDraft({ category });
   }
 
   async function submit(): Promise<void> {
@@ -44,31 +61,33 @@ export function useSupportInquiry(send?: SupportInquirySender) {
     )
       return;
     const draft = state.draft;
-    const message = validateSupportInquiry(draft);
-    if (message) {
-      setState({ status: 'failed', draft, message });
+    const validation = validateSupportInquiry(draft, entry.screen);
+    if (!validation.ok) {
+      setState({ status: 'failed', draft, message: validation.message });
       return;
     }
+    const { inquiry } = validation;
+    const previous = lastAttempt.current;
+    // 서버는 소문자 UUID v4를 요구한다. 플랫폼마다 대소문자가 다를 수 있어 직접 맞춘다.
+    const idempotencyKey =
+      previous && isSameSupportInquiry(previous.inquiry, inquiry)
+        ? previous.idempotencyKey
+        : Crypto.randomUUID().toLowerCase();
+    lastAttempt.current = { inquiry, idempotencyKey };
+
     submitting.current = true;
     setState({ status: 'submitting', draft });
     try {
-      // 자동 재전송하지 않는다. 접수 확인은 실제 API 어댑터가 성공한 경우에만 표시한다.
-      await send({
-        message: draft.message.trim(),
-        replyEmail: draft.replyEmail.trim(),
-      });
+      // 자동 재전송하지 않는다. 사용자가 다시 누르면 같은 문의는 같은 키로 보내 중복 접수를 막는다.
+      await send(inquiry, idempotencyKey);
       if (mounted.current) setState({ status: 'submitted' });
-    } catch {
+    } catch (error) {
       if (mounted.current)
-        setState({
-          status: 'failed',
-          draft,
-          message: '전송 결과를 확인하지 못했어요. 입력한 내용은 그대로 남아 있어요.',
-        });
+        setState({ status: 'failed', draft, message: describeSupportInquiryFailure(error) });
     } finally {
       submitting.current = false;
     }
   }
 
-  return { state, update, submit };
+  return { state, update, selectCategory, submit };
 }

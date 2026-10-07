@@ -11,6 +11,7 @@ import { Text } from '@/components/ui/Text';
 import type { AccountRecoveryEntry } from '@/features/auth/account-recovery-flow';
 import type { createAuthRuntime } from '@/features/auth/auth-runtime';
 import type { FirebaseLoginProvider } from '@/features/auth/firebase-auth-types';
+import { submitSupportInquiry } from '@/features/support/api/submit-support-inquiry';
 import type { RootStackParamList } from '@/navigation/types';
 import { AccountFoundScreen } from '@/screens/auth/AccountFoundScreen';
 import { PhoneVerificationScreen } from '@/screens/auth/PhoneVerificationScreen';
@@ -163,7 +164,14 @@ function AccountRecoveryRoute({
           <SignupFailureScreen
             title="계정 상태를 확인해야 해요"
             message="계정 상태 확인이 필요합니다. 고객지원에 문의해주세요."
-            primary={{ label: '문의하기', onPress: () => navigation.navigate('SupportInquiry') }}
+            primary={{
+              label: '문의하기',
+              onPress: () =>
+                navigation.navigate('SupportInquiry', {
+                  screen: 'account-recovery',
+                  category: 'AUTH',
+                }),
+            }}
             secondary={{ label: '로그인 화면으로', onPress: () => onFinish(null) }}
           />
         );
@@ -196,7 +204,13 @@ function AccountRecoveryRoute({
 
 function SupportInquiryRoute({
   navigation,
+  route,
 }: NativeStackScreenProps<RootStackParamList, 'SupportInquiry'>) {
-  // TODO: 비로그인 문의 API 계약 확정 후 sendInquiry 어댑터 연결.
-  return <SupportInquiryScreen onBack={navigation.goBack} />;
+  return (
+    <SupportInquiryScreen
+      entry={route.params}
+      onBack={navigation.goBack}
+      sendInquiry={submitSupportInquiry}
+    />
+  );
 }

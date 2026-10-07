@@ -22,6 +22,7 @@ import { colors } from '@/theme';
 
 import type { IdentityEnrollment } from '@/features/auth/identity-login-types';
 import type { AuthSession } from '@/features/auth/types';
+import { submitSupportInquiry } from '@/features/support/api/submit-support-inquiry';
 import { MainTabNavigator } from '@/navigation/MainTabNavigator';
 import type { RootStackParamList } from '@/navigation/types';
 import { AuthRecoveryScreen } from '@/screens/auth/AuthRecoveryScreen';
@@ -56,6 +57,7 @@ function MemberRootNavigator() {
       <Stack.Screen name="ChallengeResult" component={ChallengeResultScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="SettingsWebView" component={SettingsWebViewScreen} />
+      <Stack.Screen name="SupportInquiry" component={SupportInquiryRoute} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
     </Stack.Navigator>
   );
@@ -189,7 +191,12 @@ export function RootNavigator({
                 onRetry={coordinator.retry}
                 onCancel={state.status === 'loginError' ? coordinator.cancelLogin : undefined}
                 recoveryAction={state.nextAction === 'get-help' ? 'get-help' : 'retry'}
-                onHelp={() => navigation.navigate('SupportInquiry')}
+                onHelp={() =>
+                  navigation.navigate('SupportInquiry', {
+                    screen: 'auth-recovery',
+                    category: 'AUTH',
+                  })
+                }
               />
             )}
           </Stack.Screen>
@@ -279,7 +286,13 @@ function LoginRoute({
 
 function SupportInquiryRoute({
   navigation,
+  route,
 }: NativeStackScreenProps<RootStackParamList, 'SupportInquiry'>) {
-  // TODO: 비로그인 문의 API 계약 확정 후 sendInquiry 어댑터 연결.
-  return <SupportInquiryScreen onBack={navigation.goBack} />;
+  return (
+    <SupportInquiryScreen
+      entry={route.params}
+      onBack={navigation.goBack}
+      sendInquiry={submitSupportInquiry}
+    />
+  );
 }

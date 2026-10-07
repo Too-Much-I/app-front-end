@@ -200,7 +200,9 @@ export function AuthPreviewNavigator() {
             <Stack.Navigator screenOptions={{ headerShown: false }}>
               <Stack.Screen name="LoginPreview" component={LoginPreviewRoute} />
               <Stack.Screen name="SupportInquiryPreview">
-                {({ navigation }) => <SupportInquiryScreen onBack={navigation.goBack} />}
+                {({ navigation }) => (
+                  <SupportInquiryScreen entry={{ screen: 'settings' }} onBack={navigation.goBack} />
+                )}
               </Stack.Screen>
               <Stack.Screen name="SignupNicknamePreview" component={SignupNicknamePreviewRoute} />
               <Stack.Screen name="SignupConsentPreview" component={SignupConsentPreviewRoute} />
