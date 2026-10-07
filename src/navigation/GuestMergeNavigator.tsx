@@ -13,6 +13,7 @@ import type { createAuthRuntime } from '@/features/auth/auth-runtime';
 import type { GuestMergeFlowState } from '@/features/auth/guest-merge-flow';
 import type { IdentityEnrollment } from '@/features/auth/identity-login-types';
 import type { AuthSession } from '@/features/auth/types';
+import { submitSupportInquiry } from '@/features/support/api/submit-support-inquiry';
 import type { RootStackParamList } from '@/navigation/types';
 import { GuestMergeConfirmScreen } from '@/screens/auth/GuestMergeConfirmScreen';
 import { SignupFailureScreen } from '@/screens/auth/SignupFailureScreen';
@@ -106,7 +107,9 @@ function GuestMergeRoute({
         flow={flow}
         onRequestCancel={() => setCancelConfirmationVisible(true)}
         onCancel={onCancel}
-        onHelp={() => navigation.navigate('SupportInquiry')}
+        onHelp={() =>
+          navigation.navigate('SupportInquiry', { screen: 'guest-merge', category: 'AUTH' })
+        }
       />
       <ConfirmModal
         visible={isCancelConfirmationVisible}
@@ -209,7 +212,13 @@ function GuestMergeContent({
 
 function SupportInquiryRoute({
   navigation,
+  route,
 }: NativeStackScreenProps<RootStackParamList, 'SupportInquiry'>) {
-  // TODO: 비로그인 문의 API 계약 확정 후 sendInquiry 어댑터 연결.
-  return <SupportInquiryScreen onBack={navigation.goBack} />;
+  return (
+    <SupportInquiryScreen
+      entry={route.params}
+      onBack={navigation.goBack}
+      sendInquiry={submitSupportInquiry}
+    />
+  );
 }

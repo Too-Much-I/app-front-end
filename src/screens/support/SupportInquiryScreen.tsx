@@ -6,20 +6,24 @@ import { Button } from '@/components/ui/Button';
 import { Pressable } from '@/components/ui/Pressable';
 import { Text } from '@/components/ui/Text';
 import {
+  SUPPORT_CATEGORY_OPTIONS,
   SUPPORT_MESSAGE_LIMIT,
+  SUPPORT_MESSAGE_MIN_LENGTH,
+  type SupportInquiryEntry,
   type SupportInquirySender,
 } from '@/features/support/support-inquiry';
 import { useSupportInquiry } from '@/screens/support/use-support-inquiry';
 import { colors, FONT_FAMILY, size } from '@/theme';
 
 interface SupportInquiryScreenProps {
+  entry: SupportInquiryEntry;
   onBack: () => void;
   sendInquiry?: SupportInquirySender;
 }
 
 /** 기존 문의 페이지의 편지 캐릭터·주황색 행동 버튼을 네이티브 입력 폼으로 구성한다. */
-export function SupportInquiryScreen({ onBack, sendInquiry }: SupportInquiryScreenProps) {
-  const { state, update, submit } = useSupportInquiry(sendInquiry);
+export function SupportInquiryScreen({ entry, onBack, sendInquiry }: SupportInquiryScreenProps) {
+  const { state, update, selectCategory, submit } = useSupportInquiry(entry, sendInquiry);
   const isSubmitting = state.status === 'submitting';
 
   return (
@@ -66,10 +70,36 @@ export function SupportInquiryScreen({ onBack, sendInquiry }: SupportInquiryScre
               <Button label="돌아가기" size="lg" onPress={onBack} />
             ) : (
               <>
+                {entry.category ? null : (
+                  <View className="gap-content">
+                    <Text className="text-base">문의 유형</Text>
+                    <View accessibilityRole="radiogroup" className="flex-row gap-content">
+                      {SUPPORT_CATEGORY_OPTIONS.map((option) => {
+                        const selected = state.draft.category === option.category;
+                        return (
+                          <Pressable
+                            key={option.category}
+                            accessibilityRole="radio"
+                            accessibilityState={{ checked: selected, disabled: isSubmitting }}
+                            disabled={isSubmitting}
+                            onPress={() => selectCategory(option.category)}
+                            className={`min-h-control-lg flex-1 items-center justify-center rounded-control border ${
+                              selected ? 'border-brand bg-surface' : 'border-line bg-surface'
+                            }`}
+                          >
+                            <Text className={selected ? 'text-base !text-brand-text' : 'text-base'}>
+                              {option.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
                 <View className="gap-content">
-                  <Text className="text-base">답변 받을 이메일 (선택)</Text>
+                  <Text className="text-base">답변 받을 이메일</Text>
                   <TextInput
-                    accessibilityLabel="답변 받을 이메일, 선택 입력"
+                    accessibilityLabel="답변 받을 이메일"
                     autoCapitalize="none"
                     autoCorrect={false}
                     keyboardType="email-address"
@@ -94,7 +124,7 @@ export function SupportInquiryScreen({ onBack, sendInquiry }: SupportInquiryScre
                     textAlignVertical="top"
                     className="min-h-40 rounded-control border border-line bg-surface p-card text-base text-ink"
                     style={{ fontFamily: FONT_FAMILY }}
-                    placeholder="어느 화면에서 어떤 문제가 있었는지 알려주세요."
+                    placeholder={`어느 화면에서 어떤 문제가 있었는지 ${SUPPORT_MESSAGE_MIN_LENGTH}자 이상 알려주세요.`}
                     placeholderTextColor={colors.ink.disabled}
                     maxLength={SUPPORT_MESSAGE_LIMIT}
                     editable={!isSubmitting}
@@ -119,7 +149,12 @@ export function SupportInquiryScreen({ onBack, sendInquiry }: SupportInquiryScre
                   label={isSubmitting ? '보내는 중...' : '문의 보내기'}
                   size="lg"
                   loading={isSubmitting}
-                  disabled={!sendInquiry || !state.draft.message.trim()}
+                  disabled={
+                    !sendInquiry ||
+                    !state.draft.category ||
+                    !state.draft.replyEmail.trim() ||
+                    !state.draft.message.trim()
+                  }
                   onPress={() => {
                     void submit();
                   }}

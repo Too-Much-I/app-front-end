@@ -119,12 +119,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
             <SettingsRow
               description="버그 제보 및 기능 제안을 할 수 있어요."
               icon="message-circle"
-              onPress={() =>
-                navigation.navigate('SettingsWebView', {
-                  path: '/app-settings/contact',
-                  title: '문의하기',
-                })
-              }
+              onPress={() => navigation.navigate('SupportInquiry', { screen: 'settings' })}
               title="문의하기"
             />
             <SettingsRow
