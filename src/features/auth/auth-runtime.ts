@@ -59,6 +59,8 @@ export function createAuthRuntime(options: {
     exchange: exchangeFirebaseProof,
     prepare: prepareGuestEnrollment,
     rememberLoginProvider: lastLoginProvider.remember,
+    // 정리는 아래 구독이 시작한다. 안내의 확인이 호출할 때는 이미 정의돼 있다.
+    waitForWithdrawnCleanup: () => clearingWithdrawnDevice ?? Promise.resolve(),
   });
   const api = createAuthenticatedApiClient(session);
   const mergeProgress = createMergeProgressTracker({
@@ -199,7 +201,13 @@ export function createAuthRuntime(options: {
       withdraw: withdrawAccount,
     })
       .then(async (result) => {
-        if (result.kind === 'withdrawn') await session.endWithdrawnSession();
+        if (result.kind !== 'withdrawn') return result;
+        try {
+          await session.endWithdrawnSession();
+        } catch {
+          // 탈퇴는 서버에서 확정됐다. 정리·알림이 실패해도 재시도할 실패로 돌리지 않는다.
+          // 남은 기기 세션은 다음 요청의 재발급이 ACCOUNT_WITHDRAWN으로 정리한다.
+        }
         return result;
       })
       .finally(() => {

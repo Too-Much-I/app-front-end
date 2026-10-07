@@ -143,7 +143,10 @@ export async function serviceFetchWithMetadata<T>(
     // `FetchError`(Error 상속, 메시지 "fetch failed: <네이티브 예외>")로 던진다. 둘 다 응답 전 실패다.
     if (
       error instanceof TypeError ||
-      (error instanceof Error && error.message.startsWith('fetch failed')) ||
+      // 서버 응답으로 만든 ApiError는 메시지와 관계없이 그대로 둔다.
+      (!(error instanceof ApiError) &&
+        error instanceof Error &&
+        error.message.startsWith('fetch failed')) ||
       controller.signal.aborted
     ) {
       throw new TransportConnectionError();

@@ -149,16 +149,7 @@ export function RootNavigator({
         </SafeAreaView>
       );
     case 'accountWithdrawn':
-      // 이 기기에서 탈퇴했든 다른 기기에서 탈퇴했든 같은 안내다(2026-10-07 결정). 축하하지 않고 사실만 알린다.
-      return (
-        <SafeAreaView className="flex-1 bg-surface-subtle" edges={['top', 'bottom']}>
-          <SignupFailureScreen
-            title="계정이 탈퇴됐어요"
-            message="다시 가입하면 새 계정으로 시작해요."
-            primary={{ label: '확인', onPress: coordinator.acknowledgeAccountWithdrawn }}
-          />
-        </SafeAreaView>
-      );
+      return <AccountWithdrawnRoute coordinator={coordinator} />;
     case 'authenticated':
       return <MemberRootNavigator />;
     case 'consent':
@@ -210,6 +201,32 @@ export function RootNavigator({
         </Stack.Navigator>
       );
   }
+}
+
+/** 이 기기에서 탈퇴했든 다른 기기에서 탈퇴했든 같은 안내다(2026-10-07 결정). 축하하지 않고 사실만 알린다. */
+function AccountWithdrawnRoute({
+  coordinator,
+}: {
+  coordinator: ReturnType<typeof createAuthCoordinator>;
+}) {
+  // 기기 정리가 끝날 때까지 확인을 잠근다. 보통은 누르기 전에 끝나 있다.
+  const [isLeaving, setIsLeaving] = useState(false);
+  return (
+    <SafeAreaView className="flex-1 bg-surface-subtle" edges={['top', 'bottom']}>
+      <SignupFailureScreen
+        title="계정이 탈퇴됐어요"
+        message="다시 가입하면 새 계정으로 시작해요."
+        primary={{
+          label: '확인',
+          disabled: isLeaving,
+          onPress: () => {
+            setIsLeaving(true);
+            void coordinator.acknowledgeAccountWithdrawn();
+          },
+        }}
+      />
+    </SafeAreaView>
+  );
 }
 
 function LoginRoute({

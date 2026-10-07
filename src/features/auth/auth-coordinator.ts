@@ -109,6 +109,11 @@ function resolveAuthRestoration(result: AuthSessionRestoreResult): AuthCoordinat
           return { status: 'accountWithdrawn' };
         case undefined:
           return { status: 'noSession' };
+        default: {
+          // 반환하지 않으면 아래 case로 흘러 엉뚱한 오류 화면이 된다.
+          const unhandled: never = result.notice;
+          throw new Error(`처리하지 않은 로그인 안내: ${unhandled}`);
+        }
       }
     case 'recovery-required':
       return {
@@ -144,6 +149,8 @@ interface IdentityLoginDependencies {
   ) => Promise<IdentityGuestPreparationResult>;
   /** 서버 세션을 받은 로그인 수단을 기기에 남긴다. 실패해도 던지지 않는다. */
   rememberLoginProvider: (provider: FirebaseLoginProvider) => void;
+  /** 탈퇴 뒤 진행 중인 기기 정리가 끝날 때까지 기다린다. 진행 중이 아니면 바로 끝난다. 던지지 않는다. */
+  waitForWithdrawnCleanup: () => Promise<void>;
 }
 
 type IdentityAttempt = {
@@ -176,6 +183,7 @@ export function createAuthCoordinator(
   let flowGeneration = 0;
   let loginAttempt: IdentityAttempt | null = null;
   let signingOut: Promise<void> | null = null;
+  let acknowledgingWithdrawal: Promise<void> | null = null;
   let identityRetry: IdentityRetry | null = null;
 
   function consentState(status: ServerConsentStatus): AuthCoordinatorState {
@@ -652,10 +660,22 @@ export function createAuthCoordinator(
     store.setState({ state: { status: 'noSession' } });
   }
 
-  /** 탈퇴 안내를 확인했다. 로그인 화면을 보여준다. */
-  function acknowledgeAccountWithdrawn(): void {
-    if (store.getState().state.status !== 'accountWithdrawn') return;
-    store.setState({ state: { status: 'noSession' } });
+  /**
+   * 탈퇴 안내를 확인했다. 기기 정리가 끝난 뒤 로그인 화면을 보여준다. 정리 중인 Firebase 로그아웃·로그인 수단
+   * 삭제가 곧바로 시작한 새 로그인을 건드리지 않게 한다. 연속으로 눌러도 한 번만 처리한다.
+   */
+  function acknowledgeAccountWithdrawn(): Promise<void> {
+    if (store.getState().state.status !== 'accountWithdrawn') return Promise.resolve();
+    acknowledgingWithdrawal ??= (async () => {
+      try {
+        await login?.waitForWithdrawnCleanup();
+      } finally {
+        acknowledgingWithdrawal = null;
+        if (store.getState().state.status === 'accountWithdrawn')
+          store.setState({ state: { status: 'noSession' } });
+      }
+    })();
+    return acknowledgingWithdrawal;
   }
 
   /** 가입/병합 담당이 서버에서 받은 세션을 전달한다. 이전 가입 화면의 완료는 무시한다. */

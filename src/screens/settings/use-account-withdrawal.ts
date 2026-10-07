@@ -1,5 +1,9 @@
 import { useCallback, useState } from 'react';
 
+import {
+  ACCOUNT_WITHDRAWAL_MESSAGES,
+  type AccountWithdrawalResult,
+} from '@/features/auth/account-withdrawal';
 import { appAuthRuntime } from '@/features/auth/app-auth-runtime';
 
 type WithdrawalDialogState =
@@ -17,7 +21,14 @@ export function useAccountWithdrawal() {
 
   const confirm = useCallback(async () => {
     setDialog({ status: 'pending' });
-    const result = await appAuthRuntime.withdraw();
+    let result: AccountWithdrawalResult;
+    try {
+      result = await appAuthRuntime.withdraw();
+    } catch {
+      // 탈퇴 흐름은 결과로 답한다. 예상 밖으로 던져도 모달이 진행 중에 갇히지 않게 한다.
+      setDialog({ status: 'open', errorMessage: ACCOUNT_WITHDRAWAL_MESSAGES.failed });
+      return;
+    }
     switch (result.kind) {
       case 'failed':
         setDialog({ status: 'open', errorMessage: result.message });
@@ -27,6 +38,10 @@ export function useAccountWithdrawal() {
       case 'withdrawn':
         setDialog({ status: 'closed' });
         return;
+      default: {
+        const unhandled: never = result;
+        throw new Error(`처리하지 않은 탈퇴 결과: ${JSON.stringify(unhandled)}`);
+      }
     }
   }, []);
 
