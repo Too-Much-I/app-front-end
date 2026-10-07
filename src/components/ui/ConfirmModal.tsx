@@ -61,7 +61,7 @@ export function ConfirmModal({
       warningBadge={warningBadge}
     >
       {errorMessage ? (
-        <Text className="mt-3 w-full text-sm text-exam-danger">{errorMessage}</Text>
+        <Text className="mt-3 w-full text-sm !text-exam-danger">{errorMessage}</Text>
       ) : null}
 
       {/* Pressable이 자체 Animated opacity를 style 배열 끝에 덧붙여 className의
@@ -80,6 +80,8 @@ export function ConfirmModal({
           className="mt-element w-full"
           disabled={pending}
           label={confirmLabel}
+          // 흐림만으로는 진행 중인지 알기 어려워, 누른 쪽에 스피너를 띄운다.
+          loading={pending}
           size="lg"
           variant={confirmTone === 'danger' ? 'danger' : 'neutral'}
           onPress={onConfirm}

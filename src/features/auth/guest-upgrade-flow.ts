@@ -37,7 +37,7 @@ const DEFINED_SERVER_ERROR_CODES: readonly string[] = [
 const GUEST_UPGRADE_MESSAGES = {
   policyUnavailable: '약관 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
   signInAgain: '로그인 확인이 필요해요. SNS 로그인부터 다시 진행해 주세요.',
-  withdrawalPending: '이전 탈퇴 처리가 아직 끝나지 않았어요. 잠시 후 다시 가입해 주세요.',
+  withdrawalPending: '계정 정보를 정리하고 있어요. 잠시 후 다시 시도해 주세요.',
   phoneRequired: '휴대전화 인증을 다시 진행해 주세요.',
   phoneAlreadyLinked: '다른 계정에 연결된 번호예요. 이전 로그인 수단을 확인해 주세요.',
   unexpected: '가입을 완료하지 못했어요. 잠시 후 다시 시도해 주세요.',

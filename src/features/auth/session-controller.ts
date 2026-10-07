@@ -7,6 +7,7 @@ import { reissueSession } from '@/features/auth/api/reissue-session';
 import { revokeRefreshSession } from '@/features/auth/api/revoke-refresh-session';
 import {
   isAccountInactiveFailure,
+  isAccountWithdrawnFailure,
   isDefinitiveRefreshFailure,
 } from '@/features/auth/api/reissue-tokens';
 import { classifyAuthRecovery } from '@/features/auth/auth-recovery';
@@ -53,11 +54,18 @@ interface SessionControllerDependencies {
 }
 
 function blocksUnauthorizedRefresh(code?: string): boolean {
-  return code === 'ACCOUNT_MERGED_TOKEN_REJECTED' || code === 'WITHDRAWAL_CLEANUP_PENDING';
+  return (
+    code === 'ACCOUNT_MERGED_TOKEN_REJECTED' ||
+    code === 'WITHDRAWAL_CLEANUP_PENDING' ||
+    code === 'ACCOUNT_WITHDRAWN'
+  );
 }
 
 /** 비활성 계정의 세션은 지우고, 다음 화면이 사용자에게 알리도록 표시를 남긴다. */
 const CLEAR_INACTIVE_SESSION = { step: 'clear-session', notice: 'account-inactive' } as const;
+/** 탈퇴한 계정의 세션도 같은 방식으로 지운다. 어디서 받든 안내는 하나다(2026-10-07 결정). */
+const CLEAR_WITHDRAWN_SESSION = { step: 'clear-session', notice: 'account-withdrawn' } as const;
+const WITHDRAWN_RESULT = { kind: 'login-required', notice: 'account-withdrawn' } as const;
 
 /** 앱 전체에서 한 인스턴스를 공유한다. 기존 authController와 동시에 활성화하지 않는다. */
 export function createSessionController(
@@ -149,6 +157,11 @@ export function createSessionController(
                 progress = CLEAR_INACTIVE_SESSION;
                 break;
               }
+              if (isAccountWithdrawnFailure(error)) {
+                activeSession = null;
+                progress = CLEAR_WITHDRAWN_SESSION;
+                break;
+              }
               if (isDefinitiveRefreshFailure(error)) {
                 activeSession = null;
                 progress = { step: 'clear-session' };
@@ -193,6 +206,11 @@ export function createSessionController(
               if (isAccountInactiveFailure(error)) {
                 activeSession = null;
                 progress = CLEAR_INACTIVE_SESSION;
+                break;
+              }
+              if (isAccountWithdrawnFailure(error)) {
+                activeSession = null;
+                progress = CLEAR_WITHDRAWN_SESSION;
                 break;
               }
               if (
@@ -288,6 +306,22 @@ export function createSessionController(
    * 서버에도 회전 뒤의 refresh token을 보낸다.
    */
   async function signOut(): Promise<void> {
+    const session = await clearDeviceSession();
+    // 실패해도 기기 토큰은 이미 지워졌다. 남은 서버 세션은 만료까지 고립된다.
+    if (session) dependencies.revoke(session.refreshToken).catch(() => {});
+  }
+
+  /**
+   * 이 기기에서 탈퇴가 확정됐다. 서버가 이미 모든 RefreshSession을 폐기했으므로 폐기 요청은 보내지 않는다.
+   * 다른 경로(재발급·계정 조회의 ACCOUNT_WITHDRAWN)와 같은 결과를 구독자에게 알려 안내와 기기 정리를 한 곳에서 한다.
+   */
+  async function endWithdrawnSession(): Promise<void> {
+    await clearDeviceSession();
+    if (!disposed) listeners.forEach((listener) => listener(WITHDRAWN_RESULT));
+  }
+
+  /** 진행 중인 복원·회전을 기다린 뒤 기기의 세션을 지우고, 지운 세션을 돌려준다. */
+  async function clearDeviceSession(): Promise<AuthSession | null> {
     activationVersion += 1;
     if (pending) await pending;
     const session = activeSession;
@@ -298,11 +332,10 @@ export function createSessionController(
     try {
       await persistence.writeRequired({ schemaVersion: 2, phase: 'signed-out' });
     } catch {
-      // 디스크에 옛 세션이 남아도 서버 폐기가 성공하면 다음 실행의 재발급이 확정 실패로 정리한다.
+      // 디스크에 옛 세션이 남아도 서버에서 세션이 폐기됐으면 다음 실행의 재발급이 확정 실패로 정리한다.
     }
     notifyAccountChange();
-    // 실패해도 기기 토큰은 이미 지워졌다. 남은 서버 세션은 만료까지 고립된다.
-    if (session) dependencies.revoke(session.refreshToken).catch(() => {});
+    return session;
   }
 
   function dispose(): void {
@@ -326,6 +359,17 @@ export function createSessionController(
     return { accessToken: activeSession.accessToken, generation };
   }
 
+  /**
+   * access token과 refresh token을 같은 세션에서 꺼낸다. 탈퇴처럼 둘을 함께 보내는 요청에 쓴다.
+   * 두 값을 따로 고르면 회전 직후 짝이 어긋난 조합이 나갈 수 있다.
+   */
+  async function prepareTokenPair(): Promise<{ session: AuthSession; generation: number }> {
+    const snapshot = await prepareRequest();
+    if (!activeSession || activeSession.accessToken !== snapshot.accessToken)
+      throw new SessionRequestError({ kind: 'login-required' });
+    return { session: activeSession, generation: snapshot.generation };
+  }
+
   async function recoverUnauthorized(
     usedGeneration: number,
     code?: string,
@@ -337,6 +381,9 @@ export function createSessionController(
       if (code === 'ACCOUNT_MERGED_TOKEN_REJECTED') {
         activeSession = null;
         progress = CLEAR_INACTIVE_SESSION;
+      } else if (code === 'ACCOUNT_WITHDRAWN') {
+        activeSession = null;
+        progress = CLEAR_WITHDRAWN_SESSION;
       } else if (blocksUnauthorizedRefresh(code)) {
         progress = {
           step: 'blocked',
@@ -370,9 +417,11 @@ export function createSessionController(
     restore,
     acceptSession,
     signOut,
+    endWithdrawnSession,
     retryPersistence: persistence.retryPersistence,
     dispose,
     prepareRequest,
+    prepareTokenPair,
     recoverUnauthorized,
     subscribeRestoration,
     subscribeAccountChange,

@@ -39,6 +39,15 @@ export interface FirebaseAuthSdk {
   ) => Promise<{ kind: 'signed-in'; user: User } | { kind: 'cancelled' }>;
   getIdToken: (user: User, forceRefresh: boolean) => Promise<string>;
   getCurrentUid: () => string | null;
+  /** 기기에 남은 Firebase 사용자의 ID 토큰. 사용자가 없으면 `reauthentication-required`로 던진다. */
+  getCurrentIdToken: (forceRefresh: boolean) => Promise<string>;
+  /** 기기에 남은 Firebase 사용자에 연결된 Provider ID(`apple.com`, `phone` 등). 사용자가 없으면 빈 배열. */
+  getLinkedProviderIds: () => string[];
+  /**
+   * Apple 창을 다시 띄워 받은 authorization code로 Sign in with Apple 토큰을 revoke한다(탈퇴 전용).
+   * iOS에서만 한다. Android는 RNFirebase에 구현이 없어 `unsupported`다.
+   */
+  revokeAppleSignIn: () => Promise<'revoked' | 'cancelled' | 'unsupported'>;
   /** 기기의 Firebase·Provider 로그인을 끊는다. 실패해도 던지지 않는다. */
   signOut: () => Promise<void>;
 }

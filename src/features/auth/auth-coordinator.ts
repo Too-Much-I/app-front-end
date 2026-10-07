@@ -68,6 +68,8 @@ export type AuthCoordinatorState =
   | { status: 'noSession' }
   /** 서버가 계정을 비활성으로 거절해 세션을 지웠다. 알린 뒤 사용자가 누르면 로그인 화면으로 간다. */
   | { status: 'accountInactive' }
+  /** 계정이 탈퇴됐다(이 기기에서 탈퇴했거나 다른 기기에서 탈퇴). 세션·기기 정보는 지웠다. 알린 뒤 로그인 화면으로 간다. */
+  | { status: 'accountWithdrawn' }
   | { status: 'guest' }
   | { status: 'authenticated' }
   | {
@@ -100,9 +102,19 @@ function resolveAuthRestoration(result: AuthSessionRestoreResult): AuthCoordinat
           return { status: 'guest' };
       }
     case 'login-required':
-      return result.notice === 'account-inactive'
-        ? { status: 'accountInactive' }
-        : { status: 'noSession' };
+      switch (result.notice) {
+        case 'account-inactive':
+          return { status: 'accountInactive' };
+        case 'account-withdrawn':
+          return { status: 'accountWithdrawn' };
+        case undefined:
+          return { status: 'noSession' };
+        default: {
+          // 반환하지 않으면 아래 case로 흘러 엉뚱한 오류 화면이 된다.
+          const unhandled: never = result.notice;
+          throw new Error(`처리하지 않은 로그인 안내: ${unhandled}`);
+        }
+      }
     case 'recovery-required':
       return {
         status: 'error',
@@ -137,6 +149,8 @@ interface IdentityLoginDependencies {
   ) => Promise<IdentityGuestPreparationResult>;
   /** 서버 세션을 받은 로그인 수단을 기기에 남긴다. 실패해도 던지지 않는다. */
   rememberLoginProvider: (provider: FirebaseLoginProvider) => void;
+  /** 탈퇴 뒤 진행 중인 기기 정리가 끝날 때까지 기다린다. 진행 중이 아니면 바로 끝난다. 던지지 않는다. */
+  waitForWithdrawnCleanup: () => Promise<void>;
 }
 
 type IdentityAttempt = {
@@ -169,6 +183,7 @@ export function createAuthCoordinator(
   let flowGeneration = 0;
   let loginAttempt: IdentityAttempt | null = null;
   let signingOut: Promise<void> | null = null;
+  let acknowledgingWithdrawal: Promise<void> | null = null;
   let identityRetry: IdentityRetry | null = null;
 
   function consentState(status: ServerConsentStatus): AuthCoordinatorState {
@@ -439,6 +454,17 @@ export function createAuthCoordinator(
           });
           return;
         }
+        if (error.code === 'WITHDRAWAL_CLEANUP_PENDING') {
+          // 탈퇴 직후 같은 SNS로 다시 들어왔다. 정리가 끝나면 지금 Firebase 사용자도 지워지므로 같은 증명을
+          // 다시 보내지 않고 로그인부터 다시 하게 한다. 문구는 2026-10-07 결정.
+          showLoginFailure(
+            attempt,
+            '계정 정보를 정리하고 있어요. 잠시 후 다시 시도해 주세요.',
+            'sign-in-again',
+            { step: 'sign-in' },
+          );
+          return;
+        }
         if (error.code === 'MERGE_REQUIRED' && attempt.origin === 'guest') {
           identityRetry = null;
           store.setState({
@@ -634,6 +660,24 @@ export function createAuthCoordinator(
     store.setState({ state: { status: 'noSession' } });
   }
 
+  /**
+   * 탈퇴 안내를 확인했다. 기기 정리가 끝난 뒤 로그인 화면을 보여준다. 정리 중인 Firebase 로그아웃·로그인 수단
+   * 삭제가 곧바로 시작한 새 로그인을 건드리지 않게 한다. 연속으로 눌러도 한 번만 처리한다.
+   */
+  function acknowledgeAccountWithdrawn(): Promise<void> {
+    if (store.getState().state.status !== 'accountWithdrawn') return Promise.resolve();
+    acknowledgingWithdrawal ??= (async () => {
+      try {
+        await login?.waitForWithdrawnCleanup();
+      } finally {
+        acknowledgingWithdrawal = null;
+        if (store.getState().state.status === 'accountWithdrawn')
+          store.setState({ state: { status: 'noSession' } });
+      }
+    })();
+    return acknowledgingWithdrawal;
+  }
+
   /** 가입/병합 담당이 서버에서 받은 세션을 전달한다. 이전 가입 화면의 완료는 무시한다. */
   async function completeEnrollment(flowId: number, session: AuthSession): Promise<void> {
     const { state } = store.getState();
@@ -710,6 +754,7 @@ export function createAuthCoordinator(
       case 'findingAccount':
       case 'noSession':
       case 'accountInactive':
+      case 'accountWithdrawn':
       case 'guest':
       case 'authenticated':
       case 'consent':
@@ -756,6 +801,7 @@ export function createAuthCoordinator(
     findAccountFromSignup,
     finishAccountRecovery,
     acknowledgeAccountInactive,
+    acknowledgeAccountWithdrawn,
     dispose,
     getState: store.getState,
     getInitialState: store.getInitialState,

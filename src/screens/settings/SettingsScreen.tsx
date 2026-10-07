@@ -5,12 +5,14 @@ import { useEffect, useState } from 'react';
 import { Image, ScrollView, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Pressable } from '@/components/ui/Pressable';
 import { Text } from '@/components/ui/Text';
 import { getStoredConsent } from '@/features/consent/consent-storage';
 import type { RootStackParamList } from '@/navigation/types';
 import { SettingsRow } from '@/screens/settings/components/SettingsRow';
 import { SettingsSection } from '@/screens/settings/components/SettingsSection';
+import { useAccountWithdrawal } from '@/screens/settings/use-account-withdrawal';
 import { useQualityReviewConsent } from '@/screens/settings/use-quality-review-consent';
 import { useSignOutConfirmation } from '@/screens/settings/use-sign-out-confirmation';
 import { colors, shadows } from '@/theme';
@@ -37,6 +39,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [consentAgreedAt, setConsentAgreedAt] = useState<string | null>(null);
   const qualityReview = useQualityReviewConsent();
   const confirmSignOut = useSignOutConfirmation();
+  const withdrawal = useAccountWithdrawal();
 
   useEffect(() => {
     getStoredConsent()
@@ -175,15 +178,27 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           </SettingsSection>
 
           <SettingsSection title="계정">
+            <SettingsRow icon="log-out" onPress={confirmSignOut} title="로그아웃" />
+            {/* 탈퇴를 눈에 띄게 권하지 않도록 다른 행과 같은 모양으로 둔다(2026-10-07 사용자 결정). */}
             <SettingsRow
-              icon="log-out"
-              onPress={confirmSignOut}
+              icon="user-x"
+              onPress={withdrawal.open}
               showDivider={false}
-              title="로그아웃"
+              title="회원 탈퇴"
             />
           </SettingsSection>
         </View>
       </ScrollView>
+      {/* 진행 중에는 모달이 화면을 덮어 로그아웃 등 다른 행동을 막는다. */}
+      <ConfirmModal
+        {...withdrawal.modal}
+        title="탈퇴할까요?"
+        message="지금까지의 학습 기록이 모두 삭제되고, 되돌릴 수 없어요. 다시 가입하면 새 계정으로 시작해요."
+        warningBadge
+        cancelLabel="취소"
+        confirmLabel="탈퇴하기"
+        confirmTone="danger"
+      />
     </SafeAreaView>
   );
 }

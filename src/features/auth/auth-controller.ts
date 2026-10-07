@@ -1,6 +1,6 @@
 import { getConsentStatus } from '@/features/auth/api/get-consent-status';
 import { createGuest } from '@/features/auth/api/create-guest';
-import { logout } from '@/features/auth/api/logout';
+import { withdrawAccount } from '@/features/auth/api/withdraw-account';
 import { isDefinitiveRefreshFailure, reissueTokens } from '@/features/auth/api/reissue-tokens';
 import { updateConsents } from '@/features/auth/api/update-consents';
 import {
@@ -776,7 +776,7 @@ class AuthController {
     // 탈퇴는 access token과 refresh token을 함께 보내므로 둘을 같은 세션에서 꺼낸다.
     // 각각 다른 출처에서 고르면 회전 직후 짝이 어긋난 조합이 나갈 수 있다.
     const session = this.pendingRotationSession ?? this.requireSession();
-    await logout(session.accessToken, session.refreshToken);
+    await withdrawAccount({ accessToken: session.accessToken, refreshToken: session.refreshToken });
     logAuthDebug('server withdraw completed');
 
     try {

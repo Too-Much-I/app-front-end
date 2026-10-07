@@ -51,6 +51,13 @@ export async function persistInstallationId(installationId: string): Promise<str
   return installationId;
 }
 
+/** 탈퇴 뒤 이 기기의 설치 정보를 지운다. 지금 버전은 Guest를 만들지 않아 다시 만들지 않는다. */
+export async function clearInstallationId(): Promise<void> {
+  pendingInstallation = null;
+  if (Platform.OS === 'web') return;
+  await SecureStore.deleteItemAsync(INSTALLATION_ID_KEY);
+}
+
 export async function getOrCreateInstallationId(): Promise<string> {
   if (pendingInstallation) {
     return pendingInstallation;

@@ -139,7 +139,16 @@ export async function serviceFetchWithMetadata<T>(
     return { envelope: envelope as ApiEnvelope<T>, headers: response.headers };
   } catch (error) {
     if (callerSignal?.aborted) throw error;
-    if (error instanceof TypeError || controller.signal.aborted) {
+    // RN 기본 fetch는 연결 실패를 TypeError로, Expo 57이 전역에 설치한 expo/fetch는
+    // `FetchError`(Error 상속, 메시지 "fetch failed: <네이티브 예외>")로 던진다. 둘 다 응답 전 실패다.
+    if (
+      error instanceof TypeError ||
+      // 서버 응답으로 만든 ApiError는 메시지와 관계없이 그대로 둔다.
+      (!(error instanceof ApiError) &&
+        error instanceof Error &&
+        error.message.startsWith('fetch failed')) ||
+      controller.signal.aborted
+    ) {
       throw new TransportConnectionError();
     }
     throw error;

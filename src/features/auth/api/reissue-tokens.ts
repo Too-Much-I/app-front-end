@@ -29,6 +29,14 @@ export function isAccountInactiveFailure(error: unknown): boolean {
   );
 }
 
+/**
+ * 계정이 탈퇴됐다(401 ACCOUNT_WITHDRAWN). reissue와 `/users/me`가 준다. 다른 기기에서 탈퇴했거나 이 기기의 탈퇴
+ * 응답을 놓친 경우다. 재발급을 반복하지 않고 세션을 지운 뒤 알린다.
+ */
+export function isAccountWithdrawnFailure(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 401 && error.code === 'ACCOUNT_WITHDRAWN';
+}
+
 export function isDefinitiveRefreshFailure(error: unknown): boolean {
   return (
     error instanceof ApiError &&
