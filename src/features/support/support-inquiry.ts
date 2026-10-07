@@ -89,7 +89,10 @@ export function isSameSupportInquiry(a: SupportInquiry, b: SupportInquiry): bool
 const CONNECTION_FAILURE_MESSAGE =
   '전송 결과를 확인하지 못했어요. 입력한 내용은 그대로 남아 있어요.';
 
-/** 접수 실패 안내. 서버 메시지 대신 앱 문구를 쓴다. */
+/**
+ * 접수 실패 안내. 서버 메시지 대신 앱 문구를 쓴다. 응답을 받지 못했을 때만 "결과를 확인하지 못했다"고 하고,
+ * 서버가 거절한 응답은 따로 다루지 않는 상태(403·409·5xx 등)도 접수하지 못한 것으로 안내한다.
+ */
 export function describeSupportInquiryFailure(error: unknown): string {
   if (!(error instanceof ApiError)) return CONNECTION_FAILURE_MESSAGE;
   switch (error.status) {
@@ -101,6 +104,6 @@ export function describeSupportInquiryFailure(error: unknown): string {
     case 503:
       return '지금은 문의를 접수할 수 없어요. 잠시 후 다시 보내 주세요.';
     default:
-      return CONNECTION_FAILURE_MESSAGE;
+      return '문의를 접수하지 못했어요. 잠시 후 다시 보내 주세요.';
   }
 }
