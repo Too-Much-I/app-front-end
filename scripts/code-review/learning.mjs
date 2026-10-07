@@ -8,6 +8,8 @@ export const DESIGN_SECTION = '설계 논의';
 export const REQUIRED_SECTIONS = [DESIGN_SECTION, '내가 찾은 것', '흐름 설명', '설계와 달라진 것'];
 /** PR 본문에 이 줄과 사유가 있으면 학습 기록 없이 통과한다. */
 export const NO_BEHAVIOR_CHANGE = '동작 변화 없음';
+/** PR 본문에 이 줄과 사유가 있으면 학습 기록의 설계 논의만 채워져도 통과한다. 동작은 바뀌지만 5단계를 생략한 작업. */
+export const SKIP_FLOW_REVIEW = '5단계 생략';
 
 // 템플릿이 미리 채워 두는 빈 항목. 이것만 남아 있으면 쓰지 않은 것으로 본다.
 const TEMPLATE_LINE = /^-\s*(쟁점|처음 판단|바뀐 계기|최종|다룬 실패 범위|다루지 않은 것|반증)\s*:\s*$/;
@@ -77,13 +79,17 @@ function isDocumentationOnly(path) {
 // 템플릿이 "여기에 쓰라"고 남긴 `<사유>` 같은 자리표시. 그대로 두면 사유를 쓰지 않은 것이다.
 const PLACEHOLDER = /^<[^>]*>$/;
 
-/** PR 본문의 주석 밖에서 `동작 변화 없음: <사유>` 줄을 찾는다. 자리표시만 있으면 선언으로 보지 않는다. */
-export function readNoBehaviorChangeReason(prBody = '') {
-  const match = new RegExp(`^\\s*${NO_BEHAVIOR_CHANGE}\\s*:\\s*(\\S.*)$`, 'm').exec(
+/** PR 본문의 주석 밖에서 `<선언>: <사유>` 줄을 찾는다. 자리표시만 있으면 선언으로 보지 않는다. */
+function readDeclarationReason(prBody, declaration) {
+  const match = new RegExp(`^\\s*${declaration}\\s*:\\s*(\\S.*)$`, 'm').exec(
     stripComments(prBody),
   );
   const reason = match?.[1].trim();
   return reason && !PLACEHOLDER.test(reason) ? reason : null;
+}
+
+export function readNoBehaviorChangeReason(prBody = '') {
+  return readDeclarationReason(prBody, NO_BEHAVIOR_CHANGE);
 }
 
 /**
@@ -107,9 +113,21 @@ export function evaluateLearningRecord({ changedFiles, addedFiles, prBody, readF
       reason: `${modifiedOnly ? '이전 학습 기록을 수정한 것은 인정되지 않습니다. ' : ''}이 작업의 학습 기록(${LEARNING_DIRECTORY}YYYY-MM-DD-<작업>.md)을 새로 추가하거나, 설명할 동작 변화가 없으면 PR 본문에 "${NO_BEHAVIOR_CHANGE}: <실제 사유>"를 적어주세요.`,
     };
   }
-  const results = records.map((path) => ({ path, missing: missingSections(readFile(path)) }));
+  const skipped = readDeclarationReason(prBody, SKIP_FLOW_REVIEW);
+  const required = skipped ? [DESIGN_SECTION] : REQUIRED_SECTIONS;
+  const results = records.map((path) => ({
+    path,
+    missing: missingSections(readFile(path), required),
+  }));
   const complete = results.find((result) => result.missing.length === 0);
-  if (complete) return { ok: true, reason: `학습 기록: ${complete.path}` };
+  if (complete) {
+    return {
+      ok: true,
+      reason: skipped
+        ? `학습 기록: ${complete.path} (${SKIP_FLOW_REVIEW}: ${skipped})`
+        : `학습 기록: ${complete.path}`,
+    };
+  }
   return {
     ok: false,
     reason: results

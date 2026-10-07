@@ -415,6 +415,19 @@ try {
     // 이미 채워진 이전 작업의 기록을 수정만 한 PR은 통과하지 않는다.
     const oldRecord = ['src/a.ts', 'docs/learning/2026-10-01-a.md'];
     assert.equal(decide(oldRecord, '', ['src/a.ts']), false);
+    // 5단계 생략 선언은 설계 논의만 요구한다. 학습 기록 파일과 설계 논의는 그대로 필요하다.
+    files['docs/learning/2026-10-01-d.md'] =
+      `## 설계 논의\n- 최종: A\n## 내가 찾은 것\n<!-- 사람이 쓴다 -->\n## 흐름 설명\n## 설계와 달라진 것\n`;
+    files['docs/learning/2026-10-01-e.md'] = `## 설계 논의\n- 최종:\n## 내가 찾은 것\nB\n`;
+    const designOnly = ['src/a.ts', 'docs/learning/2026-10-01-d.md'];
+    const emptyDesign = ['src/a.ts', 'docs/learning/2026-10-01-e.md'];
+    assert.equal(decide(designOnly), false);
+    assert.equal(decide(designOnly, '5단계 생략: 예상 가능한 API 연결'), true);
+    assert.equal(decide(emptyDesign, '5단계 생략: 예상 가능한 API 연결'), false);
+    assert.equal(decide(['src/a.ts'], '5단계 생략: 예상 가능한 API 연결'), false);
+    assert.equal(decide(designOnly, '<!-- 5단계 생략: 예시 -->'), false);
+    assert.equal(decide(designOnly, '5단계 생략: <사유>'), false);
+    assert.equal(decide(oldRecord, '5단계 생략: 예상 가능한 API 연결', ['src/a.ts']), false);
   });
   process.stdout.write(`코드 리뷰 훅 검사 ${assertions}개 통과\n`);
 } finally {
