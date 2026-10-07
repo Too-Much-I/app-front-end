@@ -7,7 +7,11 @@ import {
 } from '@react-native-firebase/auth';
 import { createStore } from 'zustand/vanilla';
 
-import { readFirebaseSdkErrorCode } from '@/features/auth/firebase-auth-errors';
+import {
+  readFirebaseSdkErrorCode,
+  readPhoneCollisionCredential,
+  type PhoneCollisionCredential,
+} from '@/features/auth/firebase-auth-errors';
 import type { createSignupDraftStore } from '@/features/auth/signup-draft-store';
 
 const MAX_SEND_ATTEMPTS = 5;
@@ -25,6 +29,12 @@ export type SignupPhoneStage =
   | { status: 'verifying'; verificationId: string }
   | { status: 'verified' };
 
+/**
+ * 번호가 이미 다른 Firebase 사용자에 있다. 계정 찾기로 넘길 때 쓴다.
+ * credential이 있으면 SMS 없이 그 사용자로 로그인할 수 있다. 없으면 계정 찾기에서 SMS를 다시 받는다.
+ */
+export type SignupPhoneConflict = { credential: PhoneCollisionCredential | null };
+
 type SignupPhoneVerificationState = {
   /** 이 인증 상태가 속한 초안의 phoneRevision. 번호가 바뀌면 이전 인증을 버린다. */
   revision: number;
@@ -33,6 +43,7 @@ type SignupPhoneVerificationState = {
   attempts: number;
   nextSendAt: number;
   error: string | null;
+  conflict: SignupPhoneConflict | null;
 };
 
 function emptyPhoneVerification(revision: number): SignupPhoneVerificationState {
@@ -43,6 +54,7 @@ function emptyPhoneVerification(revision: number): SignupPhoneVerificationState 
     attempts: 0,
     nextSendAt: 0,
     error: null,
+    conflict: null,
   };
 }
 
@@ -52,7 +64,7 @@ function toE164(phone: string): string {
 
 /** already-linked는 연결된 번호와 입력 번호를 비교해야 결과를 알 수 있어 호출자가 판단한다. */
 type PhoneFailure = {
-  stage: 'idle' | 'code' | 'already-linked' | 'reauth';
+  stage: 'idle' | 'code' | 'already-linked' | 'reauth' | 'conflict';
   message: string | null;
 };
 
@@ -67,8 +79,9 @@ function classifyPhoneFailure(error: unknown): PhoneFailure {
     case 'auth/credential-already-in-use':
     case 'auth/account-exists-with-different-credential':
       return {
-        stage: 'idle',
-        message: '다른 계정에 연결된 번호예요. 다른 번호로 인증해 주세요.',
+        stage: 'conflict',
+        message:
+          '다른 계정에 연결된 번호예요. 이전 로그인 수단을 확인하거나 다른 번호로 인증해 주세요.',
       };
     case 'auth/provider-already-linked':
       return { stage: 'already-linked', message: null };
@@ -190,6 +203,7 @@ export function createSignupPhoneVerification(options: {
       attempts: current.attempts + 1,
       nextSendAt: Date.now() + delaySeconds * 1000,
       error: null,
+      conflict: null,
     });
     sendTimer = setTimeout(() => {
       sendTimer = null;
@@ -209,7 +223,8 @@ export function createSignupPhoneVerification(options: {
             clearSendTimer();
             const failure = classifyPhoneFailure(snapshot.error);
             if (failure.stage === 'reauth') requireReauth();
-            else store.setState({ stage: { status: 'idle' }, error: failure.message });
+            else
+              store.setState({ stage: { status: 'idle' }, error: failure.message, conflict: null });
             return;
           }
           if (!snapshot.verificationId) return;
@@ -221,6 +236,7 @@ export function createSignupPhoneVerification(options: {
             stage: { status: 'code', verificationId: snapshot.verificationId },
             code: snapshot.code ? snapshot.code.slice(0, 6) : store.getState().code,
             error: null,
+            conflict: null,
           });
         },
       );
@@ -228,7 +244,7 @@ export function createSignupPhoneVerification(options: {
       clearSendTimer();
       const failure = classifyPhoneFailure(error);
       if (failure.stage === 'reauth') requireReauth();
-      else store.setState({ stage: { status: 'idle' }, error: failure.message });
+      else store.setState({ stage: { status: 'idle' }, error: failure.message, conflict: null });
     }
   }
 
@@ -287,6 +303,15 @@ export function createSignupPhoneVerification(options: {
         case 'idle':
           store.setState({ stage: { status: 'idle' }, code: '', error: failure.message });
           return;
+        case 'conflict':
+          // updatePhoneNumber 실패에는 SDK가 자격 증명을 싣지 않아 null일 수 있다.
+          store.setState({
+            stage: { status: 'idle' },
+            code: '',
+            error: failure.message,
+            conflict: { credential: readPhoneCollisionCredential(error) },
+          });
+          return;
       }
       const unhandled: never = failure.stage;
       throw new Error(`처리하지 않은 전화 인증 실패: ${unhandled}`);
@@ -300,7 +325,14 @@ export function createSignupPhoneVerification(options: {
   function editPhone(): void {
     invalidate();
     const { attempts, nextSendAt } = store.getState();
-    store.setState({ stage: { status: 'idle' }, code: '', error: null, attempts, nextSendAt });
+    store.setState({
+      stage: { status: 'idle' },
+      code: '',
+      error: null,
+      conflict: null,
+      attempts,
+      nextSendAt,
+    });
   }
 
   function isVerified(): boolean {

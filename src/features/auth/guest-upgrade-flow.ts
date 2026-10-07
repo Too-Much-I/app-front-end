@@ -39,6 +39,7 @@ const GUEST_UPGRADE_MESSAGES = {
   signInAgain: '로그인 확인이 필요해요. SNS 로그인부터 다시 진행해 주세요.',
   withdrawalPending: '이전 탈퇴 처리가 아직 끝나지 않았어요. 잠시 후 다시 가입해 주세요.',
   phoneRequired: '휴대전화 인증을 다시 진행해 주세요.',
+  phoneAlreadyLinked: '다른 계정에 연결된 번호예요. 이전 로그인 수단을 확인해 주세요.',
   unexpected: '가입을 완료하지 못했어요. 잠시 후 다시 시도해 주세요.',
   outcomeUnknown: '가입 결과를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.',
   identityConflict: '계정 상태를 확인하지 못했어요. 문제가 계속되면 도움을 요청해 주세요.',
@@ -127,6 +128,13 @@ export function decideGuestUpgradeRecovery(
         kind: 'fail',
         message: GUEST_UPGRADE_MESSAGES.withdrawalPending,
         nextAction: 'exit',
+      };
+    case 'PHONE_ALREADY_LINKED':
+      // 보통은 Firebase 연결 충돌이 먼저 나지만 서버에도 별도 검사가 있다(2026-10-07 서버 답).
+      return {
+        kind: 'fail',
+        message: GUEST_UPGRADE_MESSAGES.phoneAlreadyLinked,
+        nextAction: 'find-account',
       };
     default:
       if (isUpgradeOutcomeUnknown(error)) return decideReconcile(attempts);
@@ -559,7 +567,8 @@ export function createGuestUpgradeFlow(options: {
         return;
       case 'sign-in-again':
       case 'exit':
-        // 로그인 화면 복귀는 화면이 onCancel로 처리한다.
+      case 'find-account':
+        // 로그인 화면 복귀·계정 찾기는 화면이 코디네이터에 넘긴다.
         return;
     }
     const unhandled: never = state.nextAction;

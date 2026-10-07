@@ -1,10 +1,12 @@
 import { Feather } from '@expo/vector-icons';
-import { TextInput, View } from 'react-native';
+import { Image, TextInput, View } from 'react-native';
+import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { AuthScreenFrame } from '@/screens/auth/components/AuthScreenFrame';
-import { colors, FONT_FAMILY, size } from '@/theme';
+import { withRemainingTime } from '@/screens/auth/use-remaining-seconds';
+import { colors, duration, FONT_FAMILY, size } from '@/theme';
 
 export type PhoneVerificationViewState =
   | { step: 'number'; phone: string; error: string | null }
@@ -13,10 +15,16 @@ export type PhoneVerificationViewState =
 
 interface PhoneVerificationScreenProps {
   state: PhoneVerificationViewState;
-  step: number;
-  totalSteps: number;
+  title?: string;
+  /** 가입 흐름의 단계. 다른 흐름은 생략한다. */
+  step?: number;
+  totalSteps?: number;
   /** 발송·확인 요청을 기다리는 중. 같은 요청을 중복으로 보내지 않게 버튼을 잠근다. */
   busy?: boolean;
+  /** 요청 제한 남은 시간(초). 있으면 주 버튼을 막고 라벨에 남은 시간을 붙인다. */
+  blockedSeconds?: number | null;
+  /** 번호 입력 아래 덧붙이는 행동(가입 중 번호 충돌의 계정 찾기 등). */
+  numberAction?: { label: string; disabled?: boolean; onPress: () => void };
   onBack: () => void;
   onChangePhone: (value: string) => void;
   onRequestCode: () => void;
@@ -29,6 +37,9 @@ interface PhoneVerificationScreenProps {
   continueLabel?: string;
 }
 
+// public/auth/phone-verification.png(485×720)의 비율. 높이만 정하고 너비는 그림에 맞춘다.
+const COMPLETE_IMAGE_ASPECT_RATIO = 485 / 720;
+
 function formatSignupPhone(value: string): string {
   return [value.slice(0, 3), value.slice(3, 7), value.slice(7, 11)].filter(Boolean).join(' ');
 }
@@ -36,9 +47,12 @@ function formatSignupPhone(value: string): string {
 /** 서버/SDK 호출과 단계 전환을 포함하지 않는 표시 컴포넌트. */
 export function PhoneVerificationScreen({
   state,
+  title = '휴대전화 인증',
   step,
   totalSteps,
   busy = false,
+  blockedSeconds = null,
+  numberAction,
   onBack,
   onChangePhone,
   onRequestCode,
@@ -54,20 +68,20 @@ export function PhoneVerificationScreen({
       case 'number':
         return (
           <Button
-            label="인증번호 받기"
+            label={withRemainingTime('인증번호 받기', blockedSeconds)}
             size="lg"
             loading={busy}
-            disabled={busy || !/^010\d{8}$/.test(state.phone)}
+            disabled={busy || blockedSeconds !== null || !/^010\d{8}$/.test(state.phone)}
             onPress={onRequestCode}
           />
         );
       case 'code':
         return (
           <Button
-            label="인증 완료하기"
+            label={withRemainingTime('인증 완료하기', blockedSeconds)}
             size="lg"
             loading={busy}
-            disabled={busy || state.code.length !== 6}
+            disabled={busy || blockedSeconds !== null || state.code.length !== 6}
             onPress={onVerify}
           />
         );
@@ -82,13 +96,13 @@ export function PhoneVerificationScreen({
 
   return (
     <AuthScreenFrame
-      title="휴대전화 인증"
+      title={title}
       step={step}
       totalSteps={totalSteps}
       onBack={onBack}
       footer={footer}
     >
-      <View>
+      <View className={state.step === 'complete' ? 'flex-1' : undefined}>
         {state.step === 'number' ? (
           <View className="gap-content">
             <Text className="text-lg">휴대전화 번호</Text>
@@ -128,6 +142,14 @@ export function PhoneVerificationScreen({
               >
                 {state.error}
               </Text>
+            ) : null}
+            {numberAction ? (
+              <Button
+                label={numberAction.label}
+                variant="secondary"
+                disabled={busy || numberAction.disabled}
+                onPress={numberAction.onPress}
+              />
             ) : null}
           </View>
         ) : state.step === 'code' ? (
@@ -178,11 +200,34 @@ export function PhoneVerificationScreen({
             </View>
           </View>
         ) : (
-          <View className="flex-row items-center gap-element" accessibilityLiveRegion="polite">
-            <View className="h-12 w-12 items-center justify-center rounded-pill bg-brand-100">
-              <Feather name="check" size={size.icon.lg} color={colors.brand.text} />
-            </View>
-            <Text className="text-xl">인증 완료</Text>
+          // 2026-10-07 시안 A: 수화기 든 토끼가 튀어나오고, 인증한 번호를 마지막으로 보여 준다.
+          <View
+            className="flex-1 items-center justify-center gap-content"
+            accessibilityLiveRegion="polite"
+          >
+            <Animated.View entering={ZoomIn.duration(duration.slow)}>
+              <Image
+                source={require('../../../public/auth/phone-verification.png')}
+                className="h-44"
+                style={{ aspectRatio: COMPLETE_IMAGE_ASPECT_RATIO }}
+                resizeMode="contain"
+                accessible={false}
+              />
+            </Animated.View>
+            <Animated.View
+              className="items-center gap-content"
+              entering={FadeInDown.duration(duration.slow).delay(duration.base)}
+            >
+              <Text accessibilityRole="header" className="text-2xl">
+                인증이 끝났어요
+              </Text>
+              <View className="flex-row items-center gap-xs rounded-pill border border-line bg-surface px-md py-xs">
+                <View className="h-5 w-5 items-center justify-center rounded-pill bg-brand-cta">
+                  <Feather name="check" size={size.icon.sm} color={colors.surface.DEFAULT} />
+                </View>
+                <Text className="text-base">{formatSignupPhone(state.phone)}</Text>
+              </View>
+            </Animated.View>
           </View>
         )}
       </View>

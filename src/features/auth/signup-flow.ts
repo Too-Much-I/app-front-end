@@ -22,7 +22,8 @@ export type SignupStep = 'nickname' | 'consents' | 'phone';
  * retry: 같은 제출을 다시 시도 / edit: 입력을 고치러 첫 단계로
  * sign-in-again: SNS 로그인부터 다시 / exit: 가입을 멈추고 로그인 화면으로
  */
-export type SignupFailureAction = 'retry' | 'edit' | 'sign-in-again' | 'exit';
+/** find-account: 번호가 이미 다른 계정 소유라 이 가입을 버리고 계정 찾기로 간다. */
+export type SignupFailureAction = 'retry' | 'edit' | 'sign-in-again' | 'exit' | 'find-account';
 
 export type SignupFlowState =
   | { status: 'editing'; step: 'nickname' }
@@ -50,6 +51,7 @@ const SIGNUP_MESSAGES = {
   withdrawalPending: '이전 탈퇴 처리가 아직 끝나지 않았어요. 잠시 후 다시 가입해 주세요.',
   invalidInput: '가입 정보를 확인하지 못했어요. 입력한 내용을 확인한 뒤 다시 시도해 주세요.',
   phoneRequired: '휴대전화 인증을 다시 진행해 주세요.',
+  phoneAlreadyLinked: '다른 계정에 연결된 번호예요. 이전 로그인 수단을 확인해 주세요.',
   unexpected: '가입을 완료하지 못했어요. 잠시 후 다시 시도해 주세요.',
   activationFailed: '가입은 완료됐어요. 로그인 화면에서 같은 SNS 계정으로 다시 로그인해 주세요.',
 } as const;
@@ -138,6 +140,13 @@ export function decideSignupRecovery(
     case 'WITHDRAWAL_CLEANUP_PENDING':
       // 자동 재시도하지 않는다. 정리가 끝난 뒤 사용자가 다시 시작한다.
       return { kind: 'fail', message: SIGNUP_MESSAGES.withdrawalPending, nextAction: 'exit' };
+    case 'PHONE_ALREADY_LINKED':
+      // 보통은 Firebase 연결 충돌이 먼저 나지만 서버에도 별도 검사가 있다(2026-10-07 서버 답).
+      return {
+        kind: 'fail',
+        message: SIGNUP_MESSAGES.phoneAlreadyLinked,
+        nextAction: 'find-account',
+      };
     default:
       return { kind: 'fail', ...decideRequestFailureNotice(error) };
   }
@@ -448,7 +457,8 @@ export function createSignupFlow(options: {
         return;
       case 'sign-in-again':
       case 'exit':
-        // 로그인 화면 복귀는 화면이 onCancel로 처리한다.
+      case 'find-account':
+        // 로그인 화면 복귀·계정 찾기는 화면이 코디네이터에 넘긴다.
         return;
     }
     const unhandled: never = state.nextAction;

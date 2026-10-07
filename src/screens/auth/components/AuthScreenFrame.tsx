@@ -8,9 +8,9 @@ import { colors, size } from '@/theme';
 
 interface AuthScreenFrameProps {
   title: string;
-  /** 1부터 센다. 가입 요구사항에 따라 전체 단계 수가 달라진다. */
-  step: number;
-  totalSteps: number;
+  /** 1부터 센다. 가입 요구사항에 따라 전체 단계 수가 달라진다. 가입이 아닌 흐름은 생략한다. */
+  step?: number;
+  totalSteps?: number;
   onBack: () => void;
   children: ReactNode;
   footer: ReactNode;
@@ -42,17 +42,22 @@ export function AuthScreenFrame({
         <Text accessibilityRole="header" className="text-xl">
           {title}
         </Text>
-        <View
-          accessibilityLabel={`가입 ${step}/${totalSteps}단계`}
-          className="min-w-11 flex-row justify-end gap-xs"
-        >
-          {Array.from({ length: totalSteps }, (_, index) => (
-            <View
-              key={index}
-              className={`h-2 rounded-pill ${index + 1 === step ? 'w-6 bg-brand' : 'w-2 bg-brand-200'}`}
-            />
-          ))}
-        </View>
+        {step !== undefined && totalSteps !== undefined ? (
+          <View
+            accessibilityLabel={`가입 ${step}/${totalSteps}단계`}
+            className="min-w-11 flex-row justify-end gap-xs"
+          >
+            {Array.from({ length: totalSteps }, (_, index) => (
+              <View
+                key={index}
+                className={`h-2 rounded-pill ${index + 1 === step ? 'w-6 bg-brand' : 'w-2 bg-brand-200'}`}
+              />
+            ))}
+          </View>
+        ) : (
+          // 제목이 가운데에 오도록 뒤로 가기 버튼과 같은 폭을 비워 둔다.
+          <View className="w-11" />
+        )}
       </View>
       <ScrollView
         className="flex-1"

@@ -21,6 +21,8 @@ export class ApiError extends Error {
     message: string,
     public readonly code?: string,
     result?: unknown,
+    /** 429·503의 `Retry-After`(초). 날짜 형식이거나 없으면 undefined. */
+    public readonly retryAfterSeconds?: number,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -62,6 +64,12 @@ async function parseResponseBody(response: Response): Promise<unknown> {
   }
 }
 
+function readRetryAfterSeconds(headers: Headers): number | undefined {
+  const value = headers.get('Retry-After');
+  if (value === null || !/^\d+$/.test(value.trim())) return undefined;
+  return Number(value.trim());
+}
+
 function createApiError(response: Response, body: unknown): ApiError {
   const envelope = parseEnvelope(body);
   const message =
@@ -70,7 +78,13 @@ function createApiError(response: Response, body: unknown): ApiError {
     (typeof body === 'string' ? body : '') ||
     FALLBACK_ERROR_MESSAGE;
 
-  return new ApiError(response.status, message, envelope?.code, envelope?.result);
+  return new ApiError(
+    response.status,
+    message,
+    envelope?.code,
+    envelope?.result,
+    readRetryAfterSeconds(response.headers),
+  );
 }
 
 export async function serviceFetchWithMetadata<T>(

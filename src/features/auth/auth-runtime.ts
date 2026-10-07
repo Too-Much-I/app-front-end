@@ -1,5 +1,7 @@
 import { AppState } from 'react-native';
 import { exchangeFirebaseProof } from '@/features/auth/api/exchange-firebase-proof';
+import { lookupAccountRecovery } from '@/features/auth/api/lookup-account-recovery';
+import { prepareAccountRecovery } from '@/features/auth/api/prepare-account-recovery';
 import { getMergeProgress } from '@/features/auth/api/get-merge-progress';
 import { getPolicyVersions } from '@/features/auth/api/get-policy-versions';
 import { prepareGuestEnrollment } from '@/features/auth/api/prepare-guest-enrollment';
@@ -9,11 +11,16 @@ import { submitGuestUpgrade } from '@/features/auth/api/submit-guest-upgrade';
 import { createFirebaseAuthController } from '@/features/auth/firebase-auth-controller';
 import type { FirebaseAuthSdk } from '@/features/auth/firebase-auth-types';
 
+import {
+  createAccountRecoveryFlow,
+  type AccountRecoveryEntry,
+} from '@/features/auth/account-recovery-flow';
 import { createAuthConsentController } from '@/features/auth/auth-consent-controller';
 import { createAuthCoordinator } from '@/features/auth/auth-coordinator';
 import { observeAuthForegroundRecovery } from '@/features/auth/auth-foreground-recovery';
 import { createGuestMergeFlow } from '@/features/auth/guest-merge-flow';
 import { createGuestUpgradeFlow } from '@/features/auth/guest-upgrade-flow';
+import { createLastLoginProviderStore } from '@/features/auth/last-login-provider';
 import { createMergeProgressTracker } from '@/features/auth/merge-progress-tracker';
 import { createSessionController } from '@/features/auth/session-controller';
 import { createSignupFlow } from '@/features/auth/signup-flow';
@@ -35,11 +42,14 @@ export function createAuthRuntime(options: {
   const session = createSessionController(options);
   const consent = createAuthConsentController(session);
   const firebase = createFirebaseAuthController(options.firebaseSdk);
+  // 생성은 저장소를 읽지 않는다. 로그인 화면이 처음 보일 때 load한다.
+  const lastLoginProvider = createLastLoginProviderStore();
   const coordinator = createAuthCoordinator(session, consent, {
     firebase,
     session,
     exchange: exchangeFirebaseProof,
     prepare: prepareGuestEnrollment,
+    rememberLoginProvider: lastLoginProvider.remember,
   });
   const api = createAuthenticatedApiClient(session);
   const mergeProgress = createMergeProgressTracker({
@@ -144,6 +154,13 @@ export function createAuthRuntime(options: {
       onEnrollmentRequired: input.onEnrollmentRequired,
     });
   }
+  /** 계정 찾기 화면이 흐름마다 한 번 만들고, 화면이 사라질 때 dispose한다. */
+  function startAccountRecovery(entry: AccountRecoveryEntry) {
+    return createAccountRecoveryFlow({
+      entry,
+      dependencies: { prepare: prepareAccountRecovery, lookup: lookupAccountRecovery },
+    });
+  }
   const dispose = () => {
     mergeProgress.dispose();
     stopRecovery();
@@ -160,8 +177,10 @@ export function createAuthRuntime(options: {
     coordinator,
     api,
     mergeProgress,
+    lastLoginProvider,
     startEnrollment,
     startMerge,
+    startAccountRecovery,
     dispose,
   };
 }
