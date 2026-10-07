@@ -31,9 +31,14 @@ async function writeLastLoginProvider(provider: FirebaseLoginProvider): Promise<
   await SecureStore.setItemAsync(LAST_LOGIN_PROVIDER_KEY, provider, STORE_OPTIONS);
 }
 
+async function deleteLastLoginProvider(): Promise<void> {
+  if (Platform.OS === 'web') return;
+  await SecureStore.deleteItemAsync(LAST_LOGIN_PROVIDER_KEY, STORE_OPTIONS);
+}
+
 /**
  * 마지막으로 서버 세션을 받은 로그인 수단. 비밀이 아닌 힌트라 읽기·쓰기 실패는 "모름"으로 넘긴다.
- * 로그아웃 때는 지우지 않는다. 다른 계정으로 로그인하면 덮어쓴다.
+ * 로그아웃 때는 지우지 않는다. 다른 계정으로 로그인하면 덮어쓴다. 탈퇴하면 지운다("최근 사용"이 남지 않게).
  */
 export function createLastLoginProviderStore() {
   const store = createStore<LastLoginProviderState>(() => ({ status: 'unknown' }));
@@ -56,11 +61,17 @@ export function createLastLoginProviderStore() {
     void writeLastLoginProvider(provider).catch(() => undefined);
   }
 
+  function forget(): Promise<void> {
+    store.setState({ status: 'loaded', provider: null });
+    return deleteLastLoginProvider();
+  }
+
   return {
     getState: store.getState,
     getInitialState: store.getInitialState,
     subscribe: store.subscribe,
     load,
     remember,
+    forget,
   };
 }

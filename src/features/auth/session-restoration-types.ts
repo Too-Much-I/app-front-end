@@ -13,8 +13,11 @@ export type AuthRecoveryAction = 'retry' | 'get-help';
 
 export type AuthSessionRestoreResult =
   | { kind: 'ready'; accountType: 'MEMBER' | 'GUEST' }
-  /** notice: 서버가 이 세션의 계정을 비활성으로 거절해 세션을 지웠다. 사용자에게 알린 뒤 로그인으로 보낸다. */
-  | { kind: 'login-required'; notice?: 'account-inactive' }
+  /**
+   * notice: 서버가 이 세션의 계정을 거절해 세션을 지웠다. 사용자에게 알린 뒤 로그인으로 보낸다.
+   * account-inactive는 비활성(병합된 Guest·정지), account-withdrawn은 탈퇴다.
+   */
+  | { kind: 'login-required'; notice?: 'account-inactive' | 'account-withdrawn' }
   | {
       kind: 'recovery-required';
       reason: AuthRecoveryReason;

@@ -70,6 +70,11 @@ export async function persistOptionalConsent(record: OptionalConsentRecord): Pro
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(record));
 }
 
+/** 탈퇴 뒤 지운다. 새 계정은 가입 때 다시 묻는다. */
+export async function clearStoredOptionalConsent(): Promise<void> {
+  await AsyncStorage.removeItem(STORAGE_KEY);
+}
+
 /**
  * 저장된 선택 동의를 읽는다. 아직 묻지 않았거나 값이 깨졌으면 `null`을 돌려준다.
  *

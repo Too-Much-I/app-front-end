@@ -74,6 +74,11 @@ export async function persistConsent(record: ConsentRecordV2): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(record));
 }
 
+/** 탈퇴 뒤 지운다. 새 계정은 가입 때 다시 묻는다. */
+export async function clearStoredConsent(): Promise<void> {
+  await AsyncStorage.removeItem(STORAGE_KEY);
+}
+
 export async function getStoredConsent(): Promise<ConsentRecordV2 | null> {
   const raw = await AsyncStorage.getItem(STORAGE_KEY);
   if (!raw) {

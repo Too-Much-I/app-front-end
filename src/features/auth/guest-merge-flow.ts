@@ -75,7 +75,7 @@ const GUEST_MERGE_NOTICES = {
   },
   withdrawalPending: {
     title: '가입을 이어가지 못했어요',
-    message: '이전 탈퇴 처리가 아직 끝나지 않았어요. 잠시 후 다시 가입해 주세요.',
+    message: '계정 정보를 정리하고 있어요. 잠시 후 다시 시도해 주세요.',
     nextAction: 'exit',
   },
   unexpected: {

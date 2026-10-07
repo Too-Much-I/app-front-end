@@ -3,6 +3,7 @@ import {
   getIdToken,
   GoogleAuthProvider,
   OAuthProvider,
+  revokeToken,
   signInWithCredential,
   signInWithPopup,
   signOut,
@@ -138,6 +139,29 @@ export function createFirebaseAuthSdk(config: FirebaseProviderConfiguration): Fi
     }
   };
 
+  const getCurrentIdToken: FirebaseAuthSdk['getCurrentIdToken'] = async (forceRefresh) => {
+    const user = getAuth().currentUser;
+    if (!user) throw new FirebaseAuthenticationError('reauthentication-required');
+    return getIdToken(user, forceRefresh);
+  };
+
+  const revokeAppleSignIn: FirebaseAuthSdk['revokeAppleSignIn'] = async () => {
+    // RNFirebase 26.4의 revokeToken은 Android에서 아무것도 하지 않는다. Android는 revoke 없이 탈퇴한다(2026-10-07 결정).
+    if (Platform.OS !== 'ios') return 'unsupported';
+    if (!(await AppleAuthentication.isAvailableAsync()))
+      throw new FirebaseAuthenticationError('provider-unavailable');
+    try {
+      // authorization code는 Apple 창을 막 통과했을 때만 나오는 일회용 값이라 저장해 둘 수 없다.
+      const { authorizationCode } = await AppleAuthentication.signInAsync();
+      if (!authorizationCode) throw new FirebaseAuthenticationError('unexpected');
+      await revokeToken(getAuth(), authorizationCode);
+      return 'revoked';
+    } catch (error) {
+      if (readFirebaseSdkErrorCode(error) === 'ERR_REQUEST_CANCELED') return 'cancelled';
+      throw error;
+    }
+  };
+
   const signOutDevice: FirebaseAuthSdk['signOut'] = async () => {
     if (Platform.OS !== 'ios' && Platform.OS !== 'android') return;
     try {
@@ -162,6 +186,10 @@ export function createFirebaseAuthSdk(config: FirebaseProviderConfiguration): Fi
     signInProvider,
     getIdToken,
     getCurrentUid: () => getAuth().currentUser?.uid ?? null,
+    getCurrentIdToken,
+    getLinkedProviderIds: () =>
+      getAuth().currentUser?.providerData.map((info) => info.providerId) ?? [],
+    revokeAppleSignIn,
     signOut: signOutDevice,
   };
 }
