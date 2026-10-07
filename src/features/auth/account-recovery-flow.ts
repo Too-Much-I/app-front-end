@@ -394,8 +394,11 @@ export function createAccountRecoveryFlow(options: {
   }
 
   async function checkWithCollisionCredential(credential: PhoneCollisionCredential): Promise<void> {
+    // 정리는 접수번호보다 먼저 시작한다. currentUser를 바로 읽어 두므로, prepare를 기다리는 사이 화면을 떠나
+    // 다른 SNS로 로그인해도 가입 중이던 사용자를 지운다.
+    const cleanup = deleteAbandonedUser();
     const ready = await ensureTicket(LOOKUP_MARGIN_MS);
-    await deleteAbandonedUser();
+    await cleanup;
     if (disposed) return;
     // 접수번호를 받지 못하면 번호 화면에서 이어 간다. 안내는 prepare가 남겼다. 자격 증명은 아직 쓸 수 있어
     // 막힘이 풀리면 SMS 없이 다시 시도하게 남긴다.
@@ -419,7 +422,12 @@ export function createAccountRecoveryFlow(options: {
       );
       firebaseIdToken = await getIdToken(user, false);
     } catch {
-      if (!disposed) setView({ step: 'phone', sending: false });
+      // 이 경로에서는 prepare가 성공해 남긴 안내가 없다. SMS를 다시 받아야 하는 이유를 알린다.
+      if (!disposed)
+        store.setState({
+          view: { step: 'phone', sending: false },
+          error: ACCOUNT_RECOVERY_MESSAGES.verifyAgain,
+        });
       return;
     }
     if (disposed) return;
