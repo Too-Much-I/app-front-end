@@ -30,7 +30,7 @@ export type SupportInquiry = {
   category: SupportInquiryCategory;
   screen: SupportInquiryEntryScreen;
   message: string;
-  replyEmail: string | null;
+  replyEmail: string;
 };
 
 export type SupportInquirySender = (
@@ -61,16 +61,15 @@ export function validateSupportInquiry(
     };
   if (message.length > SUPPORT_MESSAGE_LIMIT)
     return { ok: false, message: `문의 내용은 ${SUPPORT_MESSAGE_LIMIT}자 이내로 입력해 주세요.` };
+  // 서버는 선택이지만 토큰 없이 보내 계정과 연결되지 않으므로, 답변할 길을 남기려고 앱이 필수로 받는다.
   const replyEmail = draft.replyEmail.trim();
-  if (
-    replyEmail &&
-    (replyEmail.length > REPLY_EMAIL_LIMIT || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyEmail))
-  ) {
+  if (!replyEmail) return { ok: false, message: '답변 받을 이메일을 입력해 주세요.' };
+  if (replyEmail.length > REPLY_EMAIL_LIMIT || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyEmail)) {
     return { ok: false, message: '답변 받을 이메일 주소를 확인해 주세요.' };
   }
   return {
     ok: true,
-    inquiry: { category: draft.category, screen, message, replyEmail: replyEmail || null },
+    inquiry: { category: draft.category, screen, message, replyEmail },
   };
 }
 

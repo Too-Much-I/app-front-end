@@ -97,9 +97,9 @@ export function SupportInquiryScreen({ entry, onBack, sendInquiry }: SupportInqu
                   </View>
                 )}
                 <View className="gap-content">
-                  <Text className="text-base">답변 받을 이메일 (선택)</Text>
+                  <Text className="text-base">답변 받을 이메일</Text>
                   <TextInput
-                    accessibilityLabel="답변 받을 이메일, 선택 입력"
+                    accessibilityLabel="답변 받을 이메일"
                     autoCapitalize="none"
                     autoCorrect={false}
                     keyboardType="email-address"
@@ -149,7 +149,12 @@ export function SupportInquiryScreen({ entry, onBack, sendInquiry }: SupportInqu
                   label={isSubmitting ? '보내는 중...' : '문의 보내기'}
                   size="lg"
                   loading={isSubmitting}
-                  disabled={!sendInquiry || !state.draft.category || !state.draft.message.trim()}
+                  disabled={
+                    !sendInquiry ||
+                    !state.draft.category ||
+                    !state.draft.replyEmail.trim() ||
+                    !state.draft.message.trim()
+                  }
                   onPress={() => {
                     void submit();
                   }}
