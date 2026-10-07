@@ -93,7 +93,7 @@ const VARIANT_STYLES = {
   danger: {
     fill: 'outline',
     container: 'border border-exam-dangerLine bg-surface',
-    label: 'text-exam-danger',
+    label: '!text-exam-danger',
     foreground: colors.exam.danger,
   },
 } as const satisfies Record<
