@@ -20,17 +20,23 @@ type FirebaseAnalyticsModule = typeof import('@react-native-firebase/analytics')
  * 초기화가 끝난 SDK. 실패하면 `null`로 resolve해서 이후 호출이 조용히 no-op이 된다.
  */
 let firebaseReady: Promise<FirebaseAnalyticsModule | null> | null = null;
+let initialized = false;
 
 /**
  * 네이티브 모듈이라 import만으로 네이티브 코드를 평가한다. 수집이 꺼진 상태에서도
  * Expo Go가 살아 있어야 하므로 Amplitude와 같이 지연 import한다.
  */
 export function initializeAdConversion(): void {
-  if (
-    !AD_CONVERSION_ENABLED ||
-    firebaseReady ||
-    (Platform.OS !== 'android' && Platform.OS !== 'ios')
-  ) {
+  if (initialized || (Platform.OS !== 'android' && Platform.OS !== 'ios')) return;
+  initialized = true;
+
+  if (!AD_CONVERSION_ENABLED) {
+    // 수집 허용 값은 네이티브에 저장되어 `firebase.json`의 기본값보다 우선한다. 켜진 빌드를
+    // 거친 기기(같은 패키지의 운영 앱을 덮어쓴 개발 빌드, 스위치를 끈 운영 빌드)에서도
+    // 수집이 멈추도록 꺼진 빌드는 매 실행 명시적으로 끈다. 네이티브 모듈이 없으면 끌 것도 없다.
+    void import('@react-native-firebase/analytics')
+      .then((firebase) => firebase.setAnalyticsCollectionEnabled(firebase.getAnalytics(), false))
+      .catch(() => undefined);
     return;
   }
 
