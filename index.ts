@@ -1,5 +1,6 @@
 import { registerRootComponent } from 'expo';
 
+import { initializeAdConversion } from '@/lib/ad-conversion';
 import { IS_AUTH_UI_PREVIEW } from '@/lib/auth-ui-preview';
 import { initializeAmplitude } from '@/lib/amplitude';
 import { initializeClarity } from '@/lib/clarity';
@@ -13,6 +14,7 @@ if (!IS_AUTH_UI_PREVIEW) initializeSentry();
 if (!IS_SENTRY_VALIDATION_MODE && !IS_AUTH_UI_PREVIEW) {
   initializeClarity();
   initializeAmplitude();
+  initializeAdConversion();
 }
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);

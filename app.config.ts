@@ -23,14 +23,17 @@ export default ({ config }: ConfigContext) => ({
     // CocoaPods로 native 의존성을 통일한다. SPM 기본 모드와 static을 혼합하지 않는다.
     ['@react-native-firebase/app', { ios: { disableSPM: true } }],
     '@react-native-firebase/auth',
+    '@react-native-firebase/analytics',
     '@react-native-google-signin/google-signin',
     'expo-apple-authentication',
+    // 결제 코드는 다음 업데이트에 붙인다. Play Console은 BILLING 권한이 든 빌드를 올려야 인앱 상품을 만들 수 있다.
+    'expo-iap',
     [
       'expo-build-properties',
       {
         ios: {
           useFrameworks: 'static',
-          forceStaticLinking: ['RNFBApp', 'RNFBAuth'],
+          forceStaticLinking: ['RNFBApp', 'RNFBAuth', 'RNFBAnalytics'],
         },
       },
     ],
