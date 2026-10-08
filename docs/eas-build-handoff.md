@@ -46,6 +46,7 @@ Expo 프로젝트의 Environment variables 화면에 `development`, `preview`, `
 | `EXPO_PUBLIC_WEB_BASE_URL` | 앱 번들에 포함 | 개발 웹 주소 | 내부 검증 웹 주소 | 확정된 운영 HTTPS 주소 |
 | `EXPO_PUBLIC_ENABLE_CLARITY` | 앱 번들에 포함 | 제품 정책에 따른 boolean | 제품 정책에 따른 boolean | 동의·수집 정책 확정값 |
 | `EXPO_PUBLIC_ENABLE_SENTRY` | 앱 번들에 포함 | 필요 시 `false` | 검증 정책에 따른 boolean | 일반적으로 `true` |
+| `EXPO_PUBLIC_ENABLE_AD_CONVERSION` | 앱 번들에 포함 | `false` | `false` | `true` (켜면 운영 광고 신호에 섞인다) |
 | `SENTRY_AUTH_TOKEN` | 빌드 전용 secret | 필요 시 | source map 업로드 시 | source map 업로드 시 |
 
 `EXPO_PUBLIC_*`는 누구나 앱 번들에서 읽을 수 있으므로 secret으로 사용하지 않는다. production 주소가

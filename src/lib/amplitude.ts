@@ -58,7 +58,7 @@ export function initializeAmplitude(): void {
           screenViews: true,
         },
         trackingOptions: {
-          // 광고 식별자는 쓸 곳이 없다.
+          // Amplitude에서는 광고 식별자를 쓸 곳이 없다. 광고 측정은 ad-conversion.ts 몫이다.
           adid: false,
           appSetId: false,
           idfv: false,

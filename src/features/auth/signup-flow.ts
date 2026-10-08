@@ -14,6 +14,7 @@ import type {
 } from '@/features/auth/identity-login-types';
 import type { createSignupDraftStore } from '@/features/auth/signup-draft-store';
 import type { AuthSession } from '@/features/auth/types';
+import { trackConversion } from '@/lib/ad-conversion';
 import { ApiError } from '@/lib/api/transport';
 
 export type SignupStep = 'nickname' | 'consents' | 'phone';
@@ -307,6 +308,9 @@ export function createSignupFlow(options: {
    * 제출하지 않고 재로그인으로 안내한다(exchange가 AUTHENTICATED를 준다).
    */
   async function complete(session: AuthSession, step: SignupStep): Promise<void> {
+    // 서버에 계정이 생긴 순간을 가입으로 센다. 아래 활성화가 실패해도 가입은 끝났고,
+    // 그 사용자는 로그인 흐름으로 돌아오므로 여기를 다시 지나지 않는다.
+    trackConversion('sign_up');
     try {
       await options.onComplete(session);
     } catch {

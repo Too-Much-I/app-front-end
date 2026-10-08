@@ -3,6 +3,7 @@ import { createStore } from 'zustand/vanilla';
 import { getExamPartDirections } from '@/features/exam/part-directions';
 import { decidePartPrelude } from '@/features/exam/part-prelude';
 import { getPlayableQuestionAudioUrl } from '@/features/exam/question-audio';
+import { trackConversion } from '@/lib/ad-conversion';
 import { reportOperationalError } from '@/lib/operational-error-reporting';
 import { emitExamBreadcrumb } from '@/screens/mock-exam/exam-breadcrumb';
 import type {
@@ -308,6 +309,9 @@ export function createExamSessionStore(session: ExamSession) {
         if (activeIndex >= session.questions.length - 1) {
           set({ phase: 'submission-barrier' });
           emitPhaseBreadcrumb();
+          // 마지막 답을 끝낸 순간을 완료로 센다. 업로드 성공을 기다리는 Amplitude
+          // `exam_completed`와 시점이 다르다(docs/decisions/2026-10-08-광고-전환-측정.md).
+          trackConversion('mock_exam_completed');
           return;
         }
 
