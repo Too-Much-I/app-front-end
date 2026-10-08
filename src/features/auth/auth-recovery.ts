@@ -29,7 +29,7 @@ export function classifyAuthRecovery(
 }
 
 export const AUTH_RECOVERY_MESSAGES = {
-  connection: '연결이 원활하지 않아요. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.',
+  connection: '네트워크 연결이 원활하지 않아요. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.',
   server: '서비스 연결이 원활하지 않아요. 잠시 후 다시 시도해 주세요.',
   storage:
     '로그인 정보를 확인하지 못했어요. 다시 시도해 주세요. 문제가 계속되면 도움을 요청해 주세요.',

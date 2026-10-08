@@ -8,6 +8,7 @@ import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { PortraitOnlyNotice } from '@/components/ui/PortraitOnlyNotice';
+import { AppUpdateNotice } from '@/features/app-version/components/AppUpdateNotice';
 import { appAuthRuntime } from '@/features/auth/app-auth-runtime';
 import { OrientationProvider } from '@/features/orientation/OrientationProvider';
 import { useOrientation } from '@/features/orientation/orientation-context';
@@ -108,6 +109,8 @@ function AppContent() {
       <StatusBar style="auto" />
       {/* NavigationContainer 바깥이라 웹뷰를 포함한 모든 화면 위에 뜬다. */}
       <PortraitOnlyNotice />
+      {/* 앱은 평소처럼 시작하고 그 위에 덮는다. 로그인 전에도 확인한다(2026-10-08 결정). */}
+      <AppUpdateNotice />
     </View>
   );
 }
