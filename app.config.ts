@@ -26,20 +26,8 @@ export default ({ config }: ConfigContext) => ({
     '@react-native-firebase/analytics',
     '@react-native-google-signin/google-signin',
     'expo-apple-authentication',
-    [
-      'react-native-fbsdk-next',
-      {
-        // Meta 개발자 콘솔의 앱 값. 둘 다 앱 번들에 실리는 공개 값이다(앱 시크릿과 다르다).
-        appID: '1330528452310456',
-        clientToken: '0b1b502dae86edc111f15b12b22ca949',
-        displayName: '토선생',
-        // 개발 빌드의 이벤트가 광고 신호에 섞이지 않게 기본은 끈다.
-        // EXPO_PUBLIC_ENABLE_AD_CONVERSION이 켜진 빌드에서 src/lib/ad-conversion.ts가 켠다.
-        isAutoInitEnabled: false,
-        autoLogAppEventsEnabled: false,
-        advertiserIDCollectionEnabled: false,
-      },
-    ],
+    // 결제 코드는 다음 업데이트에 붙인다. Play Console은 BILLING 권한이 든 빌드를 올려야 인앱 상품을 만들 수 있다.
+    'expo-iap',
     [
       'expo-build-properties',
       {
