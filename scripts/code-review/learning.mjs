@@ -10,6 +10,8 @@ export const REQUIRED_SECTIONS = [DESIGN_SECTION, '내가 찾은 것', '흐름 �
 export const NO_BEHAVIOR_CHANGE = '동작 변화 없음';
 /** PR 본문에 이 줄과 사유가 있으면 학습 기록의 설계 논의만 채워져도 통과한다. 동작은 바뀌지만 5단계를 생략한 작업. */
 export const SKIP_FLOW_REVIEW = '5단계 생략';
+/** PR 본문에 이 줄과 사유가 있으면 학습 기록 없이 통과한다. 출시된 앱의 장애를 막는 긴급 수정만 쓴다. */
+export const HOTFIX = '핫픽스';
 
 // 템플릿이 미리 채워 두는 빈 항목. 이것만 남아 있으면 쓰지 않은 것으로 본다.
 const TEMPLATE_LINE = /^-\s*(쟁점|처음 판단|바뀐 계기|최종|다룬 실패 범위|다루지 않은 것|반증)\s*:\s*$/;
@@ -104,6 +106,8 @@ export function evaluateLearningRecord({ changedFiles, addedFiles, prBody, readF
   if (changedFiles.every(isDocumentationOnly)) return { ok: true, reason: '문서만 변경' };
   const declared = readNoBehaviorChangeReason(prBody);
   if (declared) return { ok: true, reason: `${NO_BEHAVIOR_CHANGE}: ${declared}` };
+  const hotfix = readDeclarationReason(prBody, HOTFIX);
+  if (hotfix) return { ok: true, reason: `${HOTFIX}: ${hotfix}` };
 
   const records = addedFiles.filter(isLearningRecordPath);
   if (records.length === 0) {

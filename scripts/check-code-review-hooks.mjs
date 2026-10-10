@@ -404,6 +404,10 @@ try {
     // 템플릿 자리표시를 그대로 두면 사유를 쓰지 않은 것이다.
     assert.equal(decide(['src/a.ts'], '동작 변화 없음: <사유>'), false);
     assert.equal(decide(['src/a.ts'], '동작 변화 없음: <실제 사유>'), false);
+    // 핫픽스 선언은 학습 기록 없이 통과한다. 자리표시·주석 규칙은 같다.
+    assert.equal(decide(['src/a.ts'], '핫픽스: 업데이트 후 로그인 화면에 갇힘'), true);
+    assert.equal(decide(['src/a.ts'], '<!-- 핫픽스: 예시 -->'), false);
+    assert.equal(decide(['src/a.ts'], '핫픽스: <사유>'), false);
     assert.equal(decide(['src/a.ts', 'docs/learning/2026-10-01-a.md']), true);
     files['docs/learning/2026-10-01-b.md'] = filled.replace('D\n', '<!-- 템플릿 -->\n');
     assert.equal(decide(['src/a.ts', 'docs/learning/2026-10-01-b.md']), false);
