@@ -9,6 +9,7 @@ import {
   isAccountInactiveFailure,
   isAccountWithdrawnFailure,
   isDefinitiveRefreshFailure,
+  isSessionLoggedOutFailure,
 } from '@/features/auth/api/reissue-tokens';
 import { classifyAuthRecovery } from '@/features/auth/auth-recovery';
 import {
@@ -213,6 +214,11 @@ export function createSessionController(
                 progress = CLEAR_WITHDRAWN_SESSION;
                 break;
               }
+              if (isSessionLoggedOutFailure(error)) {
+                activeSession = null;
+                progress = { step: 'clear-session' };
+                break;
+              }
               if (
                 error instanceof ApiError &&
                 error.status === 401 &&
@@ -384,6 +390,9 @@ export function createSessionController(
       } else if (code === 'ACCOUNT_WITHDRAWN') {
         activeSession = null;
         progress = CLEAR_WITHDRAWN_SESSION;
+      } else if (code === 'SESSION_LOGGED_OUT') {
+        activeSession = null;
+        progress = { step: 'clear-session' };
       } else if (blocksUnauthorizedRefresh(code)) {
         progress = {
           step: 'blocked',
