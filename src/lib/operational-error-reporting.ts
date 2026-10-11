@@ -172,7 +172,9 @@ export type ApiResponseResource =
   | 'CHALLENGE_QUESTION'
   | 'CHALLENGE_ATTEMPT'
   | 'CHALLENGE_UPLOAD_URL'
-  | 'CHALLENGE_ANSWER';
+  | 'CHALLENGE_ANSWER'
+  | 'CHALLENGE_HISTORY'
+  | 'MY_PROFILE';
 
 type SafeValue = string | number | boolean;
 

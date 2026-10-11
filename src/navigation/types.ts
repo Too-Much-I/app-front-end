@@ -21,6 +21,8 @@ export type MainTabParamList = {
    * 문제별 피드백을 연다. 최초 답변은 회차를 생략하고 재답변 결과는 `retryCount`로 특정한다.
    */
   Feedback: { examId?: string; questionNumber?: number; retryCount?: number } | undefined;
+  /** 닉네임 인사, 10초 챌린지 달력, 설정·문의·로그아웃 메뉴. */
+  MyPage: undefined;
 };
 
 export type MockExamStackParamList = {
@@ -83,6 +85,14 @@ export type RootStackParamList = {
    * 이미 푼 문장을 눌러 들어온다. 두 경로가 같은 화면이라 넘기는 값은 날짜와 문제 번호뿐이고
    * 참고 답안·채점 상태는 전부 결과 조회 API에서 다시 읽는다.
    */
+  /**
+   * 지난 날짜의 스테이지. 마이페이지 달력에서 푼 문제가 있는 날을 눌러 들어온다.
+   *
+   * 오늘 스테이지와 달리 조회하지 않고 달력이 받은 값을 그대로 쓴다. 지난 날짜는 더 풀 수
+   * 없어서 개수가 바뀌지 않고, 푼 문제는 항상 1번부터 이어지므로 개수만으로 어느 당근을
+   * 뽑았는지 안다(2026-10-11 결정). 오늘은 이 화면이 아니라 `ChallengeStage`로 간다.
+   */
+  ChallengeDayStage: { challengeDate: string; solvedQuestionCount: number };
   ChallengeResult: {
     challengeDate: string;
     questionNumber: number;
@@ -101,7 +111,7 @@ export type RootStackParamList = {
      */
     nextQuestionNumber?: number;
   };
-  /** 설정 화면. 탭이 아니라 홈 화면 헤더 아이콘으로 진입하는 루트 스택 push 화면이다. */
+  /** 설정 화면. 탭이 아니라 마이페이지 메뉴로 진입하는 루트 스택 push 화면이다. */
   Settings: undefined;
   /** 알림 화면. 설정과 마찬가지로 홈 화면 헤더 아이콘(벨)으로 진입하는 루트 스택 push 화면이다. */
   Notifications: undefined;

@@ -32,6 +32,7 @@ import { NotificationsScreen } from '@/screens/notifications/NotificationsScreen
 import { ReanswerScreen } from '@/screens/reanswer/ReanswerScreen';
 import { SettingsScreen } from '@/screens/settings/SettingsScreen';
 import { SettingsWebViewScreen } from '@/screens/settings/SettingsWebViewScreen';
+import { ChallengeDayStageScreen } from '@/screens/challenge/ChallengeDayStageScreen';
 import { ChallengeResultScreen } from '@/screens/challenge/ChallengeResultScreen';
 import { ChallengeStageScreen } from '@/screens/challenge/ChallengeStageScreen';
 import { TenSecondChallengeScreen } from '@/screens/challenge/TenSecondChallengeScreen';
@@ -48,6 +49,7 @@ function MemberRootNavigator() {
         options={{ gestureEnabled: false }}
       />
       <Stack.Screen name="ChallengeStage" component={ChallengeStageScreen} />
+      <Stack.Screen name="ChallengeDayStage" component={ChallengeDayStageScreen} />
       {/* 녹음 중 스와이프로 빠져나가면 확인 없이 파일이 사라지므로 제스처를 막는다. */}
       <Stack.Screen
         name="TenSecondChallenge"

@@ -28,6 +28,7 @@ const STATUS_HINT: Record<ChallengeStageCardStatus, string> = {
   next: '10초 안에 이 문장을 영어로 말합니다',
   done: '이 문장의 채점 결과를 봅니다',
   locked: '앞 문장을 마치면 열립니다',
+  missed: '이날 풀지 않은 문장입니다',
 };
 
 /**
@@ -40,7 +41,8 @@ const STATUS_HINT: Record<ChallengeStageCardStatus, string> = {
  * 보여서 어디까지 왔는지는 색만으로 읽히고, 자물쇠는 밭 그림에 어울리지 않는다.
  */
 export function ChallengeStageStop({ questionNumber, status, onPress }: ChallengeStageStopProps) {
-  const isLocked = status === 'locked';
+  // 지난 날짜에 풀지 않은 문장도 차례가 오지 않은 문장처럼 흐리게 두고 누를 수 없다.
+  const isLocked = status === 'locked' || status === 'missed';
 
   return (
     <Pressable

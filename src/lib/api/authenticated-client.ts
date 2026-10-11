@@ -1,5 +1,5 @@
 import type { RequestAuthSnapshot } from '@/features/auth/types';
-import { getLearningApiBaseUrl } from '@/lib/api/service-base-url';
+import { getIdentityApiBaseUrl, getLearningApiBaseUrl } from '@/lib/api/service-base-url';
 import { ApiError, serviceFetch, type JsonRequestInit } from '@/lib/api/transport';
 
 interface ApiSessionAccess {
@@ -33,13 +33,13 @@ function waitForCaller<T>(start: () => Promise<T>, signal?: AbortSignal): Promis
 }
 
 async function requestWithToken<T>(
-  path: string,
+  url: string,
   snapshot: { accessToken: string },
   init: JsonRequestInit,
   timeoutMs?: number,
 ): Promise<T> {
   const envelope = await serviceFetch<unknown>(
-    `${getLearningApiBaseUrl()}${path}`,
+    url,
     {
       ...init,
       headers: {
@@ -63,12 +63,13 @@ export function createAuthenticatedApiClient(session: ApiSessionAccess) {
   ): Promise<T> {
     const snapshot = await waitForCaller(() => session.prepareRequest(), init.signal ?? undefined);
 
-    return requestWithToken<T>(path, snapshot, init, timeoutMs);
+    return requestWithToken<T>(`${getLearningApiBaseUrl()}${path}`, snapshot, init, timeoutMs);
   }
 
-  async function apiFetchWithAuthRetry<T>(
-    path: string,
-    init: ReadRequestInit = {},
+  /** 401이면 세션을 복구한 뒤 한 번만 다시 보낸다. 읽기 요청에만 쓴다. */
+  async function fetchWithAuthRetry<T>(
+    url: string,
+    init: ReadRequestInit,
     timeoutMs?: number,
   ): Promise<T> {
     const firstSnapshot = await waitForCaller(
@@ -78,7 +79,7 @@ export function createAuthenticatedApiClient(session: ApiSessionAccess) {
 
     let unauthorizedCode: string | undefined;
     try {
-      return await requestWithToken<T>(path, firstSnapshot, init, timeoutMs);
+      return await requestWithToken<T>(url, firstSnapshot, init, timeoutMs);
     } catch (error) {
       if (!(error instanceof ApiError) || error.status !== 401) {
         throw error;
@@ -90,8 +91,29 @@ export function createAuthenticatedApiClient(session: ApiSessionAccess) {
       () => session.recoverUnauthorized(firstSnapshot.generation, unauthorizedCode),
       init.signal ?? undefined,
     );
-    return requestWithToken<T>(path, retrySnapshot, init, timeoutMs);
+    return requestWithToken<T>(url, retrySnapshot, init, timeoutMs);
   }
 
-  return { apiFetch, apiFetchWithAuthRetry };
+  /** Learning Core 읽기. */
+  function apiFetchWithAuthRetry<T>(
+    path: string,
+    init: ReadRequestInit = {},
+    timeoutMs?: number,
+  ): Promise<T> {
+    return fetchWithAuthRetry<T>(`${getLearningApiBaseUrl()}${path}`, init, timeoutMs);
+  }
+
+  /**
+   * Identity 읽기(`/users/me` 등). 토큰은 Learning Core와 같은 Identity Access Token이라
+   * 세션 복구도 같은 경로를 탄다. 주소만 다르다.
+   */
+  function identityFetchWithAuthRetry<T>(
+    path: string,
+    init: ReadRequestInit = {},
+    timeoutMs?: number,
+  ): Promise<T> {
+    return fetchWithAuthRetry<T>(`${getIdentityApiBaseUrl()}${path}`, init, timeoutMs);
+  }
+
+  return { apiFetch, apiFetchWithAuthRetry, identityFetchWithAuthRetry };
 }

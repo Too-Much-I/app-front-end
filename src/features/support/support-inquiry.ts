@@ -5,7 +5,7 @@ export type SupportInquiryCategory = 'AUTH' | 'GENERAL';
 
 /** 문의 화면을 연 곳. 서버 `context.screen`(`[A-Za-z0-9_.-]`, 64자 이하)으로 그대로 보낸다. */
 export type SupportInquiryEntryScreen =
-  'auth-recovery' | 'guest-merge' | 'account-recovery' | 'settings';
+  'auth-recovery' | 'guest-merge' | 'account-recovery' | 'settings' | 'mypage';
 
 /** 진입하는 쪽이 정한다. `category`가 없으면 사용자가 화면에서 고른다. */
 export type SupportInquiryEntry = {
