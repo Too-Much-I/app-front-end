@@ -106,7 +106,9 @@ function ChallengeCalendarCell({
   onSelect: (day: ChallengeCalendarDay) => void;
 }) {
   // 날짜 숫자(15) + 당근(약 34) + 위아래 여백. 당근 크기에 묶인 값이라 토큰이 아니다.
-  const cellClassName = 'h-[60px] flex-1 items-center rounded-xl pt-1';
+  // 최소값만 둔다 — 기기 글씨가 커지면 숫자가 높이를 밀어야 당근이 칸 밖으로 나가지 않는다.
+  // 한 주의 칸들은 가로 줄에서 늘어나(stretch) 높이가 같게 맞춰진다.
+  const cellClassName = 'min-h-[60px] flex-1 items-center rounded-xl pb-1 pt-1';
 
   if (day.kind === 'blank') return <View className={cellClassName} />;
 
