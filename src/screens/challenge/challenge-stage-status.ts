@@ -8,13 +8,13 @@ import type { ChallengeToday } from '@/types/challenge';
  */
 
 /**
- * 문항 카드 하나의 상태.
+ * 문항 카드 하나의 상태. `missed`는 지난 날짜에 풀지 않은 문장이라 다시 열리지 않는다.
  *
  * `gradingStatus`를 보지 않는다 — 채점 중이든 끝났든 눌렀을 때 갈 곳이 결과 화면으로
  * 같고, 채점 대기는 그 화면이 이미 소유하고 있다. 스테이지가 그것까지 알면 진행도를
  * 반복 조회할 이유가 생긴다.
  */
-export type ChallengeStageCardStatus = 'locked' | 'next' | 'done';
+export type ChallengeStageCardStatus = 'locked' | 'next' | 'done' | 'missed';
 
 export interface ChallengeStageQuestion {
   questionNumber: number;
@@ -74,4 +74,22 @@ export function toChallengeStageState(query: {
   }
   if (query.error !== null) return { status: 'error' };
   return { status: 'loading' };
+}
+
+/**
+ * 지난 날짜의 세 자리.
+ *
+ * 푼 문제는 항상 1번부터 이어지므로(만료된 문제는 세지 않고 새 attempt로 다시 푼다,
+ * 2026-10-11 서버 확인) 개수만으로 어느 자리가 뽑혔는지 정해진다.
+ */
+export function toChallengeDayStageQuestions(
+  solvedQuestionCount: number,
+  questionCount: number,
+): ChallengeStageQuestion[] {
+  return Array.from({ length: questionCount }, (_, index) => {
+    const questionNumber = index + 1;
+    const status: ChallengeStageCardStatus =
+      questionNumber <= solvedQuestionCount ? 'done' : 'missed';
+    return { questionNumber, status };
+  });
 }

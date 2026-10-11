@@ -1,24 +1,21 @@
 import { Feather } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import * as Application from 'expo-application';
 import { useEffect, useState } from 'react';
-import { Image, ScrollView, Switch, View } from 'react-native';
+import { ScrollView, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Pressable } from '@/components/ui/Pressable';
 import { Text } from '@/components/ui/Text';
+import { formatInstalledAppVersion } from '@/features/app-version/installed-app-version';
+import { useSignOutConfirmation } from '@/features/auth/use-sign-out-confirmation';
 import { getStoredConsent } from '@/features/consent/consent-storage';
 import type { RootStackParamList } from '@/navigation/types';
 import { SettingsRow } from '@/screens/settings/components/SettingsRow';
 import { SettingsSection } from '@/screens/settings/components/SettingsSection';
 import { useAccountWithdrawal } from '@/screens/settings/use-account-withdrawal';
 import { useQualityReviewConsent } from '@/screens/settings/use-quality-review-consent';
-import { useSignOutConfirmation } from '@/screens/settings/use-sign-out-confirmation';
-import { colors, shadows } from '@/theme';
-
-// public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
-const encouragementMascot = require('../../../public/mascots/growing_rabbit.png');
+import { colors } from '@/theme';
 
 type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -28,11 +25,6 @@ function formatConsentDate(iso: string): string {
   const mm = String(date.getMonth() + 1).padStart(2, '0');
   const dd = String(date.getDate()).padStart(2, '0');
   return `${yyyy}.${mm}.${dd}`;
-}
-
-function formatApplicationVersion(version: string | null): string {
-  if (!version) return '확인 불가';
-  return version.startsWith('v') ? version : `v${version}`;
 }
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
@@ -63,27 +55,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="px-screen pb-10 pt-2">
-          <View
-            className="flex-row items-center gap-4 overflow-hidden rounded-card border border-line bg-brand-50 p-card"
-            style={shadows.card}
-          >
-            <View className="min-w-0 flex-1">
-              <Text className="text-xs" style={{ color: colors.brand.text }}>
-                토선생의 한마디
-              </Text>
-              <Text className="mt-1 text-lg leading-7">
-                오늘도 꾸준히 연습하면{'\n'}점수는 반드시 올라가요!
-              </Text>
-              <Text className="mt-2 text-sm text-ink-muted">토선생이 항상 응원할게요 🧡</Text>
-            </View>
-            <Image
-              source={encouragementMascot}
-              className="h-32 w-24"
-              resizeMode="contain"
-              accessible={false}
-            />
-          </View>
-
           <SettingsSection title="서비스">
             <SettingsRow
               icon="file-text"
@@ -127,9 +98,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               showDivider={false}
               title="버전 정보"
               trailing={
-                <Text className="text-sm text-ink-muted">
-                  {formatApplicationVersion(Application.nativeApplicationVersion)}
-                </Text>
+                <Text className="text-sm text-ink-muted">{formatInstalledAppVersion()}</Text>
               }
             />
           </SettingsSection>

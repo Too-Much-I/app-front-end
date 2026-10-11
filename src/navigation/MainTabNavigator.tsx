@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FeedbackScreen } from '@/screens/feedback/FeedbackScreen';
 import { HomeScreen } from '@/screens/home/HomeScreen';
+import { MyPageScreen } from '@/screens/mypage/MyPageScreen';
 import { MockExamStackNavigator } from '@/navigation/MockExamStackNavigator';
 import { TabBarButton } from '@/navigation/TabBarButton';
 import type { MainTabParamList } from '@/navigation/types';
@@ -25,6 +26,7 @@ const TAB_CONFIG: TabConfig[] = [
   { name: 'Home', title: '홈', icon: 'home', component: HomeScreen },
   { name: 'MockExam', title: '모의고사', icon: 'clipboard', component: MockExamStackNavigator },
   { name: 'Feedback', title: '피드백', icon: 'message-circle', component: FeedbackScreen },
+  { name: 'MyPage', title: '마이페이지', icon: 'user', component: MyPageScreen },
 ];
 
 export function MainTabNavigator() {

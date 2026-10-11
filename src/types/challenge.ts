@@ -197,3 +197,17 @@ export interface ChallengeDayResult {
   solvedQuestionCount: number;
   question: ChallengeQuestionResult | null;
 }
+
+/**
+ * 한 달의 참여 이력(`GET /challenges/history`). 마이페이지 달력이 그린다.
+ *
+ * `solvedQuestionCount`는 제출 API까지 정상 접수된 문제 수다. 명세 §6.7은 1시간 만료도
+ * 포함한다고 적었지만 실제 서버는 세지 않는다(2026-10-11 서버 확인). 같은 날 만료된 문제는
+ * 새 attempt로 다시 풀 수 있어서, 푼 문제는 항상 1번부터 이어진다.
+ */
+export interface ChallengeHistory {
+  /** `YYYY-MM`. 요청에 월을 빼면 서버가 정한 이번 달(KST)이 온다. */
+  yearMonth: string;
+  /** 지난 달은 그 달 전체, 이번 달은 오늘까지. 미래 날짜는 오지 않는다. */
+  days: { date: string; solvedQuestionCount: number }[];
+}

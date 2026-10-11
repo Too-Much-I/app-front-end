@@ -11,6 +11,10 @@ interface ChallengeStageProgressCardProps {
   totalCount: number;
   /** 다 풀었는가. `solvedCount === totalCount`로도 알 수 있지만 문구가 갈리는 곳이 여기뿐이다. */
   isCompleted: boolean;
+  /** 숫자 위 이름. 지난 날짜 스테이지는 "이날 완료"다. */
+  label?: string;
+  /** 다 풀지 못했을 때 숫자 옆 글. 지난 날짜는 더 진행되지 않으므로 `null`로 뺀다. */
+  pendingLabel?: string | null;
 }
 
 /**
@@ -23,10 +27,14 @@ export function ChallengeStageProgressCard({
   solvedCount,
   totalCount,
   isCompleted,
+  label = '오늘 완료',
+  pendingLabel = '진행 중',
 }: ChallengeStageProgressCardProps) {
+  const statusLabel = isCompleted ? '완료' : pendingLabel;
+
   return (
     <View
-      accessibilityLabel={`오늘 ${totalCount}문장 중 ${solvedCount}문장 완료`}
+      accessibilityLabel={`${label}: ${totalCount}문장 중 ${solvedCount}문장`}
       accessible
       className="flex-row items-center gap-3 self-start rounded-card bg-surface py-3 pl-4 pr-6"
       style={shadows.card}
@@ -34,15 +42,15 @@ export function ChallengeStageProgressCard({
       <Image accessibilityElementsHidden className="h-9 w-6" resizeMode="contain" source={carrot} />
 
       <View>
-        <Text className="text-xs text-ink-muted">오늘 완료</Text>
+        <Text className="text-xs text-ink-muted">{label}</Text>
         <View className="flex-row items-end gap-2">
           {/* 푼 수와 전체 수는 같은 크기다. 앞 숫자만 키우면 "1"이 제목처럼 읽혀서
               "1 / 3"이 한 덩어리의 분수로 보이지 않는다. 강조는 주황 하나로 충분하다. */}
           <Text className="text-lg text-brand-cta">{solvedCount}</Text>
           <Text className="text-lg text-ink">/ {totalCount}</Text>
-          <Text className="pb-1 pl-1 text-xs text-ink-muted">
-            {isCompleted ? '완료' : '진행 중'}
-          </Text>
+          {statusLabel === null ? null : (
+            <Text className="pb-1 pl-1 text-xs text-ink-muted">{statusLabel}</Text>
+          )}
         </View>
       </View>
     </View>

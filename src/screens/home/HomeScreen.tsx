@@ -19,7 +19,7 @@ import { colors, shadows } from '@/theme';
 const logo = require('../../../public/logo.png');
 const greetingMascot = require('../../../public/mascots/greeting_rabbit_bust.png');
 
-/** 탭 안에서 루트 스택의 설정 화면으로 이동해야 하므로 두 내비게이터를 함께 쓴다. */
+/** 탭 안에서 루트 스택의 챌린지 화면으로 이동해야 하므로 두 내비게이터를 함께 쓴다. */
 type HomeNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Home'>,
   NativeStackNavigationProp<RootStackParamList>
@@ -83,15 +83,6 @@ export function HomeScreen() {
               >
                 토선생
               </Text>
-            </View>
-            <View className="flex-row items-center gap-1">
-              <Pressable
-                accessibilityLabel="설정"
-                className="h-10 w-10 items-center justify-center rounded-full"
-                onPress={() => navigation.navigate('Settings')}
-              >
-                <Feather name="settings" size={22} color={colors.ink.DEFAULT} />
-              </Pressable>
             </View>
           </View>
 
