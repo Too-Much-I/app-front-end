@@ -151,6 +151,8 @@ interface IdentityLoginDependencies {
   rememberLoginProvider: (provider: FirebaseLoginProvider) => void;
   /** 탈퇴 뒤 진행 중인 기기 정리가 끝날 때까지 기다린다. 진행 중이 아니면 바로 끝난다. 던지지 않는다. */
   waitForWithdrawnCleanup: () => Promise<void>;
+  /** 로그아웃 전 이 기기의 알림 등록을 끊는다. 세션 토큰이 필요해 세션을 지우기 전에 부른다. 던지지 않는다. */
+  unregisterPushDevice: () => Promise<void>;
 }
 
 type IdentityAttempt = {
@@ -544,11 +546,13 @@ export function createAuthCoordinator(
     const { state } = store.getState();
     if (!login || (state.status !== 'authenticated' && state.status !== 'consent'))
       return Promise.resolve();
-    const { session, firebase } = login;
+    const { session, firebase, unregisterPushDevice } = login;
     flowGeneration += 1;
     // 연속으로 눌러도 정리를 한 번만 한다.
     signingOut = (async () => {
       try {
+        // 실패해도 로그아웃은 진행한다(2026-10-08 결정). 다음 로그인 PUT 전까지 이 폰에 알림이 갈 수 있다.
+        await unregisterPushDevice();
         await session.signOut();
         await firebase.signOut();
         store.setState({ state: { status: 'noSession' } });

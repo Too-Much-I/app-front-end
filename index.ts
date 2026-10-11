@@ -4,6 +4,7 @@ import { initializeAdConversion } from '@/lib/ad-conversion';
 import { IS_AUTH_UI_PREVIEW } from '@/lib/auth-ui-preview';
 import { initializeAmplitude } from '@/lib/amplitude';
 import { initializeClarity } from '@/lib/clarity';
+import { initializePushNotifications } from '@/features/push/push-notification-events';
 import { initializeSentry, withSentry } from '@/lib/sentry';
 import { IS_SENTRY_VALIDATION_MODE } from '@/lib/sentry-validation-mode';
 
@@ -16,6 +17,9 @@ if (!IS_SENTRY_VALIDATION_MODE && !IS_AUTH_UI_PREVIEW) {
   initializeAmplitude();
   initializeAdConversion();
 }
+
+// 첫 푸시가 오기 전에 학습 채널이 있어야 한다. 화면이 뜨기 전에 만든다.
+if (!IS_SENTRY_VALIDATION_MODE && !IS_AUTH_UI_PREVIEW) initializePushNotifications();
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);
 // It also ensures that whether you load the app in Expo Go or in a native build,

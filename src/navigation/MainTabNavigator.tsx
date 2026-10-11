@@ -1,15 +1,19 @@
 import { Feather } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
-import type { ComponentProps, ComponentType } from 'react';
+import { getFocusedRouteNameFromRoute, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useCallback, type ComponentProps, type ComponentType } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { appAuthRuntime } from '@/features/auth/app-auth-runtime';
+import { PushPermissionPrompt } from '@/features/push/components/PushPermissionPrompt';
+import { usePushNotificationOpen } from '@/features/push/push-notification-events';
 import { FeedbackScreen } from '@/screens/feedback/FeedbackScreen';
 import { HomeScreen } from '@/screens/home/HomeScreen';
 import { MyPageScreen } from '@/screens/mypage/MyPageScreen';
 import { MockExamStackNavigator } from '@/navigation/MockExamStackNavigator';
 import { TabBarButton } from '@/navigation/TabBarButton';
-import type { MainTabParamList } from '@/navigation/types';
+import type { MainTabParamList, RootStackParamList } from '@/navigation/types';
 import { colors, FONT_FAMILY, tabBar } from '@/theme';
 import { useScaleValue } from '@/theme/rem-scale';
 
@@ -29,8 +33,20 @@ const TAB_CONFIG: TabConfig[] = [
   { name: 'MyPage', title: '마이페이지', icon: 'user', component: MyPageScreen },
 ];
 
+/** 리마인더를 누르면 모의고사 탭으로 간다. 시험 중이던 화면은 닫지 않는다. */
+function useOpenMockExamFromNotification() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const openMockExam = useCallback(() => {
+    navigation.navigate('MainTabs', { screen: 'MockExam' });
+  }, [navigation]);
+  usePushNotificationOpen(openMockExam);
+}
+
+const syncPushDevice = () => void appAuthRuntime.push.sync();
+
 export function MainTabNavigator() {
   const insets = useSafeAreaInsets();
+  useOpenMockExamFromNotification();
 
   /**
    * 탭바 치수는 react-navigation 옵션에 넘기는 생 숫자라 NativeWind의 rem
@@ -53,49 +69,52 @@ export function MainTabNavigator() {
   };
 
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        // 이 틴트는 아이콘뿐 아니라 11px 라벨에도 걸린다. brand.DEFAULT(500)는
-        // 흰 배경 대비 3.01:1로 본문 기준 4.5:1에는 못 미치지만, 요청에 따라
-        // brand.text(700) 대신 시각적으로 더 쨍한 500을 쓴다.
-        tabBarActiveTintColor: colors.brand.DEFAULT,
-        tabBarInactiveTintColor: colors.ink.disabled,
-        // 기본 레이아웃은 유지하면서 Android 리플만 공용 opacity 피드백으로 바꾼다.
-        tabBarButton: TabBarButton,
-        tabBarIconStyle: {
-          width: scaled(tabBar.iconSize),
-          height: scaled(tabBar.iconSize),
-          marginBottom: scaled(tabBar.iconLabelGap),
-        },
-        // 폰트와 행 높이를 고정해야 iOS/Android에서 라벨이 같은 높이를 차지하고,
-        // 그래야 아래 height 계산이 두 플랫폼에서 모두 맞는다.
-        tabBarLabelStyle: {
-          fontFamily: FONT_FAMILY,
-          fontSize: scaled(tabBar.labelFontSize),
-          lineHeight: scaled(tabBar.labelLineHeight),
-        },
-        // 하단 inset(홈 인디케이터/제스처 바)만 런타임에 더한다.
-        tabBarStyle: defaultTabBarStyle,
-      }}
-    >
-      {TAB_CONFIG.map(({ name, title, icon, component }) => (
-        <Tab.Screen
-          key={name}
-          name={name}
-          component={component}
-          options={({ route }) => ({
-            title,
-            tabBarIcon: ({ color }) => (
-              <Feather name={icon} color={color} size={scaled(tabBar.iconSize)} />
-            ),
-            tabBarStyle:
-              name === 'MockExam' && getFocusedRouteNameFromRoute(route) === 'ExamSession'
-                ? { display: 'none' }
-                : defaultTabBarStyle,
-          })}
-        />
-      ))}
-    </Tab.Navigator>
+    <>
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          // 이 틴트는 아이콘뿐 아니라 11px 라벨에도 걸린다. brand.DEFAULT(500)는
+          // 흰 배경 대비 3.01:1로 본문 기준 4.5:1에는 못 미치지만, 요청에 따라
+          // brand.text(700) 대신 시각적으로 더 쨍한 500을 쓴다.
+          tabBarActiveTintColor: colors.brand.DEFAULT,
+          tabBarInactiveTintColor: colors.ink.disabled,
+          // 기본 레이아웃은 유지하면서 Android 리플만 공용 opacity 피드백으로 바꾼다.
+          tabBarButton: TabBarButton,
+          tabBarIconStyle: {
+            width: scaled(tabBar.iconSize),
+            height: scaled(tabBar.iconSize),
+            marginBottom: scaled(tabBar.iconLabelGap),
+          },
+          // 폰트와 행 높이를 고정해야 iOS/Android에서 라벨이 같은 높이를 차지하고,
+          // 그래야 아래 height 계산이 두 플랫폼에서 모두 맞는다.
+          tabBarLabelStyle: {
+            fontFamily: FONT_FAMILY,
+            fontSize: scaled(tabBar.labelFontSize),
+            lineHeight: scaled(tabBar.labelLineHeight),
+          },
+          // 하단 inset(홈 인디케이터/제스처 바)만 런타임에 더한다.
+          tabBarStyle: defaultTabBarStyle,
+        }}
+      >
+        {TAB_CONFIG.map(({ name, title, icon, component }) => (
+          <Tab.Screen
+            key={name}
+            name={name}
+            component={component}
+            options={({ route }) => ({
+              title,
+              tabBarIcon: ({ color }) => (
+                <Feather name={icon} color={color} size={scaled(tabBar.iconSize)} />
+              ),
+              tabBarStyle:
+                name === 'MockExam' && getFocusedRouteNameFromRoute(route) === 'ExamSession'
+                  ? { display: 'none' }
+                  : defaultTabBarStyle,
+            })}
+          />
+        ))}
+      </Tab.Navigator>
+      <PushPermissionPrompt onAnswered={syncPushDevice} />
+    </>
   );
 }
