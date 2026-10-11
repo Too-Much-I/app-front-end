@@ -15,6 +15,8 @@ export default ({ config }: ConfigContext) => ({
   },
   android: {
     ...config.android,
+    // 알림 설치 정보가 백업으로 새 기기에 따라가면 Keystore 키가 없어 읽지 못한다. 앱 전체 백업을 끈다(2026-10-08 결정).
+    allowBackup: false,
     googleServicesFile:
       process.env.GOOGLE_SERVICES_ANDROID ?? './config/firebase/google-services.json',
   },
@@ -26,6 +28,8 @@ export default ({ config }: ConfigContext) => ({
     '@react-native-firebase/analytics',
     '@react-native-firebase/messaging',
     'expo-notifications',
+    // Android FCM 수신은 RNFB 서비스 하나로 고정한다(2026-10-08 결정). Expo 쪽 수신 서비스를 manifest에서 뺀다.
+    './plugins/with-single-fcm-service',
     '@react-native-google-signin/google-signin',
     'expo-apple-authentication',
     // 결제 코드는 다음 업데이트에 붙인다. Play Console은 BILLING 권한이 든 빌드를 올려야 인앱 상품을 만들 수 있다.

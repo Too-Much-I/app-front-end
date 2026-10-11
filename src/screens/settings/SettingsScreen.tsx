@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
-import { ScrollView, Switch, View } from 'react-native';
+import { Linking, ScrollView, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -56,6 +56,13 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="px-screen pb-10 pt-2">
           <SettingsSection title="서비스">
+            {/* 켜고 끄기는 OS 설정에서 한다. 앱은 다음 활성화 때 바뀐 상태를 서버에 보고한다(2026-10-08 결정). */}
+            <SettingsRow
+              icon="bell"
+              onPress={() => void Linking.openSettings().catch(() => undefined)}
+              title="알림"
+              description="기기 설정에서 학습 알림을 켜고 끌 수 있어요"
+            />
             <SettingsRow
               icon="file-text"
               onPress={() =>

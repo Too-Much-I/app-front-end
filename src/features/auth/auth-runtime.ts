@@ -36,6 +36,8 @@ import type { AuthSessionRestoreResult } from '@/features/auth/session-restorati
 import type { AuthSession } from '@/features/auth/types';
 import { clearStoredConsent } from '@/features/consent/consent-storage';
 import { clearStoredOptionalConsent } from '@/features/consent/optional-consent-storage';
+import { observePushTokenRefresh } from '@/features/push/push-notification-events';
+import { createPushRegistration } from '@/features/push/push-registration';
 import { createAuthenticatedApiClient } from '@/lib/api/authenticated-client';
 import { queryClient } from '@/lib/query-client';
 
@@ -61,8 +63,15 @@ export function createAuthRuntime(options: {
     rememberLoginProvider: lastLoginProvider.remember,
     // 정리는 아래 구독이 시작한다. 안내의 확인이 호출할 때는 이미 정의돼 있다.
     waitForWithdrawnCleanup: () => clearingWithdrawnDevice ?? Promise.resolve(),
+    // 아래에서 만든다. 로그아웃이 호출할 때는 이미 정의돼 있다.
+    unregisterPushDevice: () => push.unregister(),
   });
   const api = createAuthenticatedApiClient(session);
+  const push = createPushRegistration({
+    apiFetch: api.apiFetch,
+    hasSession: () => session.getSession() !== null,
+  });
+  const isAuthenticated = () => coordinator.getState().state.status === 'authenticated';
   const mergeProgress = createMergeProgressTracker({
     getProgress: getMergeProgress,
     prepareRequest: session.prepareRequest,
@@ -100,7 +109,18 @@ export function createAuthRuntime(options: {
   // 대상 계정 상태 충돌 뒤 다시 로그인을 한 번 허용한다. 병합 흐름은 로그인마다 새로 만들어져 여기서 센다.
   let hasSeenTargetConflict = false;
   const appState = AppState.addEventListener('change', (state) => {
-    if (state === 'active') session.retryPersistence();
+    if (state !== 'active') return;
+    session.retryPersistence();
+    // 복귀마다 권한을 보고한다. 토큰이 몇 달씩 그대로라 바뀔 때만 보내면 30일 미보고로 빠진다(2026-10-08 결정).
+    if (isAuthenticated()) void push.sync();
+  });
+  // 콜드 스타트 복원·로그인·가입 완료는 모두 authenticated로 들어온다. 서버는 이 PUT으로 계정 연결을 안다.
+  const stopPushOnAuthenticated = coordinator.subscribe((snapshot, previous) => {
+    if (snapshot.state.status === 'authenticated' && previous.state.status !== 'authenticated')
+      void push.sync();
+  });
+  const stopPushTokenRefresh = observePushTokenRefresh(() => {
+    if (isAuthenticated()) void push.sync();
   });
   const stopRecovery = observeAuthForegroundRecovery({
     getState: coordinator.getForegroundRecoveryState,
@@ -229,6 +249,8 @@ export function createAuthRuntime(options: {
     unsubscribe();
     stopWithdrawnCleanup();
     stopCacheReset();
+    stopPushOnAuthenticated();
+    stopPushTokenRefresh();
     appState.remove();
     session.dispose();
   };
@@ -238,6 +260,7 @@ export function createAuthRuntime(options: {
     consent,
     coordinator,
     api,
+    push,
     mergeProgress,
     lastLoginProvider,
     startEnrollment,
