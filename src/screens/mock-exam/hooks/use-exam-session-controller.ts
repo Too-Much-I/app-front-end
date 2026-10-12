@@ -76,6 +76,8 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     isExamActiveRef.current = isExamActive;
   }, [isExamActive]);
 
+  // 등록만 하고 다음 단계로 넘기지는 않는다. 성공하면 호출한 쪽이 `answerRegistered()`를 부른다.
+  // 응답 종료 직후에는 실패를 바로 알리되 성공 뒤 전환은 최소 표시 시간 뒤로 미뤄야 해서 둘을 나눈다.
   const registerFinalizedAnswer = useCallback(
     (answer: FinalizedAnswer) => {
       try {
@@ -99,7 +101,6 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
         }
 
         recorder.transferOwnership(answer.audioFileUri);
-        answerRegistered();
         return true;
       } catch (error) {
         console.error('[ExamSession] 답변 registry 등록 실패', error);
@@ -107,7 +108,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
         return false;
       }
     },
-    [answerFileInvalid, answerRegistered, answerRegistrationFailed, recorder, submissions],
+    [answerFileInvalid, answerRegistrationFailed, recorder, submissions],
   );
 
   const finishResponse = useCallback(
@@ -120,11 +121,12 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
       const transitionPromise = recorder
         .finish(reason)
         .then(async (answer) => {
+          if (!registerFinalizedAnswer(answer)) return;
           const remainingMs = MIN_FINALIZING_DURATION_MS - (Date.now() - finalizingStartedAt);
           if (remainingMs > 0) {
             await new Promise<void>((resolve) => setTimeout(resolve, remainingMs));
           }
-          registerFinalizedAnswer(answer);
+          answerRegistered();
         })
         .catch((error: unknown) => {
           console.error('[ExamSession] 답변 확정 실패', error);
@@ -164,6 +166,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
       return transitionPromise;
     },
     [
+      answerRegistered,
       beginFinalizing,
       recorder,
       recordingFailed,
@@ -267,8 +270,8 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
   const retryRegistration = useCallback(() => {
     const pending = store.getState().pendingFinalizedAnswer;
     if (!pending) return;
-    registerFinalizedAnswer(pending);
-  }, [registerFinalizedAnswer, store]);
+    if (registerFinalizedAnswer(pending)) answerRegistered();
+  }, [answerRegistered, registerFinalizedAnswer, store]);
 
   useEffect(() => {
     if (phase !== 'preparation' || !question || !isExamActive) return;
