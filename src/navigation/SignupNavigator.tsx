@@ -25,6 +25,7 @@ import { SignupFailureScreen } from '@/screens/auth/SignupFailureScreen';
 import { SignupNicknameScreen } from '@/screens/auth/SignupNicknameScreen';
 import { SettingsWebViewScreen } from '@/screens/settings/SettingsWebViewScreen';
 import { colors } from '@/theme';
+import { ScreenCrashLayout } from '@/components/ui/ScreenCrashLayout';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -82,7 +83,11 @@ export function SignupNavigator({
   if (!signup) return null;
 
   return (
-    <Stack.Navigator key="signup" screenOptions={{ headerShown: false, gestureEnabled: false }}>
+    <Stack.Navigator
+      screenLayout={ScreenCrashLayout}
+      key="signup"
+      screenOptions={{ headerShown: false, gestureEnabled: false }}
+    >
       <Stack.Screen name="Signup">
         {(props) => (
           <SignupFlowRoute

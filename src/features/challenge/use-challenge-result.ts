@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getChallengeDayResult } from '@/features/challenge/api/challenge-day-result';
 import type { ChallengeQuestionResult, ChallengeInitialResult } from '@/types/challenge';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 /** 명세 8절 권장 주기 — 2초에서 시작해 5초까지 늘린다. 이후에는 5초를 유지한다. */
 const POLL_INTERVALS_MS = [2_000, 2_500, 3_000, 3_500, 4_000, 4_500, 5_000] as const;
@@ -118,6 +119,11 @@ export function useChallengeResult(
         if (controller.signal.aborted) return;
         console.error('[Challenge] 결과 조회 실패', error);
         if (!hasLoadedOnce && Date.now() >= deadline) {
+          reportOperationalError({
+            code: 'CHALLENGE_LOAD_FAILED',
+            resource: 'result',
+            cause: error,
+          });
           setState({ status: 'load-failed', question: null });
           return;
         }

@@ -36,12 +36,13 @@ import { ChallengeDayStageScreen } from '@/screens/challenge/ChallengeDayStageSc
 import { ChallengeResultScreen } from '@/screens/challenge/ChallengeResultScreen';
 import { ChallengeStageScreen } from '@/screens/challenge/ChallengeStageScreen';
 import { TenSecondChallengeScreen } from '@/screens/challenge/TenSecondChallengeScreen';
+import { ScreenCrashLayout } from '@/components/ui/ScreenCrashLayout';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function MemberRootNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenLayout={ScreenCrashLayout} screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MainTabs" component={MainTabNavigator} />
       <Stack.Screen
         name="Reanswer"
@@ -120,7 +121,11 @@ export function RootNavigator({
     case 'noSession':
     case 'guest':
       return (
-        <Stack.Navigator key="login" screenOptions={{ headerShown: false, gestureEnabled: false }}>
+        <Stack.Navigator
+          screenLayout={ScreenCrashLayout}
+          key="login"
+          screenOptions={{ headerShown: false, gestureEnabled: false }}
+        >
           <Stack.Screen name="AuthLogin">
             {() => <LoginRoute coordinator={coordinator} lastLoginProvider={lastLoginProvider} />}
           </Stack.Screen>
@@ -159,6 +164,7 @@ export function RootNavigator({
     case 'consent':
       return (
         <Stack.Navigator
+          screenLayout={ScreenCrashLayout}
           key="consent"
           screenOptions={{ headerShown: false, gestureEnabled: false }}
         >
@@ -182,6 +188,7 @@ export function RootNavigator({
     case 'error':
       return (
         <Stack.Navigator
+          screenLayout={ScreenCrashLayout}
           key="recovery"
           screenOptions={{ headerShown: false, gestureEnabled: false }}
         >

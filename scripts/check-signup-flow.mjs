@@ -63,6 +63,11 @@ const firebase = {
   lastSentPhone: null,
 };
 const mocks = {
+  // 실패 보고는 Sentry SDK(네이티브)까지 끌고 와 Node에서 불러오지 못한다. 보고 자체는 검사 대상이 아니다.
+  '@/lib/operational-error-reporting': { reportOperationalError() {} },
+  '@/lib/sentry': { setAccountStateTag() {} },
+  // 요청 실패 breadcrumb은 네트워크 종류를 읽으려고 expo-network(네이티브)를 불러온다.
+  '@/lib/api/api-breadcrumb': { emitApiFailureBreadcrumb() {} },
   'react-native': { Platform: { OS: 'ios' }, AppState: appState },
   '@react-native-firebase/auth': {
     getAuth: () => ({ currentUser: firebase.user }),

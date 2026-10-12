@@ -5,13 +5,18 @@ import { IS_AUTH_UI_PREVIEW } from '@/lib/auth-ui-preview';
 import { initializeAmplitude } from '@/lib/amplitude';
 import { initializeClarity } from '@/lib/clarity';
 import { initializePushNotifications } from '@/features/push/push-notification-events';
+import { startNetworkKindTracking } from '@/lib/network-type';
 import { initializeSentry, withSentry } from '@/lib/sentry';
 import { IS_SENTRY_VALIDATION_MODE } from '@/lib/sentry-validation-mode';
 
 import App from './App';
 
 // 앱 시작 단계의 예외까지 잡으려면 다른 초기화보다 먼저 실행해야 한다.
-if (!IS_AUTH_UI_PREVIEW) initializeSentry();
+if (!IS_AUTH_UI_PREVIEW) {
+  initializeSentry();
+  // API 실패 breadcrumb이 실패 순간의 네트워크 종류를 싣도록 미리 받아 둔다.
+  startNetworkKindTracking();
+}
 if (!IS_SENTRY_VALIDATION_MODE && !IS_AUTH_UI_PREVIEW) {
   initializeClarity();
   initializeAmplitude();

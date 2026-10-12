@@ -10,9 +10,11 @@ import { createStore } from 'zustand/vanilla';
 import {
   readFirebaseSdkErrorCode,
   readPhoneCollisionCredential,
+  readReportableFirebaseCode,
   type PhoneCollisionCredential,
 } from '@/features/auth/firebase-auth-errors';
 import type { createSignupDraftStore } from '@/features/auth/signup-draft-store';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 const MAX_SEND_ATTEMPTS = 5;
 const RESEND_DELAYS_SECONDS = [15, 30, 45, 60] as const;
@@ -106,6 +108,33 @@ function classifyPhoneFailure(error: unknown): PhoneFailure {
     default:
       return { stage: 'idle', message: '인증을 완료하지 못했어요. 잠시 후 다시 시도해 주세요.' };
   }
+}
+
+/**
+ * 사용자 입력 실수(인증번호·번호 오타)와 정상 분기(이미 연결·번호 충돌·재인증)는 보내지 않는다.
+ * 재인증은 가입 흐름이 "다시 로그인" 실패로 따로 보고한다.
+ */
+const NON_REPORTED_PHONE_ERROR_CODES: readonly string[] = [
+  'auth/invalid-verification-code',
+  'auth/invalid-phone-number',
+];
+
+function reportPhoneFailure(
+  step: 'send-code' | 'confirm-code',
+  error: unknown,
+  failure: PhoneFailure,
+): void {
+  if (failure.stage !== 'idle' && failure.stage !== 'code') return;
+  const firebaseCode = readReportableFirebaseCode(error);
+  if (firebaseCode && NON_REPORTED_PHONE_ERROR_CODES.includes(firebaseCode)) return;
+  reportOperationalError({
+    code: 'AUTH_PHONE_VERIFICATION_FAILED',
+    flow: 'signup',
+    step,
+    reason: failure.stage,
+    firebaseCode,
+    cause: error,
+  });
 }
 
 /**
@@ -222,6 +251,7 @@ export function createSignupPhoneVerification(options: {
           if (snapshot.state === 'error') {
             clearSendTimer();
             const failure = classifyPhoneFailure(snapshot.error);
+            reportPhoneFailure('send-code', snapshot.error, failure);
             if (failure.stage === 'reauth') requireReauth();
             else
               store.setState({ stage: { status: 'idle' }, error: failure.message, conflict: null });
@@ -243,6 +273,7 @@ export function createSignupPhoneVerification(options: {
     } catch (error) {
       clearSendTimer();
       const failure = classifyPhoneFailure(error);
+      reportPhoneFailure('send-code', error, failure);
       if (failure.stage === 'reauth') requireReauth();
       else store.setState({ stage: { status: 'idle' }, error: failure.message, conflict: null });
     }
@@ -280,6 +311,7 @@ export function createSignupPhoneVerification(options: {
     } catch (error) {
       if (attempt !== generation) return;
       const failure = classifyPhoneFailure(error);
+      reportPhoneFailure('confirm-code', error, failure);
       switch (failure.stage) {
         case 'reauth':
           requireReauth();

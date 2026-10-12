@@ -21,7 +21,7 @@ import {
   type AccountWithdrawalResult,
 } from '@/features/auth/account-withdrawal';
 import { createAuthConsentController } from '@/features/auth/auth-consent-controller';
-import { createAuthCoordinator } from '@/features/auth/auth-coordinator';
+import { createAuthCoordinator, type AuthCoordinatorState } from '@/features/auth/auth-coordinator';
 import { observeAuthForegroundRecovery } from '@/features/auth/auth-foreground-recovery';
 import { createGuestMergeFlow } from '@/features/auth/guest-merge-flow';
 import { createGuestUpgradeFlow } from '@/features/auth/guest-upgrade-flow';
@@ -40,6 +40,34 @@ import { observePushTokenRefresh } from '@/features/push/push-notification-event
 import { createPushRegistration } from '@/features/push/push-registration';
 import { createAuthenticatedApiClient } from '@/lib/api/authenticated-client';
 import { queryClient } from '@/lib/query-client';
+import { setAccountStateTag, type AccountStateTag } from '@/lib/sentry';
+
+/**
+ * Sentry 이벤트에 붙일 계정 상태. `null`은 전환 중이라 직전 값을 그대로 둔다는 뜻이다 —
+ * 로그인·가입 도중의 실패는 "누가 로그인하다 실패했나"(게스트였나, 로그아웃 상태였나)가 단서다.
+ */
+const ACCOUNT_STATE_TAG_BY_STATUS = {
+  authenticated: 'member',
+  consent: 'member',
+  guest: 'guest',
+  noSession: 'none',
+  accountInactive: 'none',
+  accountWithdrawn: 'none',
+  idle: null,
+  restoring: null,
+  signingIn: null,
+  submittingProof: null,
+  activatingSession: null,
+  signingUp: null,
+  mergeRequired: null,
+  findingAccount: null,
+  loginError: null,
+  error: null,
+} satisfies Record<AuthCoordinatorState['status'], AccountStateTag | null>;
+
+function toAccountStateTag(status: AuthCoordinatorState['status']): AccountStateTag | null {
+  return ACCOUNT_STATE_TAG_BY_STATUS[status];
+}
 
 /**
  * 인증 조립 함수. 앱은 `app-auth-runtime.ts`에서 한 번만 호출해 App과 공용 API가 공유한다.
@@ -118,6 +146,11 @@ export function createAuthRuntime(options: {
   const stopPushOnAuthenticated = coordinator.subscribe((snapshot, previous) => {
     if (snapshot.state.status === 'authenticated' && previous.state.status !== 'authenticated')
       void push.sync();
+  });
+  // 전환 중 상태(로그인·가입 진행 등)에서는 직전 계정 상태를 유지한다.
+  const stopAccountStateTag = coordinator.subscribe((snapshot) => {
+    const accountState = toAccountStateTag(snapshot.state.status);
+    if (accountState) setAccountStateTag(accountState);
   });
   const stopPushTokenRefresh = observePushTokenRefresh(() => {
     if (isAuthenticated()) void push.sync();
@@ -250,6 +283,7 @@ export function createAuthRuntime(options: {
     stopWithdrawnCleanup();
     stopCacheReset();
     stopPushOnAuthenticated();
+    stopAccountStateTag();
     stopPushTokenRefresh();
     appState.remove();
     session.dispose();

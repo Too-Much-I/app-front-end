@@ -21,6 +21,9 @@ import {
   type OperationalEventPayload,
 } from '@/lib/sentry';
 
+/** 카탈로그는 오류 이름마다 하나라 이름이 늘면 같이 는다. 숫자를 화면에 박지 않는다. */
+const CATALOG_SIZE = SENTRY_VALIDATION_CATALOG.length;
+
 type RunStatus =
   | 'idle'
   | 'previewed'
@@ -54,7 +57,7 @@ function getStatusLabel(status: RunStatus): string {
     'single-captured': '개별 전송 완료',
     sending: 'Sentry 전송 중',
     flushing: 'Sentry flush 확인 중',
-    completed: '15/15 전송 완료',
+    completed: `${CATALOG_SIZE}/${CATALOG_SIZE} 전송 완료`,
     failed: '전송 확인 실패',
     interrupted: '실행 중단',
   };
@@ -236,7 +239,7 @@ export function SentryValidationScreen() {
           Sentry 오류 검증
         </Text>
         <Text className="mt-2 text-sm leading-6 text-ink-muted">
-          실제 API와 사용자 데이터 없이 운영 오류 카탈로그 15개를 검증합니다.
+          실제 API와 사용자 데이터 없이 운영 오류 카탈로그 {CATALOG_SIZE}개를 검증합니다.
         </Text>
 
         <View className="mt-5 rounded-card border border-sky-line bg-sky-surface p-card">
@@ -248,8 +251,8 @@ export function SentryValidationScreen() {
             Sentry: {runtime.enabled ? 'enabled' : 'disabled'}
           </Text>
           <Text className="mt-1 text-sm text-sky-text">
-            상태: {getStatusLabel(runStatus)} · preview {previewedCount}/15 · captured{' '}
-            {capturedCount}/15
+            상태: {getStatusLabel(runStatus)} · preview {previewedCount}/{CATALOG_SIZE} · captured{' '}
+            {capturedCount}/{CATALOG_SIZE}
           </Text>
           {startedAt ? (
             <Text selectable className="mt-1 text-xs text-sky-text">
@@ -270,7 +273,7 @@ export function SentryValidationScreen() {
             disabled={isBusy}
             onPress={previewAll}
           >
-            <Text className="text-base text-brand-text">15개 로컬 미리보기</Text>
+            <Text className="text-base text-brand-text">{CATALOG_SIZE}개 로컬 미리보기</Text>
           </Pressable>
 
           {!isSendArmed ? (
@@ -280,7 +283,7 @@ export function SentryValidationScreen() {
               disabled={!canSend}
               onPress={() => setIsSendArmed(true)}
             >
-              <Text className="text-base text-white">15개 Sentry 전송 준비</Text>
+              <Text className="text-base text-white">{CATALOG_SIZE}개 Sentry 전송 준비</Text>
             </Pressable>
           ) : (
             <Pressable
@@ -289,7 +292,9 @@ export function SentryValidationScreen() {
               disabled={!canSend}
               onPress={() => void captureAll()}
             >
-              <Text className="text-base text-white">확인: 합성 이벤트 15건 실제 전송</Text>
+              <Text className="text-base text-white">
+                확인: 합성 이벤트 {CATALOG_SIZE}건 실제 전송
+              </Text>
             </Pressable>
           )}
 
@@ -310,7 +315,9 @@ export function SentryValidationScreen() {
             const isActive = activeCode === code;
             return (
               <View key={code} className="rounded-card border border-line bg-surface p-card">
-                <Text className="text-xs text-ink-disabled">{index + 1}/15</Text>
+                <Text className="text-xs text-ink-disabled">
+                  {index + 1}/{CATALOG_SIZE}
+                </Text>
                 <Text className="mt-1 text-lg text-exam-navy">{item.title}</Text>
                 <Text selectable className="mt-1 text-xs text-ink-muted">
                   {code}

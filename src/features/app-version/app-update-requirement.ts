@@ -4,6 +4,7 @@ import {
 } from '@/features/app-version/api/app-version-policy';
 import { decideAppUpdate, type AppUpdateDecision } from '@/features/app-version/app-version';
 import { TransportConnectionError } from '@/lib/api/transport';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 /** `connection-failed`만 사용자에게 알린다. 서버 오류(400·503·5xx)와 읽을 수 없는 응답은 `unknown`으로 통과한다. */
 export type AppUpdateRequirement = AppUpdateDecision | 'connection-failed';
@@ -28,8 +29,15 @@ export async function getAppUpdateRequirement(
       return decideAppUpdate(installedVersion, minimumVersion);
     } catch (error) {
       // 서버가 답한 실패는 다시 물어도 정책이 바뀌지 않는다. 다음 활성화 때 다시 확인한다.
-      if (!(error instanceof TransportConnectionError)) return 'unknown';
-      if (attempt >= MAX_ATTEMPTS) return 'connection-failed';
+      // 이 실패는 사용자에게 보이지 않지만 일단 보낸다(2026-10-11 결정, 다음 업데이트에서 다시 정한다).
+      if (!(error instanceof TransportConnectionError)) {
+        reportOperationalError({ code: 'APP_VERSION_CHECK_FAILED', cause: error });
+        return 'unknown';
+      }
+      if (attempt >= MAX_ATTEMPTS) {
+        reportOperationalError({ code: 'APP_VERSION_CHECK_FAILED', cause: error });
+        return 'connection-failed';
+      }
       await wait(RETRY_DELAY_MS);
     }
   }

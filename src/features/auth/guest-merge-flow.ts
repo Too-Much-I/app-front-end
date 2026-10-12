@@ -10,6 +10,7 @@ import type {
 } from '@/features/auth/identity-login-types';
 import type { RequestAuthSnapshot } from '@/features/auth/types';
 import { ApiError, TransportConnectionError } from '@/lib/api/transport';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 // 서버 표가 처리를 정해 둔 5xx. 나머지 5xx는 서버가 병합했는지 알 수 없다(승격 흐름과 같은 기준).
 const DEFINED_SERVER_ERROR_CODES: readonly string[] = [
@@ -115,6 +116,22 @@ export function isMergeOutcomeUnknown(error: unknown): boolean {
   if (!(error instanceof ApiError)) return false;
   if (error.code === 'GUEST_MERGE_CONFLICT') return true;
   return error.status >= 500 && !DEFINED_SERVER_ERROR_CODES.includes(error.code ?? '');
+}
+
+/**
+ * 보고용 사유. 안내는 문구표의 항목이거나(같은 객체) 인증 복구 문구로 만든 재시도 안내라
+ * 그 키를 닫힌 사유로 쓴다. 제목·문구 원문은 싣지 않는다.
+ */
+function toGuestMergeFailureReason(notice: GuestMergeFailureNotice): string {
+  const noticeKey = (Object.keys(GUEST_MERGE_NOTICES) as (keyof typeof GUEST_MERGE_NOTICES)[]).find(
+    (key) => GUEST_MERGE_NOTICES[key] === notice,
+  );
+  if (noticeKey) return noticeKey;
+  const recoveryMessages: Record<string, string> = AUTH_RECOVERY_MESSAGES;
+  return (
+    Object.keys(recoveryMessages).find((key) => recoveryMessages[key] === notice.message) ??
+    'unknown'
+  );
 }
 
 /** 연결·서버 오류는 같은 작업을 다시 시도하고, 나머지는 예상 못 한 실패로 본다. */
@@ -225,8 +242,16 @@ export function createGuestMergeFlow(options: {
   const isCurrent = (value: number) => !disposed && value === run;
   const setState = (state: GuestMergeFlowState) => store.setState({ state });
 
-  function fail(notice: GuestMergeFailureNotice): void {
+  /** 실패 화면이 뜨는 곳이 모두 여기를 지나므로 보고도 여기서 한다. */
+  function fail(notice: GuestMergeFailureNotice, cause?: unknown): void {
     setState({ status: 'failed', ...notice });
+    reportOperationalError({
+      code: 'GUEST_MERGE_FAILED',
+      work: lastWork,
+      reason: toGuestMergeFailureReason(notice),
+      nextAction: notice.nextAction,
+      cause,
+    });
   }
 
   function failOutcomeUnknown(): void {
@@ -277,7 +302,7 @@ export function createGuestMergeFlow(options: {
     try {
       exchanged = await dependencies.exchange(proofToken, abort.signal);
     } catch (error) {
-      if (isCurrent(current)) fail(decideRequestFailure(error));
+      if (isCurrent(current)) fail(decideRequestFailure(error), error);
       return;
     }
     if (!isCurrent(current)) return;
@@ -335,7 +360,7 @@ export function createGuestMergeFlow(options: {
         guest = await dependencies.prepareRequest();
       } catch (error) {
         // Guest 세션이 무효면 세션 컨트롤러 알림으로 코디네이터가 흐름을 끝낸다.
-        if (isCurrent(current)) fail(decideRequestFailure(error));
+        if (isCurrent(current)) fail(decideRequestFailure(error), error);
         return;
       }
       if (!isCurrent(current)) return;
@@ -368,7 +393,7 @@ export function createGuestMergeFlow(options: {
             failOutcomeUnknown();
             return;
           case 'fail':
-            fail(decision.notice);
+            fail(decision.notice, error);
             return;
         }
       }
@@ -396,8 +421,9 @@ export function createGuestMergeFlow(options: {
       if (!isCurrent(current)) return;
       const code = error instanceof ApiError ? error.code : undefined;
       if (code === 'MERGE_REQUIRED') setState({ status: 'confirming' });
-      else if (code === 'WITHDRAWAL_CLEANUP_PENDING') fail(GUEST_MERGE_NOTICES.withdrawalPending);
-      else fail(decideRequestFailure(error));
+      else if (code === 'WITHDRAWAL_CLEANUP_PENDING')
+        fail(GUEST_MERGE_NOTICES.withdrawalPending, error);
+      else fail(decideRequestFailure(error), error);
       return;
     }
     if (!isCurrent(current)) return;

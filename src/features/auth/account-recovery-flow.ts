@@ -17,10 +17,12 @@ import type {
 import { AUTH_RECOVERY_MESSAGES, classifyAuthRecovery } from '@/features/auth/auth-recovery';
 import {
   readFirebaseSdkErrorCode,
+  readReportableFirebaseCode,
   type PhoneCollisionCredential,
 } from '@/features/auth/firebase-auth-errors';
 import type { FirebaseLoginProvider } from '@/features/auth/firebase-auth-types';
 import { ApiError } from '@/lib/api/transport';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 // 레포 관례(약관 조회)와 같은 자동 재시도 간격(지연 + 20% 지터). 세 번을 합쳐도 접수번호를
 // 다시 받기 시작하는 시점(만료 1분 전) 안에 끝난다.
@@ -137,6 +139,37 @@ function describePhoneFailure(error: unknown): { stay: 'code' | 'phone'; message
     default:
       return { stay: 'phone', message: ACCOUNT_RECOVERY_MESSAGES.phoneFailed };
   }
+}
+
+/** 보고용 사유. 안내 문구표의 키를 닫힌 사유로 쓰고 문구 원문은 싣지 않는다. */
+function toAccountRecoveryReason(message: string): string {
+  const messageTables: Record<string, string>[] = [
+    ACCOUNT_RECOVERY_MESSAGES,
+    AUTH_RECOVERY_MESSAGES,
+  ];
+  for (const table of messageTables) {
+    const key = Object.keys(table).find((candidate) => table[candidate] === message);
+    if (key) return key;
+  }
+  return 'unknown';
+}
+
+/** 사용자가 번호·인증번호를 잘못 넣은 경우는 앱이나 서버의 실패가 아니라 보내지 않는다. */
+const INPUT_MISTAKE_MESSAGES: readonly string[] = [
+  ACCOUNT_RECOVERY_MESSAGES.wrongCode,
+  ACCOUNT_RECOVERY_MESSAGES.invalidPhone,
+];
+
+function reportPhoneFailure(step: 'send-code' | 'confirm-code', error: unknown, message: string) {
+  if (INPUT_MISTAKE_MESSAGES.includes(message)) return;
+  reportOperationalError({
+    code: 'AUTH_PHONE_VERIFICATION_FAILED',
+    flow: 'account-recovery',
+    step,
+    reason: toAccountRecoveryReason(message),
+    firebaseCode: readReportableFirebaseCode(error),
+    cause: error,
+  });
 }
 
 function toE164(phone: string): string {
@@ -268,12 +301,19 @@ export function createAccountRecoveryFlow(options: {
           if (disposed) return;
           if (error instanceof ApiError && error.status === 429) {
             // 자동 재시도하지 않는다. 사용자가 시작한 요청이면 남은 시간 동안 버튼을 막는다.
-            if (mode === 'user')
+            if (mode === 'user') {
               store.setState({
                 blockedUntil:
                   Date.now() + (error.retryAfterSeconds ?? DEFAULT_RATE_LIMIT_MS / 1000) * 1000,
                 error: ACCOUNT_RECOVERY_MESSAGES.rateLimited,
               });
+              reportOperationalError({
+                code: 'ACCOUNT_RECOVERY_FAILED',
+                step: 'prepare',
+                reason: 'rateLimited',
+                cause: error,
+              });
+            }
             return;
           }
           const recovery = classifyAuthRecovery(error);
@@ -283,13 +323,21 @@ export function createAccountRecoveryFlow(options: {
             if (disposed) return;
             continue;
           }
-          if (mode === 'user')
+          // 뒤에서 미리 받는 요청은 사용자에게 보이지 않아 보고하지 않는다. 필요하면 사용자 요청이 다시 받는다.
+          if (mode === 'user') {
             store.setState({
               error:
                 recovery.action === 'retry'
                   ? AUTH_RECOVERY_MESSAGES[recovery.reason]
                   : ACCOUNT_RECOVERY_MESSAGES.unexpected,
             });
+            reportOperationalError({
+              code: 'ACCOUNT_RECOVERY_FAILED',
+              step: 'prepare',
+              reason: recovery.reason,
+              cause: error,
+            });
+          }
           return;
         }
       }
@@ -347,6 +395,12 @@ export function createAccountRecoveryFlow(options: {
           if (disposed) return;
           continue;
         }
+        reportOperationalError({
+          code: 'ACCOUNT_RECOVERY_FAILED',
+          step: 'lookup',
+          reason: toAccountRecoveryReason(failure.message),
+          cause: error,
+        });
         switch (failure.kind) {
           case 'verify-again':
             verifyAgain(failure.message);
@@ -532,10 +586,9 @@ export function createAccountRecoveryFlow(options: {
 
     const fail = (error: unknown) => {
       clearSendTimer();
-      store.setState({
-        view: { step: 'phone', sending: false },
-        error: describePhoneFailure(error).message,
-      });
+      const { message } = describePhoneFailure(error);
+      store.setState({ view: { step: 'phone', sending: false }, error: message });
+      reportPhoneFailure('send-code', error, message);
     };
     try {
       verifyPhoneNumber(
@@ -588,6 +641,7 @@ export function createAccountRecoveryFlow(options: {
     } catch (error) {
       if (attempt !== generation) return;
       const failure = describePhoneFailure(error);
+      reportPhoneFailure('confirm-code', error, failure.message);
       store.setState(
         failure.stay === 'code'
           ? { view: { step: 'code', verificationId, verifying: false }, error: failure.message }

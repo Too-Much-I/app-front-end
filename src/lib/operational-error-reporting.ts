@@ -11,6 +11,7 @@ import type { ExamPartPreludeInvalidReason } from '@/types/exam';
 export type { OperationalErrorCode } from '@/lib/operational-error-codes';
 
 type ReportAttempt = 'initial' | 'retry';
+type LoginProvider = 'google' | 'apple' | 'kakao';
 type SafeCause = { cause?: unknown };
 type RecordingStartOperation =
   | 'playback-pause'
@@ -158,7 +159,89 @@ export type OperationalErrorInput =
       /** 우리 스키마 기준의 필드 경로. 서버가 보낸 값은 담지 않는다. */
       issuePath: string;
       issueCode: string;
-    };
+    }
+  | PostLoginErrorInput;
+
+/**
+ * 로그인 이후 기능의 포기 지점(2026-10-11 결정). 사유는 각 흐름이 이미 쓰는 닫힌 이름이고,
+ * 서버 원인은 `cause`에서 status·서버 code만 꺼낸다. `firebaseCode`는 `auth/...` 모양만 받는다.
+ */
+type PostLoginErrorInput =
+  | ({
+      code: 'AUTH_SIGN_IN_FAILED';
+      provider: LoginProvider;
+      stage: 'firebase';
+      step: 'provider-sign-in' | 'get-id-token';
+      reason: string;
+      firebaseCode?: string;
+    } & SafeCause)
+  | ({
+      code: 'AUTH_SIGN_IN_FAILED';
+      provider: LoginProvider;
+      stage: 'identity' | 'session-activate';
+      reason: string;
+    } & SafeCause)
+  | ({
+      code: 'AUTH_PHONE_VERIFICATION_FAILED';
+      flow: 'signup' | 'account-recovery';
+      step: 'send-code' | 'confirm-code';
+      reason: string;
+      firebaseCode?: string;
+    } & SafeCause)
+  | ({
+      code: 'AUTH_SIGNUP_FAILED';
+      flow: 'signup' | 'guest-upgrade';
+      step: 'nickname' | 'consents' | 'phone';
+      reason: string;
+      nextAction: string;
+    } & SafeCause)
+  | ({
+      code: 'GUEST_MERGE_FAILED';
+      work: 'merge' | 'continue-signup';
+      reason: string;
+      nextAction: string;
+    } & SafeCause)
+  | ({
+      code: 'ACCOUNT_RECOVERY_FAILED';
+      step: string;
+      reason: string;
+    } & SafeCause)
+  | ({
+      code: 'ACCOUNT_WITHDRAWAL_FAILED';
+      stage: string;
+      reason: 'connection' | 'failed';
+    } & SafeCause)
+  | ({
+      code: 'CHALLENGE_LOAD_FAILED';
+      resource: 'today' | 'question' | 'attempt' | 'result';
+    } & SafeCause)
+  | ({
+      code: 'CHALLENGE_SUBMISSION_FAILED';
+      stage: string;
+    } & SafeCause)
+  | ({
+      code: 'SUPPORT_INQUIRY_SUBMIT_FAILED';
+      category: 'AUTH' | 'GENERAL';
+    } & SafeCause)
+  | ({
+      code: 'MYPAGE_LOAD_FAILED';
+      resource: 'profile' | 'calendar';
+    } & SafeCause)
+  | ({
+      code: 'PUSH_REGISTRATION_FAILED';
+      operation: string;
+    } & SafeCause)
+  | ({
+      code: 'APP_VERSION_CHECK_FAILED';
+    } & SafeCause);
+
+/**
+ * 쿼리 캐시가 대신 보고하는 조회 실패. 쿼리 옵션의 `meta.failureReport`에 싣는다(`query-client.ts`).
+ * 같은 조회를 여러 화면이 함께 써도 실패한 요청마다 한 번만 보고하려고 화면이 아니라 캐시가 보낸다.
+ */
+export type QueryFailureReport =
+  | { code: 'CHALLENGE_LOAD_FAILED'; resource: 'today' }
+  | { code: 'MYPAGE_LOAD_FAILED'; resource: 'profile' | 'calendar' };
 
 /**
  * 스키마 검증을 붙인 엔드포인트. 옮겨올 때마다 여기에 하나씩 추가한다.
@@ -196,6 +279,18 @@ const FEATURE_BY_CODE: Record<OperationalErrorCode, string> = {
   LEARNING_RECORD_DELETE_FAILED: 'settings',
   QUALITY_REVIEW_CONSENT_UPDATE_FAILED: 'settings',
   API_RESPONSE_VALIDATION_FAILED: 'api',
+  AUTH_SIGN_IN_FAILED: 'auth',
+  AUTH_PHONE_VERIFICATION_FAILED: 'auth',
+  AUTH_SIGNUP_FAILED: 'auth',
+  GUEST_MERGE_FAILED: 'auth',
+  ACCOUNT_RECOVERY_FAILED: 'auth',
+  ACCOUNT_WITHDRAWAL_FAILED: 'auth',
+  CHALLENGE_LOAD_FAILED: 'challenge',
+  CHALLENGE_SUBMISSION_FAILED: 'challenge',
+  SUPPORT_INQUIRY_SUBMIT_FAILED: 'support',
+  MYPAGE_LOAD_FAILED: 'mypage',
+  PUSH_REGISTRATION_FAILED: 'push',
+  APP_VERSION_CHECK_FAILED: 'app-version',
 };
 
 const SAFE_SERVER_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,63}$/;

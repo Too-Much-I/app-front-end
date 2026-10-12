@@ -19,6 +19,7 @@ import { GuestMergeConfirmScreen } from '@/screens/auth/GuestMergeConfirmScreen'
 import { SignupFailureScreen } from '@/screens/auth/SignupFailureScreen';
 import { SupportInquiryScreen } from '@/screens/support/SupportInquiryScreen';
 import { colors } from '@/theme';
+import { ScreenCrashLayout } from '@/components/ui/ScreenCrashLayout';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -62,6 +63,7 @@ export function GuestMergeNavigator({
 
   return (
     <Stack.Navigator
+      screenLayout={ScreenCrashLayout}
       key="guest-merge"
       screenOptions={{ headerShown: false, gestureEnabled: false }}
     >

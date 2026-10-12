@@ -16,5 +16,6 @@ export function challengeHistoryQueryOptions(yearMonth: string | undefined) {
   return queryOptions({
     queryKey: [...CHALLENGE_HISTORY_QUERY_KEY, yearMonth ?? 'current'],
     queryFn: ({ signal }) => getChallengeHistory(yearMonth, signal),
+    meta: { failureReport: { code: 'MYPAGE_LOAD_FAILED', resource: 'calendar' } },
   });
 }

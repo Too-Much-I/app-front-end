@@ -16,6 +16,7 @@ import { TabBarButton } from '@/navigation/TabBarButton';
 import type { MainTabParamList, RootStackParamList } from '@/navigation/types';
 import { colors, FONT_FAMILY, tabBar } from '@/theme';
 import { useScaleValue } from '@/theme/rem-scale';
+import { ScreenCrashLayout } from '@/components/ui/ScreenCrashLayout';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -71,6 +72,7 @@ export function MainTabNavigator() {
   return (
     <>
       <Tab.Navigator
+        screenLayout={ScreenCrashLayout}
         screenOptions={{
           headerShown: false,
           // 이 틴트는 아이콘뿐 아니라 11px 라벨에도 걸린다. brand.DEFAULT(500)는

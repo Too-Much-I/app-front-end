@@ -25,6 +25,7 @@ import {
   type AuthRecoveryReason,
   type AuthSessionRestoreResult,
 } from '@/features/auth/session-restoration-types';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 /**
  * 인증 부트스트랩 상태와 복구 액션을 관리하는 코디네이터.
@@ -319,13 +320,24 @@ export function createAuthCoordinator(
     );
   }
 
+  /**
+   * `report`가 null이면 이미 보고된 실패다(Firebase 단계는 원래 오류 코드를 아는 인증 컨트롤러가 보고한다).
+   */
   function showLoginFailure(
     attempt: IdentityAttempt,
     message: string,
     nextAction: 'retry' | 'sign-in-again' | 'get-help',
     retryStep: IdentityRetry | null,
+    report: { stage: 'identity' | 'session-activate'; reason: string; cause?: unknown } | null,
   ): void {
     if (!isCurrent(attempt)) return;
+    if (report) {
+      reportOperationalError({
+        code: 'AUTH_SIGN_IN_FAILED',
+        provider: attempt.provider,
+        ...report,
+      });
+    }
     identityRetry = retryStep;
     store.setState({
       state: {
@@ -352,10 +364,13 @@ export function createAuthCoordinator(
     }
     if (!isCurrent(attempt)) return;
     if (!accepted) {
-      showLoginFailure(attempt, '로그인을 마무리하지 못했어요. 다시 시도해 주세요.', 'retry', {
-        step: 'activate-session',
-        session,
-      });
+      showLoginFailure(
+        attempt,
+        '로그인을 마무리하지 못했어요. 다시 시도해 주세요.',
+        'retry',
+        { step: 'activate-session', session },
+        { stage: 'session-activate', reason: 'not-accepted' },
+      );
       return;
     }
     // 기존 회원 로그인·가입·Guest 승격·병합이 모두 여기로 모인다. Guest 세션은 이 경로를 지나지 않는다.
@@ -443,7 +458,8 @@ export function createAuthCoordinator(
       }
       if (error instanceof ApiError) {
         if (error.code === 'INVALID_FIREBASE_ID_TOKEN' && canRefreshProof) {
-          const refreshed = await login.firebase.refreshProof(proof.uid);
+          // 로그인 중의 갱신이라 실패는 로그인 실패로 보고한다(Firebase 오류 코드는 컨트롤러만 안다).
+          const refreshed = await login.firebase.refreshProof(proof.uid, { reportFailure: true });
           await handleFirebaseProof(attempt, refreshed, false);
           return;
         }
@@ -451,9 +467,13 @@ export function createAuthCoordinator(
           error.code === 'INVALID_FIREBASE_ID_TOKEN' ||
           error.code === 'FIREBASE_RECENT_AUTH_REQUIRED'
         ) {
-          showLoginFailure(attempt, '다시 로그인해 인증을 확인해 주세요.', 'sign-in-again', {
-            step: 'sign-in',
-          });
+          showLoginFailure(
+            attempt,
+            '다시 로그인해 인증을 확인해 주세요.',
+            'sign-in-again',
+            { step: 'sign-in' },
+            { stage: 'identity', reason: 'sign-in-again', cause: error },
+          );
           return;
         }
         if (error.code === 'WITHDRAWAL_CLEANUP_PENDING') {
@@ -464,6 +484,7 @@ export function createAuthCoordinator(
             '계정 정보를 정리하고 있어요. 잠시 후 다시 시도해 주세요.',
             'sign-in-again',
             { step: 'sign-in' },
+            { stage: 'identity', reason: 'withdrawal-cleanup-pending', cause: error },
           );
           return;
         }
@@ -481,6 +502,7 @@ export function createAuthCoordinator(
         AUTH_RECOVERY_MESSAGES[recovery.reason],
         recovery.action === 'retry' ? 'retry' : 'get-help',
         recovery.action === 'retry' ? { step: 'submit', proof, canRefreshProof } : null,
+        { stage: 'identity', reason: recovery.reason, cause: error },
       );
     }
   }
@@ -514,6 +536,7 @@ export function createAuthCoordinator(
             : proof.nextAction === 'sign-in-again'
               ? { step: 'sign-in' }
               : null,
+          null,
         );
         return;
     }

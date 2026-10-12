@@ -205,6 +205,93 @@ const DEFINITIONS = {
       issueCode: 'invalid_value',
     },
   },
+  AUTH_SIGN_IN_FAILED: {
+    title: '소셜 로그인 Firebase 단계 실패',
+    input: {
+      code: 'AUTH_SIGN_IN_FAILED',
+      provider: 'google',
+      stage: 'firebase',
+      step: 'provider-sign-in',
+      reason: 'connection',
+      firebaseCode: 'auth/network-request-failed',
+    },
+  },
+  AUTH_PHONE_VERIFICATION_FAILED: {
+    title: '가입 인증번호 확인 실패',
+    input: {
+      code: 'AUTH_PHONE_VERIFICATION_FAILED',
+      flow: 'signup',
+      step: 'confirm-code',
+      reason: 'wrong-code',
+      firebaseCode: 'auth/invalid-verification-code',
+    },
+  },
+  AUTH_SIGNUP_FAILED: {
+    title: '가입 제출 실패',
+    input: {
+      code: 'AUTH_SIGNUP_FAILED',
+      flow: 'signup',
+      step: 'consents',
+      reason: 'server',
+      nextAction: 'retry',
+      cause: SYNTHETIC_API_CAUSE,
+    },
+  },
+  GUEST_MERGE_FAILED: {
+    title: '게스트 병합 결과 확인 실패',
+    input: {
+      code: 'GUEST_MERGE_FAILED',
+      work: 'merge',
+      reason: 'outcomeUnknown',
+      nextAction: 'retry',
+    },
+  },
+  ACCOUNT_RECOVERY_FAILED: {
+    title: '계정 찾기 조회 실패',
+    input: {
+      code: 'ACCOUNT_RECOVERY_FAILED',
+      step: 'lookup',
+      reason: 'server',
+      cause: SYNTHETIC_API_CAUSE,
+    },
+  },
+  ACCOUNT_WITHDRAWAL_FAILED: {
+    title: '회원 탈퇴 요청 실패',
+    input: {
+      code: 'ACCOUNT_WITHDRAWAL_FAILED',
+      stage: 'server-withdraw',
+      reason: 'failed',
+      cause: SYNTHETIC_API_CAUSE,
+    },
+  },
+  CHALLENGE_LOAD_FAILED: {
+    title: '10초 챌린지 문제 조회 실패',
+    input: { code: 'CHALLENGE_LOAD_FAILED', resource: 'question', cause: SYNTHETIC_API_CAUSE },
+  },
+  CHALLENGE_SUBMISSION_FAILED: {
+    title: '10초 챌린지 답변 제출 실패',
+    input: { code: 'CHALLENGE_SUBMISSION_FAILED', stage: 'submit', cause: SYNTHETIC_API_CAUSE },
+  },
+  SUPPORT_INQUIRY_SUBMIT_FAILED: {
+    title: '문의 접수 실패',
+    input: {
+      code: 'SUPPORT_INQUIRY_SUBMIT_FAILED',
+      category: 'GENERAL',
+      cause: SYNTHETIC_API_CAUSE,
+    },
+  },
+  MYPAGE_LOAD_FAILED: {
+    title: '마이페이지 달력 조회 실패',
+    input: { code: 'MYPAGE_LOAD_FAILED', resource: 'calendar', cause: SYNTHETIC_API_CAUSE },
+  },
+  PUSH_REGISTRATION_FAILED: {
+    title: '푸시 기기 등록 실패',
+    input: { code: 'PUSH_REGISTRATION_FAILED', operation: 'register', cause: SYNTHETIC_API_CAUSE },
+  },
+  APP_VERSION_CHECK_FAILED: {
+    title: '앱 버전 정책 조회 실패',
+    input: { code: 'APP_VERSION_CHECK_FAILED', cause: SYNTHETIC_API_CAUSE },
+  },
 } satisfies ValidationDefinitions;
 
 export interface SentryValidationCatalogItem {

@@ -1,3 +1,4 @@
+import { emitApiFailureBreadcrumb } from '@/lib/api/api-breadcrumb';
 import type { ApiEnvelope, ApiErrorPayload } from '@/types/api';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -92,6 +93,7 @@ export async function serviceFetchWithMetadata<T>(
   init: JsonRequestInit = {},
   timeoutMs: number = DEFAULT_TIMEOUT_MS,
 ): Promise<{ envelope: ApiEnvelope<T>; headers: Headers }> {
+  const startedAt = Date.now();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const callerSignal = init.signal;
@@ -138,17 +140,34 @@ export async function serviceFetchWithMetadata<T>(
 
     return { envelope: envelope as ApiEnvelope<T>, headers: response.headers };
   } catch (error) {
+    // 호출자가 취소한 요청(화면 이탈 등)은 실패가 아니라 남기지 않는다.
     if (callerSignal?.aborted) throw error;
+    const failure = {
+      url,
+      method: init.method ?? 'GET',
+      durationMs: Date.now() - startedAt,
+    };
+    if (error instanceof ApiError) {
+      emitApiFailureBreadcrumb({
+        ...failure,
+        outcome: 'http',
+        httpStatus: error.status,
+        serverCode: error.code,
+      });
+      throw error;
+    }
     // RN 기본 fetch는 연결 실패를 TypeError로, Expo 57이 전역에 설치한 expo/fetch는
     // `FetchError`(Error 상속, 메시지 "fetch failed: <네이티브 예외>")로 던진다. 둘 다 응답 전 실패다.
+    // 호출자 취소는 위에서 걸렀으므로 여기서 signal이 끊겼다면 우리 타이머다.
     if (
       error instanceof TypeError ||
-      // 서버 응답으로 만든 ApiError는 메시지와 관계없이 그대로 둔다.
-      (!(error instanceof ApiError) &&
-        error instanceof Error &&
-        error.message.startsWith('fetch failed')) ||
+      (error instanceof Error && error.message.startsWith('fetch failed')) ||
       controller.signal.aborted
     ) {
+      emitApiFailureBreadcrumb({
+        ...failure,
+        outcome: controller.signal.aborted ? 'timeout' : 'network',
+      });
       throw new TransportConnectionError();
     }
     throw error;

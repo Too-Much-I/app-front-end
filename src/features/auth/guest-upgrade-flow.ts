@@ -19,12 +19,14 @@ import {
   decideRequestFailureNotice,
   decideSignupSteps,
   isSignupNicknameValid,
+  toSignupFailureReason,
   type SignupFailureNotice,
   type SignupFlowState,
   type SignupStep,
 } from '@/features/auth/signup-flow';
 import type { AuthSession, RequestAuthSnapshot } from '@/features/auth/types';
 import { ApiError, TransportConnectionError } from '@/lib/api/transport';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 // 가입 흐름과 같은 약관 조회 간격이다(지연 + 20% 지터).
 const POLICY_RETRY_DELAYS_MS = [5_000, 10_000, 20_000] as const;
@@ -239,6 +241,14 @@ export function createGuestUpgradeFlow(options: {
           status: 'policyUnavailable',
           message: GUEST_UPGRADE_MESSAGES.policyUnavailable,
         });
+        reportOperationalError({
+          code: 'AUTH_SIGNUP_FAILED',
+          flow: 'guest-upgrade',
+          step: 'consents',
+          reason: 'policyUnavailable',
+          nextAction: 'retry',
+          cause: error,
+        });
         return;
       }
       policyTimer = setTimeout(
@@ -312,8 +322,17 @@ export function createGuestUpgradeFlow(options: {
     }
   }
 
-  function fail(step: SignupStep, notice: SignupFailureNotice): void {
+  /** 실패 화면이 뜨는 곳이 모두 여기를 지나므로 보고도 여기서 한다. */
+  function fail(step: SignupStep, notice: SignupFailureNotice, cause?: unknown): void {
     setState({ status: 'failed', step, ...notice });
+    reportOperationalError({
+      code: 'AUTH_SIGNUP_FAILED',
+      flow: 'guest-upgrade',
+      step,
+      reason: toSignupFailureReason(notice, GUEST_UPGRADE_MESSAGES),
+      nextAction: notice.nextAction,
+      cause,
+    });
   }
 
   /** 서버가 발급한 MEMBER 세션을 코디네이터에 넘긴다. 승격 요청과 다른 try로 감싸 분류를 섞지 않는다. */
@@ -360,7 +379,7 @@ export function createGuestUpgradeFlow(options: {
       options.onMergeRequired();
       return;
     }
-    fail(step, decideRequestFailureNotice(error));
+    fail(step, decideRequestFailureNotice(error), error);
   }
 
   /** 만료·enrollment 충돌 시 같은 ID를 재사용하지 않고 prepare부터 다시 받는다. 입력 초안은 유지한다. */
@@ -410,7 +429,7 @@ export function createGuestUpgradeFlow(options: {
     try {
       exchanged = await dependencies.exchange(proof.firebaseIdToken, abort.signal);
     } catch (error) {
-      if (isCurrent(current)) fail(step, decideRequestFailureNotice(error));
+      if (isCurrent(current)) fail(step, decideRequestFailureNotice(error), error);
       return 'stop';
     }
     if (!isCurrent(current)) return 'stop';
@@ -440,6 +459,7 @@ export function createGuestUpgradeFlow(options: {
     current: number,
     step: SignupStep,
     guestToken: string | null,
+    cause?: unknown,
   ): Promise<'continue' | 'stop'> {
     switch (decision.kind) {
       case 'resubmit':
@@ -465,7 +485,7 @@ export function createGuestUpgradeFlow(options: {
         goTo('phone');
         return 'stop';
       case 'fail':
-        fail(step, decision);
+        fail(step, decision, cause);
         return 'stop';
     }
   }
@@ -512,7 +532,7 @@ export function createGuestUpgradeFlow(options: {
         guest = await dependencies.prepareRequest();
       } catch (error) {
         // Guest 세션이 무효면 세션 컨트롤러 알림으로 코디네이터가 흐름을 끝낸다.
-        if (isCurrent(current)) fail(step, decideRequestFailureNotice(error));
+        if (isCurrent(current)) fail(step, decideRequestFailureNotice(error), error);
         return;
       }
       if (!isCurrent(current)) return;
@@ -535,7 +555,9 @@ export function createGuestUpgradeFlow(options: {
       } catch (error) {
         if (!isCurrent(current)) return;
         const decision = decideGuestUpgradeRecovery(error, attempts);
-        if ((await carryOut(decision, attempts, current, step, guest.accessToken)) === 'stop')
+        if (
+          (await carryOut(decision, attempts, current, step, guest.accessToken, error)) === 'stop'
+        )
           return;
         continue;
       }
