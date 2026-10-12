@@ -216,6 +216,11 @@ export function createFirebaseAuthController(sdk: FirebaseAuthSdk) {
     await sdk.signOut();
   }
 
+  /** 로그인을 끝내지 않고 돌아갈 때 다음 Google 로그인에서 계정을 다시 고르게 한다. 기다리지 않는다. */
+  function forgetGoogleAccount(): void {
+    void sdk.forgetGoogleAccount();
+  }
+
   return {
     getState: store.getState,
     getInitialState: store.getInitialState,
@@ -225,5 +230,6 @@ export function createFirebaseAuthController(sdk: FirebaseAuthSdk) {
     retry,
     cancel,
     signOut,
+    forgetGoogleAccount,
   };
 }

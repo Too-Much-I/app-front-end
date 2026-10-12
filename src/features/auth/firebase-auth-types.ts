@@ -50,6 +50,11 @@ export interface FirebaseAuthSdk {
   revokeAppleSignIn: () => Promise<'revoked' | 'cancelled' | 'unsupported'>;
   /** 기기의 Firebase·Provider 로그인을 끊는다. 실패해도 던지지 않는다. */
   signOut: () => Promise<void>;
+  /**
+   * Google SDK가 기억한 계정만 지워 다음 Google 로그인에서 계정 선택 창을 띄운다. Firebase 로그인은 남긴다.
+   * 실패해도 던지지 않는다.
+   */
+  forgetGoogleAccount: () => Promise<void>;
 }
 
 /** 원문 SDK 오류·인증 자료를 외부 상태나 로그로 전달하지 않는다. */
