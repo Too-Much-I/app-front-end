@@ -44,9 +44,14 @@ export function createFirebaseAuthSdk(config: FirebaseProviderConfiguration): Fi
     return signInWithPopup(getAuth(), nativeProvider);
   }
 
+  // 진행 중인 Google 계정 지우기. 끝나기 전에 signIn을 부르면 지워지기 전 계정이 다시 골라질 수 있다.
+  let forgettingGoogleAccount: Promise<void> | null = null;
+
   async function signInGoogle(signal: AbortSignal): ReturnType<FirebaseAuthSdk['signInProvider']> {
     if (!config.google?.webClientId.trim())
       throw new FirebaseAuthenticationError('provider-unavailable');
+    await forgettingGoogleAccount;
+    if (signal.aborted) return { kind: 'cancelled' };
     try {
       if (
         Platform.OS === 'android' &&
@@ -162,6 +167,28 @@ export function createFirebaseAuthSdk(config: FirebaseProviderConfiguration): Fi
     }
   };
 
+  const forgetGoogleAccount: FirebaseAuthSdk['forgetGoogleAccount'] = () => {
+    const google = config.google;
+    if ((Platform.OS !== 'ios' && Platform.OS !== 'android') || !google?.webClientId.trim())
+      return Promise.resolve();
+    // 겹쳐 오면 진행 중인 지우기를 함께 쓴다. finally 콜백은 비동기라 할당보다 먼저 비우지 않는다.
+    forgettingGoogleAccount ??= (async () => {
+      try {
+        // Google SDK는 자체 로그인을 따로 기억해, 끊지 않으면 다음 로그인이 같은 계정을 바로 고른다.
+        GoogleSignin.configure({
+          webClientId: google.webClientId,
+          iosClientId: google.iosClientId,
+        });
+        await GoogleSignin.signOut();
+      } catch {
+        // 계정 선택 화면이 생략될 뿐 흐름에는 영향이 없다.
+      }
+    })().finally(() => {
+      forgettingGoogleAccount = null;
+    });
+    return forgettingGoogleAccount;
+  };
+
   const signOutDevice: FirebaseAuthSdk['signOut'] = async () => {
     if (Platform.OS !== 'ios' && Platform.OS !== 'android') return;
     try {
@@ -169,17 +196,7 @@ export function createFirebaseAuthSdk(config: FirebaseProviderConfiguration): Fi
     } catch {
       // 다음 SNS 로그인이 currentUser를 새 사용자로 바꾸므로 남아도 흐름을 막지 않는다.
     }
-    if (!config.google?.webClientId.trim()) return;
-    try {
-      // Google SDK는 자체 로그인을 따로 기억해, 끊지 않으면 다음 로그인이 같은 계정을 바로 고른다.
-      GoogleSignin.configure({
-        webClientId: config.google.webClientId,
-        iosClientId: config.google.iosClientId,
-      });
-      await GoogleSignin.signOut();
-    } catch {
-      // 계정 선택 화면이 생략될 뿐 로그아웃 자체에는 영향이 없다.
-    }
+    await forgetGoogleAccount();
   };
 
   return {
@@ -191,5 +208,6 @@ export function createFirebaseAuthSdk(config: FirebaseProviderConfiguration): Fi
       getAuth().currentUser?.providerData.map((info) => info.providerId) ?? [],
     revokeAppleSignIn,
     signOut: signOutDevice,
+    forgetGoogleAccount,
   };
 }

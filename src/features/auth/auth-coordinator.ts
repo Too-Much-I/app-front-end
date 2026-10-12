@@ -135,7 +135,7 @@ interface MemberConsentGate {
 interface IdentityLoginDependencies {
   firebase: Pick<
     ReturnType<typeof createFirebaseAuthController>,
-    'signIn' | 'retry' | 'cancel' | 'refreshProof' | 'signOut'
+    'signIn' | 'retry' | 'cancel' | 'refreshProof' | 'signOut' | 'forgetGoogleAccount'
   >;
   session: {
     acceptSession: (session: AuthSession, signal?: AbortSignal) => Promise<boolean>;
@@ -588,6 +588,15 @@ export function createAuthCoordinator(
     return signingOut;
   }
 
+  /**
+   * Google SDK는 앱 로그인 성공과 상관없이 선택 창에서 고른 계정을 기억해, 다음 로그인이 선택 창 없이 그 계정을
+   * 고른다. 로그인을 끝내지 못하고 돌아갈 때 지워 다른 계정을 고를 수 있게 한다. 세션 만료로 로그인 화면에 온
+   * 사용자는 기억된 계정으로 바로 들어가도록 여기서만 지운다(2026-10-12 결정).
+   */
+  function forgetChosenGoogleAccount(attempt: IdentityAttempt): void {
+    if (attempt.provider === 'google') login?.firebase.forgetGoogleAccount();
+  }
+
   function cancelLogin(): void {
     const attempt = loginAttempt;
     const { state } = store.getState();
@@ -601,6 +610,7 @@ export function createAuthCoordinator(
       return;
     attempt.abort.abort();
     login?.firebase.cancel();
+    forgetChosenGoogleAccount(attempt);
     flowGeneration += 1;
     loginAttempt = null;
     identityRetry = null;
@@ -658,6 +668,8 @@ export function createAuthCoordinator(
     const { phone } = signupDraft.getState();
     attempt.abort.abort();
     login?.firebase.cancel();
+    // 계정 찾기가 알려 준 Google로 다시 들어갈 때 방금 고른 계정이 골라지지 않게 한다.
+    forgetChosenGoogleAccount(attempt);
     loginAttempt = null;
     identityRetry = null;
     signupDraft.reset();

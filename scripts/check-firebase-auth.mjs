@@ -14,6 +14,7 @@ const platform = { OS: 'ios' };
 let nativeUser = { uid: 'a' };
 let providerResult;
 let googleResult;
+let googleSignOut = async () => {};
 let appleResult;
 const nativeCalls = [];
 const googleCalls = [];
@@ -65,6 +66,7 @@ const mocks = {
       configure: (config) => googleCalls.push(config),
       hasPlayServices: async () => true,
       signIn: () => googleResult(),
+      signOut: () => googleSignOut(),
     },
     isCancelledResponse: (response) => response.type === 'cancelled',
     statusCodes: {
@@ -352,6 +354,7 @@ function resetNative() {
     data: { idToken: 'google-id-token' },
   });
   appleResult = async () => ({ identityToken: 'apple-id-token' });
+  googleSignOut = async () => {};
 }
 await check('Google credential 교환 및 iOS Apple hashed nonce / raw nonce 구분', async () => {
   resetNative();
@@ -369,6 +372,42 @@ await check('Google credential 교환 및 iOS Apple hashed nonce / raw nonce 구
   await sdk.signInProvider('apple', new AbortController().signal);
   assert.equal(nativeCalls[1].rawNonce, 'random-raw-nonce');
   assert.equal(nativeCalls[1].idToken, 'apple-id-token');
+});
+await check('Google 계정 지우기가 끝난 뒤에 Google 로그인을 시작', async () => {
+  resetNative();
+  const sdk = createFirebaseAuthSdk(config);
+  const order = [];
+  let finishSignOut;
+  googleSignOut = () =>
+    new Promise((resolve) => {
+      finishSignOut = () => {
+        order.push('signOut');
+        resolve();
+      };
+    });
+  googleResult = async () => {
+    order.push('signIn');
+    return { type: 'success', data: { idToken: 'google-id-token' } };
+  };
+  const forgetting = sdk.forgetGoogleAccount();
+  assert.equal(sdk.forgetGoogleAccount(), forgetting);
+  const signingIn = sdk.signInProvider('google', new AbortController().signal);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(order, []);
+  finishSignOut();
+  assert.equal((await signingIn).kind, 'signed-in');
+  assert.deepEqual(order, ['signOut', 'signIn']);
+  // 실패해도 던지지 않고, 다음 지우기는 새로 시작한다.
+  googleSignOut = async () => {
+    throw new Error('native failure');
+  };
+  await sdk.forgetGoogleAccount();
+  let signOuts = 0;
+  googleSignOut = async () => {
+    signOuts++;
+  };
+  await sdk.forgetGoogleAccount();
+  assert.equal(signOuts, 1);
 });
 await check('Kakao OIDC 실제 ID 및 Android Apple 웹 인증 사용', async () => {
   resetNative();
