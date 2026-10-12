@@ -6,15 +6,40 @@
 기존 앱에 **학습 탭**을 추가했다. 로그인·홈·모의고사·피드백·마이페이지·푸시·오류 수집은 최신 main의 흐름을 유지한다.
 
 **이 브랜치는 프론트 구현과 연동 계약이다. 아래 신규 API는 아직 백엔드에 배포되지 않았다.**
-백엔드를 연결하기 전에는 학습 목록에 불러오기 실패/재시도 화면이 보인다. 실제 서버 결과처럼 보이는 더미 채점은 없다.
-실제 문제은행·모범답안·사진·음성·개인 녹음·API 키는 커밋하지 않는다. 콘텐츠는 MongoDB, 미디어는 S3에 보관하고 백엔드가 제공한다.
+일반 실행은 실제 백엔드 API를 사용한다. 백엔드 연결 전에는 아래 **독립 샘플 실행**으로 확인할 수 있다.
+사용자 요청에 따라 **Part별 실제 카드 2개와 해당 미디어만** `examples/learning-sample/`에 포함했다. 전체 콘텐츠는 MongoDB, 미디어는 S3에서 백엔드가 제공하며 개인 녹음과 API 키는 커밋하지 않는다.
 
 1. 화면/파일 흐름: 이 문서
 2. 백엔드 요청·응답·저장·오류 규칙: [API 계약](api/answer-learning.md)
 3. 그대로 파싱 테스트할 수 있는 가상 응답: [JSON 예시](api/answer-learning-examples.json)
 4. API 경계 테스트: `scripts/test-learning-api.cjs`
 
-## 실행
+## 독립 샘플 실행 — 백엔드·Firebase 설정 없이 확인
+
+```sh
+git fetch origin
+git switch feat/answer-learning
+git pull --ff-only origin feat/answer-learning
+pnpm install --frozen-lockfile
+pnpm sample:learning:ios
+# Android 에뮬레이터
+pnpm sample:learning:android
+# 이미 설치한 샘플 앱의 Metro만 실행
+pnpm sample:learning
+```
+
+- 실제 카드 **10개(Part별 2개)**, 18문항, 수준별 답변 50개, 사진·Robert 음성 140개(약 11MB)를 포함한다.
+- Part 3·4 카드는 각 3문항이다. IM/IH/AL, 듣기, 따라 말하기, 녹음, 결과 화면에 같은 실제 UI를 사용한다.
+- Part 2~5에서 녹음 후 제출하면 대기 → 전사 → 채점 → 결과 화면으로 넘어간다. **고정 예시 3항목 중 2항목 충족**이며 녹음 내용으로 판단하지 않는다.
+- 모든 샘플 화면 하단에 예시 채점임을 표시한다. 음성 업로드, 외부 STT/Decisions API 호출, 과금은 없다. 전사문도 `[샘플 전사 예시 · 실제 녹음 분석 아님]`으로 표시한다.
+- Part 1은 채점 없이 내 녹음·모범 음성 비교다. 완료 기록과 샘플 작업 상태는 메모리에만 유지하여 앱 재시작 시 초기화된다.
+- `LEARNING_SAMPLE=1`인 실행 명령에서만 Metro가 학습 API 모듈과 시작점을 샘플 어댑터로 교체한다. 일반 `pnpm start/ios/android`는 원래 진입점·인증·실제 API를 그대로 사용한다.
+- 별도 bundle ID `com.toteacher.learning.sample`을 사용한다. Expo Go는 지원하지 않으며 Xcode/Android SDK가 필요하다. 기기 내 STT 지원/권한은 기기 환경에 따른다.
+- 같은 checkout에서 일반 앱으로 돌아갈 때는 기존 Firebase 설정을 준비하고 **샘플 환경변수 없이** `pnpm exec expo prebuild --clean` 후 `pnpm ios` 또는 `pnpm android`를 실행한다. prebuild는 생성된 native 폴더를 다시 만드므로 native 수동 수정이 있다면 먼저 보존한다.
+
+구성·미디어 해시는 [샘플 manifest](../examples/learning-sample/manifest.json), 응답과 진행 상태는 [샘플 API 어댑터](../examples/learning-sample/sample-api.ts)에서 확인한다. 샘플은 실서비스 인증·S3·채점 정확도를 검증하지 않는다.
+
+## 기존 앱 실행
 
 ```sh
 git fetch origin
@@ -31,7 +56,7 @@ pnpm android
 별도 프리뷰 토큰, STT 키, OpenAI 키, AWS 자격증명을 프론트 환경변수에 추가하지 않는다.
 
 `expo-speech-recognition@57.1.0`과 권한 설정이 추가되어 **네이티브 재빌드가 필요**하다. Expo Go에서는 동작하지 않는다.
-원래 앱의 bundle ID·Firebase·Sentry·푸시 config plugin은 유지한다. `LearningPreviewApp`/`production-entry`/임시 홈은 이 브랜치에 없다.
+원래 앱의 bundle ID·Firebase·Sentry·푸시 config plugin은 유지한다. 일반 앱 진입점은 유지하며 독립 샘플은 위 전용 명령에서만 활성화한다.
 
 ## 사용 흐름
 
@@ -101,7 +126,7 @@ pnpm test:learning
 EXPO_NO_TELEMETRY=1 pnpm exec expo export --platform ios --output-dir /tmp/answer-learning-ios
 ```
 
-자동 테스트의 STT·업로드·채점 응답은 모의한 것이다. 실제 인식 정확도, 실제 S3/CORS/인증 및 MongoDB/Lambda 연동 성공을 뜻하지 않는다.
+자동 테스트의 STT·업로드·채점 응답은 모의한 것이다. 실제 인식 정확도, 실제 S3/CORS/인증 및 MongoDB/Lambda 연동 성공을 뜻하지 않는다. 샘플 채점은 모델 원시 응답이 아닌 API 계약의 정규화된 결과를 재현한다.
 backend 구현 전에는 API 통합 테스트와 실제 계정의 앱 종단 검증이 남는다. 저장소의 사람 학습 기록/PR 리뷰 절차도 별도이며, 이 브랜치는 자동 머지하지 않는다.
 
 ### 이 브랜치에서 확인한 결과 (2026-10-12)
@@ -112,3 +137,10 @@ backend 구현 전에는 API 통합 테스트와 실제 계정의 앱 종단 검
 - iOS Metro/Hermes JS 번들 export 성공. 이 checkout에는 Firebase 설정 파일이 없어 관련 경고가 출력되었다.
   따라서 이 결과를 서명된 네이티브 앱 빌드·실제 계정/서버 연동 검증으로 보지 않는다.
 - 기존 원격 main을 다시 fetch/pull하여 `3e17478`이 최신임을 확인했다.
+
+### 실제 샘플 추가 검증 (2026-10-12)
+
+- 학습 자동 테스트 68건 통과. 샘플 10개 카드의 수준·순서·미디어 해시 및 모의 제출 상태/완료 저장 포함.
+- format:check, lint, TypeScript, architecture 차단 규칙, naming 통과.
+- 샘플 iOS JS/asset export 성공. 네이티브 시뮬레이터 빌드는 별도 확인 중이며 이 기록은 기기 실행 성공을 뜻하지 않는다.
+- 샘플 실행 중 채점용 외부 API와 실제 녹음 업로드는 호출하지 않는다.

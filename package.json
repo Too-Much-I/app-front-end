@@ -17,7 +17,10 @@
     "deps:graph": "depcruise index.ts App.tsx src --config .dependency-cruiser.cjs --output-type mermaid --collapse '^(?:src/(?:features|screens|components)/[^/]+|src/(?:navigation|lib|theme|types))' --output-to docs/architecture/generated/dependency-graph.mmd",
     "format": "prettier --write \"src/**/*.{ts,tsx,js}\" \"scripts/**/*.{js,mjs,cjs}\" \"*.{js,cjs,mjs,ts,tsx,json}\" \".github/**/*.{yml,yaml}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js}\" \"scripts/**/*.{js,mjs,cjs}\" \"*.{js,cjs,mjs,ts,tsx,json}\" \".github/**/*.{yml,yaml}\"",
-    "test:learning": "node scripts/test-learning.cjs && node --test scripts/test-learning-*.cjs"
+    "test:learning": "node scripts/test-learning.cjs && node --test scripts/test-learning-*.cjs",
+    "sample:learning": "node scripts/run-learning-sample.mjs start",
+    "sample:learning:ios": "node scripts/run-learning-sample.mjs run:ios",
+    "sample:learning:android": "node scripts/run-learning-sample.mjs run:android"
   },
   "dependencies": {
     "@amplitude/analytics-react-native": "^1.6.9",

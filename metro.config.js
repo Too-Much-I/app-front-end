@@ -11,7 +11,7 @@ const config = getSentryExpoConfig(__dirname, {
   annotateReactComponents: true,
 });
 
-module.exports = withNativeWind(config, {
+const styledConfig = withNativeWind(config, {
   input: './global.css',
   // rem을 빌드 타임 상수로 굽지 않고 런타임 옵저버블로 남긴다.
   // 이 값이 숫자면 CSS의 rem이 `value * inlineRem`으로 인라이닝되어
@@ -20,3 +20,8 @@ module.exports = withNativeWind(config, {
   // 렌더 결과가 달라지지 않는다.
   inlineRem: false,
 });
+
+module.exports =
+  process.env.LEARNING_SAMPLE === '1'
+    ? require('./examples/learning-sample/metro-sample.cjs')(styledConfig, __dirname)
+    : styledConfig;
