@@ -1,6 +1,4 @@
-import type { ConfigContext } from 'expo/config';
-
-export function getLearningSampleConfig(config: ConfigContext['config']) {
+module.exports = function getLearningSampleConfig(config) {
   return {
     ...config,
     name: '토선생 학습 샘플',
@@ -30,4 +28,4 @@ export function getLearningSampleConfig(config: ConfigContext['config']) {
       ],
     ],
   };
-}
+};
