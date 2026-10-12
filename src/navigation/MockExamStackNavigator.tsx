@@ -7,12 +7,13 @@ import { GradingWaitScreen } from '@/screens/mock-exam/GradingWaitScreen';
 import { MicrophoneTestScreen } from '@/screens/mock-exam/MicrophoneTestScreen';
 import { MockExamReadyScreen } from '@/screens/mock-exam/MockExamReadyScreen';
 import { SoundTestScreen } from '@/screens/mock-exam/SoundTestScreen';
+import { ScreenCrashLayout } from '@/components/ui/ScreenCrashLayout';
 
 const Stack = createNativeStackNavigator<MockExamStackParamList>();
 
 export function MockExamStackNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenLayout={ScreenCrashLayout} screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MockExamReady" component={MockExamReadyScreen} />
       <Stack.Screen name="ExamPartGuide" component={ExamPartGuideScreen} />
       <Stack.Screen name="MicrophoneTest" component={MicrophoneTestScreen} />

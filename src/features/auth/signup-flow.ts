@@ -16,6 +16,7 @@ import type { createSignupDraftStore } from '@/features/auth/signup-draft-store'
 import type { AuthSession } from '@/features/auth/types';
 import { trackConversion } from '@/lib/ad-conversion';
 import { ApiError } from '@/lib/api/transport';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 export type SignupStep = 'nickname' | 'consents' | 'phone';
 
@@ -106,6 +107,22 @@ export function decideRequestFailureNotice(error: unknown): SignupFailureNotice 
   return recovery.action === 'retry'
     ? { message: AUTH_RECOVERY_MESSAGES[recovery.reason], nextAction: 'retry' }
     : { message: SIGNUP_MESSAGES.unexpected, nextAction: 'exit' };
+}
+
+/**
+ * 보고용 사유. 안내 문구는 문구표(가입·인증 복구) 중 하나에서 오므로 그 키를 닫힌 사유로 쓴다.
+ * 문구 원문은 싣지 않는다.
+ */
+export function toSignupFailureReason(
+  notice: SignupFailureNotice,
+  flowMessages: Record<string, string> = SIGNUP_MESSAGES,
+): string {
+  const messageTables: Record<string, string>[] = [flowMessages, AUTH_RECOVERY_MESSAGES];
+  for (const table of messageTables) {
+    const key = Object.keys(table).find((candidate) => table[candidate] === notice.message);
+    if (key) return key;
+  }
+  return 'unknown';
 }
 
 export function decideProofFailureNotice(
@@ -222,6 +239,14 @@ export function createSignupFlow(options: {
       const delay = POLICY_RETRY_DELAYS_MS[attempt];
       if (classifyAuthRecovery(error).action !== 'retry' || delay === undefined) {
         setState({ status: 'policyUnavailable', message: SIGNUP_MESSAGES.policyUnavailable });
+        reportOperationalError({
+          code: 'AUTH_SIGNUP_FAILED',
+          flow: 'signup',
+          step: 'consents',
+          reason: 'policyUnavailable',
+          nextAction: 'retry',
+          cause: error,
+        });
         return;
       }
       policyTimer = setTimeout(
@@ -298,8 +323,17 @@ export function createSignupFlow(options: {
     }
   }
 
-  function fail(step: SignupStep, notice: SignupFailureNotice): void {
+  /** 실패 화면이 뜨는 곳이 모두 여기를 지나므로 보고도 여기서 한다. */
+  function fail(step: SignupStep, notice: SignupFailureNotice, cause?: unknown): void {
     setState({ status: 'failed', step, ...notice });
+    reportOperationalError({
+      code: 'AUTH_SIGNUP_FAILED',
+      flow: 'signup',
+      step,
+      reason: toSignupFailureReason(notice),
+      nextAction: notice.nextAction,
+      cause,
+    });
   }
 
   /**
@@ -313,9 +347,13 @@ export function createSignupFlow(options: {
     trackConversion('sign_up');
     try {
       await options.onComplete(session);
-    } catch {
+    } catch (error) {
       if (!disposed)
-        fail(step, { message: SIGNUP_MESSAGES.activationFailed, nextAction: 'sign-in-again' });
+        fail(
+          step,
+          { message: SIGNUP_MESSAGES.activationFailed, nextAction: 'sign-in-again' },
+          error,
+        );
     }
   }
 
@@ -337,7 +375,7 @@ export function createSignupFlow(options: {
     try {
       result = await dependencies.exchange(proof.firebaseIdToken, abort.signal);
     } catch (error) {
-      if (isCurrent(current)) fail(step, decideRequestFailureNotice(error));
+      if (isCurrent(current)) fail(step, decideRequestFailureNotice(error), error);
       return 'stop';
     }
     if (!isCurrent(current)) return 'stop';
@@ -361,6 +399,7 @@ export function createSignupFlow(options: {
     attempts: SignupSubmitAttempts,
     current: number,
     step: SignupStep,
+    cause?: unknown,
   ): Promise<'continue' | 'stop'> {
     switch (decision.kind) {
       case 'resubmit':
@@ -375,7 +414,7 @@ export function createSignupFlow(options: {
         goTo('phone');
         return 'stop';
       case 'fail':
-        fail(step, decision);
+        fail(step, decision, cause);
         return 'stop';
     }
   }
@@ -430,7 +469,7 @@ export function createSignupFlow(options: {
       } catch (error) {
         if (!isCurrent(current)) return;
         const decision = decideSignupRecovery(error, attempts);
-        if ((await carryOut(decision, attempts, current, step)) === 'stop') return;
+        if ((await carryOut(decision, attempts, current, step, error)) === 'stop') return;
         continue;
       }
       if (!isCurrent(current)) return;

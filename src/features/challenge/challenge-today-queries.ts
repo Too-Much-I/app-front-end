@@ -22,6 +22,7 @@ export function challengeTodayQueryOptions() {
   return queryOptions({
     queryKey: CHALLENGE_TODAY_QUERY_KEY,
     queryFn: ({ signal }) => getChallengeToday(signal),
+    meta: { failureReport: { code: 'CHALLENGE_LOAD_FAILED', resource: 'today' } },
     staleTime: (query) => (query.state.data?.expiresInSeconds ?? 0) * 1_000,
   });
 }

@@ -19,6 +19,7 @@ import { SignupFailureScreen } from '@/screens/auth/SignupFailureScreen';
 import { useRemainingSeconds, withRemainingTime } from '@/screens/auth/use-remaining-seconds';
 import { SupportInquiryScreen } from '@/screens/support/SupportInquiryScreen';
 import { colors } from '@/theme';
+import { ScreenCrashLayout } from '@/components/ui/ScreenCrashLayout';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -50,6 +51,7 @@ export function AccountRecoveryNavigator({
 
   return (
     <Stack.Navigator
+      screenLayout={ScreenCrashLayout}
       key="account-recovery"
       screenOptions={{ headerShown: false, gestureEnabled: false }}
     >

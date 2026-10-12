@@ -21,6 +21,7 @@ import type {
   ChallengeAttempt,
   ChallengeUploadUrl,
 } from '@/types/challenge';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 export type ChallengeSubmissionStatus = 'idle' | 'submitting' | 'failed';
 
@@ -131,20 +132,26 @@ export function useChallengeSubmission({
 
       idempotencyKeyRef.current ??= Crypto.randomUUID();
       let accepted: ChallengeAnswerAccepted | null = null;
+      /** 실패 보고에 싣는 단계. 같은 catch로 모이므로 어디까지 갔는지 따로 적어 둔다. */
+      let stage: 'upload-url' | 'upload' | 'submit' = 'upload-url';
 
       try {
         let upload = await issueChallengeUploadUrl(target.attemptId, controller.signal);
         assertUploadableSize(audioFileUri, upload);
+        stage = 'upload';
 
         try {
           await putRecording(audioFileUri, upload, controller.signal);
         } catch (error) {
           if (controller.signal.aborted || !isExpiredUploadUrl(error)) throw error;
           // 만료된 건 URL뿐이다. 다시 발급받아도 같은 attempt의 같은 S3 key를 가리킨다.
+          stage = 'upload-url';
           upload = await issueChallengeUploadUrl(target.attemptId, controller.signal);
+          stage = 'upload';
           await putRecording(audioFileUri, upload, controller.signal);
         }
 
+        stage = 'submit';
         accepted = await submitChallengeAnswer(
           target.questionNumber,
           target.attemptId,
@@ -170,6 +177,7 @@ export function useChallengeSubmission({
           return;
         }
 
+        reportOperationalError({ code: 'CHALLENGE_SUBMISSION_FAILED', stage, cause: error });
         fail(resolveFailureMessage(error));
         return;
       }

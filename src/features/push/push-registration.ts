@@ -10,6 +10,7 @@ import {
   readPushInstallation,
 } from '@/features/push/push-installation';
 import { readPushPermission } from '@/features/push/push-permission';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 import { ApiError } from '@/lib/api/transport';
 
 /** `Retry-After`가 없을 때 기다리는 시간과 상한. 기다리는 동안 로그아웃 DELETE는 기다리지 않는다. */
@@ -76,17 +77,33 @@ export function createPushRegistration(dependencies: PushRegistrationDependencie
     });
   }
 
+  /**
+   * 사용자 흐름을 막지 않는 실패지만 조용히 계속 실패하면 알림이 가지 않는데도 모른다. 일단 보내고
+   * 오류 쿼터를 보며 다음 업데이트에서 다시 정한다(2026-10-11 결정).
+   */
+  function reportFailure(operation: 'register' | 'unregister', error: unknown): void {
+    reportOperationalError({ code: 'PUSH_REGISTRATION_FAILED', operation, cause: error });
+  }
+
   async function register(): Promise<void> {
     if (!dependencies.hasSession()) return;
     const generation = signOutGeneration;
     try {
       await sendPut();
+      return;
     } catch (error) {
       // 400·403은 자동으로 반복하지 않는다(서버 명세). 다음 활성화가 다시 보낸다.
-      if (!(error instanceof ApiError) || error.status !== 503) return;
+      if (!(error instanceof ApiError) || error.status !== 503) {
+        reportFailure('register', error);
+        return;
+      }
       await waitForRetry(error);
-      if (generation !== signOutGeneration || !dependencies.hasSession()) return;
+    }
+    if (generation !== signOutGeneration || !dependencies.hasSession()) return;
+    try {
       await sendPut();
+    } catch (error) {
+      reportFailure('register', error);
     }
   }
 
@@ -107,8 +124,12 @@ export function createPushRegistration(dependencies: PushRegistrationDependencie
     signOutGeneration += 1;
     cancelRetryWait?.();
     return enqueue(async () => {
-      const installation = await readPushInstallation();
-      if (installation) await deletePushDevice(dependencies.apiFetch, installation);
+      try {
+        const installation = await readPushInstallation();
+        if (installation) await deletePushDevice(dependencies.apiFetch, installation);
+      } catch (error) {
+        reportFailure('unregister', error);
+      }
     });
   }
 

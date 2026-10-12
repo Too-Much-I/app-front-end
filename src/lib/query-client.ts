@@ -1,4 +1,12 @@
-import { QueryClient } from '@tanstack/react-query';
+import { QueryCache, QueryClient } from '@tanstack/react-query';
+
+import { reportOperationalError, type QueryFailureReport } from '@/lib/operational-error-reporting';
+
+declare module '@tanstack/react-query' {
+  interface Register {
+    queryMeta: { failureReport?: QueryFailureReport };
+  }
+}
 
 /**
  * 앱 전역 서버 상태 캐시.
@@ -13,6 +21,17 @@ import { QueryClient } from '@tanstack/react-query';
  * 동작이 바뀌므로 화면 하나의 판단으로 켜지 않는다.
  */
 export const queryClient = new QueryClient({
+  /*
+   * `meta.failureReport`가 있는 조회의 실패를 보고한다. 보여 줄 데이터가 없을 때만 보낸다 —
+   * 갖고 있던 데이터를 그대로 둔 채 실패한 뒤쪽 갱신은 사용자 흐름을 막지 않는다.
+   */
+  queryCache: new QueryCache({
+    onError: (error, query) => {
+      const report = query.meta?.failureReport;
+      if (!report || query.state.data !== undefined) return;
+      reportOperationalError({ ...report, cause: error });
+    },
+  }),
   defaultOptions: {
     queries: {
       /*

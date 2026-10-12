@@ -16,5 +16,11 @@ export function challengeHistoryQueryOptions(yearMonth: string | undefined) {
   return queryOptions({
     queryKey: [...CHALLENGE_HISTORY_QUERY_KEY, yearMonth ?? 'current'],
     queryFn: ({ signal }) => getChallengeHistory(yearMonth, signal),
+    // 처음 여는 이번 달만 보고한다. 다른 달로 넘기다 실패하면 보던 달을 유지한 채 안내만 띄우므로
+    // 흐름이 막히지 않는다(2026-10-12 결정).
+    meta:
+      yearMonth === undefined
+        ? { failureReport: { code: 'MYPAGE_LOAD_FAILED', resource: 'calendar' } }
+        : undefined,
   });
 }

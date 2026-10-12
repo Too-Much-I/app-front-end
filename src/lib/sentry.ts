@@ -1,7 +1,13 @@
 import * as Sentry from '@sentry/react-native';
-import type { Breadcrumb, ErrorEvent } from '@sentry/react-native';
+import type {
+  Breadcrumb,
+  ErrorEvent,
+  ReactNativeOptions,
+  TransactionEvent,
+} from '@sentry/react-native';
 import type { ComponentType } from 'react';
 
+import { toEndpointTemplate } from '@/lib/api/endpoint-template';
 import { isOperationalErrorCode, type OperationalErrorCode } from '@/lib/operational-error-codes';
 import {
   IS_SENTRY_VALIDATION_MODE,
@@ -28,6 +34,22 @@ const SAFE_STACK_FILENAMES: ReadonlySet<string> = new Set([
   'main.jsbundle',
 ]);
 const SENTRY_DEBUG_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const EMAIL_PATTERN = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+/**
+ * 국내 휴대폰 번호(010-1234-5678, 01012345678, +82 10 1234 5678)와 E.164 국제 번호.
+ * 키 이름 규칙은 `phone` 키만 지우므로, 다른 키나 console 인자로 들어온 번호를 모양으로 지운다.
+ * Hermes의 lookbehind 지원에 기대지 않으려고 앞 글자를 잡아 되돌려 넣는다.
+ */
+const PHONE_NUMBER_PATTERN =
+  /(^|[^\d])(?:(?:\+82[\s.-]?|0)1[016789][\s.-]?\d{3,4}[\s.-]?\d{4}|\+\d{10,15})(?!\d)/g;
+/** Sentry가 만드는 trace·span ID. 사용자 식별자가 아니고, 지우면 Sentry가 이벤트 처리 오류로 버린다. */
+const TRACE_ID_PATTERN = /^[0-9a-f]{32}$/i;
+const SPAN_ID_PATTERN = /^[0-9a-f]{16}$/i;
+const TRACE_CONTEXT_ID_KEYS = {
+  trace_id: TRACE_ID_PATTERN,
+  span_id: SPAN_ID_PATTERN,
+  parent_span_id: SPAN_ID_PATTERN,
+} as const;
 
 type SentryTags = NonNullable<ErrorEvent['tags']>;
 type SentryTagValue = SentryTags[string];
@@ -53,7 +75,9 @@ function redactIdentifiers(value: string): string {
     .replace(/([?&]examId=)[^&#\s]*/gi, `$1${FILTERED}`)
     .replace(/(\/api\/v1\/exams\/)[^/?#\s]+/gi, `$1${FILTERED}`)
     .replace(/("[A-Za-z0-9_]*(?:Id|_id)"\s*:\s*")[^"]*(")/g, `$1${FILTERED}$2`)
-    .replace(/(Bearer\s+)[A-Za-z0-9._~+/=-]+/gi, `$1${FILTERED}`);
+    .replace(/(Bearer\s+)[A-Za-z0-9._~+/=-]+/gi, `$1${FILTERED}`)
+    .replace(EMAIL_PATTERN, FILTERED)
+    .replace(PHONE_NUMBER_PATTERN, `$1${FILTERED}`);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -121,6 +145,25 @@ function scrubTags(value: unknown): SentryTags | undefined {
   return tags;
 }
 
+/**
+ * `contexts.trace`의 ID는 키 이름이 `_id`로 끝나 일반 규칙에 지워진다(TOSUNSAENG-APP-8의
+ * "Discarded invalid value"). 모양이 맞을 때만 원래 값을 되살린다.
+ */
+function restoreTraceContextIds(
+  original: unknown,
+  scrubbed: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!isRecord(original) || !scrubbed) return scrubbed;
+  const restored = { ...scrubbed };
+
+  for (const [key, pattern] of Object.entries(TRACE_CONTEXT_ID_KEYS)) {
+    const id = original[key];
+    if (typeof id === 'string' && pattern.test(id)) restored[key] = id;
+  }
+
+  return restored;
+}
+
 function scrubContexts(value: unknown): SentryContexts | undefined {
   const scrubbed = scrubRecord(value);
   if (!scrubbed) return undefined;
@@ -128,7 +171,10 @@ function scrubContexts(value: unknown): SentryContexts | undefined {
 
   for (const [key, context] of Object.entries(scrubbed)) {
     if (context === undefined || isRecord(context)) {
-      contexts[key] = context;
+      contexts[key] =
+        key === 'trace' && isRecord(value) && isRecord(context)
+          ? restoreTraceContextIds(value.trace, context)
+          : context;
     }
   }
 
@@ -369,6 +415,62 @@ function scrubEvent(event: ErrorEvent): ErrorEvent {
   };
 }
 
+type SentrySpanJSON = Parameters<NonNullable<ReactNativeOptions['beforeSendSpan']>>[0];
+
+/**
+ * 성능 추적 표본 비율(2026-10-11 결정으로 켬). 무료 요금제 span 쿼터(월 500만)는 오류 쿼터와 따로
+ * 센다. 처음 켜는 값이라 낮게 두고 Stats에서 사용량을 보며 올린다.
+ */
+const TRACES_SAMPLE_RATE = 0.2;
+const URL_IN_TEXT_PATTERN = /https?:\/\/[^\s"']+/gi;
+
+/**
+ * HTTP span 이름은 `GET https://host/api/v1/exams/123/...`처럼 실제 URL을 담는다. URL을 지우면
+ * 어느 요청이 느렸는지 알 수 없으므로 식별자를 비운 경로 틀로 바꾼 뒤 나머지를 거른다.
+ */
+function scrubSpanDescription(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  return redactIdentifiers(value.replace(URL_IN_TEXT_PATTERN, (url) => toEndpointTemplate(url)));
+}
+
+function scrubSpan(span: SentrySpanJSON): SentrySpanJSON {
+  return {
+    ...span,
+    description: scrubSpanDescription(span.description),
+    data: (scrubRecord(span.data) ?? {}) as SentrySpanJSON['data'],
+  };
+}
+
+/** 오류 이벤트와 같은 기준으로 거른다. 자식 span은 `beforeSendSpan`(scrubSpan)이 따로 거른다. */
+function scrubTransaction(event: TransactionEvent): TransactionEvent {
+  return {
+    ...event,
+    transaction: scrubSpanDescription(event.transaction),
+    tags: scrubTags(event.tags),
+    request: undefined,
+    user: undefined,
+    breadcrumbs: event.breadcrumbs?.map(scrubBreadcrumb),
+    contexts: scrubContexts(event.contexts),
+    extra: scrubRecord(event.extra),
+  };
+}
+
+/**
+ * 화면 이동을 navigation span과 breadcrumb으로 남긴다. `App`의 NavigationContainer가
+ * onReady에서 등록한다. route params는 SDK가 싣지 않는다.
+ */
+const navigationIntegration = Sentry.reactNavigationIntegration();
+
+export function registerNavigationContainer(navigationContainerRef: unknown): void {
+  if (!SENTRY_ENABLED) return;
+
+  try {
+    navigationIntegration.registerNavigationContainer(navigationContainerRef);
+  } catch {
+    // 관측 도구 실패가 원래 사용자 흐름을 가로막으면 안 된다.
+  }
+}
+
 export function initializeSentry(): void {
   if (!SENTRY_ENABLED) {
     return;
@@ -380,9 +482,14 @@ export function initializeSentry(): void {
     // 학습자 답안과 계정 정보가 오가는 앱이므로 자동 PII 수집을 켜지 않는다.
     sendDefaultPii: false,
     beforeSend: scrubEvent,
+    beforeSendTransaction: scrubTransaction,
+    beforeSendSpan: scrubSpan,
     beforeBreadcrumb: scrubBreadcrumb,
-    // 성능 트레이스는 이벤트 쿼터를 빠르게 소모한다. 우선 크래시 수집만 운영한다.
-    tracesSampleRate: 0,
+    integrations: [navigationIntegration],
+    tracesSampleRate: TRACES_SAMPLE_RATE,
+    // 우리 서버와 S3로 가는 요청에 sentry-trace·baggage 헤더를 붙이지 않는다. 서버에 Sentry가 없어
+    // 쓸모가 없고, 서명된 업로드 URL 요청에 헤더가 늘어나는 일도 피한다.
+    tracePropagationTargets: [],
   });
 }
 
@@ -420,6 +527,46 @@ export function emitBreadcrumb(
     // 관측 도구 실패가 원래 사용자 흐름을 가로막으면 안 된다.
   }
 }
+
+/**
+ * 모든 이벤트에 붙는 계정 상태. 식별자가 아니라 닫힌 분류값이다(사용자 식별자는 처리방침의
+ * Sentry 이전 항목에 없어 싣지 않는다, 2026-10-11 결정).
+ */
+export type AccountStateTag = 'member' | 'guest' | 'none';
+
+const NO_ROUTE_SCREEN_TAG = 'no-route';
+
+export function setAccountStateTag(state: AccountStateTag): void {
+  if (!SENTRY_ENABLED) return;
+
+  try {
+    Sentry.setTag('account_state', state);
+  } catch {
+    // 관측 도구 실패가 원래 사용자 흐름을 가로막으면 안 된다.
+  }
+}
+
+/**
+ * 화면이 바뀔 때마다 부른다. 이후 이벤트에 `screen` 태그가 붙어 "어느 화면에서 몰리나"를 집계할
+ * 수 있다. 이동 기록(breadcrumb)은 내비게이션 연동이 남긴다. 라우트 이름은 코드에 적힌 식별자다.
+ */
+export function setScreenTag(routeName: string | undefined): void {
+  if (!SENTRY_ENABLED) return;
+
+  try {
+    // route가 없으면 RootNavigator가 navigator 없이 그린 화면(로그인 진행·계정 안내)이다.
+    // 어느 상태였는지는 `account_state` 태그와 breadcrumb으로 본다.
+    Sentry.setTag('screen', routeName ?? NO_ROUTE_SCREEN_TAG);
+  } catch {
+    // 관측 도구 실패가 원래 사용자 흐름을 가로막으면 안 된다.
+  }
+}
+
+/**
+ * 렌더 크래시를 잡아 componentStack과 함께 보고하는 경계. SDK 세부를 이 파일 밖으로 내지 않으려고
+ * 다시 내보낸다. 수집이 꺼져 있어도 경계 역할(대체 화면)은 그대로 한다.
+ */
+export const SentryErrorBoundary = Sentry.ErrorBoundary;
 
 export interface OperationalEventPayload {
   code: OperationalErrorCode;

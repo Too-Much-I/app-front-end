@@ -4,6 +4,7 @@ import { getChallengeToday } from '@/features/challenge/api/challenge-today';
 import { getChallengeErrorCode } from '@/features/challenge/challenge-error-codes';
 import { getChallengeTodayQuestion } from '@/features/challenge/api/challenge-today-question';
 import type { ChallengeQuestion } from '@/types/challenge';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 type ChallengeQuestionState =
   | { status: 'loading'; question: null; errorCode: null }
@@ -48,6 +49,11 @@ export function useChallengeQuestion(
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         console.error('[Challenge] 문제 조회 실패', error);
+        reportOperationalError({
+          code: 'CHALLENGE_LOAD_FAILED',
+          resource: 'question',
+          cause: error,
+        });
         setState({
           status: 'failed',
           question: null,

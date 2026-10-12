@@ -13,6 +13,7 @@ export function myProfileQueryOptions() {
   return queryOptions({
     queryKey: ['profile', 'me'] as const,
     queryFn: ({ signal }) => getMyProfile(signal),
+    meta: { failureReport: { code: 'MYPAGE_LOAD_FAILED', resource: 'profile' } },
     staleTime: Infinity,
   });
 }

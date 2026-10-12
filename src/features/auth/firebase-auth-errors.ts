@@ -9,6 +9,15 @@ export function readFirebaseSdkErrorCode(error: unknown): string | null {
   return typeof error.code === 'string' ? error.code : null;
 }
 
+/** Firebase가 정한 오류 코드 모양(`auth/network-request-failed`). 자유 텍스트를 보고에 싣지 않는다. */
+const FIREBASE_ERROR_CODE_PATTERN = /^[a-z]+\/[a-z0-9-]{1,60}$/;
+
+/** 보고용. 모양이 맞는 Firebase 오류 코드만 돌려준다. */
+export function readReportableFirebaseCode(error: unknown): string | undefined {
+  const code = readFirebaseSdkErrorCode(error);
+  return code && FIREBASE_ERROR_CODE_PATTERN.test(code) ? code : undefined;
+}
+
 /** RNFirebase의 사용자 취소만 해당한다. cancelled-popup-request는 중복 실행 오류다. */
 export function isFirebaseProviderCancellation(error: unknown): boolean {
   const code = readFirebaseSdkErrorCode(error);

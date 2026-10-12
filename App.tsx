@@ -7,6 +7,7 @@ import { useRef } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { CrashBoundary } from '@/components/ui/CrashBoundary';
 import { PortraitOnlyNotice } from '@/components/ui/PortraitOnlyNotice';
 import { AppUpdateNotice } from '@/features/app-version/components/AppUpdateNotice';
 import { appAuthRuntime } from '@/features/auth/app-auth-runtime';
@@ -21,6 +22,7 @@ import type { RootStackParamList } from '@/navigation/types';
 import { IS_AUTH_UI_PREVIEW } from '@/lib/auth-ui-preview';
 import { trackScreenView } from '@/lib/amplitude';
 import { queryClient } from '@/lib/query-client';
+import { registerNavigationContainer, setScreenTag } from '@/lib/sentry';
 import { IS_SENTRY_VALIDATION_MODE } from '@/lib/sentry-validation-mode';
 import { SentryValidationScreen } from '@/screens/diagnostics/SentryValidationScreen';
 import { useRemScale } from '@/theme/rem-scale';
@@ -48,7 +50,9 @@ function AppContent() {
         onReady={() => {
           const routeName = navigationRef.getCurrentRoute()?.name;
           previousRouteNameRef.current = routeName;
+          registerNavigationContainer(navigationRef);
           if (routeName) trackScreenView(routeName);
+          setScreenTag(routeName);
         }}
         onStateChange={() => {
           const routeName = navigationRef.getCurrentRoute()?.name;
@@ -56,6 +60,8 @@ function AppContent() {
           if (routeName && routeName !== previousRouteNameRef.current) {
             trackScreenView(routeName);
           }
+          // 로그인 진행·계정 안내처럼 navigator 없이 그리는 화면에서도 이전 화면 이름이 남지 않게 한다.
+          setScreenTag(routeName);
           previousRouteNameRef.current = routeName;
         }}
       >
@@ -155,11 +161,15 @@ export default function App() {
         <AuthPreviewNavigator />
       ) : (
         // 검증 모드는 화면 하나만 띄우고 서버 조회를 하지 않으므로 캐시도 필요 없다.
-        <QueryClientProvider client={queryClient}>
-          <OrientationProvider>
-            <AppContent />
-          </OrientationProvider>
-        </QueryClientProvider>
+        // 화면 경계(navigator의 screenLayout)가 못 잡는 화면 밖 크래시(provider·오버레이)를 받는다.
+        // 다시 그리면 NavigationContainer부터 새로 올라와 현재 인증 상태의 첫 화면으로 간다.
+        <CrashBoundary scope="app">
+          <QueryClientProvider client={queryClient}>
+            <OrientationProvider>
+              <AppContent />
+            </OrientationProvider>
+          </QueryClientProvider>
+        </CrashBoundary>
       )}
     </SafeAreaProvider>
   );

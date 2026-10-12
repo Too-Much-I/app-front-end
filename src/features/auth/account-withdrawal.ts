@@ -5,6 +5,7 @@ import type { FirebaseAuthSdk } from '@/features/auth/firebase-auth-types';
 import { SessionRequestError } from '@/features/auth/session-restoration-types';
 import type { AuthSession, RequestAuthSnapshot } from '@/features/auth/types';
 import { ApiError } from '@/lib/api/transport';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 /** 문구는 2026-10-07 사용자 결정. 오류를 공용으로 묶지 않고 탈퇴 흐름 안에서 보여준다. */
 export const ACCOUNT_WITHDRAWAL_MESSAGES = {
@@ -32,7 +33,13 @@ interface AccountWithdrawalDependencies {
 
 const APPLE_PROVIDER_ID = 'apple.com';
 
-function failed(reason: 'connection' | 'failed'): AccountWithdrawalResult {
+/** 실패 안내가 뜨는 곳이 모두 여기를 지나므로 보고도 여기서 한다. */
+function failed(
+  reason: 'connection' | 'failed',
+  stage: 'firebase-token' | 'session' | 'withdraw',
+  cause: unknown,
+): AccountWithdrawalResult {
+  reportOperationalError({ code: 'ACCOUNT_WITHDRAWAL_FAILED', stage, reason, cause });
   return { kind: 'failed', message: ACCOUNT_WITHDRAWAL_MESSAGES[reason] };
 }
 
@@ -61,11 +68,12 @@ export async function runAccountWithdrawal(
     try {
       firebaseIdToken = await dependencies.firebase.getCurrentIdToken(false);
     } catch (error) {
-      if (classifyFirebaseAuthFailure(error).reason === 'connection') return failed('connection');
+      if (classifyFirebaseAuthFailure(error).reason === 'connection')
+        return failed('connection', 'firebase-token', error);
       // 재발급이 ACCOUNT_WITHDRAWN이면 세션 담당이 세션을 지우고 SessionRequestError로 끝난다.
       // 계정이 살아 있으면 Firebase에만 없는 계정이라 탈퇴할 수 없다(드문 경우라 실패로 둔다).
       await dependencies.recoverUnauthorized(generation);
-      return failed('failed');
+      return failed('failed', 'firebase-token', error);
     }
 
     if (dependencies.firebase.getLinkedProviderIds().includes(APPLE_PROVIDER_ID)) {
@@ -108,8 +116,14 @@ export async function runAccountWithdrawal(
         error.result.kind === 'recovery-required' && error.result.reason === 'connection'
           ? 'connection'
           : 'failed',
+        'session',
+        error,
       );
     }
-    return failed(classifyAuthRecovery(error).reason === 'connection' ? 'connection' : 'failed');
+    return failed(
+      classifyAuthRecovery(error).reason === 'connection' ? 'connection' : 'failed',
+      'withdraw',
+      error,
+    );
   }
 }

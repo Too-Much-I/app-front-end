@@ -10,6 +10,7 @@ import {
   type SupportInquiryEntry,
   type SupportInquirySender,
 } from '@/features/support/support-inquiry';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 type InquiryFormState =
   | { status: 'editing'; draft: SupportInquiryDraft }
@@ -82,6 +83,11 @@ export function useSupportInquiry(entry: SupportInquiryEntry, send?: SupportInqu
       await send(inquiry, idempotencyKey);
       if (mounted.current) setState({ status: 'submitted' });
     } catch (error) {
+      reportOperationalError({
+        code: 'SUPPORT_INQUIRY_SUBMIT_FAILED',
+        category: inquiry.category,
+        cause: error,
+      });
       if (mounted.current)
         setState({ status: 'failed', draft, message: describeSupportInquiryFailure(error) });
     } finally {

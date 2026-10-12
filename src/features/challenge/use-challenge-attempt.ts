@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { createChallengeAttempt } from '@/features/challenge/api/challenge-attempt';
 import { getChallengeErrorCode } from '@/features/challenge/challenge-error-codes';
 import type { ChallengeAttempt, ChallengeQuestion } from '@/types/challenge';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 type ChallengeAttemptState =
   | { status: 'idle'; attempt: null; errorCode: null }
@@ -56,6 +57,11 @@ export function useChallengeAttempt(question: ChallengeQuestion | null) {
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         console.error('[Challenge] attempt 생성 실패', error);
+        reportOperationalError({
+          code: 'CHALLENGE_LOAD_FAILED',
+          resource: 'attempt',
+          cause: error,
+        });
         setState({
           status: 'failed',
           attempt: null,
