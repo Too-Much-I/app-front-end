@@ -8,6 +8,7 @@ module.exports = function getLearningSampleConfig(config) {
     android: { ...config.android, package: 'com.toteacher.learning.sample' },
     plugins: [
       './examples/learning-sample/with-sample-pods.cjs',
+      './examples/learning-sample/with-sample-scene.cjs',
       'expo-font',
       ['expo-audio', { microphonePermission: '학습 샘플에서 답변을 녹음합니다.' }],
       [

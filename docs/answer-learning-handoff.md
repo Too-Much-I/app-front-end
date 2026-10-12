@@ -34,6 +34,7 @@ pnpm sample:learning
 - 모든 샘플 화면 하단에 예시 채점임을 표시한다. 음성 업로드, 외부 STT/Decisions API 호출, 과금은 없다. 전사문도 `[샘플 전사 예시 · 실제 녹음 분석 아님]`으로 표시한다.
 - Part 1은 채점 없이 내 녹음·모범 음성 비교다. 완료 기록과 샘플 작업 상태는 메모리에만 유지하여 앱 재시작 시 초기화된다.
 - `LEARNING_SAMPLE=1`인 실행 명령에서만 Metro가 학습 API 모듈과 시작점을 샘플 어댑터로 교체한다. 일반 `pnpm start/ios/android`는 원래 진입점·인증·실제 API를 그대로 사용한다.
+- `sample:learning:ios/android`는 실행 전에 샘플 native 설정을 재생성한다. iOS 27의 UIScene 시작·링크·생명주기 전달을 포함한다.
 - 별도 bundle ID `com.toteacher.learning.sample`을 사용한다. Expo Go는 지원하지 않으며 Xcode/Android SDK가 필요하다. 기기 내 STT 지원/권한은 기기 환경에 따른다.
 - 같은 checkout에서 일반 앱으로 돌아갈 때는 기존 Firebase 설정을 준비하고 **샘플 환경변수 없이** `pnpm exec expo prebuild --clean` 후 `pnpm ios` 또는 `pnpm android`를 실행한다. prebuild는 생성된 native 폴더를 다시 만드므로 native 수동 수정이 있다면 먼저 보존한다.
 
@@ -143,5 +144,5 @@ backend 구현 전에는 API 통합 테스트와 실제 계정의 앱 종단 검
 - 학습 자동 테스트 68건 통과. 샘플 10개 카드의 수준·순서·미디어 해시 및 모의 제출 상태/완료 저장 포함.
 - format:check, lint, TypeScript, architecture 차단 규칙, naming 통과.
 - 샘플·일반 앱 모두 iOS JS/asset export 성공. 샘플 미디어 140개는 샘플 번들에만 포함되고 일반 번들에는 0개임을 해시로 확인했다.
-- 샘플 iOS 네이티브 빌드와 iPhone 18 Pro 시뮬레이터 설치·실행 성공. 실제 기기의 STT 정확도는 별도 확인 대상이다.
+- 샘플 iOS 네이티브 빌드와 iPhone 18 Pro(iOS 27) 시뮬레이터 설치 성공. UIScene 시작 설정을 추가한 뒤 학습 홈·실제 카드 표시를 화면에서 확인했다. 실제 기기의 STT 정확도는 별도 확인 대상이다.
 - 샘플 실행 중 채점용 외부 API와 실제 녹음 업로드는 호출하지 않는다.
