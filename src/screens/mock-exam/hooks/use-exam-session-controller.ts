@@ -15,6 +15,12 @@ import type { ExamSession, FinalizedAnswer } from '@/types/exam';
 
 const TIMER_UPDATE_INTERVAL_MS = 100;
 
+/**
+ * 응답이 끝난 뒤 다음 문제로 넘어가기 전에 `finalizing`을 최소 이만큼 보여 준다.
+ * 실제 시험처럼 "응답이 끝났다"를 알아챌 틈을 준다. 실패는 기다리지 않고 바로 복구로 보낸다.
+ */
+const MIN_FINALIZING_DURATION_MS = 2_000;
+
 export function useExamSessionController(session: ExamSession, isExamActive: boolean) {
   // 화면과 수명을 같이한다. 다시 들어오면 새 스토어라 초기화가 저절로 된다.
   const [store] = useState(() => createExamSessionStore(session));
@@ -109,10 +115,15 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
       const activePromise = transitionPromiseRef.current;
       if (activePromise) return activePromise;
       if (!beginFinalizing()) return Promise.resolve();
+      const finalizingStartedAt = Date.now();
 
       const transitionPromise = recorder
         .finish(reason)
-        .then((answer) => {
+        .then(async (answer) => {
+          const remainingMs = MIN_FINALIZING_DURATION_MS - (Date.now() - finalizingStartedAt);
+          if (remainingMs > 0) {
+            await new Promise<void>((resolve) => setTimeout(resolve, remainingMs));
+          }
           registerFinalizedAnswer(answer);
         })
         .catch((error: unknown) => {
