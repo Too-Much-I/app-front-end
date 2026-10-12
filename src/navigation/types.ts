@@ -14,6 +14,7 @@ export type AuthPreviewStackParamList = {
 };
 
 export type MainTabParamList = {
+  Learning: undefined;
   Home: undefined;
   MockExam: undefined;
   /**
@@ -23,6 +24,16 @@ export type MainTabParamList = {
   Feedback: { examId?: string; questionNumber?: number; retryCount?: number } | undefined;
   /** 닉네임 인사, 10초 챌린지 달력, 설정·문의·로그아웃 메뉴. */
   MyPage: undefined;
+};
+
+export type LearningStackParamList = {
+  LearningHome: undefined;
+  LearningSession: {
+    unitId: string;
+    level: 'IM3' | 'IH' | 'AL';
+    initialStage?: 'listen' | 'shadow' | 'practice';
+    questionIndex?: number;
+  };
 };
 
 export type MockExamStackParamList = {

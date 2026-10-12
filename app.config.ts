@@ -21,6 +21,13 @@ export default ({ config }: ConfigContext) => ({
       process.env.GOOGLE_SERVICES_ANDROID ?? './config/firebase/google-services.json',
   },
   plugins: [
+    [
+      'expo-speech-recognition',
+      {
+        microphonePermission: '따라 말하기와 실전 연습을 위해 마이크 권한이 필요합니다.',
+        speechRecognitionPermission: '기기 내 영어 음성 인식으로 말한 단어를 확인합니다.',
+      },
+    ],
     ...(config.plugins ?? []),
     // CocoaPods로 native 의존성을 통일한다. SPM 기본 모드와 static을 혼합하지 않는다.
     ['@react-native-firebase/app', { ios: { disableSPM: true } }],

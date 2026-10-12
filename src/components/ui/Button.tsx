@@ -1,9 +1,10 @@
-import type { ReactNode } from 'react';
+import { useContext, type ReactNode } from 'react';
 import { ActivityIndicator } from 'react-native';
 
 import { Pressable } from '@/components/ui/Pressable';
 import { Text } from '@/components/ui/Text';
 import { colors, shadows, size } from '@/theme';
+import { TypographyContext } from '@/theme/typography-context';
 
 /**
  * 버튼의 역할.
@@ -167,6 +168,7 @@ export function Button({
   accessibilityHint,
   accessibilityLabel,
 }: ButtonProps) {
+  const systemFont = useContext(TypographyContext) === 'system';
   const isInert = disabled || loading;
   const sizeStyle = SIZE_STYLES[sizeName];
   const activeStyle = VARIANT_STYLES[variant];
@@ -192,7 +194,11 @@ export function Button({
       ) : (
         renderIcon?.({ color: variantStyle.foreground, size: sizeStyle.icon })
       )}
-      <Text className={`${sizeStyle.label} ${variantStyle.label}`}>{label}</Text>
+      <Text
+        className={`${sizeStyle.label} ${variantStyle.label} ${systemFont ? 'font-semibold' : ''}`}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }

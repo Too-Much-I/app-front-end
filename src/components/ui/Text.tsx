@@ -1,3 +1,5 @@
+import { useContext } from 'react';
+import { TypographyContext } from '@/theme/typography-context';
 import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
 
 /**
@@ -10,5 +12,7 @@ import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
  * `className`으로 넘긴 폰트/크기 유틸리티가 뒤에 와서 그대로 덮어쓴다.
  */
 export function Text({ className, ...props }: RNTextProps & { className?: string }) {
+  const variant = useContext(TypographyContext);
+  if (variant === 'system') return <RNText className={`text-ink ${className ?? ''}`} {...props} />;
   return <RNText className={`font-jua text-ink ${className ?? ''}`} {...props} />;
 }

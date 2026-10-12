@@ -14,7 +14,7 @@ const ANSWER_SCALES = [
   0.78, 0.6, 0.4, 0.28, 0.5, 0.4, 0.3,
 ] as const;
 
-type AudioWaveformVariant = 'microphone-test' | 'answer';
+type AudioWaveformVariant = 'microphone-test' | 'answer' | 'learning';
 
 interface AudioWaveformProps {
   active: boolean;
@@ -37,6 +37,11 @@ const WAVEFORM_CONFIGS: Record<AudioWaveformVariant, WaveformConfig> = {
   answer: {
     scales: ANSWER_SCALES,
     minHeight: 8,
+    maxHeight: 40,
+  },
+  learning: {
+    scales: ANSWER_SCALES,
+    minHeight: 4,
     maxHeight: 40,
   },
 };
@@ -84,6 +89,7 @@ export function AudioWaveform({ active, meteringDb, variant }: AudioWaveformProp
     variant === 'microphone-test' ? 'h-16 justify-center' : 'h-10 justify-center';
   const barWidthClassName = variant === 'microphone-test' ? 'w-1.5' : 'w-1';
   const barColorClassName = (() => {
+    if (variant === 'learning') return active ? 'bg-brand-400' : 'bg-line';
     if (variant === 'answer') {
       return active ? 'bg-exam-dangerSoft' : 'bg-line';
     }

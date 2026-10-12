@@ -11,6 +11,7 @@ import { usePushNotificationOpen } from '@/features/push/push-notification-event
 import { FeedbackScreen } from '@/screens/feedback/FeedbackScreen';
 import { HomeScreen } from '@/screens/home/HomeScreen';
 import { MyPageScreen } from '@/screens/mypage/MyPageScreen';
+import { LearningStackNavigator } from '@/navigation/LearningStackNavigator';
 import { MockExamStackNavigator } from '@/navigation/MockExamStackNavigator';
 import { TabBarButton } from '@/navigation/TabBarButton';
 import type { MainTabParamList, RootStackParamList } from '@/navigation/types';
@@ -30,6 +31,7 @@ type TabConfig = {
 const TAB_CONFIG: TabConfig[] = [
   { name: 'Home', title: '홈', icon: 'home', component: HomeScreen },
   { name: 'MockExam', title: '모의고사', icon: 'clipboard', component: MockExamStackNavigator },
+  { name: 'Learning', title: '학습', icon: 'book-open', component: LearningStackNavigator },
   { name: 'Feedback', title: '피드백', icon: 'message-circle', component: FeedbackScreen },
   { name: 'MyPage', title: '마이페이지', icon: 'user', component: MyPageScreen },
 ];
@@ -109,7 +111,8 @@ export function MainTabNavigator() {
                 <Feather name={icon} color={color} size={scaled(tabBar.iconSize)} />
               ),
               tabBarStyle:
-                name === 'MockExam' && getFocusedRouteNameFromRoute(route) === 'ExamSession'
+                (name === 'MockExam' && getFocusedRouteNameFromRoute(route) === 'ExamSession') ||
+                (name === 'Learning' && getFocusedRouteNameFromRoute(route) === 'LearningSession')
                   ? { display: 'none' }
                   : defaultTabBarStyle,
             })}

@@ -1,0 +1,15 @@
+diff --git a/ios/ExpoSpeechRecognizer.swift b/ios/ExpoSpeechRecognizer.swift
+index b27842501f72e1a5a9382636397cbef30d5a2b30..a2934460b5ebb8342773af7f52af57fd5b9e43be 100644
+--- a/ios/ExpoSpeechRecognizer.swift
++++ b/ios/ExpoSpeechRecognizer.swift
+@@ -224,3 +224,10 @@ actor ExpoSpeechRecognizer: ObservableObject {
++    // Fail closed for this exact locale. Never silently fall back to Apple's server recognizer.
++    guard !options.requiresOnDeviceRecognition || recognizer.supportsOnDeviceRecognition else {
++      errorHandler(RecognizerError.recognizerIsUnavailable)
++      reset(andEmitEnd: true)
++      return
++    }
++
+     do {
+       let request = Self.prepareRequest(
+         options: options,

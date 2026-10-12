@@ -1,0 +1,1204 @@
+{
+  "notice": "직접 작성한 API 계약 예시. 실제 문제은행/음성/사용자 데이터가 아니며 example.com URL은 재생되지 않습니다.",
+  "catalogs": [
+    {
+      "isSuccess": true,
+      "code": "SUCCESS",
+      "message": "성공",
+      "result": {
+        "part": 1,
+        "level": "common",
+        "units": [
+          {
+            "id": "example-unit-p1",
+            "part": 1,
+            "title": "파트1 연동 예시",
+            "thumbnail": null,
+            "lessons": [
+              {
+                "id": "example-p1-q1",
+                "questionNumber": 1,
+                "completed": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "isSuccess": true,
+      "code": "SUCCESS",
+      "message": "성공",
+      "result": {
+        "part": 2,
+        "level": "IM3",
+        "units": [
+          {
+            "id": "example-unit-p2",
+            "part": 2,
+            "title": "파트2 연동 예시",
+            "thumbnail": {
+              "id": "sample-photo.png",
+              "url": "https://media.example.com/learning/sample-photo.png",
+              "expiresAt": "2099-01-01T00:00:00Z",
+              "width": 1200,
+              "height": 800
+            },
+            "lessons": [
+              {
+                "id": "example-p2-q3",
+                "questionNumber": 3,
+                "completed": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "isSuccess": true,
+      "code": "SUCCESS",
+      "message": "성공",
+      "result": {
+        "part": 3,
+        "level": "IM3",
+        "units": [
+          {
+            "id": "example-unit-p3",
+            "part": 3,
+            "title": "파트3 연동 예시",
+            "thumbnail": null,
+            "lessons": [
+              {
+                "id": "example-p3-q5",
+                "questionNumber": 5,
+                "completed": false
+              },
+              {
+                "id": "example-p3-q6",
+                "questionNumber": 6,
+                "completed": false
+              },
+              {
+                "id": "example-p3-q7",
+                "questionNumber": 7,
+                "completed": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "isSuccess": true,
+      "code": "SUCCESS",
+      "message": "성공",
+      "result": {
+        "part": 4,
+        "level": "IM3",
+        "units": [
+          {
+            "id": "example-unit-p4",
+            "part": 4,
+            "title": "파트4 연동 예시",
+            "thumbnail": null,
+            "lessons": [
+              {
+                "id": "example-p4-q8",
+                "questionNumber": 8,
+                "completed": false
+              },
+              {
+                "id": "example-p4-q9",
+                "questionNumber": 9,
+                "completed": false
+              },
+              {
+                "id": "example-p4-q10",
+                "questionNumber": 10,
+                "completed": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "isSuccess": true,
+      "code": "SUCCESS",
+      "message": "성공",
+      "result": {
+        "part": 5,
+        "level": "IM3",
+        "units": [
+          {
+            "id": "example-unit-p5",
+            "part": 5,
+            "title": "파트5 연동 예시",
+            "thumbnail": null,
+            "lessons": [
+              {
+                "id": "example-p5-q11",
+                "questionNumber": 11,
+                "completed": false
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "details": [
+    {
+      "isSuccess": true,
+      "code": "SUCCESS",
+      "message": "성공",
+      "result": {
+        "unit": {
+          "id": "example-unit-p1",
+          "part": 1,
+          "title": "파트1 연동 예시",
+          "thumbnail": null,
+          "lessons": [
+            {
+              "id": "example-p1-q1",
+              "questionNumber": 1,
+              "completed": false
+            }
+          ]
+        },
+        "lessons": [
+          {
+            "id": "example-p1-q1",
+            "contentVersion": "example-v1",
+            "part": 1,
+            "questionNumber": 1,
+            "question": "Read the text aloud.",
+            "questionTranslation": "연동 규격 확인용 질문입니다.",
+            "answerSeconds": 45,
+            "passage": "Welcome to our library.",
+            "photo": null,
+            "contextIntro": null,
+            "table": null,
+            "tableFocus": null,
+            "level": "common",
+            "answer": {
+              "id": "example-answer-1-1",
+              "example": "Welcome to our library.",
+              "fullAudio": {
+                "id": "example-answer-1-1-full.m4a",
+                "url": "https://media.example.com/learning/example-answer-1-1-full.m4a",
+                "expiresAt": "2099-01-01T00:00:00Z"
+              },
+              "durationSeconds": 10,
+              "sentences": [
+                {
+                  "text": "Welcome to our library.",
+                  "translation": "연동 규격 확인용 예시 문장입니다.",
+                  "label": "예시",
+                  "audio": {
+                    "id": "example-answer-1-1-sentence.m4a",
+                    "url": "https://media.example.com/learning/example-answer-1-1-sentence.m4a",
+                    "expiresAt": "2099-01-01T00:00:00Z"
+                  },
+                  "words": [
+                    {
+                      "text": "Welcome",
+                      "start": 0.0,
+                      "end": 0.35
+                    },
+                    {
+                      "text": "to",
+                      "start": 0.4,
+                      "end": 0.75
+                    },
+                    {
+                      "text": "our",
+                      "start": 0.8,
+                      "end": 1.15
+                    },
+                    {
+                      "text": "library.",
+                      "start": 1.2,
+                      "end": 1.55
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "isSuccess": true,
+      "code": "SUCCESS",
+      "message": "성공",
+      "result": {
+        "unit": {
+          "id": "example-unit-p2",
+          "part": 2,
+          "title": "파트2 연동 예시",
+          "thumbnail": {
+            "id": "sample-photo.png",
+            "url": "https://media.example.com/learning/sample-photo.png",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "width": 1200,
+            "height": 800
+          },
+          "lessons": [
+            {
+              "id": "example-p2-q3",
+              "questionNumber": 3,
+              "completed": false
+            }
+          ]
+        },
+        "lessons": [
+          {
+            "id": "example-p2-q3",
+            "contentVersion": "example-v1",
+            "part": 2,
+            "questionNumber": 3,
+            "question": "Describe the picture.",
+            "questionTranslation": "연동 규격 확인용 질문입니다.",
+            "answerSeconds": 45,
+            "passage": null,
+            "photo": {
+              "id": "sample-photo.png",
+              "url": "https://media.example.com/learning/sample-photo.png",
+              "expiresAt": "2099-01-01T00:00:00Z",
+              "width": 1200,
+              "height": 800
+            },
+            "contextIntro": null,
+            "table": null,
+            "tableFocus": null,
+            "level": "IM3",
+            "answer": {
+              "id": "example-answer-2-3",
+              "example": "A person is reading a book.",
+              "fullAudio": {
+                "id": "example-answer-2-3-full.m4a",
+                "url": "https://media.example.com/learning/example-answer-2-3-full.m4a",
+                "expiresAt": "2099-01-01T00:00:00Z"
+              },
+              "durationSeconds": 10,
+              "sentences": [
+                {
+                  "text": "A person is reading a book.",
+                  "translation": "연동 규격 확인용 예시 문장입니다.",
+                  "label": "예시",
+                  "audio": {
+                    "id": "example-answer-2-3-sentence.m4a",
+                    "url": "https://media.example.com/learning/example-answer-2-3-sentence.m4a",
+                    "expiresAt": "2099-01-01T00:00:00Z"
+                  },
+                  "words": [
+                    {
+                      "text": "A",
+                      "start": 0.0,
+                      "end": 0.35
+                    },
+                    {
+                      "text": "person",
+                      "start": 0.4,
+                      "end": 0.75
+                    },
+                    {
+                      "text": "is",
+                      "start": 0.8,
+                      "end": 1.15
+                    },
+                    {
+                      "text": "reading",
+                      "start": 1.2,
+                      "end": 1.55
+                    },
+                    {
+                      "text": "a",
+                      "start": 1.6,
+                      "end": 1.95
+                    },
+                    {
+                      "text": "book.",
+                      "start": 2.0,
+                      "end": 2.35
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "isSuccess": true,
+      "code": "SUCCESS",
+      "message": "성공",
+      "result": {
+        "unit": {
+          "id": "example-unit-p3",
+          "part": 3,
+          "title": "파트3 연동 예시",
+          "thumbnail": null,
+          "lessons": [
+            {
+              "id": "example-p3-q5",
+              "questionNumber": 5,
+              "completed": false
+            },
+            {
+              "id": "example-p3-q6",
+              "questionNumber": 6,
+              "completed": false
+            },
+            {
+              "id": "example-p3-q7",
+              "questionNumber": 7,
+              "completed": false
+            }
+          ]
+        },
+        "lessons": [
+          {
+            "id": "example-p3-q5",
+            "contentVersion": "example-v1",
+            "part": 3,
+            "questionNumber": 5,
+            "question": "How often do you visit a library?",
+            "questionTranslation": "연동 규격 확인용 질문입니다.",
+            "answerSeconds": 15,
+            "passage": null,
+            "photo": null,
+            "contextIntro": null,
+            "table": null,
+            "tableFocus": null,
+            "level": "IM3",
+            "answer": {
+              "id": "example-answer-3-5",
+              "example": "I visit the library every week.",
+              "fullAudio": {
+                "id": "example-answer-3-5-full.m4a",
+                "url": "https://media.example.com/learning/example-answer-3-5-full.m4a",
+                "expiresAt": "2099-01-01T00:00:00Z"
+              },
+              "durationSeconds": 10,
+              "sentences": [
+                {
+                  "text": "I visit the library every week.",
+                  "translation": "연동 규격 확인용 예시 문장입니다.",
+                  "label": "예시",
+                  "audio": {
+                    "id": "example-answer-3-5-sentence.m4a",
+                    "url": "https://media.example.com/learning/example-answer-3-5-sentence.m4a",
+                    "expiresAt": "2099-01-01T00:00:00Z"
+                  },
+                  "words": [
+                    {
+                      "text": "I",
+                      "start": 0.0,
+                      "end": 0.35
+                    },
+                    {
+                      "text": "visit",
+                      "start": 0.4,
+                      "end": 0.75
+                    },
+                    {
+                      "text": "the",
+                      "start": 0.8,
+                      "end": 1.15
+                    },
+                    {
+                      "text": "library",
+                      "start": 1.2,
+                      "end": 1.55
+                    },
+                    {
+                      "text": "every",
+                      "start": 1.6,
+                      "end": 1.95
+                    },
+                    {
+                      "text": "week.",
+                      "start": 2.0,
+                      "end": 2.35
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "example-p3-q6",
+            "contentVersion": "example-v1",
+            "part": 3,
+            "questionNumber": 6,
+            "question": "How often do you visit a library?",
+            "questionTranslation": "연동 규격 확인용 질문입니다.",
+            "answerSeconds": 15,
+            "passage": null,
+            "photo": null,
+            "contextIntro": null,
+            "table": null,
+            "tableFocus": null,
+            "level": "IM3",
+            "answer": {
+              "id": "example-answer-3-6",
+              "example": "I visit the library every week.",
+              "fullAudio": {
+                "id": "example-answer-3-6-full.m4a",
+                "url": "https://media.example.com/learning/example-answer-3-6-full.m4a",
+                "expiresAt": "2099-01-01T00:00:00Z"
+              },
+              "durationSeconds": 10,
+              "sentences": [
+                {
+                  "text": "I visit the library every week.",
+                  "translation": "연동 규격 확인용 예시 문장입니다.",
+                  "label": "예시",
+                  "audio": {
+                    "id": "example-answer-3-6-sentence.m4a",
+                    "url": "https://media.example.com/learning/example-answer-3-6-sentence.m4a",
+                    "expiresAt": "2099-01-01T00:00:00Z"
+                  },
+                  "words": [
+                    {
+                      "text": "I",
+                      "start": 0.0,
+                      "end": 0.35
+                    },
+                    {
+                      "text": "visit",
+                      "start": 0.4,
+                      "end": 0.75
+                    },
+                    {
+                      "text": "the",
+                      "start": 0.8,
+                      "end": 1.15
+                    },
+                    {
+                      "text": "library",
+                      "start": 1.2,
+                      "end": 1.55
+                    },
+                    {
+                      "text": "every",
+                      "start": 1.6,
+                      "end": 1.95
+                    },
+                    {
+                      "text": "week.",
+                      "start": 2.0,
+                      "end": 2.35
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "example-p3-q7",
+            "contentVersion": "example-v1",
+            "part": 3,
+            "questionNumber": 7,
+            "question": "How often do you visit a library?",
+            "questionTranslation": "연동 규격 확인용 질문입니다.",
+            "answerSeconds": 30,
+            "passage": null,
+            "photo": null,
+            "contextIntro": null,
+            "table": null,
+            "tableFocus": null,
+            "level": "IM3",
+            "answer": {
+              "id": "example-answer-3-7",
+              "example": "I visit the library every week.",
+              "fullAudio": {
+                "id": "example-answer-3-7-full.m4a",
+                "url": "https://media.example.com/learning/example-answer-3-7-full.m4a",
+                "expiresAt": "2099-01-01T00:00:00Z"
+              },
+              "durationSeconds": 10,
+              "sentences": [
+                {
+                  "text": "I visit the library every week.",
+                  "translation": "연동 규격 확인용 예시 문장입니다.",
+                  "label": "예시",
+                  "audio": {
+                    "id": "example-answer-3-7-sentence.m4a",
+                    "url": "https://media.example.com/learning/example-answer-3-7-sentence.m4a",
+                    "expiresAt": "2099-01-01T00:00:00Z"
+                  },
+                  "words": [
+                    {
+                      "text": "I",
+                      "start": 0.0,
+                      "end": 0.35
+                    },
+                    {
+                      "text": "visit",
+                      "start": 0.4,
+                      "end": 0.75
+                    },
+                    {
+                      "text": "the",
+                      "start": 0.8,
+                      "end": 1.15
+                    },
+                    {
+                      "text": "library",
+                      "start": 1.2,
+                      "end": 1.55
+                    },
+                    {
+                      "text": "every",
+                      "start": 1.6,
+                      "end": 1.95
+                    },
+                    {
+                      "text": "week.",
+                      "start": 2.0,
+                      "end": 2.35
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "isSuccess": true,
+      "code": "SUCCESS",
+      "message": "성공",
+      "result": {
+        "unit": {
+          "id": "example-unit-p4",
+          "part": 4,
+          "title": "파트4 연동 예시",
+          "thumbnail": null,
+          "lessons": [
+            {
+              "id": "example-p4-q8",
+              "questionNumber": 8,
+              "completed": false
+            },
+            {
+              "id": "example-p4-q9",
+              "questionNumber": 9,
+              "completed": false
+            },
+            {
+              "id": "example-p4-q10",
+              "questionNumber": 10,
+              "completed": false
+            }
+          ]
+        },
+        "lessons": [
+          {
+            "id": "example-p4-q8",
+            "contentVersion": "example-v1",
+            "part": 4,
+            "questionNumber": 8,
+            "question": "When does the welcome session start?",
+            "questionTranslation": "연동 규격 확인용 질문입니다.",
+            "answerSeconds": 15,
+            "passage": null,
+            "photo": null,
+            "contextIntro": null,
+            "table": {
+              "tableType": "schedule",
+              "title": "Workshop",
+              "subtitles": [],
+              "metadata": [
+                {
+                  "key": "date",
+                  "label": "Date",
+                  "value": "October 20"
+                }
+              ],
+              "columns": [
+                {
+                  "key": "time",
+                  "label": "Time",
+                  "valueType": "text"
+                },
+                {
+                  "key": "session",
+                  "label": "Session",
+                  "valueType": "text"
+                }
+              ],
+              "items": [
+                {
+                  "cells": {
+                    "time": "9:00 a.m.",
+                    "session": "Welcome"
+                  },
+                  "status": "scheduled",
+                  "statusNote": null,
+                  "strikeThrough": false
+                }
+              ],
+              "notes": []
+            },
+            "tableFocus": {
+              "tableType": "schedule",
+              "title": "Workshop",
+              "subtitles": [],
+              "metadata": [
+                {
+                  "key": "date",
+                  "label": "Date",
+                  "value": "October 20"
+                }
+              ],
+              "columns": [
+                {
+                  "key": "time",
+                  "label": "Time",
+                  "valueType": "text"
+                },
+                {
+                  "key": "session",
+                  "label": "Session",
+                  "valueType": "text"
+                }
+              ],
+              "items": [
+                {
+                  "cells": {
+                    "time": "9:00 a.m.",
+                    "session": "Welcome"
+                  },
+                  "status": "scheduled",
+                  "statusNote": null,
+                  "strikeThrough": false
+                }
+              ],
+              "notes": []
+            },
+            "level": "IM3",
+            "answer": {
+              "id": "example-answer-4-8",
+              "example": "The welcome session starts at nine.",
+              "fullAudio": {
+                "id": "example-answer-4-8-full.m4a",
+                "url": "https://media.example.com/learning/example-answer-4-8-full.m4a",
+                "expiresAt": "2099-01-01T00:00:00Z"
+              },
+              "durationSeconds": 10,
+              "sentences": [
+                {
+                  "text": "The welcome session starts at nine.",
+                  "translation": "연동 규격 확인용 예시 문장입니다.",
+                  "label": "예시",
+                  "audio": {
+                    "id": "example-answer-4-8-sentence.m4a",
+                    "url": "https://media.example.com/learning/example-answer-4-8-sentence.m4a",
+                    "expiresAt": "2099-01-01T00:00:00Z"
+                  },
+                  "words": [
+                    {
+                      "text": "The",
+                      "start": 0.0,
+                      "end": 0.35
+                    },
+                    {
+                      "text": "welcome",
+                      "start": 0.4,
+                      "end": 0.75
+                    },
+                    {
+                      "text": "session",
+                      "start": 0.8,
+                      "end": 1.15
+                    },
+                    {
+                      "text": "starts",
+                      "start": 1.2,
+                      "end": 1.55
+                    },
+                    {
+                      "text": "at",
+                      "start": 1.6,
+                      "end": 1.95
+                    },
+                    {
+                      "text": "nine.",
+                      "start": 2.0,
+                      "end": 2.35
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "example-p4-q9",
+            "contentVersion": "example-v1",
+            "part": 4,
+            "questionNumber": 9,
+            "question": "When does the welcome session start?",
+            "questionTranslation": "연동 규격 확인용 질문입니다.",
+            "answerSeconds": 15,
+            "passage": null,
+            "photo": null,
+            "contextIntro": null,
+            "table": {
+              "tableType": "schedule",
+              "title": "Workshop",
+              "subtitles": [],
+              "metadata": [
+                {
+                  "key": "date",
+                  "label": "Date",
+                  "value": "October 20"
+                }
+              ],
+              "columns": [
+                {
+                  "key": "time",
+                  "label": "Time",
+                  "valueType": "text"
+                },
+                {
+                  "key": "session",
+                  "label": "Session",
+                  "valueType": "text"
+                }
+              ],
+              "items": [
+                {
+                  "cells": {
+                    "time": "9:00 a.m.",
+                    "session": "Welcome"
+                  },
+                  "status": "scheduled",
+                  "statusNote": null,
+                  "strikeThrough": false
+                }
+              ],
+              "notes": []
+            },
+            "tableFocus": {
+              "tableType": "schedule",
+              "title": "Workshop",
+              "subtitles": [],
+              "metadata": [
+                {
+                  "key": "date",
+                  "label": "Date",
+                  "value": "October 20"
+                }
+              ],
+              "columns": [
+                {
+                  "key": "time",
+                  "label": "Time",
+                  "valueType": "text"
+                },
+                {
+                  "key": "session",
+                  "label": "Session",
+                  "valueType": "text"
+                }
+              ],
+              "items": [
+                {
+                  "cells": {
+                    "time": "9:00 a.m.",
+                    "session": "Welcome"
+                  },
+                  "status": "scheduled",
+                  "statusNote": null,
+                  "strikeThrough": false
+                }
+              ],
+              "notes": []
+            },
+            "level": "IM3",
+            "answer": {
+              "id": "example-answer-4-9",
+              "example": "The welcome session starts at nine.",
+              "fullAudio": {
+                "id": "example-answer-4-9-full.m4a",
+                "url": "https://media.example.com/learning/example-answer-4-9-full.m4a",
+                "expiresAt": "2099-01-01T00:00:00Z"
+              },
+              "durationSeconds": 10,
+              "sentences": [
+                {
+                  "text": "The welcome session starts at nine.",
+                  "translation": "연동 규격 확인용 예시 문장입니다.",
+                  "label": "예시",
+                  "audio": {
+                    "id": "example-answer-4-9-sentence.m4a",
+                    "url": "https://media.example.com/learning/example-answer-4-9-sentence.m4a",
+                    "expiresAt": "2099-01-01T00:00:00Z"
+                  },
+                  "words": [
+                    {
+                      "text": "The",
+                      "start": 0.0,
+                      "end": 0.35
+                    },
+                    {
+                      "text": "welcome",
+                      "start": 0.4,
+                      "end": 0.75
+                    },
+                    {
+                      "text": "session",
+                      "start": 0.8,
+                      "end": 1.15
+                    },
+                    {
+                      "text": "starts",
+                      "start": 1.2,
+                      "end": 1.55
+                    },
+                    {
+                      "text": "at",
+                      "start": 1.6,
+                      "end": 1.95
+                    },
+                    {
+                      "text": "nine.",
+                      "start": 2.0,
+                      "end": 2.35
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "example-p4-q10",
+            "contentVersion": "example-v1",
+            "part": 4,
+            "questionNumber": 10,
+            "question": "When does the welcome session start?",
+            "questionTranslation": "연동 규격 확인용 질문입니다.",
+            "answerSeconds": 30,
+            "passage": null,
+            "photo": null,
+            "contextIntro": null,
+            "table": {
+              "tableType": "schedule",
+              "title": "Workshop",
+              "subtitles": [],
+              "metadata": [
+                {
+                  "key": "date",
+                  "label": "Date",
+                  "value": "October 20"
+                }
+              ],
+              "columns": [
+                {
+                  "key": "time",
+                  "label": "Time",
+                  "valueType": "text"
+                },
+                {
+                  "key": "session",
+                  "label": "Session",
+                  "valueType": "text"
+                }
+              ],
+              "items": [
+                {
+                  "cells": {
+                    "time": "9:00 a.m.",
+                    "session": "Welcome"
+                  },
+                  "status": "scheduled",
+                  "statusNote": null,
+                  "strikeThrough": false
+                }
+              ],
+              "notes": []
+            },
+            "tableFocus": {
+              "tableType": "schedule",
+              "title": "Workshop",
+              "subtitles": [],
+              "metadata": [
+                {
+                  "key": "date",
+                  "label": "Date",
+                  "value": "October 20"
+                }
+              ],
+              "columns": [
+                {
+                  "key": "time",
+                  "label": "Time",
+                  "valueType": "text"
+                },
+                {
+                  "key": "session",
+                  "label": "Session",
+                  "valueType": "text"
+                }
+              ],
+              "items": [
+                {
+                  "cells": {
+                    "time": "9:00 a.m.",
+                    "session": "Welcome"
+                  },
+                  "status": "scheduled",
+                  "statusNote": null,
+                  "strikeThrough": false
+                }
+              ],
+              "notes": []
+            },
+            "level": "IM3",
+            "answer": {
+              "id": "example-answer-4-10",
+              "example": "The welcome session starts at nine.",
+              "fullAudio": {
+                "id": "example-answer-4-10-full.m4a",
+                "url": "https://media.example.com/learning/example-answer-4-10-full.m4a",
+                "expiresAt": "2099-01-01T00:00:00Z"
+              },
+              "durationSeconds": 10,
+              "sentences": [
+                {
+                  "text": "The welcome session starts at nine.",
+                  "translation": "연동 규격 확인용 예시 문장입니다.",
+                  "label": "예시",
+                  "audio": {
+                    "id": "example-answer-4-10-sentence.m4a",
+                    "url": "https://media.example.com/learning/example-answer-4-10-sentence.m4a",
+                    "expiresAt": "2099-01-01T00:00:00Z"
+                  },
+                  "words": [
+                    {
+                      "text": "The",
+                      "start": 0.0,
+                      "end": 0.35
+                    },
+                    {
+                      "text": "welcome",
+                      "start": 0.4,
+                      "end": 0.75
+                    },
+                    {
+                      "text": "session",
+                      "start": 0.8,
+                      "end": 1.15
+                    },
+                    {
+                      "text": "starts",
+                      "start": 1.2,
+                      "end": 1.55
+                    },
+                    {
+                      "text": "at",
+                      "start": 1.6,
+                      "end": 1.95
+                    },
+                    {
+                      "text": "nine.",
+                      "start": 2.0,
+                      "end": 2.35
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "isSuccess": true,
+      "code": "SUCCESS",
+      "message": "성공",
+      "result": {
+        "unit": {
+          "id": "example-unit-p5",
+          "part": 5,
+          "title": "파트5 연동 예시",
+          "thumbnail": null,
+          "lessons": [
+            {
+              "id": "example-p5-q11",
+              "questionNumber": 11,
+              "completed": false
+            }
+          ]
+        },
+        "lessons": [
+          {
+            "id": "example-p5-q11",
+            "contentVersion": "example-v1",
+            "part": 5,
+            "questionNumber": 11,
+            "question": "Do you prefer reading or watching movies? Give reasons.",
+            "questionTranslation": "연동 규격 확인용 질문입니다.",
+            "answerSeconds": 60,
+            "passage": null,
+            "photo": null,
+            "contextIntro": null,
+            "table": null,
+            "tableFocus": null,
+            "level": "IM3",
+            "answer": {
+              "id": "example-answer-5-11",
+              "example": "I prefer reading because it helps me relax.",
+              "fullAudio": {
+                "id": "example-answer-5-11-full.m4a",
+                "url": "https://media.example.com/learning/example-answer-5-11-full.m4a",
+                "expiresAt": "2099-01-01T00:00:00Z"
+              },
+              "durationSeconds": 10,
+              "sentences": [
+                {
+                  "text": "I prefer reading because it helps me relax.",
+                  "translation": "연동 규격 확인용 예시 문장입니다.",
+                  "label": "예시",
+                  "audio": {
+                    "id": "example-answer-5-11-sentence.m4a",
+                    "url": "https://media.example.com/learning/example-answer-5-11-sentence.m4a",
+                    "expiresAt": "2099-01-01T00:00:00Z"
+                  },
+                  "words": [
+                    {
+                      "text": "I",
+                      "start": 0.0,
+                      "end": 0.35
+                    },
+                    {
+                      "text": "prefer",
+                      "start": 0.4,
+                      "end": 0.75
+                    },
+                    {
+                      "text": "reading",
+                      "start": 0.8,
+                      "end": 1.15
+                    },
+                    {
+                      "text": "because",
+                      "start": 1.2,
+                      "end": 1.55
+                    },
+                    {
+                      "text": "it",
+                      "start": 1.6,
+                      "end": 1.95
+                    },
+                    {
+                      "text": "helps",
+                      "start": 2.0,
+                      "end": 2.35
+                    },
+                    {
+                      "text": "me",
+                      "start": 2.4,
+                      "end": 2.75
+                    },
+                    {
+                      "text": "relax.",
+                      "start": 2.8,
+                      "end": 3.15
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "capabilities": {
+    "isSuccess": true,
+    "code": "SUCCESS",
+    "message": "성공",
+    "result": {
+      "ready": true,
+      "lessonIds": [
+        "example-p2-q3"
+      ]
+    }
+  },
+  "upload": {
+    "isSuccess": true,
+    "code": "SUCCESS",
+    "message": "성공",
+    "result": {
+      "submissionId": "d11aa316-35be-4e49-b681-19a35d2c7bce",
+      "url": "https://upload.example.com/recording.m4a?signature=EXAMPLE",
+      "expiresAt": "2099-01-01T00:00:00Z",
+      "maxBytes": 8388608
+    }
+  },
+  "submission": {
+    "isSuccess": true,
+    "code": "SUCCESS",
+    "message": "성공",
+    "result": {
+      "id": "d11aa316-35be-4e49-b681-19a35d2c7bce",
+      "lessonId": "example-p2-q3",
+      "contentVersion": "example-v1",
+      "level": "IM3",
+      "status": "completed",
+      "result": {
+        "checklistVersion": "example-v1",
+        "transcript": "A person is reading a book.",
+        "metCount": 1,
+        "totalCount": 2,
+        "items": [
+          {
+            "id": "action",
+            "label": "주요 행동 묘사",
+            "verdict": "met",
+            "probability": 0.94,
+            "feedback": "행동을 설명했어요."
+          },
+          {
+            "id": "background",
+            "label": "배경 묘사",
+            "verdict": "not_met",
+            "probability": 0.12,
+            "feedback": "배경도 한 문장 덧붙여 보세요."
+          }
+        ]
+      },
+      "error": null
+    }
+  },
+  "completion": {
+    "isSuccess": true,
+    "code": "SUCCESS",
+    "message": "성공",
+    "result": {
+      "lessonId": "example-p2-q3",
+      "level": "IM3",
+      "contentVersion": "example-v1",
+      "completed": true
+    }
+  },
+  "media": {
+    "isSuccess": true,
+    "code": "SUCCESS",
+    "message": "성공",
+    "result": {
+      "id": "example-answer-2-3-sentence.m4a",
+      "url": "https://media.example.com/learning/example-answer-2-3-sentence.m4a",
+      "expiresAt": "2099-01-01T00:00:00Z"
+    }
+  }
+}

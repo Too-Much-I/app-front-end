@@ -7,6 +7,9 @@ settings:
 overrides:
   '@react-native-async-storage/async-storage': 2.2.0
 
+patchedDependencies:
+  expo-speech-recognition@57.1.0: 800f623f2bfb8baa0970b502a28d3f9bc95128ff6750e513f1a2bf43b1f5643f
+
 importers:
 
   .:
@@ -104,6 +107,9 @@ importers:
       expo-sensors:
         specifier: ~57.0.2
         version: 57.0.2(expo@57.0.11)(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.17)(react@19.2.3)(supports-color@8.1.1))
+      expo-speech-recognition:
+        specifier: 57.1.0
+        version: 57.1.0(patch_hash=800f623f2bfb8baa0970b502a28d3f9bc95128ff6750e513f1a2bf43b1f5643f)(expo@57.0.11)(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.17)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       expo-splash-screen:
         specifier: ~57.0.5
         version: 57.0.5(expo@57.0.11)(supports-color@8.1.1)(typescript@6.0.3)
@@ -2190,6 +2196,13 @@ packages:
   expo-server@57.0.1:
     resolution: {integrity: sha512-sBfVDH6dmKVHZxqUxbfkzS00PZELMZt1IpnHKxcOTMZtR/t7CtRAFrbXcisG+EyzeqHSVDacZT+1tbYfZt5D8w==}
     engines: {node: '>=20.16.0'}
+
+  expo-speech-recognition@57.1.0:
+    resolution: {integrity: sha512-eUiODNPb3CNeQB8Rzro79Dsf+dWzFNdyDRxzorfh2SNwXeCQkC5yh8goPNmCO+d1JyaYmV89F4jcGu52p3uW6w==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
+      react-native: '*'
 
   expo-splash-screen@57.0.5:
     resolution: {integrity: sha512-ZN0LDXlhHRNFjXTYZDojXk8IfaoUIu7qa3hhoBTXgyj1UB/iewGlH6+M3Nvhun2lY2d/+xhwqMhv0hIRoBo09Q==}
@@ -6200,6 +6213,12 @@ snapshots:
       react-native: 0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.17)(react@19.2.3)(supports-color@8.1.1)
 
   expo-server@57.0.1: {}
+
+  expo-speech-recognition@57.1.0(patch_hash=800f623f2bfb8baa0970b502a28d3f9bc95128ff6750e513f1a2bf43b1f5643f)(expo@57.0.11)(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.17)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3):
+    dependencies:
+      expo: 57.0.11(f55988d13a1cbb6c7017df47ff916f32)
+      react: 19.2.3
+      react-native: 0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.17)(react@19.2.3)(supports-color@8.1.1)
 
   expo-splash-screen@57.0.5(expo@57.0.11)(supports-color@8.1.1)(typescript@6.0.3):
     dependencies:

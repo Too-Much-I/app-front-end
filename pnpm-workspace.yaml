@@ -12,3 +12,6 @@ allowBuilds:
 # autolinking되므로, Expo SDK 57이 검증한 단일 버전으로 고정한다.
 overrides:
   '@react-native-async-storage/async-storage': '2.2.0'
+
+patchedDependencies:
+  expo-speech-recognition@57.1.0: patches/expo-speech-recognition@57.1.0.patch

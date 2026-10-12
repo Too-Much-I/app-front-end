@@ -80,6 +80,12 @@ const colors = {
   line: {
     DEFAULT: '#E5E7EB',
   },
+  /** Learning: category rail, selected part, and paper edge. */
+  learning: {
+    category: '#EFEDE9',
+    part: '#0EA5E9',
+    paperLine: '#ECE8E2',
+  },
   /**
    * 시험 진행 화면 전용 상태색.
    *
