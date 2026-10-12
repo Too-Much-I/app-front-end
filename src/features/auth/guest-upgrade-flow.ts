@@ -339,12 +339,13 @@ export function createGuestUpgradeFlow(options: {
   async function complete(session: AuthSession, step: SignupStep): Promise<void> {
     try {
       await options.onComplete(session);
-    } catch {
+    } catch (error) {
       if (!disposed)
-        fail(step, {
-          message: GUEST_UPGRADE_MESSAGES.activationFailed,
-          nextAction: 'sign-in-again',
-        });
+        fail(
+          step,
+          { message: GUEST_UPGRADE_MESSAGES.activationFailed, nextAction: 'sign-in-again' },
+          error,
+        );
     }
   }
 

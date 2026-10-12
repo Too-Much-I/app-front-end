@@ -534,6 +534,8 @@ export function emitBreadcrumb(
  */
 export type AccountStateTag = 'member' | 'guest' | 'none';
 
+const NO_ROUTE_SCREEN_TAG = 'no-route';
+
 export function setAccountStateTag(state: AccountStateTag): void {
   if (!SENTRY_ENABLED) return;
 
@@ -548,11 +550,13 @@ export function setAccountStateTag(state: AccountStateTag): void {
  * 화면이 바뀔 때마다 부른다. 이후 이벤트에 `screen` 태그가 붙어 "어느 화면에서 몰리나"를 집계할
  * 수 있다. 이동 기록(breadcrumb)은 내비게이션 연동이 남긴다. 라우트 이름은 코드에 적힌 식별자다.
  */
-export function setScreenTag(routeName: string): void {
+export function setScreenTag(routeName: string | undefined): void {
   if (!SENTRY_ENABLED) return;
 
   try {
-    Sentry.setTag('screen', routeName);
+    // route가 없으면 RootNavigator가 navigator 없이 그린 화면(로그인 진행·계정 안내)이다.
+    // 어느 상태였는지는 `account_state` 태그와 breadcrumb으로 본다.
+    Sentry.setTag('screen', routeName ?? NO_ROUTE_SCREEN_TAG);
   } catch {
     // 관측 도구 실패가 원래 사용자 흐름을 가로막으면 안 된다.
   }

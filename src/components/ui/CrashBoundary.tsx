@@ -33,6 +33,8 @@ export function CrashBoundary({
       beforeCapture={(sentryScope) => {
         sentryScope.setTag('crash_boundary', scope);
       }}
+      // 채점 대기(GradingWait)는 응시 화면을 replace해 들어오므로 goBack이 음향 테스트로 간다.
+      // 응시 화면과 같은 도착지라 따로 다루지 않는다(2026-10-12 결정).
       fallback={({ resetError }) => (
         <CrashFallback
           action={

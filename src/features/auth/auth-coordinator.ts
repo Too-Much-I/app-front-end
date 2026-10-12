@@ -459,7 +459,9 @@ export function createAuthCoordinator(
       if (error instanceof ApiError) {
         if (error.code === 'INVALID_FIREBASE_ID_TOKEN' && canRefreshProof) {
           // 로그인 중의 갱신이라 실패는 로그인 실패로 보고한다(Firebase 오류 코드는 컨트롤러만 안다).
-          const refreshed = await login.firebase.refreshProof(proof.uid, { reportFailure: true });
+          const refreshed = await login.firebase.refreshProof(proof.uid, {
+            reportFailureAs: attempt.provider,
+          });
           await handleFirebaseProof(attempt, refreshed, false);
           return;
         }

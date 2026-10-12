@@ -165,19 +165,34 @@ export function createFirebaseAuthController(sdk: FirebaseAuthSdk) {
 
   /**
    * 강제 갱신한 증명. 가입·승격·병합은 실패를 자기 흐름 이름으로 보고하므로 기본은 보고하지 않는다.
-   * 로그인 중의 갱신(코디네이터)만 `reportFailure`를 켠다.
+   * 로그인 중의 갱신(코디네이터)만 `reportFailureAs`에 로그인 수단을 넘겨 보고를 켠다. 아래 사전 확인에서
+   * 끝나면 증명한 사용자가 없을 수 있어 로그인 수단은 호출자가 알려 준다.
    */
   function refreshProof(
     uid: string,
-    options: { reportFailure?: boolean } = {},
+    options: { reportFailureAs?: FirebaseLoginProvider } = {},
   ): Promise<FirebaseProofResult> {
-    if (!provedUser || provedUser.user.uid !== uid || sdk.getCurrentUid() !== uid)
+    if (!provedUser || provedUser.user.uid !== uid || sdk.getCurrentUid() !== uid) {
+      if (options.reportFailureAs) {
+        reportOperationalError({
+          code: 'AUTH_SIGN_IN_FAILED',
+          provider: options.reportFailureAs,
+          stage: 'firebase',
+          step: 'get-id-token',
+          reason: 'reauthentication-required',
+        });
+      }
       return Promise.resolve({
         kind: 'failed',
         reason: 'reauthentication-required',
         nextAction: 'sign-in-again',
       });
-    return start({ step: 'get-id-token', ...provedUser }, true, options.reportFailure ?? false);
+    }
+    return start(
+      { step: 'get-id-token', ...provedUser },
+      true,
+      options.reportFailureAs !== undefined,
+    );
   }
 
   function cancel(): void {

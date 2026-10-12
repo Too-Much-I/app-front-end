@@ -276,8 +276,8 @@ export function createGuestMergeFlow(options: {
   async function complete(result: GuestMergeResult): Promise<void> {
     try {
       await options.onComplete(result);
-    } catch {
-      if (!disposed) fail(GUEST_MERGE_NOTICES.activationFailed);
+    } catch (error) {
+      if (!disposed) fail(GUEST_MERGE_NOTICES.activationFailed, error);
     }
   }
 

@@ -145,7 +145,9 @@ export function useChallengeSubmission({
         } catch (error) {
           if (controller.signal.aborted || !isExpiredUploadUrl(error)) throw error;
           // 만료된 건 URL뿐이다. 다시 발급받아도 같은 attempt의 같은 S3 key를 가리킨다.
+          stage = 'upload-url';
           upload = await issueChallengeUploadUrl(target.attemptId, controller.signal);
+          stage = 'upload';
           await putRecording(audioFileUri, upload, controller.signal);
         }
 

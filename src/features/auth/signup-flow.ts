@@ -347,9 +347,13 @@ export function createSignupFlow(options: {
     trackConversion('sign_up');
     try {
       await options.onComplete(session);
-    } catch {
+    } catch (error) {
       if (!disposed)
-        fail(step, { message: SIGNUP_MESSAGES.activationFailed, nextAction: 'sign-in-again' });
+        fail(
+          step,
+          { message: SIGNUP_MESSAGES.activationFailed, nextAction: 'sign-in-again' },
+          error,
+        );
     }
   }
 

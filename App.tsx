@@ -51,18 +51,17 @@ function AppContent() {
           const routeName = navigationRef.getCurrentRoute()?.name;
           previousRouteNameRef.current = routeName;
           registerNavigationContainer(navigationRef);
-          if (routeName) {
-            trackScreenView(routeName);
-            setScreenTag(routeName);
-          }
+          if (routeName) trackScreenView(routeName);
+          setScreenTag(routeName);
         }}
         onStateChange={() => {
           const routeName = navigationRef.getCurrentRoute()?.name;
           // 같은 화면에서 파라미터만 바뀐 경우까지 조회로 세지 않는다.
           if (routeName && routeName !== previousRouteNameRef.current) {
             trackScreenView(routeName);
-            setScreenTag(routeName);
           }
+          // 로그인 진행·계정 안내처럼 navigator 없이 그리는 화면에서도 이전 화면 이름이 남지 않게 한다.
+          setScreenTag(routeName);
           previousRouteNameRef.current = routeName;
         }}
       >
