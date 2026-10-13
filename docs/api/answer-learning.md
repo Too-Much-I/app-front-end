@@ -1,7 +1,7 @@
 # 답변 익히기 API 계약 v1
 
-**상태: 프론트 인수인계용 제안 계약. 신규 서버 API는 아직 구현·배포되지 않았다.**
-프론트 구현은 이 계약으로 요청한다. 백엔드가 경로/형식을 바꾸면 `src/features/learning/api/`와 `learning-submission-api.ts`에서 맞춘다.
+**상태: 프론트 구현 및 테스트 Learning Core 배포 완료(2026-10-13, backend PR #36). 운영 서버 배포는 별도다.**
+프론트와 백엔드는 이 계약을 그대로 사용한다. 전달 후 담당자가 필드나 경로를 추측해서 변경할 필요가 없다. 현재 합류 조건은 [릴리스 인수인계](../answer-learning-release.md)를 따른다.
 [인수인계 시작점](../answer-learning-handoff.md) · [모든 파트의 예시 JSON](answer-learning-examples.json)
 
 ## 경계와 인증
@@ -28,7 +28,8 @@ sequenceDiagram
   API->>Worker: 비동기 채점 작업 시작
   Worker->>S3: 녹음 읽기
   Note over Worker: OpenAI STT → Decisions 체크리스트 판단
-  Worker->>API: 작업 ID와 결과 (내부 인증)
+  API->>Worker: 작업 상태 조회 (IAM SigV4)
+  Worker-->>API: 작업 ID와 결과
   API->>DB: 결과 저장
   App->>API: GET 제출 상태 (poll)
   API-->>App: completed + 체크리스트
@@ -47,29 +48,34 @@ S3 업로드만으로 자동 채점을 시작하지 않는다. `/submit`이 검�
 - 모든 JSON 응답은 기존 공통 envelope를 유지한다.
 
 ```json
-{"isSuccess":true,"code":"SUCCESS","message":"성공","result":{}}
+{ "isSuccess": true, "code": "SUCCESS", "message": "성공", "result": {} }
 ```
 
 오류 예:
 
 ```json
-{"isSuccess":false,"code":"CHECKLIST_NOT_READY","message":"이 문항의 채점을 준비하고 있어요.","result":{"retryable":false}}
+{
+  "isSuccess": false,
+  "code": "CHECKLIST_NOT_READY",
+  "message": "이 문항의 채점을 준비하고 있어요.",
+  "result": { "retryable": false }
+}
 ```
 
 ## 엔드포인트 목록
 
-| 메서드 | 경로 (접두사 뒤) | 프론트 호출 시점 | result |
-| --- | --- | --- | --- |
-| GET | `/units?part=2&level=IM3` | 학습 홈·파트/등급 변경·새로고침 | 파트/등급별 카드 요약과 완료 상태 |
-| GET | `/units/{unitId}?level=IH` | 카드에서 시작 | 세트와 선택 등급의 문항·답변·미디어 |
-| GET | `/media/{mediaId}/url` | 미디어 URL 만료/재생 실패 후 재시도 | 갱신된 GET URL |
-| GET | `/capabilities?lessonId={lessonId}` | Part 2~5 세션 진입 | 채점 준비 상태 |
-| POST | `/submissions` | 답변 제출 | 생성 또는 기존 작업 |
-| POST | `/submissions/{id}/upload-url` | 작업이 awaiting_audio | S3 PUT URL |
-| POST | `/submissions/{id}/submit` | S3 PUT 성공 후 | queued 또는 기존 작업 |
-| GET | `/submissions/{id}` | 제출 후 약 1.2초 간격·대기 재개 | 작업 상태/결과 |
-| POST | `/submissions/{id}/retry` | 실패 후 사용자가 다시 제출 | 재시도된 작업 |
-| PUT | `/lessons/{lessonId}/completion` | 비교/채점 완료 | 저장된 완료 정보 |
+| 메서드 | 경로 (접두사 뒤)                    | 프론트 호출 시점                    | result                              |
+| ------ | ----------------------------------- | ----------------------------------- | ----------------------------------- |
+| GET    | `/units?part=2&level=IM3`           | 학습 홈·파트/등급 변경·새로고침     | 파트/등급별 카드 요약과 완료 상태   |
+| GET    | `/units/{unitId}?level=IH`          | 카드에서 시작                       | 세트와 선택 등급의 문항·답변·미디어 |
+| GET    | `/media/{mediaId}/url`              | 미디어 URL 만료/재생 실패 후 재시도 | 갱신된 GET URL                      |
+| GET    | `/capabilities?lessonId={lessonId}` | Part 2~5 세션 진입                  | 채점 준비 상태                      |
+| POST   | `/submissions`                      | 답변 제출                           | 생성 또는 기존 작업                 |
+| POST   | `/submissions/{id}/upload-url`      | 작업이 awaiting_audio               | S3 PUT URL                          |
+| POST   | `/submissions/{id}/submit`          | S3 PUT 성공 후                      | queued 또는 기존 작업               |
+| GET    | `/submissions/{id}`                 | 제출 후 약 1.2초 간격·대기 재개     | 작업 상태/결과                      |
+| POST   | `/submissions/{id}/retry`           | 실패 후 사용자가 다시 제출          | 재시도된 작업                       |
+| PUT    | `/lessons/{lessonId}/completion`    | 비교/채점 완료                      | 저장된 완료 정보                    |
 
 ## 1. 목록
 
@@ -82,12 +88,23 @@ S3 업로드만으로 자동 채점을 시작하지 않는다. `/submit`이 검�
 
 ```json
 {
-  "part":2,"level":"IM3",
-  "units":[{
-    "id":"example-unit-p2","part":2,"title":"도서관 풍경",
-    "thumbnail":{"id":"photo-1","url":"https://media.example.com/photo.png","expiresAt":"2099-01-01T00:00:00Z","width":1200,"height":800},
-    "lessons":[{"id":"example-p2-q3","questionNumber":3,"completed":false}]
-  }]
+  "part": 2,
+  "level": "IM3",
+  "units": [
+    {
+      "id": "example-unit-p2",
+      "part": 2,
+      "title": "도서관 풍경",
+      "thumbnail": {
+        "id": "photo-1",
+        "url": "https://media.example.com/photo.png",
+        "expiresAt": "2099-01-01T00:00:00Z",
+        "width": 1200,
+        "height": 800
+      },
+      "lessons": [{ "id": "example-p2-q3", "questionNumber": 3, "completed": false }]
+    }
+  ]
 }
 ```
 
@@ -104,38 +121,50 @@ S3 업로드만으로 자동 채점을 시작하지 않는다. `/submit`이 검�
 `result`는 `{unit, lessons}`. unit은 위 요약과 같은 형식. lessons는 **unit.lessons와 동일한 ID/순서**의 본문이다.
 Part 1 상세는 어떤 level이 요청되어도 common 답변을 반환한다. Part 2~5는 요청한 level 한 개만 반환한다.
 
-| lesson 필드 | 형식/의미 |
-| --- | --- |
-| id, contentVersion | 비어 있지 않은 문자열. 수정된 문제/답안/타이밍은 새 버전 |
-| part, questionNumber | 파트 번호, 실제 문항 번호 |
-| question | 영어 질문. Part 2 UI에서는 사진 아래 중복 지시문을 생략 |
-| questionTranslation | 한국어 질문 해석, 선택 필드 |
-| passage, passageTranslation | Part 1 읽기 지문, 해석. passage는 다른 파트에서 null |
-| answerSeconds | 15~60 정수. 실전 녹음 제한, 따라 말하기 제한 시간이 아님 |
-| photo | Part 2 필수, 나머지 null. media + width/height |
-| contextIntro | 세트 상황 설명 문자열 또는 null |
-| table, tableFocus | Part 4 전체 표와 해당 질문에 필요한 발췌 표, 다른 파트 null |
-| level | Part 1 common, 나머지는 선택한 IM3/IH/AL |
-| answer | 선택된 수준의 모범답안 |
+| lesson 필드                 | 형식/의미                                                   |
+| --------------------------- | ----------------------------------------------------------- |
+| id, contentVersion          | 비어 있지 않은 문자열. 수정된 문제/답안/타이밍은 새 버전    |
+| part, questionNumber        | 파트 번호, 실제 문항 번호                                   |
+| question                    | 영어 질문. Part 2 UI에서는 사진 아래 중복 지시문을 생략     |
+| questionTranslation         | 한국어 질문 해석, 선택 필드                                 |
+| passage, passageTranslation | Part 1 읽기 지문, 해석. passage는 다른 파트에서 null        |
+| answerSeconds               | 15~60 정수. 실전 녹음 제한, 따라 말하기 제한 시간이 아님    |
+| photo                       | Part 2 필수, 나머지 null. media + width/height              |
+| contextIntro                | 세트 상황 설명 문자열 또는 null                             |
+| table, tableFocus           | Part 4 전체 표와 해당 질문에 필요한 발췌 표, 다른 파트 null |
+| level                       | Part 1 common, 나머지는 선택한 IM3/IH/AL                    |
+| answer                      | 선택된 수준의 모범답안                                      |
 
 ```json
 {
-  "id":"answer-q3-ih-v1",
-  "example":"A person is reading a book.",
-  "fullAudio":{"id":"audio-full","url":"https://media.example.com/full.m4a","expiresAt":"2099-01-01T00:00:00Z"},
-  "durationSeconds":10,
-  "sentences":[{
-    "text":"A person is reading a book.","translation":"한 사람이 책을 읽고 있습니다.","label":"주요 장면",
-    "audio":{"id":"audio-sentence-1","url":"https://media.example.com/s1.m4a","expiresAt":"2099-01-01T00:00:00Z"},
-    "words":[
-      {"text":"A","start":0,"end":0.2},
-      {"text":"person","start":0.25,"end":0.6},
-      {"text":"is","start":0.65,"end":0.8},
-      {"text":"reading","start":0.85,"end":1.2},
-      {"text":"a","start":1.25,"end":1.35},
-      {"text":"book.","start":1.4,"end":1.8}
-    ]
-  }]
+  "id": "answer-q3-ih-v1",
+  "example": "A person is reading a book.",
+  "fullAudio": {
+    "id": "audio-full",
+    "url": "https://media.example.com/full.m4a",
+    "expiresAt": "2099-01-01T00:00:00Z"
+  },
+  "durationSeconds": 10,
+  "sentences": [
+    {
+      "text": "A person is reading a book.",
+      "translation": "한 사람이 책을 읽고 있습니다.",
+      "label": "주요 장면",
+      "audio": {
+        "id": "audio-sentence-1",
+        "url": "https://media.example.com/s1.m4a",
+        "expiresAt": "2099-01-01T00:00:00Z"
+      },
+      "words": [
+        { "text": "A", "start": 0, "end": 0.2 },
+        { "text": "person", "start": 0.25, "end": 0.6 },
+        { "text": "is", "start": 0.65, "end": 0.8 },
+        { "text": "reading", "start": 0.85, "end": 1.2 },
+        { "text": "a", "start": 1.25, "end": 1.35 },
+        { "text": "book.", "start": 1.4, "end": 1.8 }
+      ]
+    }
+  ]
 }
 ```
 
@@ -152,11 +181,23 @@ Part 1 상세는 어떤 level이 요청되어도 common 답변을 반환한다. 
 
 ```json
 {
-  "tableType":"schedule","title":"Workshop","subtitles":[],
-  "metadata":[{"key":"date","label":"Date","value":"October 20"}],
-  "columns":[{"key":"time","label":"Time","valueType":"text"},{"key":"session","label":"Session","valueType":"text"}],
-  "items":[{"cells":{"time":"9:00 a.m.","session":"Welcome"},"status":"scheduled","statusNote":null,"strikeThrough":false}],
-  "notes":[]
+  "tableType": "schedule",
+  "title": "Workshop",
+  "subtitles": [],
+  "metadata": [{ "key": "date", "label": "Date", "value": "October 20" }],
+  "columns": [
+    { "key": "time", "label": "Time", "valueType": "text" },
+    { "key": "session", "label": "Session", "valueType": "text" }
+  ],
+  "items": [
+    {
+      "cells": { "time": "9:00 a.m.", "session": "Welcome" },
+      "status": "scheduled",
+      "statusNote": null,
+      "strikeThrough": false
+    }
+  ],
+  "notes": []
 }
 ```
 
@@ -180,7 +221,7 @@ Part 1 상세는 어떤 level이 요청되어도 common 답변을 반환한다. 
 `GET /capabilities?lessonId=example-p2-q3`
 
 ```json
-{"ready":true,"lessonIds":["example-p2-q3"]}
+{ "ready": true, "lessonIds": ["example-p2-q3"] }
 ```
 
 - 해당 문항에 현재 버전의 체크리스트가 없으면 `lessonIds:[]`.
@@ -193,7 +234,12 @@ Part 1 상세는 어떤 level이 요청되어도 common 답변을 반환한다. 
 `POST /submissions`
 
 ```json
-{"submissionId":"d11aa316-35be-4e49-b681-19a35d2c7bce","lessonId":"example-p2-q3","level":"IM3","contentVersion":"example-v1"}
+{
+  "submissionId": "d11aa316-35be-4e49-b681-19a35d2c7bce",
+  "lessonId": "example-p2-q3",
+  "level": "IM3",
+  "contentVersion": "example-v1"
+}
 ```
 
 프론트가 녹음마다 UUID를 만든다. **동일한 녹음의 재전송에는 같은 ID를 쓴다.**
@@ -204,9 +250,13 @@ Part 1 제출은 400. 지원하지 않는 체크리스트는 `CHECKLIST_NOT_READ
 
 ```json
 {
-  "id":"d11aa316-35be-4e49-b681-19a35d2c7bce",
-  "lessonId":"example-p2-q3","contentVersion":"example-v1","level":"IM3",
-  "status":"awaiting_audio","result":null,"error":null
+  "id": "d11aa316-35be-4e49-b681-19a35d2c7bce",
+  "lessonId": "example-p2-q3",
+  "contentVersion": "example-v1",
+  "level": "IM3",
+  "status": "awaiting_audio",
+  "result": null,
+  "error": null
 }
 ```
 
@@ -215,11 +265,16 @@ Part 1 제출은 400. 지원하지 않는 체크리스트는 `CHECKLIST_NOT_READ
 `POST /submissions/{id}/upload-url`
 
 ```json
-{"contentType":"audio/mp4","sizeBytes":250000}
+{ "contentType": "audio/mp4", "sizeBytes": 250000 }
 ```
 
 ```json
-{"submissionId":"d11aa316-35be-4e49-b681-19a35d2c7bce","url":"https://upload.example.com/recording.m4a?signature=EXAMPLE","expiresAt":"2099-01-01T00:00:00Z","maxBytes":8388608}
+{
+  "submissionId": "d11aa316-35be-4e49-b681-19a35d2c7bce",
+  "url": "https://upload.example.com/recording.m4a?signature=EXAMPLE",
+  "expiresAt": "2099-01-01T00:00:00Z",
+  "maxBytes": 8388608
+}
 ```
 
 - 앱은 해당 URL로 m4a/AAC 파일을 binary PUT한다. multipart/form-data, JSON, base64가 아니다.
@@ -245,11 +300,25 @@ S3 PUT 성공 후 `POST /submissions/{id}/submit`, body `{}`.
 
 ```json
 {
-  "checklistVersion":"example-v1","transcript":"A person is reading a book.",
-  "metCount":1,"totalCount":2,
-  "items":[
-    {"id":"action","label":"주요 행동 묘사","verdict":"met","probability":0.94,"feedback":"행동을 설명했어요."},
-    {"id":"background","label":"배경 묘사","verdict":"not_met","probability":0.12,"feedback":"배경도 한 문장 덧붙여 보세요."}
+  "checklistVersion": "example-v1",
+  "transcript": "A person is reading a book.",
+  "metCount": 1,
+  "totalCount": 2,
+  "items": [
+    {
+      "id": "action",
+      "label": "주요 행동 묘사",
+      "verdict": "met",
+      "probability": 0.94,
+      "feedback": "행동을 설명했어요."
+    },
+    {
+      "id": "background",
+      "label": "배경 묘사",
+      "verdict": "not_met",
+      "probability": 0.12,
+      "feedback": "배경도 한 문장 덧붙여 보세요."
+    }
   ]
 }
 ```
@@ -271,7 +340,11 @@ S3 PUT 성공 후 `POST /submissions/{id}/submit`, body `{}`.
 `PUT /lessons/{lessonId}/completion`
 
 ```json
-{"level":"IM3","contentVersion":"example-v1","submissionId":"d11aa316-35be-4e49-b681-19a35d2c7bce"}
+{
+  "level": "IM3",
+  "contentVersion": "example-v1",
+  "submissionId": "d11aa316-35be-4e49-b681-19a35d2c7bce"
+}
 ```
 
 Part 1은 `{"level":"common","contentVersion":"example-v1"}`이며 제출 ID가 없다.
@@ -283,33 +356,33 @@ Part 2~5의 채점 완료와 완료 upsert를 서버에서 한 트랜잭션으�
 
 ## MongoDB/S3 권장 분리
 
-| 컬렉션/저장소 | 내용/키 |
-| --- | --- |
-| learning_units | `_id`, part, title, sortOrder, lessonIds, thumbnailMediaId, publicationStatus |
-| learning_lessons | `_id`, unitId, questionNumber, contentVersion, 질문/번역/지문, media ID, 전체/발췌 표 |
-| learning_answers | lessonId + level + contentVersion unique, 문장/번역/word timings, audio media IDs |
-| learning_checklists | lessonId + contentVersion + checklistVersion unique, 파트별 판정 조건/피드백 |
-| learning_media | mediaId unique, S3 bucket/key/versionId, MIME, width/height/duration, 접근 범위 |
+| 컬렉션/저장소        | 내용/키                                                                                  |
+| -------------------- | ---------------------------------------------------------------------------------------- |
+| learning_units       | `_id`, part, title, sortOrder, lessonIds, thumbnailMediaId, publicationStatus            |
+| learning_lessons     | `_id`, unitId, questionNumber, contentVersion, 질문/번역/지문, media ID, 전체/발췌 표    |
+| learning_answers     | lessonId + level + contentVersion unique, 문장/번역/word timings, audio media IDs        |
+| learning_checklists  | lessonId + contentVersion + checklistVersion unique, 파트별 판정 조건/피드백             |
+| learning_media       | mediaId unique, S3 bucket/key/versionId, MIME, width/height/duration, 접근 범위          |
 | learning_submissions | userId + submissionId unique, lesson/level/version, 상태, 파일 버전, 전사, 결과, 시도 수 |
-| learning_completions | userId + lessonId + level + contentVersion unique, completedAt |
-| S3 | 모범 음성·사진과 사용자 녹음을 별도 prefix/권한/보관 기간으로 분리 |
+| learning_completions | userId + lessonId + level + contentVersion unique, completedAt                           |
+| S3                   | 모범 음성·사진과 사용자 녹음을 별도 prefix/권한/보관 기간으로 분리                       |
 
 문제은행의 출판된 모의고사 중복 여부는 서버 콘텐츠 선정 시 관리한다. 앱에서 문제은행 전체를 다운로드해 필터링하지 않는다.
 원본 오디오/사진은 Git/앱 번들에 넣지 않는다. URL은 요청 시 발급하고 MongoDB에 영구 저장하지 않는다.
 
 ## 상태별 UX/검증
 
-| 상황 | 프론트 | 서버 책임 |
-| --- | --- | --- |
-| 목록/상세 404·5xx·잘못된 형식 | 오류 안내/재시도 | 빈 성공 객체 대신 명확한 에러 |
-| 미디어 만료 | URL 갱신/수동 재생 재시도 | 권한 재검증 후 같은 media ID |
-| 체크리스트 미준비 | 녹음 가능, 채점 비활성 | CHECKLIST_NOT_READY, retryable=false |
-| 업로드 실패 | 녹음 유지, 같은 ID로 재제출 | 임시 객체 청소, 중복 dispatch 방지 |
-| 429·일시 5xx | 사용자 재시도 | 요청량 제한, retryable=true |
-| 버전 충돌 | 재제출 막고 새 문항 열기 안내 | CONTENT_VERSION_CHANGED, retryable=false |
-| 무음 | 재녹음 | no_speech, 가짜 결과 없음 |
-| 채점 결과 응답 유실 | 같은 ID 조회 | 캐시된 완료 결과, 모델 중복 호출 없음 |
-| 완료 저장 실패 | 다시 저장 | idempotent upsert |
+| 상황                          | 프론트                        | 서버 책임                                |
+| ----------------------------- | ----------------------------- | ---------------------------------------- |
+| 목록/상세 404·5xx·잘못된 형식 | 오류 안내/재시도              | 빈 성공 객체 대신 명확한 에러            |
+| 미디어 만료                   | URL 갱신/수동 재생 재시도     | 권한 재검증 후 같은 media ID             |
+| 체크리스트 미준비             | 녹음 가능, 채점 비활성        | CHECKLIST_NOT_READY, retryable=false     |
+| 업로드 실패                   | 녹음 유지, 같은 ID로 재제출   | 임시 객체 청소, 중복 dispatch 방지       |
+| 429·일시 5xx                  | 사용자 재시도                 | 요청량 제한, retryable=true              |
+| 버전 충돌                     | 재제출 막고 새 문항 열기 안내 | CONTENT_VERSION_CHANGED, retryable=false |
+| 무음                          | 재녹음                        | no_speech, 가짜 결과 없음                |
+| 채점 결과 응답 유실           | 같은 ID 조회                  | 캐시된 완료 결과, 모델 중복 호출 없음    |
+| 완료 저장 실패                | 다시 저장                     | idempotent upsert                        |
 
-실제 통합 전 체크: 인증/소유권, 중복 요청 경쟁, 재시도 한도, stale queued 복구, 파일 검증, S3 만료와 Range, 번역/타이밍 버전 일치, 녹음 보관/삭제 정책.
+환경별 배포 시 체크: 인증/소유권, 중복 요청 경쟁, 재시도 한도, stale queued 복구, 파일 검증, S3 만료와 Range, 번역/타이밍 버전 일치, 녹음 보관/삭제 정책.
 현재 자동 검사는 모의 응답으로 계약과 클라이언트 분기를 검증한다. 서버의 위 책임을 구현했다는 뜻은 아니다.

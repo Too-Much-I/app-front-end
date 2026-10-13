@@ -9,12 +9,19 @@ module.exports = function withLearningSample(config, root) {
     'src/features/learning/api/resolve-learning-media.ts',
     'src/features/learning/learning-submission-api.ts',
   ];
+  const useBackend = process.env.LEARNING_DEVICE_BACKEND === '1';
   const replacements = new Map(
-    paths.map((file) => [
+    (useBackend ? [] : paths).map((file) => [
       path.join(root, file),
       path.join(root, 'examples/learning-sample/sample-api.ts'),
     ]),
   );
+  if (useBackend) {
+    replacements.set(
+      path.join(root, 'src/lib/api/client.ts'),
+      path.join(root, 'examples/learning-sample/device-backend-client.ts'),
+    );
+  }
   replacements.set(
     path.join(root, 'index.ts'),
     path.join(root, 'examples/learning-sample/index.tsx'),

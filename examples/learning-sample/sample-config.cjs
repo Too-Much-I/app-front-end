@@ -4,11 +4,16 @@ module.exports = function getLearningSampleConfig(config) {
     name: '토선생 학습 샘플',
     slug: 'tosunsaeng-learning-sample',
     scheme: 'tosunsaeng-learning-sample',
-    ios: { ...config.ios, bundleIdentifier: 'com.toteacher.learning.sample' },
+    ios: {
+      ...config.ios,
+      bundleIdentifier: 'com.toteacher.learning.sample',
+      usesAppleSignIn: false,
+    },
     android: { ...config.android, package: 'com.toteacher.learning.sample' },
     plugins: [
       './examples/learning-sample/with-sample-pods.cjs',
       './examples/learning-sample/with-sample-scene.cjs',
+      './examples/learning-sample/with-sample-entitlements.cjs',
       'expo-font',
       ['expo-audio', { microphonePermission: '학습 샘플에서 답변을 녹음합니다.' }],
       [

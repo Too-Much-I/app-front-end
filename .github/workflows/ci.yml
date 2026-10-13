@@ -53,6 +53,14 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm typecheck
 
+      - name: Learning regression tests
+        if: ${{ !cancelled() }}
+        run: pnpm test:learning
+
+      - name: iOS scene lifecycle regression tests
+        if: ${{ !cancelled() }}
+        run: node --test scripts/test-ios-scene.cjs
+
       # 파일 하나만 봐서는 판단할 수 없는 네이밍 규칙(같은 이름을 두 파일이 내보내는지 등)을
       # 검사한다. 규칙과 근거는 docs/architecture/01-naming-dictionary.md 에 있다.
       - name: pnpm check:naming

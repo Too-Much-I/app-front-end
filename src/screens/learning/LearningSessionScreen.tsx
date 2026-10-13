@@ -25,6 +25,7 @@ import type {
   LearningLevel,
   LearningStage,
   LearningUnit,
+  LearningUnitDetail,
 } from '@/features/learning/learning-types';
 import type { LearningStackParamList } from '@/navigation/types';
 import { LearningListen } from '@/screens/learning/LearningListen';
@@ -41,22 +42,46 @@ type SessionProps = NativeStackScreenProps<LearningStackParamList, 'LearningSess
 const STAGES = ['listen', 'shadow', 'practice'] as const;
 export function LearningSessionScreen({ navigation, route }: SessionProps) {
   const query = useQuery(learningUnitQuery(route.params.unitId, route.params.level));
-  const [question, setQuestion] = useState(route.params.questionIndex ?? 0);
-  const [hasChangedQuestion, setHasChangedQuestion] = useState(false);
-  const unit = query.data?.unit;
-  const lesson = query.data?.lessons[question];
-  const answer = lesson?.answers[lesson.part === 1 ? 'common' : route.params.level];
-  if (query.isPending || query.isFetching)
+  // Wait for this visit's first fetch, then keep an active exercise mounted during cache refreshes.
+  if (query.isPending || (!query.isFetchedAfterMount && query.isFetching))
     return (
       <SafeAreaView className="flex-1 items-center justify-center">
         <ActivityIndicator />
       </SafeAreaView>
     );
-  if (!unit || !lesson || !answer)
+  if (!query.data)
     return (
-      <SafeAreaView>
+      <SafeAreaView className="flex-1 justify-center gap-element px-screen">
         <Text>학습 데이터를 불러오지 못했어요.</Text>
         <Button label="다시 불러오기" onPress={() => void query.refetch()} />
+        <Button label="학습 홈으로 돌아가기" onPress={() => navigation.popToTop()} />
+      </SafeAreaView>
+    );
+  return (
+    <LearningUnitSession
+      key={`${route.params.unitId}:${route.params.level}`}
+      navigation={navigation}
+      route={route}
+      content={query.data}
+    />
+  );
+}
+function LearningUnitSession({
+  navigation,
+  route,
+  content,
+}: SessionProps & { content: LearningUnitDetail }) {
+  // Text, audio timings and contentVersion are one snapshot for the whole visit, including Q5–7/Q8–10.
+  const [snapshot] = useState(content);
+  const [question, setQuestion] = useState(route.params.questionIndex ?? 0);
+  const [hasChangedQuestion, setHasChangedQuestion] = useState(false);
+  const unit = snapshot.unit;
+  const lesson = snapshot.lessons[question];
+  const answer = lesson?.answers[lesson.part === 1 ? 'common' : route.params.level];
+  if (!lesson || !answer)
+    return (
+      <SafeAreaView className="flex-1 justify-center gap-element px-screen">
+        <Text>학습 문항을 확인하지 못했어요.</Text>
         <Button label="학습 홈으로 돌아가기" onPress={() => navigation.popToTop()} />
       </SafeAreaView>
     );

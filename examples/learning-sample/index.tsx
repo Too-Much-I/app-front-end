@@ -24,7 +24,9 @@ export function SampleContent() {
       </NavigationContainer>
       <SafeAreaView edges={['bottom']}>
         <Text style={{ textAlign: 'center', paddingVertical: spacing.xs, fontSize: 12 }}>
-          샘플 모드 · 채점은 미리 준비된 예시 결과입니다
+          {process.env.EXPO_PUBLIC_LEARNING_DEVICE_BACKEND === '1'
+            ? '백엔드 테스트 · 제출 시 실제 채점됩니다'
+            : '샘플 모드 · 채점은 미리 준비된 예시 결과입니다'}
         </Text>
       </SafeAreaView>
       <StatusBar style="dark" />

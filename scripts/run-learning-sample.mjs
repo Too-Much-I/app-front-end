@@ -8,6 +8,7 @@ const env = {
   EXPO_PUBLIC_ENABLE_AMPLITUDE: 'false',
   EXPO_PUBLIC_ENABLE_CLARITY: 'false',
   EXPO_PUBLIC_ENABLE_AD_CONVERSION: 'false',
+  EXPO_PUBLIC_LEARNING_DEVICE_BACKEND: process.env.LEARNING_DEVICE_BACKEND === '1' ? '1' : '0',
 };
 function run(args) {
   return new Promise((resolve, reject) => {

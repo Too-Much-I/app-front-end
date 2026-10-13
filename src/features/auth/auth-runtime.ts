@@ -134,6 +134,11 @@ export function createAuthRuntime(options: {
     queryClient.clear();
     mergeProgress.reset();
   });
+  // Identity login can finish before Learning Core moves the records. Refresh server caches at that boundary.
+  const stopMergedCacheRefresh = mergeProgress.subscribe((next, previous) => {
+    if (next.status === 'completed' && previous.status !== 'completed')
+      void queryClient.invalidateQueries();
+  });
   // 대상 계정 상태 충돌 뒤 다시 로그인을 한 번 허용한다. 병합 흐름은 로그인마다 새로 만들어져 여기서 센다.
   let hasSeenTargetConflict = false;
   const appState = AppState.addEventListener('change', (state) => {
@@ -282,6 +287,7 @@ export function createAuthRuntime(options: {
     unsubscribe();
     stopWithdrawnCleanup();
     stopCacheReset();
+    stopMergedCacheRefresh();
     stopPushOnAuthenticated();
     stopAccountStateTag();
     stopPushTokenRefresh();
