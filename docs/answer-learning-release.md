@@ -57,7 +57,9 @@ node scripts/validate-learning-contract.cjs /absolute/path/answer-learning-contr
 - 아직 별도 수용 확인이 필요한 범위: Android 실기기, 정식 서명의 Apple 로그인/푸시, 계정 병합·삭제와 동시 채점, 운영 서버, 모든 Part/등급의 실제 음성 채점 품질.
 - 자동 검사: frozen lockfile 설치, 포맷, lint, TypeScript, architecture 차단 규칙, naming 통과. 학습 68개 + iOS Scene 3개 실패 0. architecture 참고 경고는 차단 오류와 구분한다.
 - 실제 백엔드 DTO → 프론트 계약 검사: 목록 13개·상세 520개·답안 1,000개·콘텐츠 버전 1개 일치.
-- 일반 앱 iOS/Android Metro·Hermes 번들 export 성공. 이는 Android 네이티브 빌드/실기기 검증을 대신하지 않는다.
+- 최신 main 반영 후 일반 앱 iOS/Android Metro·Hermes 번들 export 성공. 샘플도 두 플랫폼 번들 생성 성공. 샘플 미디어 해시 140개는 샘플 번들에만 있고 일반 번들에는 0개임을 확인했다. 이는 Android 네이티브 빌드/실기기 검증을 대신하지 않는다.
+- 최신 main 반영 후 포맷·lint·타입·architecture·naming·학습/Scene 회귀 검사를 다시 통과했다. PR 학습 기록 형식 검사도 통과했으며 사람의 코드 리뷰 완료를 뜻하지 않는다.
+- 기존 앱 진입점 `App.tsx`/`index.ts`, `eas.json`, 모의고사 화면·도메인은 최신 main과 diff가 없다. 일반 앱과 공유하는 기존 파일 수정은 14개이며 나머지는 신규 학습/검증/문서/샘플 파일이다.
 
 ## 최소 수용 시나리오
 
