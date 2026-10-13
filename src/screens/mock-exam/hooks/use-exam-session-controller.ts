@@ -15,6 +15,12 @@ import type { ExamSession, FinalizedAnswer } from '@/types/exam';
 
 const TIMER_UPDATE_INTERVAL_MS = 100;
 
+/**
+ * 응답이 끝난 뒤 다음 문제로 넘어가기 전에 `finalizing`을 최소 이만큼 보여 준다.
+ * 실제 시험처럼 "응답이 끝났다"를 알아챌 틈을 준다. 실패는 기다리지 않고 바로 복구로 보낸다.
+ */
+const MIN_FINALIZING_DURATION_MS = 2_000;
+
 export function useExamSessionController(session: ExamSession, isExamActive: boolean) {
   // 화면과 수명을 같이한다. 다시 들어오면 새 스토어라 초기화가 저절로 된다.
   const [store] = useState(() => createExamSessionStore(session));
@@ -70,6 +76,8 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
     isExamActiveRef.current = isExamActive;
   }, [isExamActive]);
 
+  // 등록만 하고 다음 단계로 넘기지는 않는다. 성공하면 호출한 쪽이 `answerRegistered()`를 부른다.
+  // 응답 종료 직후에는 실패를 바로 알리되 성공 뒤 전환은 최소 표시 시간 뒤로 미뤄야 해서 둘을 나눈다.
   const registerFinalizedAnswer = useCallback(
     (answer: FinalizedAnswer) => {
       try {
@@ -93,7 +101,6 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
         }
 
         recorder.transferOwnership(answer.audioFileUri);
-        answerRegistered();
         return true;
       } catch (error) {
         console.error('[ExamSession] 답변 registry 등록 실패', error);
@@ -101,7 +108,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
         return false;
       }
     },
-    [answerFileInvalid, answerRegistered, answerRegistrationFailed, recorder, submissions],
+    [answerFileInvalid, answerRegistrationFailed, recorder, submissions],
   );
 
   const finishResponse = useCallback(
@@ -109,11 +116,17 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
       const activePromise = transitionPromiseRef.current;
       if (activePromise) return activePromise;
       if (!beginFinalizing()) return Promise.resolve();
+      const finalizingStartedAt = Date.now();
 
       const transitionPromise = recorder
         .finish(reason)
-        .then((answer) => {
-          registerFinalizedAnswer(answer);
+        .then(async (answer) => {
+          if (!registerFinalizedAnswer(answer)) return;
+          const remainingMs = MIN_FINALIZING_DURATION_MS - (Date.now() - finalizingStartedAt);
+          if (remainingMs > 0) {
+            await new Promise<void>((resolve) => setTimeout(resolve, remainingMs));
+          }
+          answerRegistered();
         })
         .catch((error: unknown) => {
           console.error('[ExamSession] 답변 확정 실패', error);
@@ -153,6 +166,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
       return transitionPromise;
     },
     [
+      answerRegistered,
       beginFinalizing,
       recorder,
       recordingFailed,
@@ -256,8 +270,8 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
   const retryRegistration = useCallback(() => {
     const pending = store.getState().pendingFinalizedAnswer;
     if (!pending) return;
-    registerFinalizedAnswer(pending);
-  }, [registerFinalizedAnswer, store]);
+    if (registerFinalizedAnswer(pending)) answerRegistered();
+  }, [answerRegistered, registerFinalizedAnswer, store]);
 
   useEffect(() => {
     if (phase !== 'preparation' || !question || !isExamActive) return;

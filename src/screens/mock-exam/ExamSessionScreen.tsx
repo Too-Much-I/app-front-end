@@ -26,6 +26,7 @@ import { ExamQuestionContent } from '@/screens/mock-exam/components/ExamQuestion
 import { ExamQuestionCue } from '@/screens/mock-exam/components/ExamQuestionCue';
 import { ExamQuestionProgress } from '@/screens/mock-exam/components/ExamQuestionProgress';
 import { ExamSessionHeader } from '@/screens/mock-exam/components/ExamSessionHeader';
+import { ExamStopTalkingNotice } from '@/screens/mock-exam/components/ExamStopTalkingNotice';
 import { ExamTimerCard, type ExamTimerMode } from '@/screens/mock-exam/components/ExamTimerCard';
 import { Part4TableLandscapeModal } from '@/screens/mock-exam/components/Part4TableLandscapeModal';
 import { emitExamBreadcrumb } from '@/screens/mock-exam/exam-breadcrumb';
@@ -419,6 +420,8 @@ export function ExamSessionScreen({ navigation, route }: ExamSessionScreenProps)
             </View>
           </>
         )}
+
+        {phase === 'finalizing' ? <ExamStopTalkingNotice /> : null}
       </SafeAreaView>
 
       {activePart4Table ? (
