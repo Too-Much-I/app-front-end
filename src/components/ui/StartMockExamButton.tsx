@@ -8,6 +8,9 @@ type StartMockExamButtonProps = {
   className?: string;
   /** 누른 뒤 어디로 가는지가 화면마다 다를 때만 덧붙인다. */
   accessibilityHint?: string;
+  /** 응시권을 확인하는 동안·확인하지 못했을 때 누르지 못하게 한다. */
+  disabled?: boolean;
+  loading?: boolean;
 };
 
 /**
@@ -27,13 +30,17 @@ export function StartMockExamButton({
   onPress,
   className,
   accessibilityHint,
+  disabled,
+  loading,
 }: StartMockExamButtonProps) {
   return (
     <Button
       elevated
       accessibilityHint={accessibilityHint}
       className={className}
+      disabled={disabled}
       label="모의고사 시작하기"
+      loading={loading}
       renderIcon={({ color, size }) => <AntDesign color={color} name="audio" size={size} />}
       size="lg"
       onPress={onPress}

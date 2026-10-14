@@ -26,7 +26,7 @@ import { shadows } from '@/theme';
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
 const shockedRabbit = require('../../../public/mascots/shocked_rabbit.png');
 
-/** 탭 안에서 루트 스택의 스테이지·설정·문의 화면으로 이동해야 하므로 두 내비게이터를 함께 쓴다. */
+/** 탭 안에서 루트 스택의 스테이지·설정·문의·이용권 화면으로 이동해야 하므로 두 내비게이터를 함께 쓴다. */
 type MyPageNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'MyPage'>,
   NativeStackNavigationProp<RootStackParamList>
@@ -36,7 +36,7 @@ type MyPageNavigationProp = CompositeNavigationProp<
  * 닉네임 인사, 10초 챌린지 달력, 메뉴.
  *
  * 설정의 항목 중 자주 찾는 문의하기·로그아웃만 꺼내고 나머지는 설정으로 보낸다
- * (2026-10-11 결정). 탈퇴를 눈에 띄게 권하지 않는다는 2026-10-07 결정 때문에 탈퇴는 설정 안에 둔다.
+ * (2026-10-11 결정). 이용권 결제는 마이페이지 메뉴를 진입로로 쓴다(2026-10-11 결정). 탈퇴를 눈에 띄게 권하지 않는다는 2026-10-07 결정 때문에 탈퇴는 설정 안에 둔다.
  */
 export function MyPageScreen() {
   const navigation = useNavigation<MyPageNavigationProp>();
@@ -105,6 +105,12 @@ export function MyPageScreen() {
           ) : null}
 
           <View className="rounded-card border border-line bg-surface px-4" style={shadows.card}>
+            <MyPageMenuRow
+              description="기간 안에 모의고사를 무제한으로 풀 수 있어요."
+              icon="credit-card"
+              onPress={() => navigation.navigate('PassPurchase')}
+              title="이용권 결제"
+            />
             <MyPageMenuRow
               description="버그 제보 및 기능 제안을 할 수 있어요."
               icon="message-circle"

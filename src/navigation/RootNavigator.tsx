@@ -29,6 +29,7 @@ import { AuthRecoveryScreen } from '@/screens/auth/AuthRecoveryScreen';
 import { SignupFailureScreen } from '@/screens/auth/SignupFailureScreen';
 import { ConsentScreen } from '@/screens/consent/ConsentScreen';
 import { NotificationsScreen } from '@/screens/notifications/NotificationsScreen';
+import { PassPurchaseScreen } from '@/screens/pass/PassPurchaseScreen';
 import { ReanswerScreen } from '@/screens/reanswer/ReanswerScreen';
 import { SettingsScreen } from '@/screens/settings/SettingsScreen';
 import { SettingsWebViewScreen } from '@/screens/settings/SettingsWebViewScreen';
@@ -62,6 +63,7 @@ function MemberRootNavigator() {
       <Stack.Screen name="SettingsWebView" component={SettingsWebViewScreen} />
       <Stack.Screen name="SupportInquiry" component={SupportInquiryRoute} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="PassPurchase" component={PassPurchaseScreen} />
     </Stack.Navigator>
   );
 }

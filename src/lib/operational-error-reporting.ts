@@ -257,7 +257,11 @@ export type ApiResponseResource =
   | 'CHALLENGE_UPLOAD_URL'
   | 'CHALLENGE_ANSWER'
   | 'CHALLENGE_HISTORY'
-  | 'MY_PROFILE';
+  | 'MY_PROFILE'
+  | 'PURCHASE_ACCOUNT'
+  | 'PAYMENT_PRODUCTS'
+  | 'PAYMENT_SYNC'
+  | 'ENTITLEMENTS';
 
 type SafeValue = string | number | boolean;
 

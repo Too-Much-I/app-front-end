@@ -36,6 +36,20 @@ import type { AuthSessionRestoreResult } from '@/features/auth/session-restorati
 import type { AuthSession } from '@/features/auth/types';
 import { clearStoredConsent } from '@/features/consent/consent-storage';
 import { clearStoredOptionalConsent } from '@/features/consent/optional-consent-storage';
+import { requestPurchaseAccountRefId } from '@/features/pass/api/purchase-account';
+import {
+  clearStoredPurchaseAccountRef,
+  readStoredPurchaseAccountRef,
+  storePurchaseAccountRef,
+} from '@/features/pass/purchase-account-storage';
+import { requestPaymentSync } from '@/features/pass/api/payment-sync';
+import { createPaymentSync } from '@/features/pass/payment-sync';
+import {
+  readPendingPaymentSyncs,
+  writePendingPaymentSyncs,
+} from '@/features/pass/pending-payment-sync-storage';
+import { createPurchaseIdentity } from '@/features/pass/purchase-identity';
+import { logInStoreCustomer, logOutStoreCustomer } from '@/features/pass/revenuecat';
 import { observePushTokenRefresh } from '@/features/push/push-notification-events';
 import { createPushRegistration } from '@/features/push/push-registration';
 import { createAuthenticatedApiClient } from '@/lib/api/authenticated-client';
@@ -70,6 +84,29 @@ function toAccountStateTag(status: AuthCoordinatorState['status']): AccountState
 }
 
 /**
+ * 로그인 화면(또는 그 직전 안내)에 왔는가. 앱 안에 계정 전환이 없어 다른 계정은 반드시 여기를 거친다 —
+ * 그래서 결제용 ID를 비우는 기준으로 쓴다(2026-10-13 결정). 비활성·탈퇴 안내는 확인 뒤 로그인 화면으로 간다.
+ */
+const IS_LOGIN_SCREEN_BY_STATUS = {
+  noSession: true,
+  guest: true,
+  accountInactive: true,
+  accountWithdrawn: true,
+  authenticated: false,
+  consent: false,
+  idle: false,
+  restoring: false,
+  signingIn: false,
+  submittingProof: false,
+  activatingSession: false,
+  signingUp: false,
+  mergeRequired: false,
+  findingAccount: false,
+  loginError: false,
+  error: false,
+} satisfies Record<AuthCoordinatorState['status'], boolean>;
+
+/**
  * 인증 조립 함수. 앱은 `app-auth-runtime.ts`에서 한 번만 호출해 App과 공용 API가 공유한다.
  * 생성은 저장소·네트워크를 실행하지 않고 bootstrap이 복원을 시작한다.
  * 앱 활성화 리스너를 등록하므로 소유자가 dispose를 호출한다.
@@ -98,6 +135,19 @@ export function createAuthRuntime(options: {
   const push = createPushRegistration({
     apiFetch: api.apiFetch,
     hasSession: () => session.getSession() !== null,
+  });
+  const purchaseIdentity = createPurchaseIdentity({
+    requestRef: () => requestPurchaseAccountRefId(api.billingFetch),
+    readStored: readStoredPurchaseAccountRef,
+    store: storePurchaseAccountRef,
+    clearStored: clearStoredPurchaseAccountRef,
+    logInStore: logInStoreCustomer,
+    logOutStore: logOutStoreCustomer,
+  });
+  const paymentSync = createPaymentSync({
+    request: (request) => requestPaymentSync(api.billingFetch, request),
+    readPending: readPendingPaymentSyncs,
+    writePending: writePendingPaymentSyncs,
   });
   const isAuthenticated = () => coordinator.getState().state.status === 'authenticated';
   const mergeProgress = createMergeProgressTracker({
@@ -146,6 +196,21 @@ export function createAuthRuntime(options: {
   const stopPushOnAuthenticated = coordinator.subscribe((snapshot, previous) => {
     if (snapshot.state.status === 'authenticated' && previous.state.status !== 'authenticated')
       void push.sync();
+  });
+  // 결제용 ID는 로그인·세션 복원 때 미리 받고, 확인을 끝내지 못한 결제를 다시 확인한다. 로그인 화면에 오면
+  // 둘 다 비운다 — 다른 계정으로 보내지 않는다. 실패는 결제 화면이 다시 받는다.
+  const stopPurchaseIdentity = coordinator.subscribe((snapshot, previous) => {
+    const { status } = snapshot.state;
+    if (status === previous.state.status) return;
+    if (status === 'authenticated') {
+      void purchaseIdentity
+        .ensure()
+        .then((ref) => paymentSync.resume(ref))
+        .catch(() => undefined);
+    } else if (IS_LOGIN_SCREEN_BY_STATUS[status]) {
+      void paymentSync.clear();
+      void purchaseIdentity.reset();
+    }
   });
   // 전환 중 상태(로그인·가입 진행 등)에서는 직전 계정 상태를 유지한다.
   const stopAccountStateTag = coordinator.subscribe((snapshot) => {
@@ -283,6 +348,7 @@ export function createAuthRuntime(options: {
     stopWithdrawnCleanup();
     stopCacheReset();
     stopPushOnAuthenticated();
+    stopPurchaseIdentity();
     stopAccountStateTag();
     stopPushTokenRefresh();
     appState.remove();
@@ -295,6 +361,8 @@ export function createAuthRuntime(options: {
     coordinator,
     api,
     push,
+    purchaseIdentity,
+    paymentSync,
     mergeProgress,
     lastLoginProvider,
     startEnrollment,

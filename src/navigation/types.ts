@@ -113,6 +113,8 @@ export type RootStackParamList = {
   };
   /** 설정 화면. 탭이 아니라 마이페이지 메뉴로 진입하는 루트 스택 push 화면이다. */
   Settings: undefined;
+  /** 기간제 이용권 선택 화면. 마이페이지 메뉴로 진입하는 루트 스택 push 화면이다. */
+  PassPurchase: undefined;
   /** 알림 화면. 설정과 마찬가지로 홈 화면 헤더 아이콘(벨)으로 진입하는 루트 스택 push 화면이다. */
   Notifications: undefined;
   /**

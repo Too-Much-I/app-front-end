@@ -1,5 +1,9 @@
 import type { RequestAuthSnapshot } from '@/features/auth/types';
-import { getIdentityApiBaseUrl, getLearningApiBaseUrl } from '@/lib/api/service-base-url';
+import {
+  getBillingApiBaseUrl,
+  getIdentityApiBaseUrl,
+  getLearningApiBaseUrl,
+} from '@/lib/api/service-base-url';
 import { ApiError, serviceFetch, type JsonRequestInit } from '@/lib/api/transport';
 
 interface ApiSessionAccess {
@@ -66,6 +70,17 @@ export function createAuthenticatedApiClient(session: ApiSessionAccess) {
     return requestWithToken<T>(`${getLearningApiBaseUrl()}${path}`, snapshot, init, timeoutMs);
   }
 
+  /** Billing 요청. `apiFetch`와 같이 401 재시도 없이 한 번 보낸다. 토큰은 Identity Access Token이다. */
+  async function billingFetch<T>(
+    path: string,
+    init: JsonRequestInit = {},
+    timeoutMs?: number,
+  ): Promise<T> {
+    const snapshot = await waitForCaller(() => session.prepareRequest(), init.signal ?? undefined);
+
+    return requestWithToken<T>(`${getBillingApiBaseUrl()}${path}`, snapshot, init, timeoutMs);
+  }
+
   /** 401이면 세션을 복구한 뒤 한 번만 다시 보낸다. 읽기 요청에만 쓴다. */
   async function fetchWithAuthRetry<T>(
     url: string,
@@ -115,5 +130,20 @@ export function createAuthenticatedApiClient(session: ApiSessionAccess) {
     return fetchWithAuthRetry<T>(`${getIdentityApiBaseUrl()}${path}`, init, timeoutMs);
   }
 
-  return { apiFetch, apiFetchWithAuthRetry, identityFetchWithAuthRetry };
+  /** Billing 읽기. Learning Core 읽기와 같은 세션 복구를 탄다. 주소만 다르다. */
+  function billingFetchWithAuthRetry<T>(
+    path: string,
+    init: ReadRequestInit = {},
+    timeoutMs?: number,
+  ): Promise<T> {
+    return fetchWithAuthRetry<T>(`${getBillingApiBaseUrl()}${path}`, init, timeoutMs);
+  }
+
+  return {
+    apiFetch,
+    apiFetchWithAuthRetry,
+    identityFetchWithAuthRetry,
+    billingFetch,
+    billingFetchWithAuthRetry,
+  };
 }
