@@ -56,7 +56,14 @@ export function AccountRecoveryNavigator({
       screenOptions={{ headerShown: false, gestureEnabled: false }}
     >
       <Stack.Screen name="AccountRecovery">
-        {(props) => <AccountRecoveryRoute {...props} flow={flow} onFinish={onFinish} />}
+        {(props) => (
+          <AccountRecoveryRoute
+            {...props}
+            flow={flow}
+            signupProvider={entry.signupProvider}
+            onFinish={onFinish}
+          />
+        )}
       </Stack.Screen>
       <Stack.Screen
         name="SupportInquiry"
@@ -70,9 +77,11 @@ export function AccountRecoveryNavigator({
 function AccountRecoveryRoute({
   navigation,
   flow,
+  signupProvider,
   onFinish,
 }: NativeStackScreenProps<RootStackParamList, 'AccountRecovery'> & {
   flow: AccountRecoveryFlow;
+  signupProvider: FirebaseLoginProvider | null;
   onFinish: (provider: FirebaseLoginProvider | null) => void;
 }) {
   const state = useStore(flow, (snapshot) => snapshot);
@@ -153,10 +162,35 @@ function AccountRecoveryRoute({
           />
         );
       case 'not-found':
-        return (
+        // 번호를 풀지 못했으면 가입 전화 인증이 다시 막힌다. 다음 계정 찾기가 다시 풀거나 문의로 해결한다.
+        if (!view.phoneReleased)
+          return (
+            <SignupFailureScreen
+              title="가입한 계정이 없어요"
+              message="이 번호로 가입한 계정을 찾지 못했어요. 가입이 계속 막히면 고객지원에 문의해 주세요."
+              primary={{ label: '로그인 화면으로', onPress: () => onFinish(null) }}
+              secondary={{
+                label: '문의하기',
+                onPress: () =>
+                  navigation.navigate('SupportInquiry', {
+                    screen: 'account-recovery',
+                    category: 'AUTH',
+                  }),
+              }}
+            />
+          );
+        // 가입 중 충돌에서 왔으면 그 SNS로 가입을 이어서 한다. 로그인 화면에서 왔으면 이어 갈 가입이 없다.
+        return signupProvider ? (
           <SignupFailureScreen
             title="가입한 계정이 없어요"
-            message="이 번호로 가입한 계정을 찾지 못했어요."
+            message="가입이 완료되지 않은 전화번호를 정리했어요. 이제 이 번호로 가입을 이어서 할 수 있어요."
+            primary={{ label: '가입 이어서 하기', onPress: () => onFinish(signupProvider) }}
+            secondary={{ label: '로그인 화면으로', onPress: () => onFinish(null) }}
+          />
+        ) : (
+          <SignupFailureScreen
+            title="가입한 계정이 없어요"
+            message="이 번호로 가입한 계정이 없어요. 로그인 화면에서 SNS 계정으로 가입할 수 있어요."
             primary={{ label: '로그인 화면으로', onPress: () => onFinish(null) }}
           />
         );

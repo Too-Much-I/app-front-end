@@ -54,12 +54,17 @@ const ACCOUNT_RECOVERY_MESSAGES = {
   phoneFailed: '인증을 완료하지 못했어요. 잠시 후 다시 시도해 주세요.',
 } as const;
 
+/** 계정 찾기 전화 로그인의 결과. lookup 재시도에도 같은 값을 쓴다. */
+type LookupProof = { recoveryId: string; firebaseIdToken: string; phoneUid: string };
+
 /** 계정 찾기 진입 자료. 가입 중 충돌에서 오면 번호와 교환용 자격 증명, 버릴 SNS 사용자가 있다. */
 export type AccountRecoveryEntry = {
   phone: string;
   credential: PhoneCollisionCredential | null;
   /** 가입 중이던 SNS Firebase 사용자. 전화번호 로그인 전에 지운다(실패해도 넘어간다). */
   abandonedUid: string | null;
+  /** 가입 중이던 SNS. 가입한 계정이 없으면 이 SNS로 가입을 이어서 한다. 로그인 화면에서 왔으면 null. */
+  signupProvider: FirebaseLoginProvider | null;
 };
 
 export type AccountRecoveryView =
@@ -69,7 +74,8 @@ export type AccountRecoveryView =
   | { step: 'code'; verificationId: string; verifying: boolean }
   | { step: 'looking-up' }
   | { step: 'found'; provider: FirebaseLoginProvider; maskedEmail: string | null }
-  | { step: 'not-found' }
+  /** phoneReleased: 번호를 잡고 있던 Firebase 사용자를 지워 이 번호로 다시 가입할 수 있다. */
+  | { step: 'not-found'; phoneReleased: boolean }
   | { step: 'action-required' }
   /** retryAt은 429에서 다시 시도 버튼을 막을 시각이다. */
   | { step: 'lookup-failed'; message: string; action: 'retry' | 'restart'; retryAt: number | null };
@@ -194,8 +200,10 @@ export interface AccountRecoveryDependencies {
  *
  * lookup은 토큰의 `auth_time`(전화 로그인 시각)이 접수번호 발급 뒤여야 받는다. 그래서 접수번호는
  * 전화 로그인 전에 새로 받아 두고, 남은 시간이 1분보다 짧아지면 앱 복귀·타이머로 다시 받는다.
- * 전화번호로 로그인한 Firebase 사용자는 남겨 둔다. 그 토큰으로는 exchange가 거절해 할 수 있는 일이 없고,
- * 다음 SNS 로그인이 currentUser를 바꾼다(2026-10-07 결정).
+ * 가입한 계정이 있으면 전화번호로 로그인한 Firebase 사용자는 남겨 둔다. 그 토큰으로는 exchange가 거절해
+ * 할 수 있는 일이 없고, 다음 SNS 로그인이 currentUser를 바꾼다(2026-10-07 결정).
+ * 가입한 계정이 없으면 그 사용자를 지운다. 남겨 두면 번호를 계속 잡고 있어 가입 전화 인증이
+ * "다른 계정에 연결된 번호"로 막히고, 계정 찾기는 계정이 없다고 해 빠져나갈 수 없다(2026-10-15 핫픽스).
  * 화면이 사라지면 소유자가 dispose해 늦게 도착한 응답을 무시한다.
  */
 export function createAccountRecoveryFlow(options: {
@@ -223,7 +231,7 @@ export function createAccountRecoveryFlow(options: {
   let generation = 0;
   let sendAttempts = 0;
   let nextSendAt = 0;
-  let lookupProof: { recoveryId: string; firebaseIdToken: string } | null = null;
+  let lookupProof: LookupProof | null = null;
   let abandonedUid = entry.abandonedUid;
   // 접수번호를 받지 못해 아직 쓰지 못한 가입 충돌 자격 증명. 로그인 시도가 실패하면 버린다.
   let pendingCredential: PhoneCollisionCredential | null = null;
@@ -378,7 +386,28 @@ export function createAccountRecoveryFlow(options: {
     }
   }
 
-  async function lookup(proof: { recoveryId: string; firebaseIdToken: string }): Promise<void> {
+  /**
+   * 가입한 계정이 없는 번호를 잡고 있는 전화 로그인 사용자를 지운다. 방금 전화로 로그인해 최근 로그인 요구에
+   * 걸리지 않는다. 그사이 다른 사용자로 바뀌었거나 지우지 못하면 false. 다음 계정 찾기가 다시 시도한다.
+   */
+  async function releasePhoneUser(phoneUid: string): Promise<boolean> {
+    const user = getAuth().currentUser;
+    if (user?.uid !== phoneUid) return false;
+    try {
+      await deleteUser(user);
+      return true;
+    } catch (error) {
+      reportOperationalError({
+        code: 'ACCOUNT_RECOVERY_FAILED',
+        step: 'release-phone',
+        reason: readReportableFirebaseCode(error) ?? 'unknown',
+        cause: error,
+      });
+      return false;
+    }
+  }
+
+  async function lookup(proof: LookupProof): Promise<void> {
     lookupProof = proof;
     clearRefreshTimer();
     setView({ step: 'looking-up' });
@@ -428,9 +457,12 @@ export function createAccountRecoveryFlow(options: {
         case 'found':
           setView({ step: 'found', provider: result.provider, maskedEmail: result.maskedEmail });
           return;
-        case 'not-found':
-          setView({ step: 'not-found' });
+        case 'not-found': {
+          const phoneReleased = await releasePhoneUser(proof.phoneUid);
+          if (disposed) return;
+          setView({ step: 'not-found', phoneReleased });
           return;
+        }
         case 'action-required':
           setView({ step: 'action-required' });
           return;
@@ -468,6 +500,7 @@ export function createAccountRecoveryFlow(options: {
     pendingCredential = null;
     store.setState({ canRetryCredential: false });
     let firebaseIdToken: string;
+    let phoneUid: string;
     try {
       // 네이티브가 해시(token)로 보관한 자격 증명을 찾아 쓴다. 앱이 재시작됐으면 실패한다.
       const { user } = await signInWithCredential(
@@ -475,6 +508,7 @@ export function createAccountRecoveryFlow(options: {
         new AuthCredential('phone', 'phone', credential.token, ''),
       );
       firebaseIdToken = await getIdToken(user, false);
+      phoneUid = user.uid;
     } catch {
       // 이 경로에서는 prepare가 성공해 남긴 안내가 없다. SMS를 다시 받아야 하는 이유를 알린다.
       if (!disposed)
@@ -485,7 +519,7 @@ export function createAccountRecoveryFlow(options: {
       return;
     }
     if (disposed) return;
-    await lookup({ recoveryId: current.recoveryId, firebaseIdToken });
+    await lookup({ recoveryId: current.recoveryId, firebaseIdToken, phoneUid });
   }
 
   function clearSendTimer(): void {
@@ -634,10 +668,12 @@ export function createAccountRecoveryFlow(options: {
       return;
     }
     let firebaseIdToken: string;
+    let phoneUid: string;
     try {
       const credential = PhoneAuthProvider.credential(verificationId, current.code);
       const { user } = await signInWithCredential(getAuth(), credential);
       firebaseIdToken = await getIdToken(user, false);
+      phoneUid = user.uid;
     } catch (error) {
       if (attempt !== generation) return;
       const failure = describePhoneFailure(error);
@@ -650,7 +686,7 @@ export function createAccountRecoveryFlow(options: {
       return;
     }
     if (attempt !== generation) return;
-    await lookup({ recoveryId: proofTicket.recoveryId, firebaseIdToken });
+    await lookup({ recoveryId: proofTicket.recoveryId, firebaseIdToken, phoneUid });
   }
 
   /** 인증번호 단계에서 번호를 고친다. 진행 중인 발송 결과는 무시한다. */
