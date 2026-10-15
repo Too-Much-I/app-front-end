@@ -649,7 +649,7 @@ export function createAuthCoordinator(
         status: 'findingAccount',
         flowId: ++flowGeneration,
         origin: state.status,
-        entry: { phone: '', credential: null, abandonedUid: null },
+        entry: { phone: '', credential: null, abandonedUid: null, signupProvider: null },
       },
     });
   }
@@ -678,7 +678,7 @@ export function createAuthCoordinator(
         status: 'findingAccount',
         flowId: ++flowGeneration,
         origin: attempt.origin,
-        entry: { phone, credential, abandonedUid: state.uid },
+        entry: { phone, credential, abandonedUid: state.uid, signupProvider: attempt.provider },
       },
     });
   }
