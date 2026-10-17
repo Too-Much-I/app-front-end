@@ -36,6 +36,7 @@ import type { AuthSessionRestoreResult } from '@/features/auth/session-restorati
 import type { AuthSession } from '@/features/auth/types';
 import { clearStoredConsent } from '@/features/consent/consent-storage';
 import { clearStoredOptionalConsent } from '@/features/consent/optional-consent-storage';
+import { forgetExamCreationKey } from '@/features/exam/exam-creation-key';
 import { requestPurchaseAccountRefId } from '@/features/pass/api/purchase-account';
 import {
   clearStoredPurchaseAccountRef,
@@ -198,7 +199,8 @@ export function createAuthRuntime(options: {
       void push.sync();
   });
   // 결제용 ID는 로그인·세션 복원 때 미리 받고, 확인을 끝내지 못한 결제를 다시 확인한다. 로그인 화면에 오면
-  // 둘 다 비운다 — 다른 계정으로 보내지 않는다. 실패는 결제 화면이 다시 받는다.
+  // 둘 다 비운다 — 다른 계정으로 보내지 않는다. 실패는 결제 화면이 다시 받는다. 결론 나지 않은 시험 생성
+  // 키도 같은 이유로 비운다.
   const stopPurchaseIdentity = coordinator.subscribe((snapshot, previous) => {
     const { status } = snapshot.state;
     if (status === previous.state.status) return;
@@ -208,6 +210,7 @@ export function createAuthRuntime(options: {
         .then((ref) => paymentSync.resume(ref))
         .catch(() => undefined);
     } else if (IS_LOGIN_SCREEN_BY_STATUS[status]) {
+      forgetExamCreationKey();
       void paymentSync.clear();
       void purchaseIdentity.reset();
     }

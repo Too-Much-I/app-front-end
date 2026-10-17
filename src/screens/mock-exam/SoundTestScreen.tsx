@@ -1,5 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import type { CompositeScreenProps } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useQueryClient } from '@tanstack/react-query';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Image, View } from 'react-native';
@@ -9,26 +11,51 @@ import { Text } from '@/components/ui/Text';
 import { PLAYBACK_AUDIO_MODE } from '@/features/audio/audio-session';
 import { classifyAudioPlaybackError } from '@/features/audio/playback-error';
 import { createExamSession } from '@/features/exam/api/exam-session-create';
+import {
+  autoRetryDelayMs,
+  classifyExamCreationFailure,
+  examCreationFailureHandling,
+} from '@/features/exam/exam-creation-failure';
+import { settleExamCreationKey, takeExamCreationKey } from '@/features/exam/exam-creation-key';
 import { ExamQuestionAudioError } from '@/features/exam/question-audio';
 import {
   reportOperationalError,
   type ExamAudioFailureDetail,
 } from '@/lib/operational-error-reporting';
-import type { MockExamStackParamList } from '@/navigation/types';
+import type { MockExamStackParamList, RootStackParamList } from '@/navigation/types';
 import { DeviceTestLayout } from '@/screens/mock-exam/components/DeviceTestLayout';
+import { PassRequiredModal } from '@/screens/mock-exam/components/PassRequiredModal';
 import { colors } from '@/theme';
 
 const headphonesIcon = require('../../../public/icons/device-test/headphones.png');
 const soundCheckAudio = require('../../../public/assets/audio/sound_check.wav');
 
-type SoundTestScreenProps = NativeStackScreenProps<MockExamStackParamList, 'SoundTest'>;
+type SoundTestScreenProps = CompositeScreenProps<
+  NativeStackScreenProps<MockExamStackParamList, 'SoundTest'>,
+  NativeStackScreenProps<RootStackParamList>
+>;
+
+/** 자동 재시도 사이에 기다린다. 화면을 떠나 요청이 취소되면 바로 끝낸다. */
+function waitUnlessAborted(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    const finish = () => {
+      clearTimeout(timer);
+      signal.removeEventListener('abort', finish);
+      resolve();
+    };
+    const timer = setTimeout(finish, ms);
+    signal.addEventListener('abort', finish);
+  });
+}
 
 export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
+  const queryClient = useQueryClient();
   const [hasPlayed, setHasPlayed] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);
   const [isStartingExam, setIsStartingExam] = useState(false);
   const [startExamError, setStartExamError] = useState<string | null>(null);
+  const [isPassRequiredVisible, setIsPassRequiredVisible] = useState(false);
   const createRequestRef = useRef<AbortController | null>(null);
   const hasReportedPlaybackFailureRef = useRef(false);
   const isAppActiveRef = useRef(AppState.currentState === 'active');
@@ -95,48 +122,82 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
     createRequestRef.current = controller;
     setIsStartingExam(true);
     setStartExamError(null);
+    // 결론 나지 않은 앞선 시도가 있으면 그 키를 이어 쓴다 — 서버가 이미 만든 시험을 돌려받는다.
+    const idempotencyKey = takeExamCreationKey();
+    let autoRetries = 0;
 
     try {
-      const session = await createExamSession(controller.signal);
-      if (!controller.signal.aborted) navigation.navigate('ExamSession', { session });
-    } catch (error) {
-      if (controller.signal.aborted) return;
-      if (error instanceof ExamQuestionAudioError) {
-        console.error('[SoundTest] 문제 음성이 없어 응시를 차단', {
-          examId: error.examId,
-          issues: error.issues,
-        });
-        const firstIssue = error.issues[0];
-        reportOperationalError({
-          code: 'EXAM_REQUIRED_AUDIO_FAILED',
-          cueKind: 'question',
-          reason: firstIssue?.reason ?? 'missing',
-          ...(firstIssue
-            ? {
-                partNumber: firstIssue.partNumber,
-                questionNumber: firstIssue.questionNumber,
-              }
-            : {}),
-          issueCount: error.issues.length,
-        });
-        setStartExamError('문제 음성이 준비되지 않은 시험이에요. 다시 시도해주세요.');
-        return;
+      for (;;) {
+        try {
+          const session = await createExamSession(idempotencyKey, controller.signal);
+          settleExamCreationKey(idempotencyKey);
+          if (!controller.signal.aborted) navigation.navigate('ExamSession', { session });
+          return;
+        } catch (error) {
+          if (controller.signal.aborted) return;
+          if (error instanceof ExamQuestionAudioError) {
+            // 서버는 시험을 만들었다. 같은 키면 음성 없는 같은 시험이 다시 오므로 새 시험을 받는다.
+            settleExamCreationKey(idempotencyKey);
+            console.error('[SoundTest] 문제 음성이 없어 응시를 차단', {
+              examId: error.examId,
+              issues: error.issues,
+            });
+            const firstIssue = error.issues[0];
+            reportOperationalError({
+              code: 'EXAM_REQUIRED_AUDIO_FAILED',
+              cueKind: 'question',
+              reason: firstIssue?.reason ?? 'missing',
+              ...(firstIssue
+                ? {
+                    partNumber: firstIssue.partNumber,
+                    questionNumber: firstIssue.questionNumber,
+                  }
+                : {}),
+              issueCount: error.issues.length,
+            });
+            setStartExamError('문제 음성이 준비되지 않은 시험이에요. 다시 시도해주세요.');
+            return;
+          }
+
+          const failure = classifyExamCreationFailure(error);
+          const retryDelayMs = autoRetryDelayMs(failure, autoRetries);
+          if (retryDelayMs !== null) {
+            autoRetries += 1;
+            await waitUnlessAborted(retryDelayMs, controller.signal);
+            if (controller.signal.aborted) return;
+            continue;
+          }
+
+          const handling = examCreationFailureHandling(failure);
+          if (!handling.keepsKey) settleExamCreationKey(idempotencyKey);
+          if (handling.refreshesAdmission)
+            void queryClient.invalidateQueries({ queryKey: ['entitlements'] });
+          if (handling.reports) {
+            console.error('[SoundTest] 모의고사 세션 생성 실패', failure.kind, error);
+            reportOperationalError({
+              code: 'EXAM_SESSION_CREATE_FAILED',
+              stage: 'session-create',
+              attempt,
+              cause: error,
+            });
+          }
+          if (failure.kind === 'pass-required') setIsPassRequiredVisible(true);
+          else setStartExamError(handling.message);
+          return;
+        }
       }
-      console.error('[SoundTest] 모의고사 세션 생성 실패', error);
-      reportOperationalError({
-        code: 'EXAM_SESSION_CREATE_FAILED',
-        stage: 'session-create',
-        attempt,
-        cause: error,
-      });
-      setStartExamError('시험 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
     } finally {
       if (createRequestRef.current === controller) {
         createRequestRef.current = null;
         if (!controller.signal.aborted) setIsStartingExam(false);
       }
     }
-  }, [navigation, soundCheckPlayer]);
+  }, [navigation, queryClient, soundCheckPlayer]);
+
+  const handleOpenPass = useCallback(() => {
+    setIsPassRequiredVisible(false);
+    navigation.navigate('PassPurchase');
+  }, [navigation]);
 
   useEffect(() => {
     if (
@@ -280,6 +341,12 @@ export function SoundTestScreen({ navigation }: SoundTestScreenProps) {
           </Pressable>
         )}
       </View>
+
+      <PassRequiredModal
+        visible={isPassRequiredVisible}
+        onClose={() => setIsPassRequiredVisible(false)}
+        onOpenPass={handleOpenPass}
+      />
     </DeviceTestLayout>
   );
 }
