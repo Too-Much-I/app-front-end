@@ -28,6 +28,7 @@ export const OPERATIONAL_ERROR_CODES = [
   'MYPAGE_LOAD_FAILED',
   'PUSH_REGISTRATION_FAILED',
   'APP_VERSION_CHECK_FAILED',
+  'PASS_PURCHASE_FAILED',
 ] as const;
 
 export type OperationalErrorCode = (typeof OPERATIONAL_ERROR_CODES)[number];
