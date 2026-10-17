@@ -12,7 +12,12 @@ import { Platform } from 'react-native';
  */
 const AD_CONVERSION_ENABLED = process.env.EXPO_PUBLIC_ENABLE_AD_CONVERSION === 'true';
 
-export type AdConversion = 'sign_up' | 'mock_exam_completed';
+/**
+ * 결제만 금액·통화를 싣는다(2026-10-14 결정). Google Ads가 매출 기준으로 입찰할 수 있게 GA4 표준 `purchase`
+ * 이벤트를 쓴다. 결제 금액은 개인정보처리방침의 광고 성과 측정 항목에 적는다.
+ */
+export type AdConversion =
+  'sign_up' | 'mock_exam_completed' | { name: 'purchase'; value: number; currency: string };
 
 type FirebaseAnalyticsModule = typeof import('@react-native-firebase/analytics');
 
@@ -52,12 +57,20 @@ export function initializeAdConversion(): void {
     });
 }
 
-/** 수집이 꺼져 있으면 아무 일도 하지 않는다. 속성은 싣지 않는다 — 광고 플랫폼은 제3자다. */
+/**
+ * 수집이 꺼져 있으면 아무 일도 하지 않는다. 광고 플랫폼은 제3자라 결제 금액 말고는 속성을 싣지 않는다 —
+ * 회원·거래 식별자도 보내지 않는다.
+ */
 export function trackConversion(conversion: AdConversion): void {
   void firebaseReady?.then((firebase) => {
     if (!firebase) return;
     const analytics = firebase.getAnalytics();
-    if (conversion === 'sign_up') {
+    if (typeof conversion === 'object') {
+      firebase.logEvent(analytics, 'purchase', {
+        value: conversion.value,
+        currency: conversion.currency,
+      });
+    } else if (conversion === 'sign_up') {
       // 가입은 SNS 로그인으로만 시작하고, 이 시점에는 어느 SNS인지 들고 있지 않다.
       firebase.logEvent(analytics, 'sign_up', { method: 'sns' });
     } else {

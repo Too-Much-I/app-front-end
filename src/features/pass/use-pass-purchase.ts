@@ -12,7 +12,13 @@ import {
 } from '@/features/pass/pass-products';
 import { CURRENT_PAYMENT_STORE } from '@/features/pass/payment-store';
 import type { PaymentSyncOutcome } from '@/features/pass/payment-sync';
-import { loadPassOffering, purchasePassPackage } from '@/features/pass/revenuecat';
+import {
+  describeStoreError,
+  loadPassOffering,
+  purchasePassPackage,
+} from '@/features/pass/revenuecat';
+import { trackConversion } from '@/lib/ad-conversion';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 const SECONDS_PER_DAY = 86_400;
 
@@ -100,13 +106,34 @@ export function usePassPurchase() {
     setIsPurchasing(true);
     try {
       let purchaseAccountRef: string;
-      let transactionId: string;
       try {
         purchaseAccountRef = await purchaseIdentity.ensure();
+      } catch (error) {
+        reportOperationalError({
+          code: 'PASS_PURCHASE_FAILED',
+          stage: 'purchase-account',
+          cause: error,
+        });
+        return 'failed';
+      }
+      let transactionId: string;
+      try {
         const result = await purchasePassPackage(option.pkg);
         if (result.kind === 'cancelled') return 'cancelled';
         transactionId = result.transactionId;
-      } catch {
+        // 스토어 결제가 성공한 순간을 전환으로 센다(2026-10-14 결정). 서버 반영을 기다리지 않는다.
+        trackConversion({
+          name: 'purchase',
+          value: option.price.amount,
+          currency: option.price.currencyCode,
+        });
+      } catch (error) {
+        reportOperationalError({
+          code: 'PASS_PURCHASE_FAILED',
+          stage: 'store-purchase',
+          storeErrorCode: describeStoreError(error),
+          cause: error,
+        });
         return 'failed';
       }
       // 결제는 끝났다. 여기부터는 실패해도 결제를 다시 하지 않는다 — 확인 결과만 알린다.
@@ -115,6 +142,9 @@ export function usePassPurchase() {
         store: CURRENT_PAYMENT_STORE,
         transactionId,
       });
+      // 돈은 냈는데 이용권이 아직 없는 사용자다. 문의가 오기 전에 알 수 있게 보고한다.
+      if (outcome === 'pending' || outcome === 'contact-support')
+        reportOperationalError({ code: 'PASS_PURCHASE_FAILED', stage: 'sync', outcome });
       // 반영됐든 확인 중이든 이용권 조회가 바뀌었다(명세: APPLIED면 갱신).
       void queryClient.invalidateQueries({ queryKey: ['entitlements'] });
       return outcome;

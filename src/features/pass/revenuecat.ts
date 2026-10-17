@@ -70,3 +70,18 @@ function isPurchaseCancelled(error: unknown): boolean {
     error.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR
   );
 }
+
+const STORE_ERROR_NAME_PATTERN = /^[A-Za-z_]{1,64}$/;
+
+/**
+ * Sentry에 실을 RevenueCat 오류 이름. 메시지는 스토어가 만든 자유 텍스트라 싣지 않고 `readableErrorCode`처럼
+ * 닫힌 식별자만 꺼낸다. 모양이 맞지 않으면 버린다.
+ */
+export function describeStoreError(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null || !('userInfo' in error)) return undefined;
+  const { userInfo } = error;
+  if (typeof userInfo !== 'object' || userInfo === null || !('readableErrorCode' in userInfo))
+    return undefined;
+  const name = userInfo.readableErrorCode;
+  return typeof name === 'string' && STORE_ERROR_NAME_PATTERN.test(name) ? name : undefined;
+}

@@ -292,6 +292,10 @@ const DEFINITIONS = {
     title: '앱 버전 정책 조회 실패',
     input: { code: 'APP_VERSION_CHECK_FAILED', cause: SYNTHETIC_API_CAUSE },
   },
+  PASS_PURCHASE_FAILED: {
+    title: '이용권 결제 실패',
+    input: { code: 'PASS_PURCHASE_FAILED', stage: 'purchase-account', cause: SYNTHETIC_API_CAUSE },
+  },
 } satisfies ValidationDefinitions;
 
 export interface SentryValidationCatalogItem {
