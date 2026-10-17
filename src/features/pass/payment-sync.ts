@@ -9,6 +9,11 @@ import { ApiError } from '@/lib/api/transport';
 const MAX_ATTEMPTS = 6;
 /** 202의 `Retry-After`는 응답 본문 밖이라 읽지 못한다. 명세의 현재 값 5초를 쓴다. 오류는 헤더 값을 따른다. */
 const DEFAULT_RETRY_SECONDS = 5;
+/**
+ * 한 번의 확인에서 기다리는 시간의 합. 5초 간격 6번이면 25초다. 서버가 이보다 오래 기다리라고 하면 더 짧게
+ * 기다려 다시 보내지 않고(429가 다시 난다) `pending`으로 끝낸다 — 거래는 저장돼 있어 다음에 다시 확인한다.
+ */
+const MAX_WAIT_SECONDS = (MAX_ATTEMPTS - 1) * DEFAULT_RETRY_SECONDS;
 
 /**
  * 같은 요청을 다시 보내도 결과가 바뀌지 않는 오류. 반복하지 않고 문의를 안내한다(Billing 명세).
@@ -76,6 +81,7 @@ export function createPaymentSync(dependencies: PaymentSyncDependencies) {
     entry: PendingPaymentSync,
     startGeneration: number,
   ): Promise<PaymentSyncOutcome> {
+    let waitedSeconds = 0;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
       if (startGeneration !== generation) return 'cancelled';
       let delay = DEFAULT_RETRY_SECONDS;
@@ -99,7 +105,9 @@ export function createPaymentSync(dependencies: PaymentSyncDependencies) {
         // 타임아웃·응답 유실·401·429·503: 결제를 다시 하지 않고 같은 확인을 다시 보낸다.
         delay = retryDelaySeconds(error);
       }
-      if (attempt < MAX_ATTEMPTS) await wait(delay);
+      if (attempt === MAX_ATTEMPTS || waitedSeconds + delay > MAX_WAIT_SECONDS) break;
+      await wait(delay);
+      waitedSeconds += delay;
     }
     return startGeneration === generation ? 'pending' : 'cancelled';
   }
