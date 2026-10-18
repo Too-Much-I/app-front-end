@@ -10,6 +10,8 @@ import { Sparkle, type SparkleProps } from '@/components/ui/Sparkle';
 import { StartMockExamButton } from '@/components/ui/StartMockExamButton';
 import { Text } from '@/components/ui/Text';
 import { TickingClock } from '@/components/ui/TickingClock';
+import { PaidTransitionNoticeModal } from '@/features/paid-transition/components/PaidTransitionNoticeModal';
+import { usePaidTransitionNotice } from '@/features/paid-transition/use-paid-transition-notice';
 import type { MainTabParamList, RootStackParamList } from '@/navigation/types';
 import { RecentFeedbackCard } from '@/screens/home/RecentFeedbackCard';
 import { useRecentFeedback } from '@/screens/home/use-recent-feedback';
@@ -61,6 +63,7 @@ const CHALLENGE_SPARKLES: SparkleProps[] = [
 export function HomeScreen() {
   const navigation = useNavigation<HomeNavigationProp>();
   const recentFeedback = useRecentFeedback();
+  const paidTransitionNotice = usePaidTransitionNotice();
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-surface-subtle">
@@ -151,6 +154,14 @@ export function HomeScreen() {
           </Pressable>
         </View>
       </ScrollView>
+      <PaidTransitionNoticeModal
+        visible={paidTransitionNotice.visible}
+        onConfirm={paidTransitionNotice.dismiss}
+        onOpenPass={() => {
+          paidTransitionNotice.dismiss();
+          navigation.navigate('PassPurchase');
+        }}
+      />
     </SafeAreaView>
   );
 }

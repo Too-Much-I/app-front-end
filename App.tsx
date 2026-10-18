@@ -3,7 +3,7 @@ import './global.css';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -12,6 +12,7 @@ import { PortraitOnlyNotice } from '@/components/ui/PortraitOnlyNotice';
 import { AppUpdateNotice } from '@/features/app-version/components/AppUpdateNotice';
 import { appAuthRuntime } from '@/features/auth/app-auth-runtime';
 import { OrientationProvider } from '@/features/orientation/OrientationProvider';
+import { loadPaidTransitionNoticeStatus } from '@/features/paid-transition/paid-transition-notice-storage';
 import { useOrientation } from '@/features/orientation/orientation-context';
 import { AccountRecoveryNavigator } from '@/navigation/AccountRecoveryNavigator';
 import { AuthPreviewNavigator } from '@/navigation/AuthPreviewNavigator';
@@ -37,6 +38,11 @@ function AppContent() {
   const previousRouteNameRef = useRef<string | undefined>(undefined);
 
   const { ready: fontsReady, onLayoutRootView } = useAppFonts();
+
+  // 3.0.0 신규 설치자는 동의 화면에서 동의 기록이 생기므로, 그 전에 기존 사용자인지 정해 둔다.
+  useEffect(() => {
+    void loadPaidTransitionNoticeStatus();
+  }, []);
 
   // 인증 복원 중 로딩은 RootNavigator가 코디네이터 상태에 따라 직접 그린다.
   if (!fontsReady) {
