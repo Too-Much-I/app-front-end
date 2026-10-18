@@ -7,8 +7,8 @@ import { shadows } from '@/theme';
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
 const thanksRabbit = require('../../../../public/mascots/thanks_heart_rabbit.jpg');
 
-/** 시안에서 카드 폭 342에 그림 높이 300. 토끼 발밑 배경까지 보이는 비율이다. */
-const ILLUSTRATION_ASPECT_RATIO = 342 / 300;
+/** 시안의 그림 높이(카드 폭 342 기준). 토끼 발밑 배경까지 보인다. */
+const ILLUSTRATION_HEIGHT = 300;
 /** 작은 화면(높이 667)에서 버튼이 화면 밖으로 밀리지 않도록 그림이 차지할 수 있는 화면 높이 비율. */
 const MAX_ILLUSTRATION_SCREEN_RATIO = 0.35;
 
@@ -44,9 +44,10 @@ export function PaidTransitionNoticeModal({
             className="w-full"
             resizeMode="cover"
             source={thanksRabbit}
+            // 비율(aspectRatio)과 최대 높이를 같이 걸면 높이가 잘릴 때 폭까지 줄어 오른쪽이 빈다.
+            // 높이만 정하고 폭은 카드에 맞춰 cover로 채운다.
             style={{
-              aspectRatio: ILLUSTRATION_ASPECT_RATIO,
-              maxHeight: height * MAX_ILLUSTRATION_SCREEN_RATIO,
+              height: Math.min(ILLUSTRATION_HEIGHT, height * MAX_ILLUSTRATION_SCREEN_RATIO),
             }}
           />
           <View className="p-2xl">
