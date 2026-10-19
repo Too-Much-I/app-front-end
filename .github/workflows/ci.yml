@@ -5,7 +5,8 @@ on:
     # edited: PR 본문의 "동작 변화 없음" 선언을 고치면 학습 기록 검사를 다시 돌린다.
     types: [opened, synchronize, reopened, edited]
   push:
-    branches: [main]
+    # 기능 PR은 develop으로, 출시 PR은 develop → main으로 머지한다(docs/decisions/2026-10-19-develop-브랜치-도입.md).
+    branches: [main, develop]
 
 # 같은 브랜치에 새 커밋이 올라오면 이전 실행은 취소한다.
 concurrency:

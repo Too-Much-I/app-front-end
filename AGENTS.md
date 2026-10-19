@@ -126,6 +126,7 @@ Steps 1 and 2 go in `docs/decisions/`; steps 3 and 5 go in the learning record `
 
 ## Commits and pull requests
 
+- Branches: feature and fix PRs target `develop`. A release is a PR from `develop` into `main`, and every store build is made from `main`. A hotfix for a released app branches from `main`, merges into `main`, and is then merged back into `develop`. Background: `docs/decisions/2026-10-19-develop-브랜치-도입.md`.
 - Do not create commits unless explicitly requested. When asked, stage only changes within the requested scope and use a Conventional Commit title with an optional scope, such as `feat(mock-exam): 파트별 안내 화면 추가`.
 - Write commit subjects and bodies in Korean. Keep the Conventional Commit type and optional scope in their standard lowercase English form.
 - Include a commit body explaining the purpose of the change and the implementation intent. Describe the problem being solved and why this approach was chosen rather than listing changes. Include alternatives, constraints, and intentional exclusions only when they influenced the decision. The body may be omitted for simple typo or formatting fixes.
