@@ -1,5 +1,6 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
+import type { LearningLevel, LearningPart } from '@/features/learning/learning-level';
 import type { SupportInquiryEntry } from '@/features/support/support-inquiry';
 import type { ChallengeInitialResult } from '@/types/challenge';
 import type { ExamSession } from '@/types/exam';
@@ -16,6 +17,8 @@ export type AuthPreviewStackParamList = {
 export type MainTabParamList = {
   Home: undefined;
   MockExam: undefined;
+  /** 답변 익히기의 첫 화면. 등급 카드를 넘겨 목표 등급을 고른다. */
+  Learning: undefined;
   /**
    * 피드백 웹뷰. `examId`만 있으면 종합 피드백을, `questionNumber`가 함께 오면 해당 문제의
    * 문제별 피드백을 연다. 최초 답변은 회차를 생략하고 재답변 결과는 `retryCount`로 특정한다.
@@ -111,6 +114,15 @@ export type RootStackParamList = {
      */
     nextQuestionNumber?: number;
   };
+  /**
+   * 학습 파트 고르기. 학습 탭에서 고른 등급을 들고 온다.
+   *
+   * 등급은 이 화면 다음의 학습 화면 요청까지 그대로 이어져야 하므로 전역 상태가 아니라 route로 넘긴다.
+   * 탭 위를 덮는 화면이라 루트 스택에 둔다.
+   */
+  LearningParts: { level: LearningLevel };
+  /** 학습 화면. 지금은 등급과 파트를 받는 자리만 있다. */
+  LearningSession: { level: LearningLevel; part: LearningPart };
   /** 설정 화면. 탭이 아니라 마이페이지 메뉴로 진입하는 루트 스택 push 화면이다. */
   Settings: undefined;
   /** 기간제 이용권 선택 화면. 마이페이지 메뉴로 진입하는 루트 스택 push 화면이다. */

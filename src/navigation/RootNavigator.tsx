@@ -28,6 +28,8 @@ import type { RootStackParamList } from '@/navigation/types';
 import { AuthRecoveryScreen } from '@/screens/auth/AuthRecoveryScreen';
 import { SignupFailureScreen } from '@/screens/auth/SignupFailureScreen';
 import { ConsentScreen } from '@/screens/consent/ConsentScreen';
+import { LearningPartsScreen } from '@/screens/learning/LearningPartsScreen';
+import { LearningSessionScreen } from '@/screens/learning/LearningSessionScreen';
 import { NotificationsScreen } from '@/screens/notifications/NotificationsScreen';
 import { PassPurchaseScreen } from '@/screens/pass/PassPurchaseScreen';
 import { ReanswerScreen } from '@/screens/reanswer/ReanswerScreen';
@@ -64,6 +66,8 @@ function MemberRootNavigator() {
       <Stack.Screen name="SupportInquiry" component={SupportInquiryRoute} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="PassPurchase" component={PassPurchaseScreen} />
+      <Stack.Screen name="LearningParts" component={LearningPartsScreen} />
+      <Stack.Screen name="LearningSession" component={LearningSessionScreen} />
     </Stack.Navigator>
   );
 }
