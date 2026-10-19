@@ -10,6 +10,7 @@ import { PushPermissionPrompt } from '@/features/push/components/PushPermissionP
 import { usePushNotificationOpen } from '@/features/push/push-notification-events';
 import { FeedbackScreen } from '@/screens/feedback/FeedbackScreen';
 import { HomeScreen } from '@/screens/home/HomeScreen';
+import { LearningLevelScreen } from '@/screens/learning/LearningLevelScreen';
 import { MyPageScreen } from '@/screens/mypage/MyPageScreen';
 import { MockExamStackNavigator } from '@/navigation/MockExamStackNavigator';
 import { TabBarButton } from '@/navigation/TabBarButton';
@@ -30,6 +31,7 @@ type TabConfig = {
 const TAB_CONFIG: TabConfig[] = [
   { name: 'Home', title: '홈', icon: 'home', component: HomeScreen },
   { name: 'MockExam', title: '모의고사', icon: 'clipboard', component: MockExamStackNavigator },
+  { name: 'Learning', title: '학습', icon: 'book-open', component: LearningLevelScreen },
   { name: 'Feedback', title: '피드백', icon: 'message-circle', component: FeedbackScreen },
   { name: 'MyPage', title: '마이페이지', icon: 'user', component: MyPageScreen },
 ];
