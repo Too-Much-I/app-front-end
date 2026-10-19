@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
@@ -26,7 +26,8 @@ type PassPurchaseScreenProps = NativeStackScreenProps<RootStackParamList, 'PassP
 const REFUND_NOTICES = [
   '이용권은 결제 즉시 시작되며, 이용 시작 후에는 환불이 제한될 수 있어요.',
   '모의고사를 한 번도 풀지 않았다면 환불받을 수 있어요.',
-  '결제와 환불은 App Store · Google Play 정책을 따라요.',
+  // 심사 지침 2.3.10: iOS 화면에 Google Play를 언급하면 거절된다.
+  `결제와 환불은 ${Platform.OS === 'ios' ? 'App Store' : 'Google Play'} 정책을 따라요.`,
 ] as const;
 
 function PassProductTile({
