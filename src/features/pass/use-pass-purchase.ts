@@ -18,6 +18,7 @@ import {
   purchasePassPackage,
 } from '@/features/pass/revenuecat';
 import { trackConversion } from '@/lib/ad-conversion';
+import { trackRevenue } from '@/lib/amplitude';
 import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 const SECONDS_PER_DAY = 86_400;
@@ -126,6 +127,12 @@ export function usePassPurchase() {
           name: 'purchase',
           value: option.price.amount,
           currency: option.price.currencyCode,
+        });
+        trackRevenue({
+          productId: option.pkg.product.identifier,
+          price: option.price.amount,
+          currency: option.price.currencyCode,
+          revenueType: 'pass',
         });
       } catch (error) {
         reportOperationalError({

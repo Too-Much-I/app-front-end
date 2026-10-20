@@ -2,6 +2,7 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 
 import type { LearningLevel, LearningPart } from '@/features/learning/learning-level';
 import type { SupportInquiryEntry } from '@/features/support/support-inquiry';
+import type { ChallengeResultEntry } from '@/lib/analytics-events';
 import type { ChallengeInitialResult } from '@/types/challenge';
 import type { ExamSession } from '@/types/exam';
 
@@ -99,6 +100,11 @@ export type RootStackParamList = {
   ChallengeResult: {
     challengeDate: string;
     questionNumber: number;
+    /**
+     * 들어온 길. 방금 제출하고 넘어온 것과 이미 끝난 문제를 다시 연 것을 분석에서 나눈다.
+     * 문제 화면에 들어갔다가 이미 끝난 응시로 판명돼 넘어온 것도 다시 연 것(`stage`)이다.
+     */
+    entry: ChallengeResultEntry;
     /**
      * 제출 접수 응답에서 바로 받은 값. 있으면 결과 화면이 첫 조회를 기다리지 않고
      * 참고 답안까지 그린다. 스테이지에서 들어올 때는 없고, 그때는 결과 조회가 채운다.

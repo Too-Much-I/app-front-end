@@ -56,6 +56,7 @@ export function ChallengeStageScreen({ navigation }: ChallengeStageScreenProps) 
         navigation.navigate('ChallengeResult', {
           challengeDate: date,
           questionNumber: question.questionNumber,
+          entry: 'stage',
           ...(nextQuestionNumber === null ? {} : { nextQuestionNumber }),
         });
         return;

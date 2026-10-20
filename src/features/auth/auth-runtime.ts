@@ -54,6 +54,7 @@ import { logInStoreCustomer, logOutStoreCustomer } from '@/features/pass/revenue
 import { observePushTokenRefresh } from '@/features/push/push-notification-events';
 import { createPushRegistration } from '@/features/push/push-registration';
 import { createAuthenticatedApiClient } from '@/lib/api/authenticated-client';
+import { resetAnalyticsUser, setAnalyticsUserId } from '@/lib/amplitude';
 import { queryClient } from '@/lib/query-client';
 import { setAccountStateTag, type AccountStateTag } from '@/lib/sentry';
 
@@ -142,8 +143,15 @@ export function createAuthRuntime(options: {
     readStored: readStoredPurchaseAccountRef,
     store: storePurchaseAccountRef,
     clearStored: clearStoredPurchaseAccountRef,
-    logInStore: logInStoreCustomer,
-    logOutStore: logOutStoreCustomer,
+    // 분석 사용자도 결제용 ID로 맞춘다(2026-10-20 결정). RevenueCat 로그인 성공과 상관없이 ID는 유효하다.
+    logInStore: (purchaseAccountRef) => {
+      setAnalyticsUserId(purchaseAccountRef);
+      return logInStoreCustomer(purchaseAccountRef);
+    },
+    logOutStore: () => {
+      resetAnalyticsUser();
+      return logOutStoreCustomer();
+    },
   });
   const paymentSync = createPaymentSync({
     request: (request) => requestPaymentSync(api.billingFetch, request),

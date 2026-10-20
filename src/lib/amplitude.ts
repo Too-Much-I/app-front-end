@@ -110,13 +110,54 @@ export function getLastScreenName(): string | null {
 }
 
 /**
- * 인증 상태와 분석 사용자를 맞춘다. 로그아웃·게스트 전환 시 `undefined`를 넘기면
- * Amplitude가 device ID 기준으로 되돌아간다.
+ * 분석 사용자를 결제용 ID(`purchaseAccountRefId`)로 맞춘다(2026-10-20 결정). 같은 사용자면 기기가
+ * 달라도 늘 같은 값이라 한 사람의 이벤트가 기기를 넘어 이어진다. 회원 ID는 앱이 갖고 있지 않고,
+ * 갖고 있더라도 분석 도구에 원본을 보내지 않는다.
  */
-export function setAnalyticsUserId(userId: string | undefined): void {
+export function setAnalyticsUserId(userId: string): void {
   if (!amplitudeReady) return;
 
   void amplitudeReady.then((amplitude) => {
     amplitude?.setUserId(userId);
+  });
+}
+
+/**
+ * 사용자 ID를 비우고 기기 ID를 새로 만든다. 사용자 ID만 비우면 로그인 화면에서 쌓인 이벤트가 같은
+ * 기기 ID를 타고 이전 계정에 붙는다 — 그 이벤트는 다음에 로그인할 계정의 것이다.
+ *
+ * 네트워크 없이 메모리 값만 바꾸므로 다시 해서 나을 실패가 없다. 로그인 화면에 올 때마다 불리는
+ * 것이 곧 재시도다. 초기화와 같은 promise에 줄 서므로 뒤따르는 `setAnalyticsUserId`보다 먼저 끝난다.
+ */
+export function resetAnalyticsUser(): void {
+  if (!amplitudeReady) return;
+
+  void amplitudeReady.then((amplitude) => {
+    amplitude?.reset();
+  });
+}
+
+/** 결제 매출. Amplitude 표준 Revenue로 보내 매출·LTV 차트가 별도 설정 없이 붙는다. */
+export interface AnalyticsRevenue {
+  /** 스토어 상품 ID. */
+  productId: string;
+  price: number;
+  currency: string;
+  revenueType: 'pass';
+}
+
+/** 거래 ID·영수증은 싣지 않는다. 광고 전환(`ad-conversion.ts`)과 같은 기준이다. */
+export function trackRevenue({ productId, price, currency, revenueType }: AnalyticsRevenue): void {
+  if (!amplitudeReady) return;
+
+  void amplitudeReady.then((amplitude) => {
+    if (!amplitude) return;
+    const revenue = new amplitude.Revenue()
+      .setProductId(productId)
+      .setPrice(price)
+      .setQuantity(1)
+      .setCurrency(currency)
+      .setRevenueType(revenueType);
+    amplitude.revenue(revenue);
   });
 }

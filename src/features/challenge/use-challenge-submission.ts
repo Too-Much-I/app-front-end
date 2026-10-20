@@ -21,6 +21,7 @@ import type {
   ChallengeAttempt,
   ChallengeUploadUrl,
 } from '@/types/challenge';
+import { trackEvent } from '@/lib/amplitude';
 import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 export type ChallengeSubmissionStatus = 'idle' | 'submitting' | 'failed';
@@ -182,6 +183,11 @@ export function useChallengeSubmission({
         return;
       }
 
+      // 화면을 떠났어도 서버는 접수했다. 그래서 화면 상태보다 먼저 센다.
+      trackEvent({
+        name: 'challenge_submitted',
+        properties: { questionNumber: target.questionNumber, challengeDate: target.date },
+      });
       if (controller.signal.aborted || !mountedRef.current) return;
       idempotencyKeyRef.current = null;
       setStatus('idle');
