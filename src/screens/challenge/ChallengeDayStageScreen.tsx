@@ -45,6 +45,7 @@ export function ChallengeDayStageScreen({ navigation, route }: ChallengeDayStage
       navigation.navigate('ChallengeResult', {
         challengeDate,
         questionNumber: question.questionNumber,
+        entry: 'stage',
       });
     },
     [challengeDate, navigation],

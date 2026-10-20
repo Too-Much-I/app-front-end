@@ -10,7 +10,8 @@ import type { ExamSessionPhase } from '@/types/exam';
  * 수집 원칙 — `sentry.ts`의 스크러빙 정책과 같은 기준을 쓴다.
  *
  * - `examId` 같은 식별자를 넣지 않는다. Sentry가 redact하는 값을 분석 도구에만
- *   평문으로 보내면 정책이 어긋난다.
+ *   평문으로 보내면 정책이 어긋난다. 예외는 사용자 ID로 쓰는 결제용 ID 하나다
+ *   (`amplitude.ts`의 `setAnalyticsUserId`, 2026-10-20 결정).
  * - 답변 내용과 채점 점수를 넣지 않는다.
  * - 오류의 원인(스택, 메시지)은 Sentry 몫이다. 여기에는 오류가 난 뒤 이용자가
  *   무엇을 했는지만 남긴다.
@@ -63,12 +64,43 @@ export type AnalyticsEvent =
   | { name: 'reanswer_submitted'; properties: { retryCount: number } }
   | { name: 'reanswer_abandoned'; properties: { retryCount: number } }
 
+  // 10초 챌린지 — 문제 단위. 하루에 끝낸 문제 수는 `challenge_submitted`로 센다.
+  /**
+   * attempt 발급이 성공했다. 제출 전에 나갔다 들어오면 서버가 같은 attempt를 다시 주는데,
+   * 그것도 센다 — 시작 시도와 제출의 차이가 곧 중간 이탈이다.
+   */
+  | { name: 'challenge_started'; properties: ChallengeEventProperties }
+  /** 재녹음 버튼. 첫 녹음은 발급 직후 자동으로 켜지므로 세지 않는다. */
+  | { name: 'challenge_rerecorded'; properties: ChallengeEventProperties }
+  /** 서버가 답변을 접수했다. 이미 끝난 응시로 판명된 제출은 세지 않는다. */
+  | { name: 'challenge_submitted'; properties: ChallengeEventProperties }
+  /**
+   * AI 결과가 화면에 보였다. 볼 때마다 센다. 참고 답안만 보인 순간은 세지 않는다 —
+   * AI 결과를 실제로 보는지가 이 기능을 유지할 근거다.
+   */
+  | {
+      name: 'challenge_result_viewed';
+      properties: ChallengeEventProperties & { entry: ChallengeResultEntry };
+    }
+
   // 그 밖의 마찰 신호
   /** 어느 화면에서 가로로 돌리려 하는지. 태블릿 가로 지원 판단의 근거다. */
   | { name: 'portrait_notice_shown'; properties: { routeName: string } }
   /** 이탈을 가장 강하게 예고하는 행동이라 결과가 아니라 요청 시점에 남긴다. */
   | { name: 'learning_record_delete_requested' }
   | { name: 'optional_consent_decided'; properties: { consented: boolean } };
+
+interface ChallengeEventProperties {
+  questionNumber: number;
+  /**
+   * attempt가 정한 챌린지 날짜(`YYYY-MM-DD`). 자정을 넘겨 제출해도 시작한 날로 처리되므로
+   * 이벤트 시각으로 하루를 나누면 밤 12시 근처의 응시가 다음 날로 넘어간다.
+   */
+  challengeDate: string;
+}
+
+/** 결과 화면에 들어온 길. 제출 직후(`submission`)와 다시 열어 본 것(`stage`)을 나눈다. */
+export type ChallengeResultEntry = 'submission' | 'stage';
 
 /**
  * 마이크 테스트가 깨진 단계. 어느 단계에서 막히는지가 안내 문구 개선의 근거다.
