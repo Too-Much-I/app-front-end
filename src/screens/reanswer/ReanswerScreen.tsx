@@ -15,6 +15,7 @@ import { useReanswerSubmission } from '@/features/exam/use-reanswer-submission';
 import type { RootStackParamList } from '@/navigation/types';
 import { trackEvent } from '@/lib/amplitude';
 import { reportOperationalError } from '@/lib/operational-error-reporting';
+import { PassRequiredModal } from '@/features/pass/components/PassRequiredModal';
 import { ReanswerQuestionCard } from '@/screens/reanswer/components/ReanswerQuestionCard';
 import { ReanswerRecordPanel } from '@/screens/reanswer/components/ReanswerRecordPanel';
 import { ReanswerStatusPanel } from '@/screens/reanswer/components/ReanswerStatusPanel';
@@ -223,6 +224,12 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
     };
   }, [nextRetryCount]);
 
+  // 결제 화면은 위에 쌓이므로 이 화면과 녹음본은 그대로 남는다. 돌아와서 다시 제출하면 된다.
+  const openPassPurchase = useCallback(() => {
+    submission.dismissPassRequired();
+    navigation.navigate('PassPurchase');
+  }, [navigation, submission]);
+
   const leaveScreen = useCallback(() => {
     leavingRef.current = true;
     setIsDiscardVisible(false);
@@ -319,6 +326,14 @@ export function ReanswerScreen({ navigation, route }: ReanswerScreenProps) {
         onConfirm={leaveScreen}
         title="녹음을 그만둘까요?"
         visible={isDiscardVisible}
+      />
+
+      <PassRequiredModal
+        ctaLabel="이용권 결제하러 가기"
+        message="다시 답변하기는 이용권이 있어야 할 수 있어요. 방금 녹음한 답변은 그대로 남아 있어요."
+        onClose={submission.dismissPassRequired}
+        onOpenPass={openPassPurchase}
+        visible={submission.isPassRequired}
       />
     </View>
   );
