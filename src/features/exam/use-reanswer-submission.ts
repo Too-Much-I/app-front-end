@@ -4,6 +4,7 @@ import { notifyAnswerUploadComplete } from '@/features/exam/api/exam-answer-subm
 import { getAnswerUploadUrl } from '@/features/exam/api/exam-answer-upload-url';
 import { getExamQuestionStatus } from '@/features/exam/api/exam-question-status';
 import { AnswerAudioUploadError, uploadAnswerAudio } from '@/features/exam/upload-answer-audio';
+import { ApiError } from '@/lib/api/transport';
 import { reportOperationalError } from '@/lib/operational-error-reporting';
 import type { AnswerKey } from '@/types/exam';
 
@@ -37,6 +38,13 @@ const SUBMIT_PROCESSING_FAILURE_MESSAGE =
 const GRADING_FAILURE_MESSAGE = '채점 결과를 확인하지 못했어요.';
 const GRADING_TIMEOUT_MESSAGE = '채점이 예상보다 오래 걸리고 있어요.';
 
+/** 재답변도 응시권을 쓴다. 코드 없이 오는 402도 응시권 없음으로 본다(시험 생성과 같은 기준). */
+function isPassRequiredError(error: unknown): boolean {
+  return (
+    error instanceof ApiError && (error.code === 'ENTITLEMENT_INSUFFICIENT' || error.status === 402)
+  );
+}
+
 interface UseReanswerSubmissionInput {
   key: AnswerKey;
   /** 새 회차 채점이 끝났을 때. 화면은 이 시점에 문제별 피드백으로 돌아간다. */
@@ -58,6 +66,7 @@ export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionIn
   const [status, setStatus] = useState<ReanswerSubmissionStatus>('idle');
   const [failureStage, setFailureStage] = useState<ReanswerFailureStage | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isPassRequired, setIsPassRequired] = useState(false);
 
   const mountedRef = useRef(true);
   const abortRef = useRef<AbortController | null>(null);
@@ -191,6 +200,13 @@ export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionIn
         }
       } catch (error) {
         if (controller.signal.aborted || !mountedRef.current) return;
+        // 응시권이 없는 건 앱·서버 문제가 아니라 보고하지 않는다. 녹음본을 버리지 않도록 검토
+        // 단계로 돌려 두고 화면이 결제 안내를 띄운다 — 결제하고 돌아오면 같은 녹음을 다시 낸다.
+        if (isPassRequiredError(error)) {
+          setStatus('idle');
+          setIsPassRequired(true);
+          return;
+        }
         console.error('[Reanswer] 답변 제출 실패', error);
         fail(
           'submit',
@@ -218,7 +234,18 @@ export function useReanswerSubmission({ key, onGraded }: UseReanswerSubmissionIn
     hasReportedFailureRef.current = false;
     setFailureStage(null);
     setErrorMessage(null);
+    setIsPassRequired(false);
   }, [clearPollTimer]);
 
-  return { status, failureStage, errorMessage, submit, reset };
+  const dismissPassRequired = useCallback(() => setIsPassRequired(false), []);
+
+  return {
+    status,
+    failureStage,
+    errorMessage,
+    isPassRequired,
+    dismissPassRequired,
+    submit,
+    reset,
+  };
 }

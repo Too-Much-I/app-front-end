@@ -24,7 +24,7 @@ import {
 } from '@/lib/operational-error-reporting';
 import type { MockExamStackParamList, RootStackParamList } from '@/navigation/types';
 import { DeviceTestLayout } from '@/screens/mock-exam/components/DeviceTestLayout';
-import { PassRequiredModal } from '@/screens/mock-exam/components/PassRequiredModal';
+import { PassRequiredModal } from '@/features/pass/components/PassRequiredModal';
 import { colors } from '@/theme';
 
 const headphonesIcon = require('../../../public/icons/device-test/headphones.png');
