@@ -15,33 +15,46 @@ const API_KEY_BY_PLATFORM: Partial<Record<typeof Platform.OS, string>> = {
 const PASS_OFFERING_ID = 'premium';
 
 let configured = false;
+let currentPurchaseAccount: string | null = null;
 
-/** 처음 쓸 때 한 번 설정한다. 앱 시작을 늦추지 않고, 결제를 쓰지 않는 사용자는 SDK를 깨우지 않는다. */
-function configureOnce(): void {
-  if (configured) return;
-  const apiKey = API_KEY_BY_PLATFORM[Platform.OS];
-  if (!apiKey) throw new Error(`이 플랫폼은 스토어 결제를 지원하지 않는다: ${Platform.OS}`);
-  Purchases.configure({ apiKey });
-  configured = true;
-}
-
-/** RevenueCat 사용자를 결제용 ID로 맞춘다. 이미 같은 사용자면 SDK가 그대로 둔다. */
+/** 결제용 ID를 받은 뒤에만 초기화한다. 익명 고객을 먼저 만들지 않는다. */
 export async function logInStoreCustomer(purchaseAccountRef: string): Promise<void> {
-  configureOnce();
-  await Purchases.logIn(purchaseAccountRef);
+  currentPurchaseAccount = null;
+  if (!configured) {
+    const apiKey = API_KEY_BY_PLATFORM[Platform.OS];
+    if (!apiKey) throw new Error(`이 플랫폼은 스토어 결제를 지원하지 않는다: ${Platform.OS}`);
+    Purchases.configure({ apiKey, appUserID: purchaseAccountRef });
+    configured = true;
+  } else {
+    await Purchases.logIn(purchaseAccountRef);
+  }
+  if ((await Purchases.getAppUserID()) !== purchaseAccountRef) {
+    throw new Error('스토어 결제 계정이 일치하지 않습니다.');
+  }
+  currentPurchaseAccount = purchaseAccountRef;
 }
 
-/** 익명 사용자에게 logOut을 부르면 SDK가 오류를 낸다. 로그인 화면은 앱을 켤 때마다 오므로 먼저 확인한다. */
+/** 로컬 구매 접근을 닫는다. SDK logOut으로 새 익명 고객을 만들지 않는다. 다음 계정은 logIn으로 전환한다. */
 export async function logOutStoreCustomer(): Promise<void> {
-  // 이번 실행에서 SDK를 쓴 적이 없어도 이전 실행의 사용자가 SDK 저장소에 남아 있을 수 있다.
-  configureOnce();
-  if (await Purchases.isAnonymous()) return;
-  await Purchases.logOut();
+  currentPurchaseAccount = null;
+}
+
+async function requireStoreCustomer(expected: string): Promise<void> {
+  if (
+    !configured ||
+    currentPurchaseAccount !== expected ||
+    (await Purchases.getAppUserID()) !== expected ||
+    currentPurchaseAccount !== expected
+  ) {
+    throw new Error('스토어 결제 계정을 먼저 확인해야 합니다.');
+  }
 }
 
 /** Offering이 없으면 null. 스토어에 상품이 비활성이면 패키지가 비어서 온다. */
-export async function loadPassOffering(): Promise<PurchasesOffering | null> {
-  configureOnce();
+export async function loadPassOffering(
+  purchaseAccountRef: string,
+): Promise<PurchasesOffering | null> {
+  await requireStoreCustomer(purchaseAccountRef);
   const offerings = await Purchases.getOfferings();
   return offerings.all[PASS_OFFERING_ID] ?? null;
 }
@@ -51,8 +64,11 @@ export type StorePurchaseResult =
   { kind: 'purchased'; transactionId: string } | { kind: 'cancelled' };
 
 /** 사용자가 결제 창을 닫은 것은 실패가 아니다. 나머지 오류는 그대로 던진다. */
-export async function purchasePassPackage(pkg: PurchasesPackage): Promise<StorePurchaseResult> {
-  configureOnce();
+export async function purchasePassPackage(
+  pkg: PurchasesPackage,
+  purchaseAccountRef: string,
+): Promise<StorePurchaseResult> {
+  await requireStoreCustomer(purchaseAccountRef);
   try {
     const { transaction } = await Purchases.purchasePackage(pkg);
     return { kind: 'purchased', transactionId: transaction.transactionIdentifier };

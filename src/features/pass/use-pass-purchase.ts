@@ -66,7 +66,11 @@ function matchOptions(
 
 /** 둘 중 하나라도 실패하면 던진다. 정상 빈 목록과 실패를 구분해 실패를 "판매 없음"으로 숨기지 않는다. */
 async function loadPassOptions(signal: AbortSignal): Promise<PassOptionGroup[]> {
-  const [products, offering] = await Promise.all([getPaymentProducts(signal), loadPassOffering()]);
+  const ref = await appAuthRuntime.purchaseIdentity.ensure();
+  const [products, offering] = await Promise.all([
+    getPaymentProducts(signal),
+    loadPassOffering(ref),
+  ]);
   return matchOptions(products, offering?.availablePackages ?? []);
 }
 
@@ -119,7 +123,7 @@ export function usePassPurchase() {
       }
       let transactionId: string;
       try {
-        const result = await purchasePassPackage(option.pkg);
+        const result = await purchasePassPackage(option.pkg, purchaseAccountRef);
         if (result.kind === 'cancelled') return 'cancelled';
         transactionId = result.transactionId;
         // 스토어 결제가 성공한 순간을 전환으로 센다(2026-10-14 결정). 서버 반영을 기다리지 않는다.
