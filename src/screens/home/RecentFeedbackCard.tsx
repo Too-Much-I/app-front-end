@@ -9,9 +9,11 @@ import type { ExamHistoryItem } from '@/features/exam/map-exam-history';
 import type { RecentFeedbackState } from '@/screens/home/use-recent-feedback';
 import { colors, shadows } from '@/theme';
 
-const feedbackMascot = require('../../../public/mascots/paper_rabbit.png');
-/** paper_rabbit.png를 내용 기준으로 타이트 크롭한 실제 가로/세로 비율. */
-const FEEDBACK_MASCOT_ASPECT_RATIO = 1329 / 1918;
+// 할로윈 기간 그림. 할로윈이 끝나면 다음 빌드에서 paper_rabbit.png(비율 1329 / 1918)로 되돌린다
+// (docs/decisions/2026-10-22-할로윈-마스코트.md).
+const feedbackMascot = require('../../../public/mascots/ghost_basket_rabbit.png');
+/** ghost_basket_rabbit.png를 내용 기준으로 타이트 크롭한 실제 가로/세로 비율. */
+const FEEDBACK_MASCOT_ASPECT_RATIO = 718 / 966;
 const FEEDBACK_MASCOT_MAX_HEIGHT = 136;
 
 /** 피드백 카드 마스코트 주변의 반짝임. 카드 강조용으로 노란 계열을 쓴다. */

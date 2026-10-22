@@ -31,7 +31,8 @@ export function LoginScreen({
       <View className="min-h-control-lg flex-row items-center px-screen">
         <View className="flex-row items-center gap-content">
           <Image
-            source={require('../../../public/logo.png')}
+            // 할로윈 기간 로고. 할로윈이 끝나면 다음 빌드에서 logo.png로 되돌린다(docs/decisions/2026-10-22-할로윈-마스코트.md).
+            source={require('../../../public/logo_halloween.png')}
             className="h-8 w-8"
             resizeMode="contain"
             accessible={false}
@@ -66,7 +67,8 @@ export function LoginScreen({
               <Feather name="file-text" size={size.icon.lg} color={colors.sky.text} />
             </View>
             <Image
-              source={require('../../../public/mascots/greeting_rabbit_bust.png')}
+              // 할로윈 기간 그림. 할로윈이 끝나면 다음 빌드에서 greeting_rabbit_bust.png로 되돌린다.
+              source={require('../../../public/mascots/dracula_rabbit.png')}
               className="h-52 w-48"
               resizeMode="contain"
               accessible={false}
