@@ -79,7 +79,8 @@
           "project": "tosunsaeng-app"
         }
       ],
-      "./plugins/with-ios-runtime-orientation-support"
+      "./plugins/with-ios-runtime-orientation-support",
+      "./plugins/with-ios-alternate-app-icons"
     ]
   }
 }
