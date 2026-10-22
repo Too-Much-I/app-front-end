@@ -245,7 +245,15 @@ type PostLoginErrorInput =
       stage: 'sync';
       /** 결제는 됐는데 반영을 확인하지 못했다. 이 사용자는 문의하거나 웹훅을 기다린다. */
       outcome: 'pending' | 'contact-support';
-    };
+    }
+  /**
+   * 앱이 따로 다루지 않는 401로 세션을 지웠다. 서버에 앱이 모르는 401 코드가 생겼다는 뜻이다.
+   * `serverCode`는 cause에서 나온다.
+   */
+  | ({
+      code: 'AUTH_SESSION_REJECTED';
+      stage: 'reissue' | 'account-check';
+    } & SafeCause);
 
 /**
  * 쿼리 캐시가 대신 보고하는 조회 실패. 쿼리 옵션의 `meta.failureReport`에 싣는다(`query-client.ts`).
@@ -308,6 +316,7 @@ const FEATURE_BY_CODE: Record<OperationalErrorCode, string> = {
   PUSH_REGISTRATION_FAILED: 'push',
   APP_VERSION_CHECK_FAILED: 'app-version',
   PASS_PURCHASE_FAILED: 'pass',
+  AUTH_SESSION_REJECTED: 'auth',
 };
 
 const SAFE_SERVER_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,63}$/;
