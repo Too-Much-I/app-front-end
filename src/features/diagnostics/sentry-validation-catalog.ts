@@ -296,6 +296,10 @@ const DEFINITIONS = {
     title: '이용권 결제 실패',
     input: { code: 'PASS_PURCHASE_FAILED', stage: 'purchase-account', cause: SYNTHETIC_API_CAUSE },
   },
+  AUTH_SESSION_REJECTED: {
+    title: '모르는 401로 세션 삭제',
+    input: { code: 'AUTH_SESSION_REJECTED', stage: 'reissue', cause: SYNTHETIC_API_CAUSE },
+  },
 } satisfies ValidationDefinitions;
 
 export interface SentryValidationCatalogItem {

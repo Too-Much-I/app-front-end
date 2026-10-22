@@ -25,6 +25,7 @@ import {
 } from '@/features/auth/session-restoration-types';
 import type { AuthSession, RequestAuthSnapshot } from '@/features/auth/types';
 import { ApiError } from '@/lib/api/transport';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 // 기존 요청 경로와 동일하게 만료 1분 전부터 재발급한다.
 const RESTORE_REFRESH_WINDOW_MS = 60_000;
@@ -60,6 +61,27 @@ function blocksUnauthorizedRefresh(code?: string): boolean {
     code === 'WITHDRAWAL_CLEANUP_PENDING' ||
     code === 'ACCOUNT_WITHDRAWN'
   );
+}
+
+/**
+ * 앱이 따로 다루지 않는 401. 서버가 이 토큰을 거절했으므로 같은 토큰으로 반복하지 않는다.
+ * 도움 요청 화면에 세워 두면 사용자가 스스로 빠져나올 길이 없어, 세션을 지우고 다시 로그인하게 한다.
+ * 서버에 앱이 모르는 401 코드가 생겼다는 뜻이라 보고한다(2026-10-20 결정).
+ * 알려진 코드 중 WITHDRAWAL_CLEANUP_PENDING만 세션을 지우지 않고 기존처럼 멈춘다.
+ * Guest 세션도 지워지므로 그 Guest 기록은 가입 때 합칠 수 없다(받아들인 비용).
+ */
+function isUnhandledUnauthorized(error: unknown): error is ApiError {
+  return (
+    error instanceof ApiError && error.status === 401 && error.code !== 'WITHDRAWAL_CLEANUP_PENDING'
+  );
+}
+
+function clearRejectedSession(
+  stage: 'reissue' | 'account-check',
+  error: ApiError,
+): { step: 'clear-session' } {
+  reportOperationalError({ code: 'AUTH_SESSION_REJECTED', stage, cause: error });
+  return { step: 'clear-session' };
 }
 
 /** 비활성 계정의 세션은 지우고, 다음 화면이 사용자에게 알리도록 표시를 남긴다. */
@@ -168,6 +190,12 @@ export function createSessionController(
                 progress = { step: 'clear-session' };
                 break;
               }
+              // 서버가 답한 거절이라 결과가 불확실한 회전이 아니다. 아래 replay 판단보다 먼저 본다.
+              if (isUnhandledUnauthorized(error)) {
+                activeSession = null;
+                progress = clearRejectedSession('reissue', error);
+                break;
+              }
               if (!record.replaySupported) {
                 // 성공 여부를 모르는 회전을 같은 옛 토큰으로 반복하지 않는다.
                 progress = {
@@ -226,6 +254,12 @@ export function createSessionController(
                 !refreshed
               ) {
                 prepareRefresh(session);
+                break;
+              }
+              // 방금 재발급한 토큰도 거절됐거나 모르는 코드다.
+              if (isUnhandledUnauthorized(error)) {
+                activeSession = null;
+                progress = clearRejectedSession('account-check', error);
                 break;
               }
               throw error;

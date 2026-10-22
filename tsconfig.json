@@ -2,6 +2,8 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    // TypeScript 6부터 @types/*를 자동으로 불러오지 않는다. 테스트 전역(describe·it·expect·jest)을 위해 jest만 명시한다.
+    "types": ["jest"],
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,

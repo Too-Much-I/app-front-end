@@ -29,6 +29,7 @@ export const OPERATIONAL_ERROR_CODES = [
   'PUSH_REGISTRATION_FAILED',
   'APP_VERSION_CHECK_FAILED',
   'PASS_PURCHASE_FAILED',
+  'AUTH_SESSION_REJECTED',
 ] as const;
 
 export type OperationalErrorCode = (typeof OPERATIONAL_ERROR_CODES)[number];
