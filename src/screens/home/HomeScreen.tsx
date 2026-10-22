@@ -18,8 +18,10 @@ import { useRecentFeedback } from '@/screens/home/use-recent-feedback';
 import { colors, shadows } from '@/theme';
 
 // public/은 `@/` 별칭 범위(./src) 밖이라 상대 경로로 require한다.
-const logo = require('../../../public/logo.png');
-const greetingMascot = require('../../../public/mascots/greeting_rabbit_bust.png');
+// 할로윈 기간 로고·그림. 할로윈이 끝나면 다음 빌드에서 logo.png·greeting_rabbit_bust.png로 되돌린다
+// (docs/decisions/2026-10-22-할로윈-마스코트.md).
+const logo = require('../../../public/logo_halloween.png');
+const greetingMascot = require('../../../public/mascots/pumpkin_rabbit_bust.png');
 
 /** 탭 안에서 루트 스택의 챌린지 화면으로 이동해야 하므로 두 내비게이터를 함께 쓴다. */
 type HomeNavigationProp = CompositeNavigationProp<
