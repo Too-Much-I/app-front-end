@@ -41,8 +41,11 @@
 
 ## 최초 활성화
 
-설정은 `.codex/hooks.json`, 지시문은 `.agents/skills/review-completed-code/SKILL.md`다.
-지원되는 Codex 클라이언트에서 프로젝트를 신뢰하고 새 세션을 시작한다.
+설정은 `.codex/hooks.json`(Codex)과 `.claude/settings.json`(Claude Code), 지시문은
+`.agents/skills/review-completed-code/SKILL.md`다. 두 설정은 같은 스크립트를 부르므로 함께 고친다.
+Claude Code 훅 입출력(`session_id`, `stop_hook_active`, `last_assistant_message`, `decision`)은 Codex와 이름이 같다
+([결정 기록](decisions/2026-10-23-관례-후보-감시.md)).
+지원되는 클라이언트에서 프로젝트를 신뢰하고 새 세션을 시작한다.
 CLI의 `/hooks`에서 두 command hook의 정의를 확인하고 신뢰해야 실행된다.
 설정을 작성하는 것만으로 신뢰가 부여되지는 않는다. 변경된 훅도 재검토 대상이다.
 기존 대화에서는 SessionStart가 다시 실행되지 않았다면 키 안내가 없을 수 있다.
