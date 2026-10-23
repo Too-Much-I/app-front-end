@@ -44,7 +44,9 @@ web-build
 *.sln
 *.sw?
 
-.claude/
+# Claude Code: commit the shared hook settings only; settings.local.json stays personal.
+.claude/*
+!.claude/settings.json
 
 # Codex/Spec Kit: commit reusable skills, ignore any other local agent artifacts.
 .agents/*
