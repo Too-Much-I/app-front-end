@@ -77,14 +77,15 @@ jobs:
               return;
             }
             const body = `${marker}\n${fs.readFileSync(path, "utf8")}`;
-            const issue = context.issue;
+            // REST는 PR 번호를 issue_number로 받는다. context.issue는 number로 주므로 그대로 넘기면 경로가 비어 404가 난다.
+            const issue = { ...context.repo, issue_number: context.issue.number };
             const comments = await github.paginate(github.rest.issues.listComments, issue);
             const previous = comments.find(
               (comment) => comment.user?.type === "Bot" && comment.body?.includes(marker),
             );
 
             if (previous) {
-              await github.rest.issues.updateComment({ ...issue, comment_id: previous.id, body });
+              await github.rest.issues.updateComment({ ...context.repo, comment_id: previous.id, body });
             } else {
               await github.rest.issues.createComment({ ...issue, body });
             }
