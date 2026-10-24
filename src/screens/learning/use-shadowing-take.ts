@@ -229,7 +229,11 @@ export function useShadowingTake(sentence: LearningSentence) {
     if (phase !== 'playing-mine') return;
     // expo-audio는 재생 오류를 예외가 아니라 상태의 `error`로 알린다. 놓치면 재생 중 상태에 멈춘다.
     if (mineStatus.error) {
-      reportMediaFailure(new Error(mineStatus.error));
+      reportOperationalError({
+        code: 'LEARNING_LOAD_FAILED',
+        resource: 'recording',
+        cause: new Error(mineStatus.error),
+      });
       setPhase('failed');
       return;
     }
@@ -238,7 +242,7 @@ export function useShadowingTake(sentence: LearningSentence) {
       return;
     }
     if (sawMinePlayingRef.current && mineStatus.didJustFinish) setPhase('recorded');
-  }, [mineStatus, phase, reportMediaFailure]);
+  }, [mineStatus, phase]);
 
   return {
     phase,

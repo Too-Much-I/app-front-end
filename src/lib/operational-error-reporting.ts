@@ -229,7 +229,8 @@ type PostLoginErrorInput =
     } & SafeCause)
   | ({
       code: 'LEARNING_LOAD_FAILED';
-      resource: 'units' | 'detail' | 'media';
+      /** `media`는 서버 음성(주소 재발급·모범 음성), `recording`은 기기 안 내 녹음 재생이다. */
+      resource: 'units' | 'detail' | 'media' | 'recording';
     } & SafeCause)
   | ({
       code: 'LEARNING_COMPLETION_FAILED';
