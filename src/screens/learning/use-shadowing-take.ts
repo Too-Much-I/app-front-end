@@ -1,4 +1,9 @@
-import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import {
+  setAudioModeAsync,
+  useAudioPlayer,
+  useAudioPlayerStatus,
+  type AudioStatus,
+} from 'expo-audio';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { PLAYBACK_AUDIO_MODE } from '@/features/audio/audio-session';
@@ -57,6 +62,12 @@ export function useShadowingTake(sentence: LearningSentence) {
   /** 재생을 건 뒤 실제로 재생 중인 상태를 한 번 봐야 끝났다고 판단한다. 바꾼 직후 상태는 이전 음성 값일 수 있다. */
   const sawModelPlayingRef = useRef(false);
   const sawMinePlayingRef = useRef(false);
+  /**
+   * 내 녹음 듣기를 누른 순간의 상태 이벤트. 상태는 네이티브가 다음 이벤트를 보내야 바뀌어서, 누른 직후에는 지난
+   * 재생의 오류가 남아 있을 수 있다. 이벤트는 올 때마다 새 객체라 값이 아니라 객체로 비교한다 — 같은 오류가 다시
+   * 나도 새 이벤트면 잡힌다.
+   */
+  const staleMineStatusRef = useRef<AudioStatus | null>(null);
   /** 모범 음성이 끝난 뒤 `TAIL_MS` 마무리 타이머. 남은 타이머가 다음 녹음을 일찍 끝내지 않게 취소한다. */
   const tailTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -191,10 +202,11 @@ export function useShadowingTake(sentence: LearningSentence) {
   const playMine = useCallback(() => {
     if (!recordingUri) return;
     sawMinePlayingRef.current = false;
+    staleMineStatusRef.current = mineStatus;
     minePlayer.replace({ uri: recordingUri });
     minePlayer.play();
     setPhase('playing-mine');
-  }, [minePlayer, recordingUri]);
+  }, [minePlayer, mineStatus, recordingUri]);
 
   // 음성이 있는 문장: 플레이어가 끝을 알려 준다.
   useEffect(() => {
@@ -227,6 +239,8 @@ export function useShadowingTake(sentence: LearningSentence) {
   // 내 녹음 다시 듣기가 끝나면 돌아온다.
   useEffect(() => {
     if (phase !== 'playing-mine') return;
+    // 누른 뒤 새 이벤트가 오기 전에는 지난 재생의 상태라 판단하지 않는다.
+    if (mineStatus === staleMineStatusRef.current) return;
     // expo-audio는 재생 오류를 예외가 아니라 상태의 `error`로 알린다. 놓치면 재생 중 상태에 멈춘다.
     if (mineStatus.error) {
       reportOperationalError({
