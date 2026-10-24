@@ -1,0 +1,40 @@
+{
+  "_note": "채점 결과 목데이터(Swagger api-test, 2026-10-22 형태). 목록·상세는 2026-10-23부터 실제 API를 쓴다. 채점은 다음 작업 단위에서 연결한다.",
+  "gradedJob": {
+    "id": "00000000-0000-4000-8000-000000000011",
+    "lessonId": "ts-level-bank-40-per-part-20261007-v1:p3_reference_variant_100_q6",
+    "contentVersion": "20261012-cda52eb5001a",
+    "level": "IH",
+    "status": "completed",
+    "result": {
+      "checklistVersion": "sample-fixture-v1",
+      "transcript": "[샘플 전사 예시 · 실제 녹음 분석 아님] I would be more likely to attend the event. This is because the advertisement makes the event look more exciting.",
+      "metCount": 2,
+      "totalCount": 3,
+      "items": [
+        {
+          "id": "sample-3-0",
+          "label": "질문에 직접 답하기",
+          "verdict": "met",
+          "probability": 0.94,
+          "feedback": "질문의 핵심에 답했어요."
+        },
+        {
+          "id": "sample-3-1",
+          "label": "요청한 정보 포함",
+          "verdict": "met",
+          "probability": 0.94,
+          "feedback": "요청한 정보를 담았어요."
+        },
+        {
+          "id": "sample-3-2",
+          "label": "구체적인 설명",
+          "verdict": "not_met",
+          "probability": 0.12,
+          "feedback": "구체적인 정보로 답을 보충해 보세요."
+        }
+      ]
+    },
+    "error": null
+  }
+}

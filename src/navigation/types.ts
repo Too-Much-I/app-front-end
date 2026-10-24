@@ -38,6 +38,14 @@ export type MockExamStackParamList = {
   GradingWait: { examId: string };
 };
 
+/** 학습 단계 화면이 공통으로 받는 문항 위치. */
+export type LearningLessonParams = {
+  level: LearningLevel;
+  part: LearningPart;
+  unitId: string;
+  lessonId: string;
+};
+
 export type RootStackParamList = {
   /** 세션 없음·기존 Guest의 SNS 로그인 진입점. */
   AuthLogin: undefined;
@@ -127,8 +135,16 @@ export type RootStackParamList = {
    * 탭 위를 덮는 화면이라 루트 스택에 둔다.
    */
   LearningParts: { level: LearningLevel };
-  /** 학습 화면. 지금은 등급과 파트를 받는 자리만 있다. */
-  LearningSession: { level: LearningLevel; part: LearningPart };
+  /**
+   * 학습 단계 ① 조각 퍼즐 → ② 듣기·쉐도잉 → ③ 채점(2026-10-22 결정, 단계마다 화면을 따로 둔다).
+   *
+   * 세 단계가 같은 문항을 이어서 다루므로 같은 param을 받는다. 문항 내용은 param으로 넘기지 않고
+   * 각 화면이 `unitId`로 다시 읽는다 — 화면 사이로 큰 객체를 넘기면 뒤로 가기·딥링크 때 값이 낡는다.
+   * Part 1은 퍼즐 조각과 채점이 없어 ②만 거친다.
+   */
+  LearningPuzzle: LearningLessonParams;
+  LearningShadowing: LearningLessonParams;
+  LearningGrading: LearningLessonParams;
   /** 설정 화면. 탭이 아니라 마이페이지 메뉴로 진입하는 루트 스택 push 화면이다. */
   Settings: undefined;
   /** 기간제 이용권 선택 화면. 마이페이지 메뉴로 진입하는 루트 스택 push 화면이다. */

@@ -228,6 +228,13 @@ type PostLoginErrorInput =
       resource: 'profile' | 'calendar';
     } & SafeCause)
   | ({
+      code: 'LEARNING_LOAD_FAILED';
+      resource: 'units' | 'detail' | 'media';
+    } & SafeCause)
+  | ({
+      code: 'LEARNING_COMPLETION_FAILED';
+    } & SafeCause)
+  | ({
       code: 'PUSH_REGISTRATION_FAILED';
       operation: string;
     } & SafeCause)
@@ -261,7 +268,8 @@ type PostLoginErrorInput =
  */
 export type QueryFailureReport =
   | { code: 'CHALLENGE_LOAD_FAILED'; resource: 'today' }
-  | { code: 'MYPAGE_LOAD_FAILED'; resource: 'profile' | 'calendar' };
+  | { code: 'MYPAGE_LOAD_FAILED'; resource: 'profile' | 'calendar' }
+  | { code: 'LEARNING_LOAD_FAILED'; resource: 'units' | 'detail' };
 
 /**
  * 스키마 검증을 붙인 엔드포인트. 옮겨올 때마다 여기에 하나씩 추가한다.
@@ -281,7 +289,11 @@ export type ApiResponseResource =
   | 'PURCHASE_ACCOUNT'
   | 'PAYMENT_PRODUCTS'
   | 'PAYMENT_SYNC'
-  | 'ENTITLEMENTS';
+  | 'ENTITLEMENTS'
+  | 'LEARNING_UNITS'
+  | 'LEARNING_UNIT_DETAIL'
+  | 'LEARNING_MEDIA_URL'
+  | 'LEARNING_COMPLETION';
 
 type SafeValue = string | number | boolean;
 
@@ -313,6 +325,8 @@ const FEATURE_BY_CODE: Record<OperationalErrorCode, string> = {
   CHALLENGE_SUBMISSION_FAILED: 'challenge',
   SUPPORT_INQUIRY_SUBMIT_FAILED: 'support',
   MYPAGE_LOAD_FAILED: 'mypage',
+  LEARNING_LOAD_FAILED: 'learning',
+  LEARNING_COMPLETION_FAILED: 'learning',
   PUSH_REGISTRATION_FAILED: 'push',
   APP_VERSION_CHECK_FAILED: 'app-version',
   PASS_PURCHASE_FAILED: 'pass',

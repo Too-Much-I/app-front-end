@@ -62,6 +62,10 @@ export function LearningLevelScreen() {
     },
   });
 
+  function startLevel(level: LearningLevel) {
+    navigation.navigate('LearningParts', { level });
+  }
+
   function scrollToCard(index: number) {
     const clamped = Math.min(Math.max(index, 0), LEVEL_CARD_ORDER.length - 1);
     scrollRef.current?.scrollTo({ x: clamped * snapInterval, animated: true });
@@ -103,8 +107,6 @@ export function LearningLevelScreen() {
             return (
               <Animated.View
                 key={level}
-                accessible
-                accessibilityLabel={`${card.label}. ${card.exampleAnswer}`}
                 className="overflow-hidden rounded-chip bg-surface"
                 style={[
                   shadows.card,
@@ -127,27 +129,43 @@ export function LearningLevelScreen() {
                   },
                 ]}
               >
-                <View
-                  className="items-center justify-center py-lg"
-                  style={{ backgroundColor: card.color }}
+                {/*
+                  가운데 카드를 누르면 아래 버튼과 같이 파트 화면으로 간다. 옆 카드를 누르면 바로 들어가지 않고
+                  가운데로 옮긴다 — 넘기다 스친 카드로 원하지 않은 등급에 들어가지 않게 한다(2026-10-23).
+                */}
+                <Pressable
+                  accessibilityHint={
+                    index === activeIndex
+                      ? '파트를 고르는 화면으로 이동합니다'
+                      : '이 카드를 가운데로 옮깁니다'
+                  }
+                  accessibilityLabel={`${card.label}. ${card.exampleAnswer}`}
+                  accessibilityRole="button"
+                  className="flex-1"
+                  onPress={() => (index === activeIndex ? startLevel(level) : scrollToCard(index))}
                 >
-                  <Image
-                    accessibilityLabel={card.mascotLabel}
-                    source={card.mascot}
-                    resizeMode="contain"
-                    style={{
-                      height: MASCOT_HEIGHT,
-                      width: MASCOT_HEIGHT * card.mascotAspectRatio,
-                    }}
-                  />
-                </View>
-                <View className="flex-1 gap-element p-card">
-                  <View>
-                    <Text className="text-3xl">{card.label}</Text>
-                    <Text className="text-xs text-ink-muted">{card.tag}</Text>
+                  <View
+                    className="items-center justify-center py-lg"
+                    style={{ backgroundColor: card.color }}
+                  >
+                    <Image
+                      accessibilityLabel={card.mascotLabel}
+                      source={card.mascot}
+                      resizeMode="contain"
+                      style={{
+                        height: MASCOT_HEIGHT,
+                        width: MASCOT_HEIGHT * card.mascotAspectRatio,
+                      }}
+                    />
                   </View>
-                  <Text className="text-sm">{card.exampleAnswer}</Text>
-                </View>
+                  <View className="flex-1 gap-element p-card">
+                    <View>
+                      <Text className="text-3xl">{card.label}</Text>
+                      <Text className="text-xs text-ink-muted">{card.tag}</Text>
+                    </View>
+                    <Text className="text-sm">{card.exampleAnswer}</Text>
+                  </View>
+                </Pressable>
               </Animated.View>
             );
           })}
@@ -200,7 +218,7 @@ export function LearningLevelScreen() {
           accessibilityRole="button"
           className="mx-screen mt-content min-h-control-lg items-center justify-center rounded-control"
           style={[shadows.card, { backgroundColor: activeCard.color }]}
-          onPress={() => navigation.navigate('LearningParts', { level: activeLevel })}
+          onPress={() => startLevel(activeLevel)}
         >
           <Text className="text-base">{activeCard.label} 답변으로 연습하기</Text>
         </Pressable>

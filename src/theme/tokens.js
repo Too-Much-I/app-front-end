@@ -187,6 +187,34 @@ const colors = {
     medium: brand[400],
     hard: '#8ACB9C',
   },
+  /**
+   * 학습 파트 화면의 등급별 풍경 그림 아래 바탕색.
+   *
+   * 그림(`public/learning/scene-*.jpg`) 맨 아래 가운데에서 뽑은 색이다. 그림이 끝나는 곳과 목록 바탕이
+   * 이어져 보여야 해서 그림을 바꾸면 이 값도 다시 뽑는다. 위에 올리는 글자는 `ink`로 대비 4.5:1을 넘긴다.
+   */
+  learningScene: {
+    easy: '#96C6FD',
+    medium: '#F8824E',
+    hard: '#CEE892',
+  },
+  /**
+   * 조각 퍼즐 전용 색(2026-10-19 결정 기록의 시안 값).
+   *
+   * 문제처럼 보이지 않게 파스텔로 맞췄다. 조각 색은 순서대로 돌려 쓰고 정답·오답 의미는 없다.
+   */
+  learningPuzzle: {
+    surface: '#FFFAF4',
+    board: '#FFF1E3',
+    boardDone: '#F1F8FC',
+    ink: '#3B3633',
+    slot: '#E3B98F',
+    hint: '#FFD68C',
+    /** 한국어 뜻을 적은 모눈 메모지와 그 칸 선. */
+    memo: '#FFFFFF',
+    memoGrid: '#E4ECF4',
+    pieces: ['#F9DCE6', '#FFE4CC', '#DCEFD4', '#D9EAF7', '#F6ECC4'],
+  },
   /** 결과 피드백 화면의 카드, 상태 배지와 교실 칠판에만 쓰는 의미 색. */
   feedback: {
     scoreSurface: '#07513D',

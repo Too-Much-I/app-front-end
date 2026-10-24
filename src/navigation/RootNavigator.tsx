@@ -29,7 +29,9 @@ import { AuthRecoveryScreen } from '@/screens/auth/AuthRecoveryScreen';
 import { SignupFailureScreen } from '@/screens/auth/SignupFailureScreen';
 import { ConsentScreen } from '@/screens/consent/ConsentScreen';
 import { LearningPartsScreen } from '@/screens/learning/LearningPartsScreen';
-import { LearningSessionScreen } from '@/screens/learning/LearningSessionScreen';
+import { LearningGradingScreen } from '@/screens/learning/LearningGradingScreen';
+import { LearningPuzzleScreen } from '@/screens/learning/LearningPuzzleScreen';
+import { LearningShadowingScreen } from '@/screens/learning/LearningShadowingScreen';
 import { NotificationsScreen } from '@/screens/notifications/NotificationsScreen';
 import { PassPurchaseScreen } from '@/screens/pass/PassPurchaseScreen';
 import { ReanswerScreen } from '@/screens/reanswer/ReanswerScreen';
@@ -67,7 +69,9 @@ function MemberRootNavigator() {
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="PassPurchase" component={PassPurchaseScreen} />
       <Stack.Screen name="LearningParts" component={LearningPartsScreen} />
-      <Stack.Screen name="LearningSession" component={LearningSessionScreen} />
+      <Stack.Screen name="LearningPuzzle" component={LearningPuzzleScreen} />
+      <Stack.Screen name="LearningShadowing" component={LearningShadowingScreen} />
+      <Stack.Screen name="LearningGrading" component={LearningGradingScreen} />
     </Stack.Navigator>
   );
 }
