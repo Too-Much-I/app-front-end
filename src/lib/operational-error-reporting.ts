@@ -319,6 +319,23 @@ const FEATURE_BY_CODE: Record<OperationalErrorCode, string> = {
   AUTH_SESSION_REJECTED: 'auth',
 };
 
+/** 오류 이름의 모든 입력이 공통으로 가진 필드. 원인 축은 여기서만 고를 수 있다. */
+type InputFieldOf<C extends OperationalErrorCode> = Exclude<
+  keyof Extract<OperationalErrorInput, { code: C }>,
+  'code' | 'cause'
+> &
+  string;
+
+/**
+ * 오류 이름 하나에 대응이 다른 원인이 섞이는 코드만 원인 축을 이슈 묶음(fingerprint)에 더한다.
+ * 나머지는 오류 이름 하나로 묶고 원인은 태그 분포로 본다. 축은 닫힌 값만 넣는다
+ * (`firebaseCode`처럼 외부가 정하는 열린 값은 이슈를 끝없이 쪼갠다).
+ * 근거: docs/decisions/2026-10-24-로그인-실패-이슈-원인별-분리.md
+ */
+const FINGERPRINT_FIELDS_BY_CODE: { [C in OperationalErrorCode]?: readonly InputFieldOf<C>[] } = {
+  AUTH_SIGN_IN_FAILED: ['stage', 'reason'],
+};
+
 const SAFE_SERVER_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,63}$/;
 /** expo가 예외 클래스 이름에서 만들어 내는 코드. 자유 텍스트가 아니라 닫힌 식별자다. */
 const EXPO_ERROR_CODE_PATTERN = /^ERR_[A-Z0-9_]{1,60}$/;
@@ -410,9 +427,16 @@ export function previewOperationalError(input: OperationalErrorInput): Operation
       .map(([key, value]) => [key, String(value)]),
   );
 
+  const fingerprintFields: readonly string[] = FINGERPRINT_FIELDS_BY_CODE[input.code] ?? [];
+
   return {
     code: input.code,
     feature: FEATURE_BY_CODE[input.code],
+    fingerprint: [
+      'operational-error',
+      input.code,
+      ...fingerprintFields.map((field) => String(context[field] ?? 'none')),
+    ],
     tags,
     context,
   };
