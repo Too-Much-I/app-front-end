@@ -571,6 +571,8 @@ export const SentryErrorBoundary = Sentry.ErrorBoundary;
 export interface OperationalEventPayload {
   code: OperationalErrorCode;
   feature: string;
+  /** 이슈 묶음 기준. 오류 이름이 앞에 오고, 원인이 섞이는 코드만 원인 축이 뒤에 붙는다. */
+  fingerprint: readonly string[];
   tags: Record<string, string>;
   context: Record<string, OperationalContextValue>;
 }
@@ -615,7 +617,7 @@ export function captureOperationalEvent(
           ? { [SENTRY_VALIDATION_TAG_KEY]: SENTRY_VALIDATION_TAG_VALUE }
           : {}),
       });
-      scope.setFingerprint(['operational-error', payload.code]);
+      scope.setFingerprint([...payload.fingerprint]);
       scope.setContext('operational_error', payload.context);
       return Sentry.captureMessage(payload.code);
     });
