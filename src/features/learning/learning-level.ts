@@ -14,3 +14,8 @@ export type LearningLevel = (typeof LEARNING_LEVELS)[number];
 
 /** 토익 스피킹 파트 번호. 학습은 파트 단위로 들어간다. */
 export type LearningPart = 1 | 2 | 3 | 4 | 5;
+
+/** 사용자가 고른 등급을 서버 요청 값으로 바꾼다. Part 1은 등급 구분이 없어 `common`이다. */
+export function toLearningServerLevel(part: LearningPart, level: LearningLevel) {
+  return part === 1 ? ('common' as const) : level;
+}

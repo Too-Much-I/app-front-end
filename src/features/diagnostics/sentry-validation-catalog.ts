@@ -284,6 +284,14 @@ const DEFINITIONS = {
     title: '마이페이지 달력 조회 실패',
     input: { code: 'MYPAGE_LOAD_FAILED', resource: 'calendar', cause: SYNTHETIC_API_CAUSE },
   },
+  LEARNING_LOAD_FAILED: {
+    title: '학습 세트 상세 조회 실패',
+    input: { code: 'LEARNING_LOAD_FAILED', resource: 'detail', cause: SYNTHETIC_API_CAUSE },
+  },
+  LEARNING_COMPLETION_FAILED: {
+    title: '학습 문항 완료 저장 실패',
+    input: { code: 'LEARNING_COMPLETION_FAILED', cause: SYNTHETIC_API_CAUSE },
+  },
   PUSH_REGISTRATION_FAILED: {
     title: '푸시 기기 등록 실패',
     input: { code: 'PUSH_REGISTRATION_FAILED', operation: 'register', cause: SYNTHETIC_API_CAUSE },
