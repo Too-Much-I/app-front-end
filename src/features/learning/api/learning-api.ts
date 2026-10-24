@@ -68,7 +68,7 @@ const learningCompletionSchema = z.object({ completed: z.boolean() });
  *
  * Part 2~5는 채점 완료 제출 ID가 있어야 해서 이 함수를 쓰지 않는다(채점은 다음 작업 단위).
  * 401 자동 재시도는 읽기 요청에만 있어서 다른 쓰기 요청처럼 `apiFetch`로 한 번 보낸다. 실패하면 사용자가
- * 다시 누른다.
+ * 다시 누른다. 응답 형식이 맞아도 `completed`가 false면 저장되지 않은 것으로 보고 실패로 던진다.
  */
 export async function putLearningReadingCompletion(
   lessonId: string,
@@ -78,5 +78,6 @@ export async function putLearningReadingCompletion(
     `/api/v1/learning/lessons/${encodeURIComponent(lessonId)}/completion`,
     { method: 'PUT', body: JSON.stringify({ level: 'common', contentVersion }) },
   );
-  parseApiResult(learningCompletionSchema, result, 'LEARNING_COMPLETION');
+  const { completed } = parseApiResult(learningCompletionSchema, result, 'LEARNING_COMPLETION');
+  if (!completed) throw new Error('서버가 문항 완료를 확인하지 않았어요.');
 }

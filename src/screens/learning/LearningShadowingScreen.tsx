@@ -37,7 +37,7 @@ export function LearningShadowingScreen({ navigation, route }: LearningShadowing
   const lookup = useLearningLesson(route.params);
   const [sentenceIndex, setSentenceIndex] = useState(0);
   const [speakerNoticeVisible, setSpeakerNoticeVisible] = useState(true);
-  const completion = useReadingCompletion(closeToParts);
+  const completion = useReadingCompletion();
 
   useEffect(() => {
     const timer = setTimeout(() => setSpeakerNoticeVisible(false), SPEAKER_NOTICE_MS);
@@ -67,7 +67,7 @@ export function LearningShadowingScreen({ navigation, route }: LearningShadowing
     }
     if (isReadingPart) {
       // Part 1 완료는 제출 없이 저장한다(Swagger: `common`, submissionId 생략).
-      completion.mutate(lesson);
+      completion.mutate(lesson, { onSuccess: closeToParts });
       return;
     }
     navigation.navigate('LearningGrading', route.params);

@@ -57,6 +57,8 @@ export function useShadowingTake(sentence: LearningSentence) {
   /** 재생을 건 뒤 실제로 재생 중인 상태를 한 번 봐야 끝났다고 판단한다. 바꾼 직후 상태는 이전 음성 값일 수 있다. */
   const sawModelPlayingRef = useRef(false);
   const sawMinePlayingRef = useRef(false);
+  /** 모범 음성이 끝난 뒤 `TAIL_MS` 마무리 타이머. 남은 타이머가 다음 녹음을 일찍 끝내지 않게 취소한다. */
+  const tailTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { audio, words } = sentence;
   const lastWordEnd = words[words.length - 1]?.end ?? 0;
@@ -87,6 +89,14 @@ export function useShadowingTake(sentence: LearningSentence) {
     setClockSec(0);
   }, [audio, modelPlayer]);
 
+  const clearTailTimer = useCallback(() => {
+    if (tailTimerRef.current === null) return;
+    clearTimeout(tailTimerRef.current);
+    tailTimerRef.current = null;
+  }, []);
+
+  useEffect(() => clearTailTimer, [clearTailTimer]);
+
   const reportMediaFailure = useCallback((error: unknown) => {
     reportOperationalError({ code: 'LEARNING_LOAD_FAILED', resource: 'media', cause: error });
   }, []);
@@ -107,6 +117,7 @@ export function useShadowingTake(sentence: LearningSentence) {
   }, [minePlayer, prepareModel, reportMediaFailure, startModel]);
 
   const shadow = useCallback(async () => {
+    clearTailTimer();
     minePlayer.pause();
     setPhase('preparing');
     try {
@@ -129,9 +140,18 @@ export function useShadowingTake(sentence: LearningSentence) {
     setRecordingUri(null);
     startModel();
     setPhase('shadowing');
-  }, [lastWordEnd, minePlayer, prepareModel, recorder, reportMediaFailure, startModel]);
+  }, [
+    clearTailTimer,
+    lastWordEnd,
+    minePlayer,
+    prepareModel,
+    recorder,
+    reportMediaFailure,
+    startModel,
+  ]);
 
   const finishRecording = useCallback(async () => {
+    clearTailTimer();
     setPhase('saving');
     try {
       const recording = await recorder.finish('user');
@@ -141,7 +161,7 @@ export function useShadowingTake(sentence: LearningSentence) {
       // 앱이 뒤로 가는 등으로 녹음이 끊겼다. 다시 따라 말하면 된다.
       setPhase('failed');
     }
-  }, [recorder]);
+  }, [clearTailTimer, recorder]);
 
   /** 모범 음성이 끝났을 때. 따라 말하는 중이면 마지막 단어를 말할 틈을 두고 녹음을 마친다. */
   const onModelFinished = useCallback(() => {
@@ -151,8 +171,9 @@ export function useShadowingTake(sentence: LearningSentence) {
     }
     if (phase !== 'shadowing') return;
     setPhase('saving');
-    setTimeout(() => void finishRecording(), TAIL_MS);
-  }, [finishRecording, phase, restingPhase]);
+    clearTailTimer();
+    tailTimerRef.current = setTimeout(() => void finishRecording(), TAIL_MS);
+  }, [clearTailTimer, finishRecording, phase, restingPhase]);
 
   const stop = useCallback(() => {
     if (audio) modelPlayer.pause();
@@ -206,12 +227,18 @@ export function useShadowingTake(sentence: LearningSentence) {
   // 내 녹음 다시 듣기가 끝나면 돌아온다.
   useEffect(() => {
     if (phase !== 'playing-mine') return;
+    // expo-audio는 재생 오류를 예외가 아니라 상태의 `error`로 알린다. 놓치면 재생 중 상태에 멈춘다.
+    if (mineStatus.error) {
+      reportMediaFailure(new Error(mineStatus.error));
+      setPhase('failed');
+      return;
+    }
     if (mineStatus.playing) {
       sawMinePlayingRef.current = true;
       return;
     }
     if (sawMinePlayingRef.current && mineStatus.didJustFinish) setPhase('recorded');
-  }, [mineStatus, phase]);
+  }, [mineStatus, phase, reportMediaFailure]);
 
   return {
     phase,
