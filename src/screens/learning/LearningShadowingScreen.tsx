@@ -1,10 +1,9 @@
 import { Feather } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Image, Linking, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { MascotModal } from '@/components/ui/MascotModal';
 import { Pressable } from '@/components/ui/Pressable';
 import { Text } from '@/components/ui/Text';
 import { useReadingCompletion } from '@/features/learning/use-reading-completion';
@@ -22,9 +21,6 @@ const micRabbit = require('../../../public/mascots/mic_rabbit.png');
 
 type LearningShadowingScreenProps = NativeStackScreenProps<RootStackParamList, 'LearningShadowing'>;
 
-/** 들어올 때 잠깐 띄우는 이어폰 안내. 이어폰 연결 확인은 다음 작업 단위(2026-10-23 결정). */
-const SPEAKER_NOTICE_MS = 3_000;
-
 /**
  * 학습 ② 듣기·따라 말하기(시안 S2 문장 카드).
  *
@@ -36,13 +32,7 @@ const SPEAKER_NOTICE_MS = 3_000;
 export function LearningShadowingScreen({ navigation, route }: LearningShadowingScreenProps) {
   const lookup = useLearningLesson(route.params);
   const [sentenceIndex, setSentenceIndex] = useState(0);
-  const [speakerNoticeVisible, setSpeakerNoticeVisible] = useState(true);
   const completion = useReadingCompletion();
-
-  useEffect(() => {
-    const timer = setTimeout(() => setSpeakerNoticeVisible(false), SPEAKER_NOTICE_MS);
-    return () => clearTimeout(timer);
-  }, []);
 
   function closeToParts() {
     navigation.popTo('LearningParts', { level: route.params.level });
@@ -114,23 +104,6 @@ export function LearningShadowingScreen({ navigation, route }: LearningShadowing
           </>
         }
       />
-
-      <MascotModal
-        message="스피커로 들으면서 따라 말하면 모범 음성이 같이 녹음될 수 있어요. 이어폰을 끼면 내 목소리만 들려요."
-        mascot={micRabbit}
-        onRequestClose={() => setSpeakerNoticeVisible(false)}
-        title="이어폰을 끼면 더 좋아요"
-        visible={speakerNoticeVisible}
-        warningBadge
-      >
-        <Pressable
-          accessibilityRole="button"
-          className="mt-lg min-h-control-lg items-center justify-center self-stretch rounded-control bg-brand-cta"
-          onPress={() => setSpeakerNoticeVisible(false)}
-        >
-          <Text className="text-lg text-surface">알겠어요</Text>
-        </Pressable>
-      </MascotModal>
     </SafeAreaView>
   );
 }
@@ -212,6 +185,14 @@ function ShadowingSentence({ sentence, doneSentences, footer }: ShadowingSentenc
             </Pressable>
           </View>
         </LearningPaperCard>
+
+        {/*
+          이어폰 안내는 문장 밑에 작게 둔다(2026-10-26 결정). 이어폰 연결 확인은 네이티브 모듈이 필요해 하지
+          않고, 에코 제거가 없어 스피커 소리는 녹음에 들어간다.
+        */}
+        <Text className="text-center text-xs text-ink-muted">
+          스피커로 들으면 모범 음성이 같이 녹음될 수 있어요. 이어폰을 껴 주세요.
+        </Text>
 
         <ShadowingNotice phase={phase} />
       </ScrollView>

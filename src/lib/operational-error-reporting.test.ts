@@ -67,3 +67,25 @@ describe('이슈 묶음(fingerprint)', () => {
     expect(preview.fingerprint).toEqual(['operational-error', 'EXAM_GRADING_FAILED']);
   });
 });
+
+describe('보고 수준(level)', () => {
+  it('흐름을 막은 실패는 error다', () => {
+    expect(previewOperationalError({ code: 'LEARNING_COMPLETION_FAILED' }).level).toBe('error');
+  });
+
+  it('흐름은 계속되는 chunks 누락은 warning이고 콘텐츠 unitId가 태그로 남는다', () => {
+    const payload = previewOperationalError({
+      code: 'LEARNING_CHUNKS_MISSING',
+      part: 3,
+      unitId: 'unit:p3_set_001',
+      missingSentences: 2,
+    });
+
+    expect(payload.level).toBe('warning');
+    expect(payload.tags).toMatchObject({
+      part: '3',
+      unitId: 'unit:p3_set_001',
+      missingSentences: '2',
+    });
+  });
+});

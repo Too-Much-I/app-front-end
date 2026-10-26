@@ -292,6 +292,19 @@ const DEFINITIONS = {
     title: '학습 문항 완료 저장 실패',
     input: { code: 'LEARNING_COMPLETION_FAILED', cause: SYNTHETIC_API_CAUSE },
   },
+  LEARNING_GRADING_FAILED: {
+    title: '학습 채점 제출 실패',
+    input: { code: 'LEARNING_GRADING_FAILED', stage: 'submit', cause: SYNTHETIC_API_CAUSE },
+  },
+  LEARNING_CHUNKS_MISSING: {
+    title: '학습 퍼즐 조각 누락',
+    input: {
+      code: 'LEARNING_CHUNKS_MISSING',
+      part: 2,
+      unitId: 'unit:sentry-validation',
+      missingSentences: 1,
+    },
+  },
   PUSH_REGISTRATION_FAILED: {
     title: '푸시 기기 등록 실패',
     input: { code: 'PUSH_REGISTRATION_FAILED', operation: 'register', cause: SYNTHETIC_API_CAUSE },
