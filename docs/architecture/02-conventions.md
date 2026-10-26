@@ -78,10 +78,10 @@
 
 | # | 규칙 |
 |---|---|
-| 42 | **사용자 흐름을 실제로 막은 handled failure만** Sentry로 보낸다 |
+| 42 | **사용자 흐름을 실제로 막은 handled failure만** Sentry로 보낸다. 예외: 흐름은 계속되는 서버 계약 위반은 **warning** 수준으로 보낸다(`WARNING_CODES`, 2026-10-26 `LEARNING_CHUNKS_MISSING`) |
 | 43 | 안정된 `code` + **허용 목록** metadata만. raw Error의 message·stack·URL·응답은 버린다 |
 | 44 | 분석 이벤트 이름·속성은 **union 하나**로 컴파일 타임 강제 (`analytics-events.ts`) |
-| 45 | 식별자(`examId`)·답안·점수는 어느 도구에도 보내지 않는다. Sentry와 Amplitude가 **같은 기준** |
+| 45 | 식별자(`examId`)·답안·점수는 어느 도구에도 보내지 않는다. Sentry와 Amplitude가 **같은 기준**. 예외: 사용자와 무관한 우리 콘텐츠 ID(학습 `unitId`)는 고칠 대상을 찾으려고 Sentry에 싣는다(2026-10-26) |
 | 46 | 화면 조회는 `App.tsx`가 라우트 이름만 자동 전송 |
 | 47 | 관측 도구 초기화 실패는 절대 사용자 흐름을 막지 않는다 (promise가 reject하지 않는다) |
 
@@ -284,3 +284,4 @@ PR마다 `convention-watch` 댓글이 올린 관용구를 사람이 판단해 �
 | # | 관용구 | 검색 패턴 | 판단 | 판단일 | 근거 |
 |---|---|---|---|---|---|
 | L1 | 콜백에서 Promise를 버리는 `() => void fn()` | `=> void ` | 판단 대기 | — | 21(09-11) → 33(10-01) → 49(10-22). RN `Pressable`은 `onPress`가 돌려준 값을 쓰지 않아 `void` 유무로 동작이 달라지지 않고, lint로 강제되지도 않는다. `void`는 에러를 잡지 않는다 |
+| L2 | 앱이 정의한 닫힌 유니온의 `switch`에서 `default`로 나머지를 덮기 | `default:` | 관례로 정함 | 2026-10-26 | 근거: [05-declarative-code.md](05-declarative-code.md) "전체 분기를 처리하는 곳에 누락 검사를 둔다". 모든 `case`를 나열하고, 값을 반환하는 함수는 반환 타입으로, `void` 함수는 `const unhandled: never`로 누락을 잡는다. 서버 오류 코드·`string` 같은 열린 값의 `default`(알 수 없는 값 fallback)는 대상이 아니다. 계기: 학습 채점 리뷰 9370be35 F1·F2(사람 평가 유용함). `src`의 `default:` 24곳(10-26)에는 열린 값 분기가 섞여 있어 위반 수는 아니다 |
