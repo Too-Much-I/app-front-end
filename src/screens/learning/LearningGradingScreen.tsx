@@ -146,9 +146,16 @@ function GradingLesson({ lesson, level, nextLabel, onNext }: GradingLessonProps)
     void finishAnswer();
   }, [finishAnswer, recorderStatus, remainingMs]);
 
+  // 확정한 녹음 훅은 `finalizing`에 남는다. 다시 답할 수 있게 이전 녹음을 지우고 `idle`로 돌린다.
   function answerAgain() {
+    recorder.resetForRetry();
     grading.reset();
     setRecordFailed(false);
+  }
+
+  function checkAgain() {
+    recorder.resetForRetry();
+    grading.recheck();
   }
 
   /**
@@ -194,7 +201,7 @@ function GradingLesson({ lesson, level, nextLabel, onNext }: GradingLessonProps)
           onAnswerAgain={answerAgain}
           onFinishAnswer={() => void finishAnswer()}
           onNext={onNext}
-          onRecheck={grading.recheck}
+          onRecheck={checkAgain}
           onRetry={() => void grading.retry()}
           onStartAnswer={() => void startAnswer()}
         />
