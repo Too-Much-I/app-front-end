@@ -1,5 +1,4 @@
 import { Feather } from '@expo/vector-icons';
-import { useIsFocused } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useQueries } from '@tanstack/react-query';
 import { Image, ScrollView, View } from 'react-native';
@@ -8,7 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pressable } from '@/components/ui/Pressable';
 import { Text } from '@/components/ui/Text';
 import type { LearningPart } from '@/features/learning/learning-level';
-import { withMockLearningCompletion } from '@/features/learning/learning-mock-source';
 import { learningUnitsQueryOptions } from '@/features/learning/learning-queries';
 import { pickNextLesson } from '@/features/learning/pick-next-lesson';
 import type { RootStackParamList } from '@/navigation/types';
@@ -30,7 +28,8 @@ const PART_ICON_SIZE = 28;
  * 학습 파트 고르기(시안 B).
  *
  * 위는 등급별 풍경, 아래는 파트 목록이다. 파트를 누르면 서버 완료 기록 기준으로 아직 안 한 문항을 골라
- * 바로 들어간다(세트 목록 화면 없음). "이어서 하기"는 마지막 학습을 알려 주는 API가 없어 두지 않았다.
+ * 바로 들어간다(세트 목록 화면 없음). "이어서 하기"는 마지막 학습 파트를 알려 주는 API를 서버에 요청해
+ * 두어(2026-10-26 결정) 그 전까지 두지 않는다.
  * 목록은 서버에서 받고, 하나라도 못 받으면 토끼와 다시 불러오기를 보여 준다.
  */
 export function LearningPartsScreen({ navigation, route }: LearningPartsScreenProps) {
@@ -38,10 +37,8 @@ export function LearningPartsScreen({ navigation, route }: LearningPartsScreenPr
   const card = LEVEL_CARDS[level];
   const scene = LEARNING_PART_SCENES[level];
   const insets = useSafeAreaInsets();
-  // 목 채점(Part 2~5)을 마치고 돌아오면 메모리의 완료 기록이 바뀌어 있다. 화면에 다시 들어올 때 다시
-  // 그리게만 하고 값은 쓰지 않는다. Part 1은 완료 저장 뒤 목록 캐시를 무효화해 서버 값을 다시 읽는다.
-  useIsFocused();
 
+  // 완료 수는 서버 값이다. Part 1 완료 저장과 Part 2~5 채점 완료 뒤 그 파트 목록 캐시를 무효화해 다시 읽는다.
   // 파트마다 완료 수를 보여 줘야 해서 다섯 파트 목록을 함께 받는다.
   const unitQueries = useQueries({
     queries: LEARNING_PART_ROWS.map((row) => learningUnitsQueryOptions(row.part, level)),
@@ -52,7 +49,7 @@ export function LearningPartsScreen({ navigation, route }: LearningPartsScreenPr
   const retryFailed = () => failedQueries.forEach((query) => void query.refetch());
 
   const rows = LEARNING_PART_ROWS.map((row, index) => {
-    const units = withMockLearningCompletion(unitQueries[index]?.data ?? [], row.part, level);
+    const units = unitQueries[index]?.data ?? [];
     const doneUnits = units.filter((unit) => unit.lessons.every((lesson) => lesson.completed));
     return { ...row, units, doneCount: doneUnits.length, totalCount: units.length };
   });

@@ -1,4 +1,4 @@
-import type { LearningSentence } from '@/types/learning';
+import type { LearningLesson, LearningSentence } from '@/types/learning';
 
 export interface PuzzlePiece {
   /** 문장 안 순서. 0부터. */
@@ -9,6 +9,9 @@ export interface PuzzlePiece {
 /**
  * 서버가 조각을 주지 않은 문장에서 쓰는 조각 길이.
  * 2026-10-19 조각 기준(2~7단어, 의미 우선)의 가운데 값이다. 의미 경계는 모르므로 임시다.
+ *
+ * 서버는 Part 2~5 모든 문장에 `chunks`를 준다(2026-10-26 확인). 그래서 이 길은 서버가 빠뜨린 문장에만 타고,
+ * 빠뜨린 것은 세트를 받을 때 오류로 보고한다(`countSentencesWithoutChunks`).
  */
 const FALLBACK_PIECE_WORDS = 3;
 
@@ -23,6 +26,17 @@ export function buildPuzzlePieces(sentence: LearningSentence): PuzzlePiece[] {
     }));
 
   return ranges.map((range, order) => ({ order, words: words.slice(range.from, range.to + 1) }));
+}
+
+/**
+ * 퍼즐을 하는 문항(Part 2~5)에서 `chunks`가 없는 문장 수. Part 1은 퍼즐이 없어 `chunks`가 없는 게 정상이다.
+ * 운영에서는 Part 2~5 모든 문장에 조각이 있어야 해서(2026-10-26 결정) 0이 아니면 서버가 빠뜨린 것이다.
+ */
+export function countSentencesWithoutChunks(lessons: readonly LearningLesson[]): number {
+  return lessons
+    .filter((lesson) => lesson.part !== 1)
+    .flatMap((lesson) => lesson.sentences)
+    .filter((sentence) => sentence.chunks === null).length;
 }
 
 /**

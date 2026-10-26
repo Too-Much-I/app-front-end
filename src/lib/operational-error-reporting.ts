@@ -236,6 +236,35 @@ type PostLoginErrorInput =
       code: 'LEARNING_COMPLETION_FAILED';
     } & SafeCause)
   | ({
+      code: 'LEARNING_GRADING_FAILED';
+      /**
+       * 어디서 멈췄는지. `capabilities`는 준비 조회 요청 자체의 실패이고, 서버가 준비 안 됨이라고 답한 것은
+       * 보고하지 않는다. `job`은 서버가 채점을 `failed`로 끝낸 것이라 HTTP 오류가 없고, 서버 오류 코드는
+       * `jobErrorCode`에 싣는다.
+       */
+      stage:
+        | 'capabilities'
+        | 'create'
+        | 'upload-url'
+        | 'upload'
+        | 'submit'
+        | 'polling'
+        | 'retry'
+        | 'job';
+      jobErrorCode?: string;
+    } & SafeCause)
+  /**
+   * Part 2~5 세트에 퍼즐 조각(`chunks`)이 없는 문장이 있다. 운영에서는 모두 있어야 한다(2026-10-26 결정).
+   * 앱은 세 단어로 잘라 계속 쓰므로 흐름을 막지 않아 warning으로 보내고(`LEVEL_BY_CODE`), cause가 없다.
+   * `unitId`는 서버가 고칠 세트를 찾게 싣는다 — 사용자와 무관한 콘텐츠 ID라 식별자 제외 원칙의 예외다.
+   */
+  | {
+      code: 'LEARNING_CHUNKS_MISSING';
+      part: number;
+      unitId: string;
+      missingSentences: number;
+    }
+  | ({
       code: 'PUSH_REGISTRATION_FAILED';
       operation: string;
     } & SafeCause)
@@ -294,7 +323,10 @@ export type ApiResponseResource =
   | 'LEARNING_UNITS'
   | 'LEARNING_UNIT_DETAIL'
   | 'LEARNING_MEDIA_URL'
-  | 'LEARNING_COMPLETION';
+  | 'LEARNING_COMPLETION'
+  | 'LEARNING_CAPABILITIES'
+  | 'LEARNING_UPLOAD_URL'
+  | 'LEARNING_SUBMISSION';
 
 type SafeValue = string | number | boolean;
 
@@ -328,6 +360,8 @@ const FEATURE_BY_CODE: Record<OperationalErrorCode, string> = {
   MYPAGE_LOAD_FAILED: 'mypage',
   LEARNING_LOAD_FAILED: 'learning',
   LEARNING_COMPLETION_FAILED: 'learning',
+  LEARNING_GRADING_FAILED: 'learning',
+  LEARNING_CHUNKS_MISSING: 'learning',
   PUSH_REGISTRATION_FAILED: 'push',
   APP_VERSION_CHECK_FAILED: 'app-version',
   PASS_PURCHASE_FAILED: 'pass',
@@ -350,6 +384,12 @@ type InputFieldOf<C extends OperationalErrorCode> = Exclude<
 const FINGERPRINT_FIELDS_BY_CODE: { [C in OperationalErrorCode]?: readonly InputFieldOf<C>[] } = {
   AUTH_SIGN_IN_FAILED: ['stage', 'reason'],
 };
+
+/**
+ * 흐름을 막지 않는 서버 계약 위반만 warning으로 낮춘다. 나머지는 사용자 흐름을 막은 실패라 error다.
+ * 근거: 관례 42(docs/architecture/02-conventions.md), 2026-10-26 결정.
+ */
+const WARNING_CODES: ReadonlySet<OperationalErrorCode> = new Set(['LEARNING_CHUNKS_MISSING']);
 
 const SAFE_SERVER_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,63}$/;
 /** expo가 예외 클래스 이름에서 만들어 내는 코드. 자유 텍스트가 아니라 닫힌 식별자다. */
@@ -427,7 +467,8 @@ function toSafeContext(input: OperationalErrorInput): Record<string, SafeValue> 
 }
 
 /**
- * 사용자 흐름을 실제로 막은 handled failure만 안정된 code와 허용 목록 metadata로 보고한다.
+ * 사용자 흐름을 실제로 막은 handled failure만 안정된 code와 허용 목록 metadata로 보고한다. 흐름은 계속되는
+ * 서버 계약 위반은 예외로 warning 수준으로 보낸다(`WARNING_CODES`).
  * raw Error는 API status/code 분류 뒤 버리며 message, stack, URL과 response는 보내지 않는다.
  */
 export function previewOperationalError(input: OperationalErrorInput): OperationalEventPayload {
@@ -437,7 +478,8 @@ export function previewOperationalError(input: OperationalErrorInput): Operation
       // 숫자도 태그로 올린다. context에만 있으면 이벤트 하나를 열어봐야 보이고 집계가
       // 되지 않아, "몇 번 문항에서 몰리는가" 같은 질문에 답할 수 없다. 여기 오는 숫자는
       // partNumber·questionNumber·httpStatus처럼 값 범위가 좁은 분류값뿐이며,
-      // 식별자는 toSafeContext 이전 단계에서 이미 걸러진다.
+      // 사용자·시험 식별자는 toSafeContext 이전 단계에서 이미 걸러진다. 예외는 사용자와 무관한
+      // 콘텐츠 ID(`LEARNING_CHUNKS_MISSING`의 unitId)뿐이다.
       .filter(([, value]) => typeof value !== 'number' || Number.isFinite(value))
       .map(([key, value]) => [key, String(value)]),
   );
@@ -447,6 +489,7 @@ export function previewOperationalError(input: OperationalErrorInput): Operation
   return {
     code: input.code,
     feature: FEATURE_BY_CODE[input.code],
+    level: WARNING_CODES.has(input.code) ? 'warning' : 'error',
     fingerprint: [
       'operational-error',
       input.code,

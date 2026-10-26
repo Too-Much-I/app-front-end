@@ -6,6 +6,8 @@ import {
   type LearningLevel,
   type LearningPart,
 } from '@/features/learning/learning-level';
+import { countSentencesWithoutChunks } from '@/features/learning/learning-puzzle';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 const LEARNING_UNITS_QUERY_KEY = ['learning', 'units'] as const;
 
@@ -42,7 +44,21 @@ export function learningUnitDetailQueryOptions(
 ) {
   return queryOptions({
     queryKey: ['learning', 'detail', unitId, toLearningServerLevel(part, level)],
-    queryFn: ({ signal }) => getLearningUnitDetail(unitId, part, level, signal),
+    queryFn: async ({ signal }) => {
+      const detail = await getLearningUnitDetail(unitId, part, level, signal);
+      // 조각이 빠진 문장도 세 단어로 잘라 퍼즐은 그대로 할 수 있어서, 화면은 막지 않고 보고만 한다.
+      // 상세는 캐시에 오래 남아 받을 때 한 번만 보고된다.
+      const missingSentences = countSentencesWithoutChunks(detail.lessons);
+      if (missingSentences > 0) {
+        reportOperationalError({
+          code: 'LEARNING_CHUNKS_MISSING',
+          part,
+          unitId,
+          missingSentences,
+        });
+      }
+      return detail;
+    },
     meta: { failureReport: { code: 'LEARNING_LOAD_FAILED', resource: 'detail' } },
     staleTime: Infinity,
   });

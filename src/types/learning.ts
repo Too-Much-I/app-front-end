@@ -97,3 +97,29 @@ export interface LearningGradeResult {
   totalCount: number;
   items: LearningCriterion[];
 }
+
+/** 문항 채점 준비 여부. `ready`이고 `lessonIds`에 그 문항이 있어야 채점할 수 있다. */
+export interface LearningCapabilities {
+  ready: boolean;
+  lessonIds: string[];
+}
+
+/** 녹음을 올릴 서명된 S3 PUT 주소. 최대 5분 유효하다. */
+export interface LearningUploadUrl {
+  url: string;
+  expiresAtMs: number;
+  maxBytes: number;
+}
+
+/** 채점 중인 상태. HTTP 성공은 채점 완료가 아니어서 이 상태 동안 다시 조회한다. */
+export type LearningSubmissionPendingStatus =
+  'awaiting_audio' | 'queued' | 'transcribing' | 'grading';
+
+/** Part 2~5 녹음 제출 하나의 채점 상태. `id`는 앱이 녹음마다 만든 UUID다. */
+export type LearningSubmission =
+  | { id: string; status: LearningSubmissionPendingStatus }
+  | { id: string; status: 'completed'; result: LearningGradeResult }
+  /** `retryable`이면 같은 녹음으로 `retry`를 부를 수 있다. 아니면 새로 녹음해야 한다. */
+  | { id: string; status: 'failed'; errorCode: string; retryable: boolean }
+  /** 말소리가 없었다. 새로 녹음한다. */
+  | { id: string; status: 'no_speech' };

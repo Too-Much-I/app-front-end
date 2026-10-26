@@ -11,8 +11,8 @@ const learningSentenceSchema = z.object({
   words: z.array(z.object({ text: z.string(), start: z.number(), end: z.number() })),
   audio: learningMediaSchema.nullish(),
   /**
-   * 퍼즐 조각 경계. 서버와 합의한 형태(`{from, to}`, `to` 포함)대로 온다고 보고 받는다(2026-10-23 결정).
-   * 아직 서버 응답에는 없어서 선택 필드다. 없으면 조각을 못 만든 문장과 같게 `null`로 둔다.
+   * 퍼즐 조각 경계(`{from, to}`, `to` 포함). Part 1은 퍼즐이 없어 오지 않아서 선택 필드다. 없으면 `null`로 둔다.
+   * Part 2~5에서 빠진 문장은 상세 조회 쪽이 오류로 보고한다(2026-10-26 결정).
    */
   chunks: z.array(z.object({ from: z.number().int(), to: z.number().int() })).nullish(),
 });

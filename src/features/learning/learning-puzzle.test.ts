@@ -1,9 +1,10 @@
 import {
   buildPuzzlePieces,
+  countSentencesWithoutChunks,
   pressPuzzlePiece,
   scatterPuzzlePieces,
 } from '@/features/learning/learning-puzzle';
-import type { LearningSentence } from '@/types/learning';
+import type { LearningLesson, LearningSentence } from '@/types/learning';
 
 function sentence(text: string, chunks: LearningSentence['chunks']): LearningSentence {
   return {
@@ -43,6 +44,34 @@ describe('scatterPuzzlePieces', () => {
 
     expect(scatterPuzzlePieces(pieces)[0]?.order).not.toBe(0);
     expect(scatterPuzzlePieces(pieces)).toHaveLength(pieces.length);
+  });
+});
+
+describe('countSentencesWithoutChunks', () => {
+  function lesson(part: LearningLesson['part'], sentences: LearningSentence[]): LearningLesson {
+    return {
+      id: `lesson-${part}`,
+      contentVersion: 'v1',
+      part,
+      questionNumber: 1,
+      question: 'Q',
+      questionTranslation: null,
+      passage: null,
+      sentences,
+    };
+  }
+
+  it('Part 2~5 문장 중 chunks가 없는 것만 센다', () => {
+    const lessons = [
+      lesson(3, [sentence('a b', [{ from: 0, to: 1 }]), sentence('c d', null)]),
+      lesson(5, [sentence('e f', null)]),
+    ];
+
+    expect(countSentencesWithoutChunks(lessons)).toBe(2);
+  });
+
+  it('Part 1은 chunks가 없어도 세지 않는다', () => {
+    expect(countSentencesWithoutChunks([lesson(1, [sentence('a b', null)])])).toBe(0);
   });
 });
 
