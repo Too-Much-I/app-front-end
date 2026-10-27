@@ -333,8 +333,7 @@ export type ApiResponseResource =
   | 'LEARNING_COMPLETION'
   | 'LEARNING_CAPABILITIES'
   | 'LEARNING_UPLOAD_URL'
-  | 'LEARNING_SUBMISSION'
-  | 'PROMOTION_APPLICATION';
+  | 'LEARNING_SUBMISSION';
 
 type SafeValue = string | number | boolean;
 
