@@ -10,11 +10,13 @@ import {
   View,
   type ImageSourcePropType,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Pressable } from '@/components/ui/Pressable';
 import { Text } from '@/components/ui/Text';
+import { useSkeletonPulseStyle } from '@/components/ui/use-skeleton-pulse-style';
 import {
   useTimedAudioRecorder,
   type AudioRecordingStatus,
@@ -25,6 +27,7 @@ import {
   type LearningGradingState,
 } from '@/features/learning/use-learning-grading';
 import type { RootStackParamList } from '@/navigation/types';
+import { LearningChalkboard } from '@/screens/learning/components/LearningChalkboard';
 import { LearningLessonFallback } from '@/screens/learning/components/LearningLessonFallback';
 import { LearningPaperCard } from '@/screens/learning/components/LearningPaperCard';
 import { LearningStepHeader } from '@/screens/learning/components/LearningStepHeader';
@@ -36,6 +39,10 @@ import { colors, shadows, size } from '@/theme';
 const waitingRabbit = require('../../../public/mascots/waiting_rabbit_tight.png');
 const errorRabbit = require('../../../public/mascots/error.png');
 const micRabbit = require('../../../public/mascots/mic_rabbit.png');
+const scoringCat = require('../../../public/mascots/scoring.png');
+
+/** 채점 대기 쪽지의 점 세 개. 함께 숨 쉬게 해 기다리는 중임을 보인다. */
+const WAIT_DOTS = ['first', 'second', 'third'] as const;
 
 type LearningGradingScreenProps = NativeStackScreenProps<RootStackParamList, 'LearningGrading'>;
 
@@ -184,6 +191,12 @@ function GradingLesson({ lesson, level, nextLabel, onNext }: GradingLessonProps)
       <ScrollView contentContainerClassName="gap-section px-screen pb-section pt-sm">
         {state.status === 'completed' ? (
           <GradeResult result={state.result} />
+        ) : state.status === 'grading' ? (
+          // 채점을 기다리는 동안에도 방금 답한 질문을 그대로 둔다(2026-10-27 시안 W1).
+          <>
+            <LessonChalkboard lesson={lesson} />
+            <GradingWaitNote />
+          </>
         ) : (
           <>
             <GradingNotice answerPhase={answerPhase} state={state} />
@@ -221,7 +234,20 @@ function GradingLesson({ lesson, level, nextLabel, onNext }: GradingLessonProps)
   );
 }
 
-/** 질문과 모범답안의 한국어 뜻. 영어 문장은 보여 주지 않는다 — 뜻만 보고 스스로 말해 보는 단계다. */
+function LessonChalkboard({ lesson }: { lesson: LearningLesson }) {
+  return (
+    <LearningChalkboard
+      question={lesson.question}
+      questionNumber={lesson.questionNumber}
+      questionTranslation={lesson.questionTranslation}
+    />
+  );
+}
+
+/**
+ * 질문 칠판과 모범답안의 한국어 뜻. 영어 문장은 보여 주지 않는다 — 뜻만 보고 스스로 말해 보는 단계다.
+ * 질문을 크게 칠판에, 뜻은 작은 글씨로 아래에 둔다(2026-10-27 시안 Q).
+ */
 function AnswerPrompt({ lesson }: { lesson: LearningLesson }) {
   const translations = lesson.sentences
     .map((sentence) => sentence.translation)
@@ -229,17 +255,12 @@ function AnswerPrompt({ lesson }: { lesson: LearningLesson }) {
 
   return (
     <>
-      <LearningPaperCard label={`Q${lesson.questionNumber} 질문`} tone="sky">
-        <Text className="text-base leading-7">{lesson.question}</Text>
-        {lesson.questionTranslation ? (
-          <Text className="mt-sm text-sm text-ink-muted">{lesson.questionTranslation}</Text>
-        ) : null}
-      </LearningPaperCard>
+      <LessonChalkboard lesson={lesson} />
       {translations.length > 0 ? (
         <LearningPaperCard hint="이 뜻을 영어로 처음부터 말해 봐요" label="한국어 뜻" tone="mint">
-          <View className="gap-sm">
+          <View className="gap-xs">
             {translations.map((translation, index) => (
-              <Text key={`${index}-${translation}`} className="text-base leading-7">
+              <Text key={`${index}-${translation}`} className="text-sm">
                 {translation}
               </Text>
             ))}
@@ -247,6 +268,35 @@ function AnswerPrompt({ lesson }: { lesson: LearningLesson }) {
         </LearningPaperCard>
       ) : null}
     </>
+  );
+}
+
+/** 채점을 기다리는 동안 칠판 아래에 붙는 쪽지(2026-10-27 시안 W1). 결과 판정 카드와 같은 노랑을 쓴다. */
+function GradingWaitNote(): ReactElement {
+  const pulseStyle = useSkeletonPulseStyle();
+
+  return (
+    <View
+      accessible
+      accessibilityLabel="토선생이 채점하고 있어요. 보통 몇 초면 끝나요. 이 화면에 있어 주세요."
+      className="rounded-card p-card"
+      style={[shadows.card, { backgroundColor: colors.challenge.verdict }]}
+    >
+      <View className="flex-row items-center gap-md rounded-2xl bg-surface p-lg">
+        <Image className="h-20 w-20" resizeMode="contain" source={scoringCat} />
+        <View className="flex-1 gap-sm">
+          <Text className="text-lg text-brand-text">토선생이 채점하고 있어요</Text>
+          <Animated.View style={pulseStyle}>
+            <View className="flex-row gap-xs">
+              {WAIT_DOTS.map((dot) => (
+                <View key={dot} className="h-2 w-2 rounded-pill bg-brand" />
+              ))}
+            </View>
+          </Animated.View>
+          <Text className="text-xs text-ink-muted">보통 몇 초면 끝나요. 이 화면에 있어 주세요</Text>
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -334,19 +384,18 @@ interface GradingNoticeContent {
   description: string | null;
 }
 
-/** 마스코트 안내 문구. 답하는 중(`ready`)과 결과(`completed`)는 안내 대신 본문을 그린다. */
+/**
+ * 마스코트 안내 문구. 답하는 중(`ready`)과 결과(`completed`)는 안내 대신 본문을 그리고, 채점 중(`grading`)은
+ * 칠판과 대기 쪽지(`GradingWaitNote`)를 그린다.
+ */
 function getNotice(state: LearningGradingState): GradingNoticeContent | null {
   switch (state.status) {
     case 'ready':
+    case 'grading':
     case 'completed':
       return null;
     case 'checking':
-    case 'grading':
-      return {
-        mascot: waitingRabbit,
-        title: state.status === 'grading' ? '채점이 진행중이에요' : '채점을 준비하고 있어요',
-        description: state.status === 'grading' ? '잠시만 기다려 주세요.' : null,
-      };
+      return { mascot: waitingRabbit, title: '채점을 준비하고 있어요', description: null };
     case 'not-ready':
       return {
         mascot: errorRabbit,
@@ -402,8 +451,14 @@ function GradingActions({
 }: GradingActionsProps): ReactElement | null {
   switch (state.status) {
     case 'checking':
-    case 'grading':
       return null;
+    // 답하기 버튼이 있던 자리를 비우지 않고 눌리지 않는 안내로 채워, 결과를 기다리는 중임을 보인다(시안 W1).
+    case 'grading':
+      return (
+        <View className="min-h-control-lg items-center justify-center rounded-control bg-surface-muted">
+          <Text className="text-base text-ink-muted">결과를 기다리는 중</Text>
+        </View>
+      );
     case 'not-ready':
       return <RecheckButton onRecheck={onRecheck} />;
     case 'failed':

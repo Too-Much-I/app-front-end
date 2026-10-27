@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { LearningPart } from '@/features/learning/learning-level';
 import type { LearningUnitSummary } from '@/types/learning';
 
-const learningPartSchema = z.union([
+export const learningPartSchema = z.union([
   z.literal(1),
   z.literal(2),
   z.literal(3),

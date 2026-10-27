@@ -1,6 +1,10 @@
 import { queryOptions } from '@tanstack/react-query';
 
-import { getLearningUnitDetail, getLearningUnits } from '@/features/learning/api/learning-api';
+import {
+  getLearningResume,
+  getLearningUnitDetail,
+  getLearningUnits,
+} from '@/features/learning/api/learning-api';
 import {
   toLearningServerLevel,
   type LearningLevel,
@@ -28,6 +32,27 @@ export function learningUnitsQueryOptions(part: LearningPart, level: LearningLev
     queryKey: learningUnitsQueryKey(part, level),
     queryFn: ({ signal }) => getLearningUnits(part, level, signal),
     meta: { failureReport: { code: 'LEARNING_LOAD_FAILED', resource: 'units' } },
+  });
+}
+
+const LEARNING_RESUME_QUERY_KEY = ['learning', 'resume'] as const;
+
+/**
+ * 이어서 하기 캐시 키. 등급을 빼면 모든 등급을 가리킨다(무효화용) — Part 1 완료는 서버가 모든 등급에 반영한다.
+ * 세트 목록과 같은 때(채점 completed, Part 1 완료 저장) 무효화한다(2026-10-27 결정).
+ */
+export function learningResumeQueryKey(level?: LearningLevel) {
+  return level === undefined
+    ? LEARNING_RESUME_QUERY_KEY
+    : ([...LEARNING_RESUME_QUERY_KEY, level] as const);
+}
+
+/** 등급별 이어서 하기 위치. */
+export function learningResumeQueryOptions(level: LearningLevel) {
+  return queryOptions({
+    queryKey: learningResumeQueryKey(level),
+    queryFn: ({ signal }) => getLearningResume(level, signal),
+    meta: { failureReport: { code: 'LEARNING_LOAD_FAILED', resource: 'resume' } },
   });
 }
 

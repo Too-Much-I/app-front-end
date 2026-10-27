@@ -10,6 +10,7 @@ import {
   learningCapabilitiesSchema,
   mapLearningCapabilities,
 } from '@/features/learning/map-learning-capabilities';
+import { learningResumeSchema, mapLearningResume } from '@/features/learning/map-learning-resume';
 import {
   learningSubmissionSchema,
   mapLearningSubmission,
@@ -29,6 +30,7 @@ import type { ApiEnvelope } from '@/types/api';
 import type {
   LearningCapabilities,
   LearningMedia,
+  LearningResume,
   LearningSubmission,
   LearningUnitDetail,
   LearningUnitSummary,
@@ -73,6 +75,21 @@ export async function getLearningUnitDetail(
   return mapLearningUnitDetail(
     parseApiResult(learningUnitDetailSchema, result, 'LEARNING_UNIT_DETAIL'),
   );
+}
+
+/**
+ * 등급별 이어서 하기 위치. 파트는 보내지 않는다 — 보내면 그 파트 안 첫 미완료 세트를 주는 옛 응답이 온다.
+ * 기준은 마지막으로 채점이 끝난(completed) 문항이다.
+ */
+export async function getLearningResume(
+  level: LearningLevel,
+  signal?: AbortSignal,
+): Promise<LearningResume> {
+  const { result } = await apiFetchWithAuthRetry<ApiEnvelope<unknown>>(
+    `/api/v1/learning/resume?level=${level}`,
+    { signal },
+  );
+  return mapLearningResume(parseApiResult(learningResumeSchema, result, 'LEARNING_RESUME'));
 }
 
 /** 만료된 미디어 주소를 다시 받는다. 새 주소도 1시간짜리다. */
