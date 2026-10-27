@@ -98,6 +98,23 @@ export interface LearningGradeResult {
   items: LearningCriterion[];
 }
 
+/**
+ * 등급별 이어서 하기 위치(`GET /learning/resume?level=`).
+ *
+ * 세 상태 모두 들어갈 위치가 있다. `READY`는 마지막으로 채점이 끝난 문항의 다음, `NO_HISTORY`는 처음 학습이라
+ * Part 1 첫 문항, `END_OF_PART`는 파트를 다 끝낸 뒤의 위치다. 상태는 카드 문구를 고르는 데만 쓴다.
+ */
+export interface LearningResume {
+  status: 'READY' | 'NO_HISTORY' | 'END_OF_PART';
+  part: LearningPart;
+  unitId: string;
+  /** 파트 안 세트 순번(1부터). */
+  unitNumber: number;
+  lessonId: string;
+  /** 세트 안 문항 순번(1부터). 시험지 문항 번호(`questionNumber`)와 다르다. */
+  lessonNumber: number;
+}
+
 /** 문항 채점 준비 여부. `ready`이고 `lessonIds`에 그 문항이 있어야 채점할 수 있다. */
 export interface LearningCapabilities {
   ready: boolean;

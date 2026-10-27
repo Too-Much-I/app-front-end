@@ -230,7 +230,7 @@ type PostLoginErrorInput =
   | ({
       code: 'LEARNING_LOAD_FAILED';
       /** `media`는 서버 음성(주소 재발급·모범 음성), `recording`은 기기 안 내 녹음 재생이다. */
-      resource: 'units' | 'detail' | 'media' | 'recording';
+      resource: 'units' | 'detail' | 'resume' | 'media' | 'recording';
     } & SafeCause)
   | ({
       code: 'LEARNING_COMPLETION_FAILED';
@@ -299,7 +299,7 @@ type PostLoginErrorInput =
 export type QueryFailureReport =
   | { code: 'CHALLENGE_LOAD_FAILED'; resource: 'today' }
   | { code: 'MYPAGE_LOAD_FAILED'; resource: 'profile' | 'calendar' }
-  | { code: 'LEARNING_LOAD_FAILED'; resource: 'units' | 'detail' };
+  | { code: 'LEARNING_LOAD_FAILED'; resource: 'units' | 'detail' | 'resume' };
 
 /**
  * 스키마 검증을 붙인 엔드포인트. 옮겨올 때마다 여기에 하나씩 추가한다.
@@ -322,6 +322,7 @@ export type ApiResponseResource =
   | 'ENTITLEMENTS'
   | 'LEARNING_UNITS'
   | 'LEARNING_UNIT_DETAIL'
+  | 'LEARNING_RESUME'
   | 'LEARNING_MEDIA_URL'
   | 'LEARNING_COMPLETION'
   | 'LEARNING_CAPABILITIES'

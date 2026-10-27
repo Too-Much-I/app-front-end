@@ -215,6 +215,20 @@ const colors = {
     memoGrid: '#E4ECF4',
     pieces: ['#F9DCE6', '#FFE4CC', '#DCEFD4', '#D9EAF7', '#F6ECC4'],
   },
+  /**
+   * 학습 채점 화면의 문제 칠판(2026-10-27 시안 Q).
+   *
+   * 값은 피드백 교실 칠판(`feedback.chalkboard`·`chalk`·`wood`)과 같지만 따로 둔다 — `feedback`은 결과 피드백
+   * 화면에만 쓰는 의미 색이라, 한쪽 톤을 조정할 때 다른 쪽이 끌려가면 안 된다.
+   * 분필 글자는 칠판 위에서 `chalk` 8.6:1, `chalkMuted` 6.7:1로 본문 기준(4.5:1)을 넘긴다.
+   */
+  learningChalkboard: {
+    board: '#174D3C',
+    frame: '#A76B3D',
+    frameEdge: '#D49A62',
+    chalk: '#F7F2D7',
+    chalkMuted: '#C8DCCF',
+  },
   /** 결과 피드백 화면의 카드, 상태 배지와 교실 칠판에만 쓰는 의미 색. */
   feedback: {
     scoreSurface: '#07513D',

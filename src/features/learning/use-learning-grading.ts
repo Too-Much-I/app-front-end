@@ -12,7 +12,10 @@ import {
   submitLearningSubmission,
 } from '@/features/learning/api/learning-api';
 import type { LearningLevel } from '@/features/learning/learning-level';
-import { learningUnitsQueryKey } from '@/features/learning/learning-queries';
+import {
+  learningResumeQueryKey,
+  learningUnitsQueryKey,
+} from '@/features/learning/learning-queries';
 import {
   AnswerAudioUploadError,
   getValidAnswerAudioFile,
@@ -172,6 +175,7 @@ export function useLearningGrading(lesson: LearningLesson, level: LearningLevel)
           void queryClient.invalidateQueries({
             queryKey: learningUnitsQueryKey(lesson.part, level),
           });
+          void queryClient.invalidateQueries({ queryKey: learningResumeQueryKey(level) });
           setState({ status: 'completed', result: submission.result });
           return;
         case 'no_speech':
