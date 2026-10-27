@@ -8,6 +8,7 @@ import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
+import { readPushOpenRoute, type PushOpenRoute } from '@/features/push/push-open-route';
 import { ensureStudyChannel } from '@/features/push/push-permission';
 
 function isNativePlatform(): boolean {
@@ -37,33 +38,29 @@ export function observePushTokenRefresh(listener: () => void): () => void {
   return onTokenRefresh(getMessaging(), listener);
 }
 
-/** 서버 payload `data.route`. 모의고사 홈으로 가는 리마인더만 처리한다(명세 2026-10-07 §5). */
-const MOCK_EXAM_HOME_ROUTE = 'MOCK_EXAM_HOME';
-
-function opensMockExamHome(message: { data?: Record<string, unknown> } | null): boolean {
-  return message?.data?.route === MOCK_EXAM_HOME_ROUTE;
-}
-
 /**
- * 모의고사 홈으로 가는 알림을 눌러 앱이 열리면 `onOpen`을 부른다. 꺼진 상태에서 눌러 연 경우도 포함한다.
- * 회원 화면이 붙을 때 구독한다 — 로그아웃 상태에서 누른 알림은 무시된다.
+ * 아는 route의 알림을 눌러 앱이 열리면 그 route의 처리를 부른다. 꺼진 상태에서 눌러 연 경우도 포함한다.
+ * 회원 화면이 붙을 때 구독한다 — 로그아웃 상태에서 누른 알림은 무시된다(이벤트 알림도 같다, 2026-10-27 결정).
+ * `handlers`는 바뀌면 다시 구독하므로 부르는 쪽이 고정된 객체로 넘긴다.
  */
-export function usePushNotificationOpen(onOpen: () => void): void {
+export function usePushNotificationOpen(handlers: Record<PushOpenRoute, () => void>): void {
   useEffect(() => {
     if (!isNativePlatform()) return undefined;
     const messaging = getMessaging();
     let active = true;
+    const open = (message: { data?: Record<string, unknown> } | null) => {
+      const route = readPushOpenRoute(message);
+      if (route) handlers[route]();
+    };
     void getInitialNotification(messaging)
       .then((message) => {
-        if (active && opensMockExamHome(message)) onOpen();
+        if (active) open(message);
       })
       .catch(() => undefined);
-    const unsubscribe = onNotificationOpenedApp(messaging, (message) => {
-      if (opensMockExamHome(message)) onOpen();
-    });
+    const unsubscribe = onNotificationOpenedApp(messaging, open);
     return () => {
       active = false;
       unsubscribe();
     };
-  }, [onOpen]);
+  }, [handlers]);
 }

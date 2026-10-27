@@ -12,6 +12,9 @@ import { colors } from '@/theme';
 const QUALITY_REVIEW_LABEL = '채점 품질 개선을 위한 답변 검토';
 const QUALITY_REVIEW_DESCRIPTION =
   '채점이 잘못되거나 오류가 났을 때 담당자가 해당 답변 음성과 전사문을 직접 확인해 원인을 찾습니다. 동의하지 않아도 모의고사 응시와 채점 결과 확인에는 제한이 없어요.';
+const MARKETING_PUSH_LABEL = '이벤트·혜택 푸시 알림 받기';
+const MARKETING_PUSH_DESCRIPTION =
+  '기프티콘 이벤트, 할인 같은 광고성 소식을 푸시 알림으로 보내 드려요. 동의하지 않아도 학습 알림과 서비스 이용에는 제한이 없고, 설정의 알림에서 언제든 끌 수 있어요.';
 
 interface SignupConsentScreenProps {
   draftStore: ReturnType<typeof createSignupDraftStore>;
@@ -37,8 +40,13 @@ export function SignupConsentScreen({
 }: SignupConsentScreenProps) {
   const consents = useStore(draftStore, (draft) => draft.consents);
   const requiredChecked = consents.terms.agreed && consents.privacy.agreed;
+  // 서버가 광고성 푸시 버전을 주지 않으면(운영 배포 전) 그 항목은 묻지 않는다.
+  const asksMarketingPush = consents.marketingPush.version !== null;
   // 전체 동의는 선택 항목까지 포함해야 켜진다. 필수만 체크해도 계속할 수 있다.
-  const allChecked = requiredChecked && consents.qualityReview.agreed;
+  const allChecked =
+    requiredChecked &&
+    consents.qualityReview.agreed &&
+    (!asksMarketingPush || consents.marketingPush.agreed);
 
   return (
     <AuthScreenFrame
@@ -104,6 +112,22 @@ export function SignupConsentScreen({
           <Text className="pl-card text-xs leading-5 text-ink-muted">
             {QUALITY_REVIEW_DESCRIPTION}
           </Text>
+          {asksMarketingPush ? (
+            <>
+              <SignupConsentRow
+                label={MARKETING_PUSH_LABEL}
+                optional
+                checked={consents.marketingPush.agreed}
+                disabled={loading}
+                onToggle={() =>
+                  draftStore.setConsent('marketingPush', !consents.marketingPush.agreed)
+                }
+              />
+              <Text className="pl-card text-xs leading-5 text-ink-muted">
+                {MARKETING_PUSH_DESCRIPTION}
+              </Text>
+            </>
+          ) : null}
         </View>
       </View>
     </AuthScreenFrame>

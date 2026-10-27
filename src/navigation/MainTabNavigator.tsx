@@ -2,7 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useCallback, type ComponentProps, type ComponentType } from 'react';
+import { useMemo, type ComponentProps, type ComponentType } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { appAuthRuntime } from '@/features/auth/app-auth-runtime';
@@ -36,20 +36,27 @@ const TAB_CONFIG: TabConfig[] = [
   { name: 'MyPage', title: '마이페이지', icon: 'user', component: MyPageScreen },
 ];
 
-/** 리마인더를 누르면 모의고사 탭으로 간다. 시험 중이던 화면은 닫지 않는다. */
-function useOpenMockExamFromNotification() {
+/**
+ * 알림을 눌러 열면 route에 맞는 화면으로 간다. 리마인더는 모의고사 탭, 기프티콘 이벤트는 신청 화면이다.
+ * 시험 중이던 화면은 닫지 않는다.
+ */
+function useOpenFromNotification() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const openMockExam = useCallback(() => {
-    navigation.navigate('MainTabs', { screen: 'MockExam' });
-  }, [navigation]);
-  usePushNotificationOpen(openMockExam);
+  const handlers = useMemo(
+    () => ({
+      MOCK_EXAM_HOME: () => navigation.navigate('MainTabs', { screen: 'MockExam' }),
+      CASHBACK_EVENT_HOME: () => navigation.navigate('PromotionApplication'),
+    }),
+    [navigation],
+  );
+  usePushNotificationOpen(handlers);
 }
 
 const syncPushDevice = () => void appAuthRuntime.push.sync();
 
 export function MainTabNavigator() {
   const insets = useSafeAreaInsets();
-  useOpenMockExamFromNotification();
+  useOpenFromNotification();
 
   /**
    * 탭바 치수는 react-navigation 옵션에 넘기는 생 숫자라 NativeWind의 rem

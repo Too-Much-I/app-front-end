@@ -5,8 +5,12 @@ const DEFAULT_TIMEOUT_MS = 10_000;
 const FALLBACK_ERROR_MESSAGE = '요청을 처리하지 못했습니다.';
 const apiErrorResults = new WeakMap<ApiError, unknown>();
 
+/**
+ * 본문은 JSON 문자열이 기본이다. `FormData`는 파일을 함께 보내는 multipart 요청(프로모션 성적표)에만 쓴다 —
+ * 이때는 `Content-Type`을 붙이지 않아 fetch가 boundary를 넣게 둔다.
+ */
 export type JsonRequestInit = Omit<RequestInit, 'body'> & {
-  body?: string;
+  body?: string | FormData;
 };
 
 export class TransportConnectionError extends Error {
@@ -109,7 +113,7 @@ export async function serviceFetchWithMetadata<T>(
     const response = await fetch(url, {
       ...init,
       headers: {
-        ...(init.body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...(typeof init.body === 'string' ? { 'Content-Type': 'application/json' } : {}),
         ...init.headers,
       },
       signal: controller.signal,

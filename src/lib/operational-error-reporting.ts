@@ -146,7 +146,8 @@ export type OperationalErrorInput =
     } & SafeCause)
   | ({
       code: 'QUALITY_REVIEW_CONSENT_UPDATE_FAILED';
-      operation: 'set-quality-review-consent';
+      /** 이름과 달리 설정의 선택 동의 토글 둘(답변 검토·광고성 푸시)이 함께 쓴다. */
+      operation: 'set-quality-review-consent' | 'set-marketing-push-consent';
     } & SafeCause)
   | {
       code: 'API_RESPONSE_VALIDATION_FAILED';
@@ -222,6 +223,11 @@ type PostLoginErrorInput =
   | ({
       code: 'SUPPORT_INQUIRY_SUBMIT_FAILED';
       category: 'AUTH' | 'GENERAL';
+    } & SafeCause)
+  | ({
+      /** `pick`은 사진 고르기(권한·선택기), `submit`은 신청 전송이다. 메일·성적표 내용은 싣지 않는다. */
+      code: 'PROMOTION_APPLICATION_FAILED';
+      stage: 'pick' | 'submit';
     } & SafeCause)
   | ({
       code: 'MYPAGE_LOAD_FAILED';
@@ -366,6 +372,7 @@ const FEATURE_BY_CODE: Record<OperationalErrorCode, string> = {
   PUSH_REGISTRATION_FAILED: 'push',
   APP_VERSION_CHECK_FAILED: 'app-version',
   PASS_PURCHASE_FAILED: 'pass',
+  PROMOTION_APPLICATION_FAILED: 'promotion',
   AUTH_SESSION_REJECTED: 'auth',
 };
 

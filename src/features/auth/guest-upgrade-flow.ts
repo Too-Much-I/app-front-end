@@ -231,6 +231,7 @@ export function createGuestUpgradeFlow(options: {
         terms: enrollment.termConsentVersion,
         privacy: enrollment.privacyConsentVersion,
         qualityReview: versions.qualityReview,
+        marketingPush: versions.marketingPush,
       });
       setState({ status: 'editing', step: 'consents', policies: 'ready' });
     } catch (error) {
@@ -357,6 +358,7 @@ export function createGuestUpgradeFlow(options: {
       terms: next.termConsentVersion,
       privacy: next.privacyConsentVersion,
       qualityReview: draftStore.getState().consents.qualityReview.version,
+      marketingPush: draftStore.getState().consents.marketingPush.version,
     });
   }
 
@@ -510,7 +512,7 @@ export function createGuestUpgradeFlow(options: {
       }
 
       const draft = draftStore.getState();
-      const { terms, privacy, qualityReview } = draft.consents;
+      const { terms, privacy, qualityReview, marketingPush } = draft.consents;
       if (
         !terms.agreed ||
         !privacy.agreed ||
@@ -549,6 +551,14 @@ export function createGuestUpgradeFlow(options: {
             termConsentVersion: terms.version,
             isQualityReviewConsented: qualityReview.agreed,
             qualityReviewConsentVersion: qualityReview.version,
+            ...(marketingPush.version === null
+              ? {}
+              : {
+                  marketingPush: {
+                    consented: marketingPush.agreed,
+                    version: marketingPush.version,
+                  },
+                }),
           },
           guest.accessToken,
           abort.signal,

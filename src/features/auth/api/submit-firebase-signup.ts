@@ -1,4 +1,9 @@
-import { createAuthSession, type AuthSession } from '@/features/auth/types';
+import {
+  createAuthSession,
+  marketingPushConsentFields,
+  type AuthSession,
+  type MarketingPushConsentChoice,
+} from '@/features/auth/types';
 import { getIdentityApiBaseUrl } from '@/lib/api/service-base-url';
 import { serviceFetch } from '@/lib/api/transport';
 
@@ -13,6 +18,8 @@ export type FirebaseSignupRequest = {
   /** 선택 동의라 거부도 기록한다. */
   isQualityReviewConsented: boolean;
   qualityReviewConsentVersion: string;
+  /** 광고성 푸시 선택 동의. 서버가 버전을 주지 않았으면 보내지 않는다(서버는 미동의로 본다). */
+  marketingPush?: MarketingPushConsentChoice;
 };
 
 /** 필수 동의는 true일 때만 제출할 수 있으므로 요청 타입에서 받지 않는다. */
@@ -34,6 +41,7 @@ export async function submitFirebaseSignup(
         termConsentVersion: request.termConsentVersion,
         isQualityReviewConsented: request.isQualityReviewConsented,
         qualityReviewConsentVersion: request.qualityReviewConsentVersion,
+        ...marketingPushConsentFields(request.marketingPush),
       }),
       signal,
     },

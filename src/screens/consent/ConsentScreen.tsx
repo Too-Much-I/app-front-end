@@ -12,6 +12,7 @@ import {
   getStoredOptionalConsent,
   persistOptionalConsent,
 } from '@/features/consent/optional-consent-storage';
+import type { OptionalConsentChoices } from '@/features/auth/types';
 import { trackEvent } from '@/lib/amplitude';
 import type { RootStackParamList } from '@/navigation/types';
 import { colors, shadows } from '@/theme';
@@ -23,9 +24,11 @@ type ConsentScreenProps = NativeStackScreenProps<RootStackParamList, 'Consent'> 
   mode: 'new' | 'existing';
   requiredItems: { privacy: boolean; terms: boolean };
   qualityReviewConsented?: boolean;
+  /** 서버가 광고성 푸시 항목을 주지 않으면 `null`이고 그 행을 그리지 않는다. */
+  marketingPushConsented?: boolean | null;
   isSubmitting: boolean;
   submitError: string | null;
-  onAccept: (qualityReviewConsented: boolean) => Promise<void>;
+  onAccept: (choices: OptionalConsentChoices) => Promise<void>;
 };
 
 type RequiredItemKey = 'privacy' | 'terms';
@@ -40,6 +43,9 @@ const COLLECTION_TABLE_ROWS: Array<{ label: string; value: string }> = [
 ];
 
 const QUALITY_REVIEW_LABEL = '채점 품질 개선을 위한 답변 검토';
+const MARKETING_PUSH_LABEL = '이벤트·혜택 푸시 알림 받기';
+const MARKETING_PUSH_DESCRIPTION =
+  '기프티콘 이벤트, 할인 같은 광고성 소식을 푸시 알림으로 보내 드려요. 동의하지 않아도 학습 알림과 서비스 이용에는 제한이 없고, 설정의 알림에서 언제든 끌 수 있어요.';
 const QUALITY_REVIEW_DESCRIPTION =
   '채점이 잘못되거나 오류가 났을 때 담당자가 해당 답변 음성과 전사문을 직접 확인해 원인을 찾습니다. 동의하지 않아도 모의고사 응시와 채점 결과 확인에는 제한이 없어요.';
 
@@ -48,6 +54,7 @@ export function ConsentScreen({
   mode,
   requiredItems,
   qualityReviewConsented,
+  marketingPushConsented = null,
   isSubmitting,
   submitError,
   onAccept,
@@ -58,6 +65,9 @@ export function ConsentScreen({
     terms: !requiredItems.terms,
   });
   const [qualityReviewChecked, setQualityReviewChecked] = useState(qualityReviewConsented ?? false);
+  const asksMarketingPush = marketingPushConsented !== null;
+  // 광고성 푸시는 이전 선택을 그대로 보여 준다. 미리 켜 두지 않는다 — 처음 묻는 사람은 꺼진 채로 본다.
+  const [marketingPushChecked, setMarketingPushChecked] = useState(marketingPushConsented ?? false);
   // 저장값 로드가 늦게 도착해도 이용자가 이미 만진 선택을 덮지 않게 표시해 둔다.
   const hasUserChosenQualityReview = useRef(false);
   // `isSubmitting`은 acceptConsent가 setState를 부른 뒤에야 켜진다. 그전에 await가
@@ -71,7 +81,8 @@ export function ConsentScreen({
   const allChecked =
     (!requiredItems.privacy || checked.privacy) && (!requiredItems.terms || checked.terms);
   // 필수 항목만 만족해도 시작할 수 있다. 전체 동의 체크는 선택 항목까지 포함해야 켜진다.
-  const allAgreed = allChecked && qualityReviewChecked;
+  const allAgreed =
+    allChecked && qualityReviewChecked && (!asksMarketingPush || marketingPushChecked);
 
   // 재동의(mode === "existing")로 다시 들어온 이용자가 이전에 선택 동의를 켜 뒀다면
   // 그 선택을 유지한 채로 보여준다. 저장값이 없으면 기본값 false를 그대로 쓴다.
@@ -113,6 +124,7 @@ export function ConsentScreen({
       terms: requiredItems.terms ? next : true,
     });
     chooseQualityReview(next);
+    if (asksMarketingPush) setMarketingPushChecked(next);
   };
 
   const openPrivacyPolicy = () => {
@@ -164,7 +176,10 @@ export function ConsentScreen({
       // 저장소가 아니라 컨트롤러 메모리로 선택을 넘긴다. 저장이 실패해도 이번
       // 제출에는 화면에 보이던 선택이 그대로 실린다.
       await persistQualityReviewChoice();
-      await onAccept(qualityReviewChecked);
+      await onAccept({
+        qualityReview: qualityReviewChecked,
+        marketingPush: asksMarketingPush ? marketingPushChecked : null,
+      });
     } finally {
       isSubmittingRef.current = false;
     }
@@ -278,6 +293,16 @@ export function ConsentScreen({
             label={QUALITY_REVIEW_LABEL}
             onToggle={() => chooseQualityReview(!qualityReviewChecked)}
           />
+          {asksMarketingPush ? (
+            <View className="border-t border-line">
+              <OptionalRow
+                checked={marketingPushChecked}
+                description={MARKETING_PUSH_DESCRIPTION}
+                label={MARKETING_PUSH_LABEL}
+                onToggle={() => setMarketingPushChecked(!marketingPushChecked)}
+              />
+            </View>
+          ) : null}
         </View>
       </ScrollView>
 

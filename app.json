@@ -60,6 +60,14 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "이벤트 신청에 토익스피킹 성적표 사진을 올리려면 사진 접근 권한이 필요합니다.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-secure-store",
         {
           "configureAndroidBackup": true

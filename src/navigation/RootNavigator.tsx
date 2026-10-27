@@ -34,7 +34,9 @@ import { LearningPuzzleScreen } from '@/screens/learning/LearningPuzzleScreen';
 import { LearningShadowingScreen } from '@/screens/learning/LearningShadowingScreen';
 import { NotificationsScreen } from '@/screens/notifications/NotificationsScreen';
 import { PassPurchaseScreen } from '@/screens/pass/PassPurchaseScreen';
+import { PromotionApplicationScreen } from '@/screens/promotion/PromotionApplicationScreen';
 import { ReanswerScreen } from '@/screens/reanswer/ReanswerScreen';
+import { NotificationSettingsScreen } from '@/screens/settings/NotificationSettingsScreen';
 import { SettingsScreen } from '@/screens/settings/SettingsScreen';
 import { SettingsWebViewScreen } from '@/screens/settings/SettingsWebViewScreen';
 import { ChallengeDayStageScreen } from '@/screens/challenge/ChallengeDayStageScreen';
@@ -64,10 +66,12 @@ function MemberRootNavigator() {
       />
       <Stack.Screen name="ChallengeResult" component={ChallengeResultScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
       <Stack.Screen name="SettingsWebView" component={SettingsWebViewScreen} />
       <Stack.Screen name="SupportInquiry" component={SupportInquiryRoute} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="PassPurchase" component={PassPurchaseScreen} />
+      <Stack.Screen name="PromotionApplication" component={PromotionApplicationScreen} />
       <Stack.Screen name="LearningParts" component={LearningPartsScreen} />
       <Stack.Screen name="LearningPuzzle" component={LearningPuzzleScreen} />
       <Stack.Screen name="LearningShadowing" component={LearningShadowingScreen} />
@@ -185,6 +189,7 @@ export function RootNavigator({
                 mode="existing"
                 requiredItems={state.requiredItems}
                 qualityReviewConsented={state.qualityReviewConsented}
+                marketingPushConsented={state.marketingPushConsented}
                 isSubmitting={state.submission.status === 'submitting'}
                 submitError={state.submission.status === 'failed' ? state.submission.message : null}
                 onAccept={coordinator.acceptConsent}

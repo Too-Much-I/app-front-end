@@ -1,4 +1,9 @@
-import { createAuthSession, type AuthSession } from '@/features/auth/types';
+import {
+  createAuthSession,
+  marketingPushConsentFields,
+  type AuthSession,
+  type MarketingPushConsentChoice,
+} from '@/features/auth/types';
 import { getIdentityApiBaseUrl } from '@/lib/api/service-base-url';
 import { serviceFetch } from '@/lib/api/transport';
 
@@ -14,6 +19,8 @@ export type GuestUpgradeRequest = {
   /** 선택 동의라 거부도 기록한다. version은 공개 API에서 받는다. */
   isQualityReviewConsented: boolean;
   qualityReviewConsentVersion: string;
+  /** 광고성 푸시 선택 동의. 서버가 버전을 주지 않았으면 보내지 않는다(서버는 기존 상태를 유지한다). */
+  marketingPush?: MarketingPushConsentChoice;
 };
 
 /**
@@ -40,6 +47,7 @@ export async function submitGuestUpgrade(
         termConsentVersion: request.termConsentVersion,
         isQualityReviewConsented: request.isQualityReviewConsented,
         qualityReviewConsentVersion: request.qualityReviewConsentVersion,
+        ...marketingPushConsentFields(request.marketingPush),
       }),
       signal,
     },
