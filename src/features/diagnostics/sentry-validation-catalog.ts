@@ -321,6 +321,10 @@ const DEFINITIONS = {
     title: '모르는 401로 세션 삭제',
     input: { code: 'AUTH_SESSION_REJECTED', stage: 'reissue', cause: SYNTHETIC_API_CAUSE },
   },
+  PROMOTION_APPLICATION_FAILED: {
+    title: '이벤트 신청 실패',
+    input: { code: 'PROMOTION_APPLICATION_FAILED', stage: 'submit', cause: SYNTHETIC_API_CAUSE },
+  },
 } satisfies ValidationDefinitions;
 
 export interface SentryValidationCatalogItem {

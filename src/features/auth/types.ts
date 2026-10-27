@@ -44,7 +44,39 @@ export type ServerConsentStatus = {
   privacy: ServerConsentItemStatus;
   terms: ServerConsentItemStatus;
   qualityReview: ServerOptionalConsentItemStatus;
+  /**
+   * 광고성 푸시 선택 동의(2026-10-27 Identity 추가). 아직 이 항목을 주지 않는 서버면 `null`이고, 그때는 동의 화면과
+   * 알림 설정에서 묻지 않는다 — 없다고 동의 조회 전체를 실패로 보면 모든 사용자가 앱 시작에서 막힌다.
+   */
+  marketingPush: ServerOptionalConsentItemStatus | null;
 };
+
+/**
+ * 재동의 화면에서 고른 선택 동의. `marketingPush`가 `null`이면 서버가 항목을 주지 않아 묻지 않은 것이다.
+ */
+export type OptionalConsentChoices = {
+  qualityReview: boolean;
+  marketingPush: boolean | null;
+};
+
+/** 광고성 푸시 선택 동의를 보낼 때의 값. `false`도 기록(철회)이다. */
+export type MarketingPushConsentChoice = {
+  consented: boolean;
+  version: string;
+};
+
+/**
+ * 요청 본문에 붙이는 광고성 푸시 필드. 고르지 않았으면(서버가 버전을 주지 않음) 아무것도 붙이지 않는다 —
+ * 동의 변경·Guest 승격은 빠진 필드를 "기존 상태 유지"로, 가입은 "미동의"로 본다(Identity Swagger 2026-10-27).
+ */
+export function marketingPushConsentFields(choice: MarketingPushConsentChoice | undefined): {
+  isMarketingPushConsented?: boolean;
+  marketingPushConsentVersion?: string;
+} {
+  return choice
+    ? { isMarketingPushConsented: choice.consented, marketingPushConsentVersion: choice.version }
+    : {};
+}
 
 export type ConsentRequirements = {
   privacy: boolean;
@@ -59,6 +91,9 @@ export type UpdateConsentsRequest = {
   /** 선택 항목이라 `false`도 유효한 값이며, `false` 전송이 곧 동의 철회다. */
   isQualityReviewConsented: boolean;
   qualityReviewConsentVersion: string;
+  /** 빼면 서버가 기존 광고성 푸시 동의를 그대로 둔다. 답변 검토만 바꿀 때는 넣지 않는다. */
+  isMarketingPushConsented?: boolean;
+  marketingPushConsentVersion?: string;
 };
 
 export type RawTokenPair = {

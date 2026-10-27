@@ -8,12 +8,16 @@ export type PolicyVersions = {
   terms: string;
   privacy: string;
   qualityReview: string;
+  /** 광고성 푸시 선택 동의 버전. 아직 이 항목이 없는 서버면 `null`이고 가입 화면에서 묻지 않는다. */
+  marketingPush: string | null;
 };
 
 const policyVersionsSchema = z.object({
   privacyConsentVersion: z.string().trim().min(1),
   termConsentVersion: z.string().trim().min(1),
   qualityReviewConsentVersion: z.string().trim().min(1),
+  // 2026-10-27 Identity 테스트 서버에 추가됐다. 운영 배포 전에도 가입이 막히지 않게 없어도 받는다.
+  marketingPushConsentVersion: z.string().trim().min(1).optional(),
 });
 
 /**
@@ -31,5 +35,6 @@ export async function getPolicyVersions(signal?: AbortSignal): Promise<PolicyVer
     terms: parsed.data.termConsentVersion,
     privacy: parsed.data.privacyConsentVersion,
     qualityReview: parsed.data.qualityReviewConsentVersion,
+    marketingPush: parsed.data.marketingPushConsentVersion ?? null,
   };
 }

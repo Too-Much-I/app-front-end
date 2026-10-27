@@ -112,6 +112,12 @@ export function MyPageScreen() {
               title="이용권 결제"
             />
             <MyPageMenuRow
+              description="성적을 올리고 기프티콘 5천 원을 받아요."
+              icon="gift"
+              onPress={() => navigation.navigate('PromotionApplication')}
+              title="성적 입력 이벤트"
+            />
+            <MyPageMenuRow
               description="버그 제보 및 기능 제안을 할 수 있어요."
               icon="message-circle"
               onPress={() => navigation.navigate('SupportInquiry', { screen: 'mypage' })}

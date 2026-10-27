@@ -434,7 +434,7 @@ export function createSignupFlow(options: {
       }
 
       const draft = draftStore.getState();
-      const { terms, privacy, qualityReview } = draft.consents;
+      const { terms, privacy, qualityReview, marketingPush } = draft.consents;
       if (
         !terms.agreed ||
         !privacy.agreed ||
@@ -463,6 +463,14 @@ export function createSignupFlow(options: {
             termConsentVersion: terms.version,
             isQualityReviewConsented: qualityReview.agreed,
             qualityReviewConsentVersion: qualityReview.version,
+            ...(marketingPush.version === null
+              ? {}
+              : {
+                  marketingPush: {
+                    consented: marketingPush.agreed,
+                    version: marketingPush.version,
+                  },
+                }),
           },
           abort.signal,
         );

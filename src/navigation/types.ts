@@ -147,8 +147,15 @@ export type RootStackParamList = {
   LearningGrading: LearningLessonParams;
   /** 설정 화면. 탭이 아니라 마이페이지 메뉴로 진입하는 루트 스택 push 화면이다. */
   Settings: undefined;
+  /** 알림 설정(학습 알림·이벤트 알림). 설정 화면의 "알림" 줄로 진입한다. */
+  NotificationSettings: undefined;
   /** 기간제 이용권 선택 화면. 마이페이지 메뉴로 진입하는 루트 스택 push 화면이다. */
   PassPurchase: undefined;
+  /**
+   * 기프티콘 이벤트 신청. 마이페이지 이용권 결제 아래 메뉴와 이벤트 알림(`CASHBACK_EVENT_HOME`)으로 진입한다
+   * (2026-10-27 결정).
+   */
+  PromotionApplication: undefined;
   /** 알림 화면. 설정과 마찬가지로 홈 화면 헤더 아이콘(벨)으로 진입하는 루트 스택 push 화면이다. */
   Notifications: undefined;
   /**

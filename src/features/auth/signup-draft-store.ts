@@ -1,7 +1,10 @@
 import { createStore } from 'zustand/vanilla';
 
-export type SignupDraftPolicy = 'terms' | 'privacy' | 'qualityReview';
-/** 가입에 반드시 동의해야 하는 약관. qualityReview는 선택 동의다. */
+export type SignupDraftPolicy = 'terms' | 'privacy' | 'qualityReview' | 'marketingPush';
+/**
+ * 가입에 반드시 동의해야 하는 약관. qualityReview·marketingPush는 선택 동의다. marketingPush는 서버가 버전을
+ * 주지 않으면(운영 배포 전) `version: null`로 남고 화면에서 묻지 않는다.
+ */
 export const REQUIRED_SIGNUP_POLICIES = ['terms', 'privacy'] as const satisfies SignupDraftPolicy[];
 export type SignupDraftConsent =
   { version: null; agreed: false } | { version: string; agreed: boolean };
@@ -23,6 +26,7 @@ function emptySignupDraft(phoneRevision = 0): SignupDraftState {
       terms: { version: null, agreed: false },
       privacy: { version: null, agreed: false },
       qualityReview: { version: null, agreed: false },
+      marketingPush: { version: null, agreed: false },
     },
   };
 }
@@ -52,6 +56,10 @@ export function createSignupDraftStore() {
           current.consents.qualityReview,
           versions.qualityReview,
         ),
+        marketingPush: updateDraftConsentVersion(
+          current.consents.marketingPush,
+          versions.marketingPush,
+        ),
       },
     }));
   }
@@ -75,6 +83,7 @@ export function createSignupDraftStore() {
         terms: withAgreement(current.consents.terms, agreed),
         privacy: withAgreement(current.consents.privacy, agreed),
         qualityReview: withAgreement(current.consents.qualityReview, agreed),
+        marketingPush: withAgreement(current.consents.marketingPush, agreed),
       },
     }));
   }
