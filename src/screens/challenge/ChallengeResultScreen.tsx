@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Image, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,6 +11,7 @@ import {
   useChallengeResult,
   type ChallengeResultStatus,
 } from '@/features/challenge/use-challenge-result';
+import { trackEvent } from '@/lib/amplitude';
 import type { RootStackParamList } from '@/navigation/types';
 import { SkeletonBlock } from '@/components/ui/SkeletonBlock';
 import { findCorrectionSpans } from '@/screens/challenge/challenge-corrections';
@@ -42,12 +43,30 @@ type ChallengeResultScreenProps = NativeStackScreenProps<RootStackParamList, 'Ch
  * 사용자가 이 화면에서 얻어갈 것이 "기다리세요" 하나뿐인 순간을 만들지 않는다.
  */
 export function ChallengeResultScreen({ navigation, route }: ChallengeResultScreenProps) {
-  const { challengeDate, questionNumber, initialResult, nextQuestionNumber } = route.params;
+  const { challengeDate, questionNumber, initialResult, nextQuestionNumber, entry } = route.params;
   const { status, question, retry } = useChallengeResult(
     challengeDate,
     questionNumber,
     initialResult,
   );
+
+  /*
+   * AI 결과가 보인 순간을 화면에 들어올 때마다 한 번 센다(2026-10-20 결정).
+   *
+   * `completed`만으로는 부족하다 — 만료된 제출(`not_requested`)도 참고 답안만 든 채
+   * `completed`로 멈춘다. AI 결과를 실제로 보는지가 이 기능을 유지할 근거라서 채점이
+   * 끝난 경우만 센다.
+   */
+  const isAiResultShown = status === 'completed' && question?.gradingStatus === 'completed';
+  const resultViewedRef = useRef(false);
+  useEffect(() => {
+    if (!isAiResultShown || resultViewedRef.current) return;
+    resultViewedRef.current = true;
+    trackEvent({
+      name: 'challenge_result_viewed',
+      properties: { questionNumber, challengeDate, entry },
+    });
+  }, [challengeDate, entry, isAiResultShown, questionNumber]);
   const goToStage = () => navigation.goBack();
 
   /*

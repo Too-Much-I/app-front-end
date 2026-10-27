@@ -21,11 +21,14 @@ pnpm lint
 pnpm format
 pnpm format:check
 pnpm exec tsc --noEmit
+pnpm test
 pnpm check:architecture
 pnpm check:naming
 ```
 
-No automated test runner is configured yet. For code changes, run `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm check:architecture`, and `pnpm check:naming` unless the change is documentation-only. Report any check that cannot be run and why.
+For code changes, run `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test`, `pnpm check:architecture`, and `pnpm check:naming` unless the change is documentation-only. Report any check that cannot be run and why.
+
+`pnpm test` runs Jest with the `jest-expo` preset. Place tests next to the file under test as `*.test.ts` or `*.test.tsx`. Mock native modules per test with `jest.mock`; put a mock in `jest.setup.js` only when every test needs it (for example, `@sentry/react-native` starts a timer on import that keeps Jest from exiting). Use `jest.isolateModules` when the module under test keeps module-level state.
 
 `pnpm check:architecture` fails only for unambiguous boundary violations: circular dependencies, imports between different screen areas, and UI imports of `Raw*` server shapes or `map*` response mappers. Cross-feature dependencies, shared-UI dependencies on features, and fan-in/fan-out changes are review information rather than merge gates. The rules and rationale live in `docs/architecture/04-dependency-boundaries.md`; change that document and `scripts/check-architecture.mjs` together.
 

@@ -16,7 +16,7 @@ import type {
 import type { AuthSession, RequestAuthSnapshot } from '@/features/auth/types';
 import { ApiError } from '@/lib/api/transport';
 
-import type { ServerConsentStatus } from '@/features/auth/types';
+import type { OptionalConsentChoices, ServerConsentStatus } from '@/features/auth/types';
 import { createStore } from 'zustand/vanilla';
 
 import { AUTH_RECOVERY_MESSAGES, classifyAuthRecovery } from '@/features/auth/auth-recovery';
@@ -77,6 +77,8 @@ export type AuthCoordinatorState =
       status: 'consent';
       requiredItems: { privacy: boolean; terms: boolean };
       qualityReviewConsented: boolean;
+      /** 서버가 광고성 푸시 항목을 주지 않으면 `null`이고 화면에서 묻지 않는다. */
+      marketingPushConsented: boolean | null;
       submission:
         { status: 'idle' } | { status: 'submitting' } | { status: 'failed'; message: string };
     }
@@ -129,7 +131,7 @@ function resolveAuthRestoration(result: AuthSessionRestoreResult): AuthCoordinat
 
 interface MemberConsentGate {
   load: () => Promise<ServerConsentStatus>;
-  accept: (qualityReview: boolean) => Promise<ServerConsentStatus>;
+  accept: (choices: OptionalConsentChoices) => Promise<ServerConsentStatus>;
 }
 
 interface IdentityLoginDependencies {
@@ -199,6 +201,7 @@ export function createAuthCoordinator(
         terms: status.terms.requiresConsent,
       },
       qualityReviewConsented: status.qualityReview.consented,
+      marketingPushConsented: status.marketingPush?.consented ?? null,
       submission: { status: 'idle' },
     };
   }
@@ -227,7 +230,7 @@ export function createAuthCoordinator(
     }
   }
 
-  async function acceptConsent(qualityReview: boolean): Promise<void> {
+  async function acceptConsent(choices: OptionalConsentChoices): Promise<void> {
     const { state } = store.getState();
     if (!consentGate || state.status !== 'consent' || state.submission.status === 'submitting')
       return;
@@ -236,7 +239,7 @@ export function createAuthCoordinator(
       state: { ...state, submission: { status: 'submitting' } },
     });
     try {
-      const status = await consentGate.accept(qualityReview);
+      const status = await consentGate.accept(choices);
       if (run === flowGeneration) store.setState({ state: consentState(status) });
     } catch (error) {
       if (run !== flowGeneration) return;
@@ -394,8 +397,9 @@ export function createAuthCoordinator(
             terms: enrollment.termConsentVersion,
             privacy: enrollment.privacyConsentVersion,
             qualityReview: null,
+            marketingPush: null,
           }
-        : { terms: null, privacy: null, qualityReview: null },
+        : { terms: null, privacy: null, qualityReview: null, marketingPush: null },
     );
     store.setState({ state: { status: 'signingUp', flowId, uid, enrollment } });
   }

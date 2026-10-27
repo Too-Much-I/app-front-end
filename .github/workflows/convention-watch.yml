@@ -1,0 +1,91 @@
+name: Convention Watch
+
+# 아무도 정하지 않은 코드 습관이 관례로 굳기 전에 PR마다 보여 준다(docs/decisions/2026-10-23-관례-후보-감시.md).
+# 참고용이라 머지를 막지 않는다. required status check로 등록하지 않는다.
+on:
+  pull_request:
+    # push(synchronize)마다 돈다. 연 뒤에 쌓인 코드도 봐야 한다.
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# 같은 PR에 새 push가 오면 앞선 실행을 취소해 구독 사용량을 아낀다.
+concurrency:
+  group: convention-watch-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  watch:
+    name: convention-watch
+    # fork PR에는 시크릿이 전달되지 않는다.
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      # 결과 댓글 하나를 만들거나 고쳐 쓴다. Claude 단계에는 이 권한을 주지 않는다.
+      pull-requests: write
+    steps:
+      # 시크릿을 넣기 전에는 실패 대신 건너뛴다.
+      - name: Check token
+        id: token
+        env:
+          TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -n "$TOKEN" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::CLAUDE_CODE_OAUTH_TOKEN 시크릿이 없어 관례 후보 감시를 건너뛴다."
+          fi
+
+      - uses: actions/checkout@v7
+        if: ${{ steps.token.outputs.present == 'true' }}
+        with:
+          persist-credentials: false
+          # base와 head 양쪽에서 개수를 센다.
+          fetch-depth: 0
+
+      # 구독 토큰으로 인증한다(사용자 결정). 토큰을 만든 사람의 구독 사용량에서 빠진다.
+      # 읽기와 결과 파일 쓰기만 허용한다. 댓글은 다음 단계가 단다.
+      - uses: anthropics/claude-code-action@v1
+        if: ${{ steps.token.outputs.present == 'true' }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Claude GitHub App 없이 이 workflow의 읽기 전용 토큰을 쓴다.
+          github_token: ${{ github.token }}
+          prompt: |
+            .agents/skills/convention-watch/SKILL.md를 읽고 그대로 따른다.
+            BASE_SHA: ${{ github.event.pull_request.base.sha }}
+            HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+            결과 파일: output/convention-watch/comment.md
+          claude_args: |
+            --max-turns 40
+            --allowedTools "Read,Grep,Glob,Write,Bash(git diff *),Bash(git grep *),Bash(git log *),Bash(git show *)"
+
+      # 새 댓글을 쌓지 않고 이 workflow가 만든 댓글 하나를 현재 결과로 갱신한다.
+      - name: Update convention watch comment
+        if: ${{ steps.token.outputs.present == 'true' && !cancelled() }}
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require("node:fs");
+            const marker = "<!-- convention-watch -->";
+            const path = "output/convention-watch/comment.md";
+            if (!fs.existsSync(path)) {
+              core.setFailed(`${path}가 없다. Claude 단계 로그를 확인한다.`);
+              return;
+            }
+            const body = `${marker}\n${fs.readFileSync(path, "utf8")}`;
+            // REST는 PR 번호를 issue_number로 받는다. context.issue는 number로 주므로 그대로 넘기면 경로가 비어 404가 난다.
+            const issue = { ...context.repo, issue_number: context.issue.number };
+            const comments = await github.paginate(github.rest.issues.listComments, issue);
+            const previous = comments.find(
+              (comment) => comment.user?.type === "Bot" && comment.body?.includes(marker),
+            );
+
+            if (previous) {
+              await github.rest.issues.updateComment({ ...context.repo, comment_id: previous.id, body });
+            } else {
+              await github.rest.issues.createComment({ ...issue, body });
+            }

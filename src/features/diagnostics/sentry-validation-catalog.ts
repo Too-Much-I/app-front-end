@@ -284,6 +284,27 @@ const DEFINITIONS = {
     title: '마이페이지 달력 조회 실패',
     input: { code: 'MYPAGE_LOAD_FAILED', resource: 'calendar', cause: SYNTHETIC_API_CAUSE },
   },
+  LEARNING_LOAD_FAILED: {
+    title: '학습 세트 상세 조회 실패',
+    input: { code: 'LEARNING_LOAD_FAILED', resource: 'detail', cause: SYNTHETIC_API_CAUSE },
+  },
+  LEARNING_COMPLETION_FAILED: {
+    title: '학습 문항 완료 저장 실패',
+    input: { code: 'LEARNING_COMPLETION_FAILED', cause: SYNTHETIC_API_CAUSE },
+  },
+  LEARNING_GRADING_FAILED: {
+    title: '학습 채점 제출 실패',
+    input: { code: 'LEARNING_GRADING_FAILED', stage: 'submit', cause: SYNTHETIC_API_CAUSE },
+  },
+  LEARNING_CHUNKS_MISSING: {
+    title: '학습 퍼즐 조각 누락',
+    input: {
+      code: 'LEARNING_CHUNKS_MISSING',
+      part: 2,
+      unitId: 'unit:sentry-validation',
+      missingSentences: 1,
+    },
+  },
   PUSH_REGISTRATION_FAILED: {
     title: '푸시 기기 등록 실패',
     input: { code: 'PUSH_REGISTRATION_FAILED', operation: 'register', cause: SYNTHETIC_API_CAUSE },
@@ -295,6 +316,14 @@ const DEFINITIONS = {
   PASS_PURCHASE_FAILED: {
     title: '이용권 결제 실패',
     input: { code: 'PASS_PURCHASE_FAILED', stage: 'purchase-account', cause: SYNTHETIC_API_CAUSE },
+  },
+  AUTH_SESSION_REJECTED: {
+    title: '모르는 401로 세션 삭제',
+    input: { code: 'AUTH_SESSION_REJECTED', stage: 'reissue', cause: SYNTHETIC_API_CAUSE },
+  },
+  PROMOTION_APPLICATION_FAILED: {
+    title: '이벤트 신청 실패',
+    input: { code: 'PROMOTION_APPLICATION_FAILED', stage: 'submit', cause: SYNTHETIC_API_CAUSE },
   },
 } satisfies ValidationDefinitions;
 

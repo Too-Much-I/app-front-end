@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { createChallengeAttempt } from '@/features/challenge/api/challenge-attempt';
 import { getChallengeErrorCode } from '@/features/challenge/challenge-error-codes';
 import type { ChallengeAttempt, ChallengeQuestion } from '@/types/challenge';
+import { trackEvent } from '@/lib/amplitude';
 import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 type ChallengeAttemptState =
@@ -52,6 +53,11 @@ export function useChallengeAttempt(question: ChallengeQuestion | null) {
     createChallengeAttempt(date, questionNumber, controller.signal)
       .then((attempt) => {
         if (controller.signal.aborted) return;
+        // 다시 들어와 같은 attempt를 돌려받아도 센다(2026-10-20 결정). 끝낸 수는 제출로 센다.
+        trackEvent({
+          name: 'challenge_started',
+          properties: { questionNumber: attempt.questionNumber, challengeDate: attempt.date },
+        });
         setState({ status: 'ready', attempt, errorCode: null });
       })
       .catch((error: unknown) => {

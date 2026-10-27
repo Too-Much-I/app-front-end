@@ -18,10 +18,14 @@ export function readReportableFirebaseCode(error: unknown): string | undefined {
   return code && FIREBASE_ERROR_CODE_PATTERN.test(code) ? code : undefined;
 }
 
-/** RNFirebase의 사용자 취소만 해당한다. cancelled-popup-request는 중복 실행 오류다. */
+/**
+ * RNFirebase의 사용자 취소만 해당한다. cancelled-popup-request는 중복 실행 오류다.
+ * iOS는 웹 창 취소를 `popup-closed-by-user`로 바꿔 보내고, Android는 네이티브
+ * `ERROR_WEB_CONTEXT_CANCELED`를 그대로 소문자로 바꿔 `web-context-canceled`(l 하나)로 보낸다.
+ */
 export function isFirebaseProviderCancellation(error: unknown): boolean {
   const code = readFirebaseSdkErrorCode(error);
-  return code === 'auth/popup-closed-by-user' || code === 'auth/web-context-cancelled';
+  return code === 'auth/popup-closed-by-user' || code === 'auth/web-context-canceled';
 }
 
 export function resolveFirebaseAuthFailure(reason: FirebaseAuthFailureReason): FirebaseAuthFailure {

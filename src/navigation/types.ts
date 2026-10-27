@@ -1,6 +1,8 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
+import type { LearningLevel, LearningPart } from '@/features/learning/learning-level';
 import type { SupportInquiryEntry } from '@/features/support/support-inquiry';
+import type { ChallengeResultEntry } from '@/lib/analytics-events';
 import type { ChallengeInitialResult } from '@/types/challenge';
 import type { ExamSession } from '@/types/exam';
 
@@ -16,6 +18,8 @@ export type AuthPreviewStackParamList = {
 export type MainTabParamList = {
   Home: undefined;
   MockExam: undefined;
+  /** 답변 익히기의 첫 화면. 등급 카드를 넘겨 목표 등급을 고른다. */
+  Learning: undefined;
   /**
    * 피드백 웹뷰. `examId`만 있으면 종합 피드백을, `questionNumber`가 함께 오면 해당 문제의
    * 문제별 피드백을 연다. 최초 답변은 회차를 생략하고 재답변 결과는 `retryCount`로 특정한다.
@@ -32,6 +36,14 @@ export type MockExamStackParamList = {
   SoundTest: undefined;
   ExamSession: { session: ExamSession };
   GradingWait: { examId: string };
+};
+
+/** 학습 단계 화면이 공통으로 받는 문항 위치. */
+export type LearningLessonParams = {
+  level: LearningLevel;
+  part: LearningPart;
+  unitId: string;
+  lessonId: string;
 };
 
 export type RootStackParamList = {
@@ -97,6 +109,11 @@ export type RootStackParamList = {
     challengeDate: string;
     questionNumber: number;
     /**
+     * 들어온 길. 방금 제출하고 넘어온 것과 이미 끝난 문제를 다시 연 것을 분석에서 나눈다.
+     * 문제 화면에 들어갔다가 이미 끝난 응시로 판명돼 넘어온 것도 다시 연 것(`stage`)이다.
+     */
+    entry: ChallengeResultEntry;
+    /**
      * 제출 접수 응답에서 바로 받은 값. 있으면 결과 화면이 첫 조회를 기다리지 않고
      * 참고 답안까지 그린다. 스테이지에서 들어올 때는 없고, 그때는 결과 조회가 채운다.
      */
@@ -111,10 +128,34 @@ export type RootStackParamList = {
      */
     nextQuestionNumber?: number;
   };
+  /**
+   * 학습 파트 고르기. 학습 탭에서 고른 등급을 들고 온다.
+   *
+   * 등급은 이 화면 다음의 학습 화면 요청까지 그대로 이어져야 하므로 전역 상태가 아니라 route로 넘긴다.
+   * 탭 위를 덮는 화면이라 루트 스택에 둔다.
+   */
+  LearningParts: { level: LearningLevel };
+  /**
+   * 학습 단계 ① 조각 퍼즐 → ② 듣기·쉐도잉 → ③ 채점(2026-10-22 결정, 단계마다 화면을 따로 둔다).
+   *
+   * 세 단계가 같은 문항을 이어서 다루므로 같은 param을 받는다. 문항 내용은 param으로 넘기지 않고
+   * 각 화면이 `unitId`로 다시 읽는다 — 화면 사이로 큰 객체를 넘기면 뒤로 가기·딥링크 때 값이 낡는다.
+   * Part 1은 퍼즐 조각과 채점이 없어 ②만 거친다.
+   */
+  LearningPuzzle: LearningLessonParams;
+  LearningShadowing: LearningLessonParams;
+  LearningGrading: LearningLessonParams;
   /** 설정 화면. 탭이 아니라 마이페이지 메뉴로 진입하는 루트 스택 push 화면이다. */
   Settings: undefined;
+  /** 알림 설정(학습 알림·이벤트 알림). 설정 화면의 "알림" 줄로 진입한다. */
+  NotificationSettings: undefined;
   /** 기간제 이용권 선택 화면. 마이페이지 메뉴로 진입하는 루트 스택 push 화면이다. */
   PassPurchase: undefined;
+  /**
+   * 기프티콘 이벤트 신청. 마이페이지 이용권 결제 아래 메뉴와 이벤트 알림(`CASHBACK_EVENT_HOME`)으로 진입한다
+   * (2026-10-27 결정).
+   */
+  PromotionApplication: undefined;
   /** 알림 화면. 설정과 마찬가지로 홈 화면 헤더 아이콘(벨)으로 진입하는 루트 스택 push 화면이다. */
   Notifications: undefined;
   /**

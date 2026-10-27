@@ -173,6 +173,62 @@ const colors = {
       low: '#FDBA74',
     },
   },
+  /**
+   * 학습 등급 카드의 색 면과 그 카드의 시작 버튼 색.
+   *
+   * 등급마다 색이 하나씩이고, 카드를 넘기면 버튼도 같은 색으로 바뀐다. 셋 다 밝은 색이라
+   * 위에 올리는 글자는 흰색이 아니라 `ink`다.
+   *
+   * easy·medium은 기존 값을 가리킨다(마스코트 나비넥타이 하늘색, 브랜드 400).
+   * hard만 다른 팔레트에 맞는 값이 없어 시안에서 고른 초록을 새로 둔다.
+   */
+  learningLevel: {
+    easy: '#80C8F0',
+    medium: brand[400],
+    hard: '#8ACB9C',
+  },
+  /**
+   * 학습 파트 화면의 등급별 풍경 그림 아래 바탕색.
+   *
+   * 그림(`public/learning/scene-*.jpg`) 맨 아래 가운데에서 뽑은 색이다. 그림이 끝나는 곳과 목록 바탕이
+   * 이어져 보여야 해서 그림을 바꾸면 이 값도 다시 뽑는다. 위에 올리는 글자는 `ink`로 대비 4.5:1을 넘긴다.
+   */
+  learningScene: {
+    easy: '#96C6FD',
+    medium: '#F8824E',
+    hard: '#CEE892',
+  },
+  /**
+   * 조각 퍼즐 전용 색(2026-10-19 결정 기록의 시안 값).
+   *
+   * 문제처럼 보이지 않게 파스텔로 맞췄다. 조각 색은 순서대로 돌려 쓰고 정답·오답 의미는 없다.
+   */
+  learningPuzzle: {
+    surface: '#FFFAF4',
+    board: '#FFF1E3',
+    boardDone: '#F1F8FC',
+    ink: '#3B3633',
+    slot: '#E3B98F',
+    hint: '#FFD68C',
+    /** 한국어 뜻을 적은 모눈 메모지와 그 칸 선. */
+    memo: '#FFFFFF',
+    memoGrid: '#E4ECF4',
+    pieces: ['#F9DCE6', '#FFE4CC', '#DCEFD4', '#D9EAF7', '#F6ECC4'],
+  },
+  /**
+   * 학습 채점 화면의 문제 칠판(2026-10-27 시안 Q).
+   *
+   * 값은 피드백 교실 칠판(`feedback.chalkboard`·`chalk`·`wood`)과 같지만 따로 둔다 — `feedback`은 결과 피드백
+   * 화면에만 쓰는 의미 색이라, 한쪽 톤을 조정할 때 다른 쪽이 끌려가면 안 된다.
+   * 분필 글자는 칠판 위에서 `chalk` 8.6:1, `chalkMuted` 6.7:1로 본문 기준(4.5:1)을 넘긴다.
+   */
+  learningChalkboard: {
+    board: '#174D3C',
+    frame: '#A76B3D',
+    frameEdge: '#D49A62',
+    chalk: '#F7F2D7',
+    chalkMuted: '#C8DCCF',
+  },
   /** 결과 피드백 화면의 카드, 상태 배지와 교실 칠판에만 쓰는 의미 색. */
   feedback: {
     scoreSurface: '#07513D',

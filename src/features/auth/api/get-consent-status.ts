@@ -82,6 +82,11 @@ function mapConsentStatus(value: unknown): ServerConsentStatus {
     privacy: mapConsentItem(value.privacy),
     terms: mapConsentItem(value.terms),
     qualityReview: mapOptionalConsentItem(value.qualityReview),
+    // 운영 Identity에 아직 없을 수 있다. 없으면 묻지 않고, 있는데 모양이 다르면 다른 항목처럼 형식 오류다.
+    marketingPush:
+      value.marketingPush === undefined || value.marketingPush === null
+        ? null
+        : mapOptionalConsentItem(value.marketingPush),
   };
 }
 

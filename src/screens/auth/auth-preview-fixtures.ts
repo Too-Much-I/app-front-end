@@ -9,6 +9,7 @@ export const AUTH_PREVIEW_FIXTURE = {
     terms: 'preview-terms-v1',
     privacy: 'preview-privacy-v1',
     qualityReview: 'preview-quality-review-v1',
+    marketingPush: 'preview-marketing-push-v1',
   },
 } as const;
 

@@ -23,6 +23,7 @@ import {
   useChallengeRecorder,
 } from '@/features/challenge/use-challenge-recorder';
 import { useChallengeSubmission } from '@/features/challenge/use-challenge-submission';
+import { trackEvent } from '@/lib/amplitude';
 import type { RootStackParamList } from '@/navigation/types';
 import {
   getChallengeRemainingSeconds,
@@ -164,6 +165,7 @@ export function TenSecondChallengeScreen({ navigation, route }: TenSecondChallen
       navigation.replace('ChallengeResult', {
         challengeDate: accepted?.date ?? resolvedDate,
         questionNumber,
+        entry: 'submission',
         ...(nextQuestionNumber === null ? {} : { nextQuestionNumber }),
         // 접수 응답이 참고 답안까지 줬다면 결과 화면이 스피너부터 보여줄 이유가 없다.
         ...(accepted && question
@@ -273,6 +275,7 @@ export function TenSecondChallengeScreen({ navigation, route }: TenSecondChallen
       navigation.replace('ChallengeResult', {
         challengeDate: question.date,
         questionNumber: question.questionNumber,
+        entry: 'stage',
       });
       return;
     }
@@ -313,6 +316,7 @@ export function TenSecondChallengeScreen({ navigation, route }: TenSecondChallen
       navigation.replace('ChallengeResult', {
         challengeDate: resolvedDate,
         questionNumber,
+        entry: 'stage',
       });
       return;
     }
@@ -360,6 +364,10 @@ export function TenSecondChallengeScreen({ navigation, route }: TenSecondChallen
 
   const retakeRecording = useCallback(() => {
     if (!question) return;
+    trackEvent({
+      name: 'challenge_rerecorded',
+      properties: { questionNumber: question.questionNumber, challengeDate: question.date },
+    });
     resetSubmission();
     void startRecording(question);
   }, [question, resetSubmission, startRecording]);

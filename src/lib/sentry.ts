@@ -571,6 +571,10 @@ export const SentryErrorBoundary = Sentry.ErrorBoundary;
 export interface OperationalEventPayload {
   code: OperationalErrorCode;
   feature: string;
+  /** 흐름을 막은 실패는 `error`, 흐름은 계속되는 서버 계약 위반은 `warning`이다. */
+  level: 'error' | 'warning';
+  /** 이슈 묶음 기준. 오류 이름이 앞에 오고, 원인이 섞이는 코드만 원인 축이 뒤에 붙는다. */
+  fingerprint: readonly string[];
   tags: Record<string, string>;
   context: Record<string, OperationalContextValue>;
 }
@@ -606,7 +610,7 @@ export function captureOperationalEvent(
 
   try {
     const eventId = Sentry.withScope((scope) => {
-      scope.setLevel('error');
+      scope.setLevel(payload.level);
       scope.setTags({
         feature: payload.feature,
         error_code: payload.code,
@@ -615,7 +619,7 @@ export function captureOperationalEvent(
           ? { [SENTRY_VALIDATION_TAG_KEY]: SENTRY_VALIDATION_TAG_VALUE }
           : {}),
       });
-      scope.setFingerprint(['operational-error', payload.code]);
+      scope.setFingerprint([...payload.fingerprint]);
       scope.setContext('operational_error', payload.context);
       return Sentry.captureMessage(payload.code);
     });
