@@ -12,7 +12,8 @@ describe('isLearningPassRequiredError', () => {
   });
 
   it('다른 코드가 붙은 402는 이용권 부족이 아니다', () => {
-    expect(isLearningPassRequiredError(new ApiError(402, '철회', 'ENTITLEMENT_REVOKED'))).toBe(false);
+    const error = new ApiError(402, '이용권이 철회되었습니다', 'ENTITLEMENT_REVOKED');
+    expect(isLearningPassRequiredError(error)).toBe(false);
   });
 
   it('확인 장애(503)와 그 밖의 실패는 이용권 부족이 아니다', () => {
