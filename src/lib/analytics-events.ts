@@ -89,7 +89,8 @@ export type AnalyticsEvent =
   | { name: 'learning_shadowing_completed'; properties: LearningEventProperties }
   /**
    * 문항의 마지막 단계가 끝났다. Part 2~5는 채점 결과를, 퍼즐·채점이 없는 Part 1은 완료 저장을 같은
-   * 이벤트로 보내고 `part`로 나눈다. 점수는 싣지 않는다.
+   * 이벤트로 보내고 `part`로 나눈다. 점수는 싣지 않는다. 완료 뒤 "다시 녹음"으로 재채점하면 다시 푼 것으로 보고
+   * 또 보낸다(2026-10-29 결정).
    */
   | {
       name: 'learning_lesson_finished';

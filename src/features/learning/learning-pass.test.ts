@@ -11,6 +11,10 @@ describe('isLearningPassRequiredError', () => {
     expect(isLearningPassRequiredError(new ApiError(402, 'Payment Required'))).toBe(true);
   });
 
+  it('다른 코드가 붙은 402는 이용권 부족이 아니다', () => {
+    expect(isLearningPassRequiredError(new ApiError(402, '철회', 'ENTITLEMENT_REVOKED'))).toBe(false);
+  });
+
   it('확인 장애(503)와 그 밖의 실패는 이용권 부족이 아니다', () => {
     expect(isLearningPassRequiredError(new ApiError(503, '확인 장애'))).toBe(false);
     expect(isLearningPassRequiredError(new ApiError(500, '연동 오류'))).toBe(false);

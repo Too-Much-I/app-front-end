@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -62,6 +62,21 @@ export function LearningPartsScreen({ navigation, route }: LearningPartsScreenPr
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const [waitingBox, setWaitingBox] = useState<WaitingBox | null>(null);
+  // 지금 기다리는 요청의 표식. 화면을 떠나면 비워, 늦게 온 응답이 돌아온 화면에서 이동하지 않게 한다.
+  const waitRef = useRef<symbol | null>(null);
+  // 기다리는 동안 모든 박스를 막는다. 렌더 전에 연달아 누르는 것은 핸들러가 `waitRef`로 한 번 더 막는다.
+  const isWaitingAny = waitingBox !== null;
+
+  // 다른 화면으로 가면 파트 화면은 스택에 남아 있어, 돌아왔을 때 예전 기다림이 이어지지 않게 버린다
+  // (2026-10-29 CodeRabbit 지적 뒤 결정).
+  useEffect(
+    () =>
+      navigation.addListener('blur', () => {
+        waitRef.current = null;
+        setWaitingBox(null);
+      }),
+    [navigation],
+  );
 
   // 완료 수는 서버 값이다. Part 1 완료 저장과 Part 2~5 채점 완료 뒤 그 파트 목록 캐시를 무효화해 다시 읽는다.
   // 파트마다 완료 수를 보여 줘야 해서 다섯 파트 목록을 함께 받는다. 캐시는 디스크에 남아 있으면 다시 받지 않는다.
@@ -83,26 +98,33 @@ export function LearningPartsScreen({ navigation, route }: LearningPartsScreenPr
 
   /**
    * 받기 전에 누른 박스를 기다리게 하고, 받으면 이동한다. 받는 중인 요청이 있으면 같은 키라 그 요청에 합쳐진다.
-   * 기다리는 동안 다른 박스는 누르지 않는다. 그 사이 화면을 떠났으면 이동하지 않는다.
+   * 기다리는 동안 다른 박스는 (이미 받은 박스도) 누르지 않는다. 그 사이 화면을 떠났으면 이동하지 않고, 돌아와도
+   * 그 기다림은 끝난 것으로 본다.
    */
   async function waitThenOpen<T>(
     box: WaitingBox,
     fetch: () => Promise<T>,
     open: (data: T) => void,
   ) {
-    if (waitingBox !== null) return;
+    if (waitRef.current !== null) return;
+    const wait = Symbol(box.toString());
+    waitRef.current = wait;
     setWaitingBox(box);
     try {
       const data = await fetch();
-      if (navigation.isFocused()) open(data);
+      if (waitRef.current === wait && navigation.isFocused()) open(data);
     } catch {
       // 실패는 쿼리 상태로 그린다 — 파트 목록은 실패 화면, 이어서 하기는 카드 안 문구.
     } finally {
-      setWaitingBox(null);
+      if (waitRef.current === wait) {
+        waitRef.current = null;
+        setWaitingBox(null);
+      }
     }
   }
 
   function startPart(part: LearningPart) {
+    if (waitRef.current !== null) return;
     const progress = rows.find((row) => row.part === part)?.progress;
     if (progress) {
       openNextLesson(part, progress.units);
@@ -116,6 +138,7 @@ export function LearningPartsScreen({ navigation, route }: LearningPartsScreenPr
   }
 
   function startResume() {
+    if (waitRef.current !== null) return;
     if (resume) {
       openLesson(resume.part, resume.unitId, resume.lessonId);
       return;
@@ -193,6 +216,7 @@ export function LearningPartsScreen({ navigation, route }: LearningPartsScreenPr
                 ? { status: 'failed' }
                 : { status: 'loading' }
           }
+          isDisabled={isWaitingAny}
           isWaiting={waitingBox === 'resume'}
           onPress={startResume}
         />
@@ -216,7 +240,8 @@ export function LearningPartsScreen({ navigation, route }: LearningPartsScreenPr
                 }
                 accessibilityRole="button"
                 className="flex-row items-center gap-md rounded-card bg-surface py-md pl-lg pr-md"
-                disabled={row.progress?.totalCount === 0}
+                accessibilityState={{ busy: waitingBox === row.part }}
+                disabled={isWaitingAny || row.progress?.totalCount === 0}
                 onPress={() => startPart(row.part)}
               >
                 <Feather name={row.icon} size={PART_ICON_SIZE} color={colors.ink.DEFAULT} />
@@ -270,6 +295,8 @@ interface ResumeCardProps {
   content: ResumeCardContent;
   /** 받기 전에 눌러 버튼에서 기다리는 중. */
   isWaiting: boolean;
+  /** 이 카드나 다른 박스가 기다리는 중이라 누르지 않는다. */
+  isDisabled: boolean;
   /** 등급 카드 색. 버튼 바탕에 쓴다. */
   color: string;
   onPress: () => void;
@@ -283,7 +310,7 @@ interface ResumeCardProps {
  *
  * 위치를 받기 전에도 버튼은 누를 수 있다. 누르면 그 자리에서 받고 오면 이동한다. 못 받았을 때 누르면 다시 받는다.
  */
-function ResumeCard({ content, isWaiting, color, onPress }: ResumeCardProps) {
+function ResumeCard({ content, isWaiting, isDisabled, color, onPress }: ResumeCardProps) {
   return (
     <View
       className="mx-lg flex-row items-center gap-md rounded-card bg-surface p-card"
@@ -295,7 +322,7 @@ function ResumeCard({ content, isWaiting, color, onPress }: ResumeCardProps) {
         accessibilityRole="button"
         accessibilityState={{ busy: isWaiting }}
         className="min-h-control-lg flex-row items-center gap-xs rounded-control px-lg"
-        disabled={isWaiting}
+        disabled={isDisabled}
         style={{ backgroundColor: color }}
         onPress={onPress}
       >
