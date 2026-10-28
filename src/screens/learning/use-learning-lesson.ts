@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { isLearningPassRequiredError } from '@/features/learning/learning-pass';
 import { learningUnitDetailQueryOptions } from '@/features/learning/learning-queries';
 import type { LearningLessonParams } from '@/navigation/types';
 import type { LearningLesson, LearningUnitDetail } from '@/types/learning';
@@ -7,6 +8,11 @@ import type { LearningLesson, LearningUnitDetail } from '@/types/learning';
 export type LearningLessonLookup =
   | { status: 'loading' }
   | { status: 'error'; retry: () => void }
+  /**
+   * 유료 세트를 이용권 없이 열었다. 버튼은 이용권 화면으로 보내고, `retry`는 결제하고 돌아왔을 때 다시 받는 데
+   * 쓴다. 다시 받는 동안에도 이 상태를 유지한다 — 안내가 사라졌다 다시 뜨면 본 순간 이벤트가 또 잡힌다.
+   */
+  | { status: 'pass-required'; retry: () => void }
   | { status: 'missing' }
   | {
       status: 'found';
@@ -25,13 +31,16 @@ export type LearningLessonLookup =
 export function useLearningLesson(params: LearningLessonParams): LearningLessonLookup {
   const {
     data: detail,
+    error,
     isError,
     isFetching,
     refetch,
   } = useQuery(learningUnitDetailQueryOptions(params.unitId, params.part, params.level));
 
+  const retry = () => void refetch();
+  if (isError && isLearningPassRequiredError(error)) return { status: 'pass-required', retry };
   // 다시 불러오는 동안은 `isError`가 남아 있어도 불러오는 중으로 본다.
-  if (isError && !isFetching) return { status: 'error', retry: () => void refetch() };
+  if (isError && !isFetching) return { status: 'error', retry };
   if (!detail) return { status: 'loading' };
 
   const index = detail.lessons.findIndex((lesson) => lesson.id === params.lessonId);

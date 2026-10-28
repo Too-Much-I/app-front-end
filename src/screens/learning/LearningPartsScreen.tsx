@@ -1,7 +1,8 @@
 import { Feather } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useQueries, useQuery } from '@tanstack/react-query';
-import { Image, ScrollView, View } from 'react-native';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Pressable } from '@/components/ui/Pressable';
@@ -14,12 +15,11 @@ import {
 import { pickNextLesson } from '@/features/learning/pick-next-lesson';
 import type { RootStackParamList } from '@/navigation/types';
 import { LearningLoadError } from '@/screens/learning/components/LearningLoadError';
-import { LearningLoading } from '@/screens/learning/components/LearningLoading';
 import { LEVEL_CARDS } from '@/screens/learning/learning-level-cards';
 import { LEARNING_PART_SCENES } from '@/screens/learning/learning-part-scenes';
 import { LEARNING_PART_ROWS } from '@/screens/learning/learning-parts';
 import { colors, size } from '@/theme';
-import type { LearningResume } from '@/types/learning';
+import type { LearningResume, LearningUnitSummary } from '@/types/learning';
 
 type LearningPartsScreenProps = NativeStackScreenProps<RootStackParamList, 'LearningParts'>;
 
@@ -40,42 +40,118 @@ const RESUME_LABELS = {
   END_OF_PART: '다음 학습',
 } as const satisfies Record<LearningResume['status'], string>;
 
+/** 응답을 받기 전에 눌러 그 자리에서 기다리는 박스. 파트 줄이거나 이어서 하기 카드다. */
+type WaitingBox = LearningPart | 'resume';
+
 /**
  * 학습 파트 고르기(시안 B).
  *
  * 위는 등급별 풍경, 아래는 파트 목록이다. 파트를 누르면 서버 완료 기록 기준으로 아직 안 한 문항을 골라
  * 바로 들어간다(세트 목록 화면 없음). 목록은 서버에서 받고, 하나라도 못 받으면 토끼와 다시 불러오기를 보여 준다.
  *
- * 풍경 아래쪽에는 서버가 알려 준 이어서 하기 위치를 카드로 걸친다(시안 A, 2026-10-27). 그 응답을 아직 못
- * 받았거나 실패하면 카드만 빼고 나머지는 그대로 둔다.
+ * 풍경 아래쪽에는 서버가 알려 준 이어서 하기 위치를 카드로 걸친다(시안 A, 2026-10-27).
+ *
+ * 파트 줄과 이어서 하기 카드는 응답을 기다리지 않고 먼저 그린다. 진행 숫자와 카드 문구는 오면 채우고, 오기
+ * 전에 누르면 그 박스에서 기다렸다가 이동한다. 이어서 하기를 못 받으면 카드를 치우지 않고 그 안에 알린다
+ * (2026-10-28 결정, 10-27 "실패하면 카드만 숨김"을 바꿈).
  */
 export function LearningPartsScreen({ navigation, route }: LearningPartsScreenProps) {
   const { level } = route.params;
   const card = LEVEL_CARDS[level];
   const scene = LEARNING_PART_SCENES[level];
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
+  const [waitingBox, setWaitingBox] = useState<WaitingBox | null>(null);
+  // 지금 기다리는 요청의 표식. 화면을 떠나면 비워, 늦게 온 응답이 돌아온 화면에서 이동하지 않게 한다.
+  const waitRef = useRef<symbol | null>(null);
+  // 기다리는 동안 모든 박스를 막는다. 렌더 전에 연달아 누르는 것은 핸들러가 `waitRef`로 한 번 더 막는다.
+  const isWaitingAny = waitingBox !== null;
+
+  // 다른 화면으로 가면 파트 화면은 스택에 남아 있어, 돌아왔을 때 예전 기다림이 이어지지 않게 버린다
+  // (2026-10-29 CodeRabbit 지적 뒤 결정).
+  useEffect(
+    () =>
+      navigation.addListener('blur', () => {
+        waitRef.current = null;
+        setWaitingBox(null);
+      }),
+    [navigation],
+  );
 
   // 완료 수는 서버 값이다. Part 1 완료 저장과 Part 2~5 채점 완료 뒤 그 파트 목록 캐시를 무효화해 다시 읽는다.
-  // 파트마다 완료 수를 보여 줘야 해서 다섯 파트 목록을 함께 받는다.
+  // 파트마다 완료 수를 보여 줘야 해서 다섯 파트 목록을 함께 받는다. 캐시는 디스크에 남아 있으면 다시 받지 않는다.
   const unitQueries = useQueries({
     queries: LEARNING_PART_ROWS.map((row) => learningUnitsQueryOptions(row.part, level)),
   });
-  // 다시 불러오는 동안은 실패 화면 대신 원을 돌린다. 실패한 쿼리도 다시 받는 중에는 `isError`가 남아 있다.
+  // 다시 불러오는 동안은 실패 화면 대신 줄을 그린다. 실패한 쿼리도 다시 받는 중에는 `isError`가 남아 있다.
   const failedQueries = unitQueries.filter((query) => query.isError && !query.isFetching);
-  const isLoading = unitQueries.some((query) => query.data === undefined);
   const retryFailed = () => failedQueries.forEach((query) => void query.refetch());
-  const { data: resume } = useQuery(learningResumeQueryOptions(level));
+  const resumeQuery = useQuery(learningResumeQueryOptions(level));
+  const resume = resumeQuery.data;
+  const isResumeFailed = resume === undefined && resumeQuery.isError && !resumeQuery.isFetching;
 
+  // 목록을 아직 못 받은 줄은 `progress`가 `null`이다. 숫자 없이 그리고, 누르면 그 자리에서 받는다.
   const rows = LEARNING_PART_ROWS.map((row, index) => {
-    const units = unitQueries[index]?.data ?? [];
-    const doneUnits = units.filter((unit) => unit.lessons.every((lesson) => lesson.completed));
-    return { ...row, units, doneCount: doneUnits.length, totalCount: units.length };
+    const units = unitQueries[index]?.data;
+    return { ...row, progress: units ? toPartProgress(units) : null };
   });
 
+  /**
+   * 받기 전에 누른 박스를 기다리게 하고, 받으면 이동한다. 받는 중인 요청이 있으면 같은 키라 그 요청에 합쳐진다.
+   * 기다리는 동안 다른 박스는 (이미 받은 박스도) 누르지 않는다. 그 사이 화면을 떠났으면 이동하지 않고, 돌아와도
+   * 그 기다림은 끝난 것으로 본다.
+   */
+  async function waitThenOpen<T>(
+    box: WaitingBox,
+    fetch: () => Promise<T>,
+    open: (data: T) => void,
+  ) {
+    if (waitRef.current !== null) return;
+    const wait = Symbol(box.toString());
+    waitRef.current = wait;
+    setWaitingBox(box);
+    try {
+      const data = await fetch();
+      if (waitRef.current === wait && navigation.isFocused()) open(data);
+    } catch {
+      // 실패는 쿼리 상태로 그린다 — 파트 목록은 실패 화면, 이어서 하기는 카드 안 문구.
+    } finally {
+      if (waitRef.current === wait) {
+        waitRef.current = null;
+        setWaitingBox(null);
+      }
+    }
+  }
+
   function startPart(part: LearningPart) {
-    const row = rows.find((candidate) => candidate.part === part);
-    if (!row) return;
-    const pick = pickNextLesson(row.units);
+    if (waitRef.current !== null) return;
+    const progress = rows.find((row) => row.part === part)?.progress;
+    if (progress) {
+      openNextLesson(part, progress.units);
+      return;
+    }
+    void waitThenOpen(
+      part,
+      () => queryClient.fetchQuery(learningUnitsQueryOptions(part, level)),
+      (fetched) => openNextLesson(part, fetched),
+    );
+  }
+
+  function startResume() {
+    if (waitRef.current !== null) return;
+    if (resume) {
+      openLesson(resume.part, resume.unitId, resume.lessonId);
+      return;
+    }
+    void waitThenOpen(
+      'resume',
+      () => queryClient.fetchQuery(learningResumeQueryOptions(level)),
+      (fetched) => openLesson(fetched.part, fetched.unitId, fetched.lessonId),
+    );
+  }
+
+  function openNextLesson(part: LearningPart, units: LearningUnitSummary[]) {
+    const pick = pickNextLesson(units);
     if (pick.kind === 'empty') return;
     // 다 끝낸 파트는 첫 세트부터 다시 한다(AI 제안, 2026-10-22).
     if (pick.kind === 'next') {
@@ -131,32 +207,41 @@ export function LearningPartsScreen({ navigation, route }: LearningPartsScreenPr
           </View>
         </View>
 
-        {resume ? (
-          <ResumeCard
-            color={card.color}
-            resume={resume}
-            onPress={() => openLesson(resume.part, resume.unitId, resume.lessonId)}
-          />
-        ) : null}
+        <ResumeCard
+          color={card.color}
+          content={
+            resume
+              ? { status: 'ready', resume }
+              : isResumeFailed
+                ? { status: 'failed' }
+                : { status: 'loading' }
+          }
+          isDisabled={isWaitingAny}
+          isWaiting={waitingBox === 'resume'}
+          onPress={startResume}
+        />
 
         <Text accessibilityRole="header" className="px-screen pb-element pt-card text-xl">
-          {resume ? '다른 파트 고르기' : '어떤 파트부터 시작할까요?'}
+          다른 파트 고르기
         </Text>
 
         {failedQueries.length > 0 ? (
           <LearningLoadError onRetry={retryFailed} />
-        ) : isLoading ? (
-          <LearningLoading />
         ) : (
           <View className="gap-element px-lg">
             {rows.map((row) => (
               <Pressable
                 key={row.part}
                 accessibilityHint="아직 안 한 문항부터 시작합니다"
-                accessibilityLabel={`Part ${row.part} ${row.name}. ${row.totalCount}세트 중 ${row.doneCount}세트 끝냄`}
+                accessibilityLabel={
+                  row.progress
+                    ? `Part ${row.part} ${row.name}. ${row.progress.totalCount}세트 중 ${row.progress.doneCount}세트 끝냄`
+                    : `Part ${row.part} ${row.name}. 진행도를 불러오는 중`
+                }
                 accessibilityRole="button"
                 className="flex-row items-center gap-md rounded-card bg-surface py-md pl-lg pr-md"
-                disabled={row.totalCount === 0}
+                accessibilityState={{ busy: waitingBox === row.part }}
+                disabled={isWaitingAny || row.progress?.totalCount === 0}
                 onPress={() => startPart(row.part)}
               >
                 <Feather name={row.icon} size={PART_ICON_SIZE} color={colors.ink.DEFAULT} />
@@ -166,11 +251,20 @@ export function LearningPartsScreen({ navigation, route }: LearningPartsScreenPr
                     Part {row.part} · {row.sharedAcrossLevels ? '등급 공통' : row.description}
                   </Text>
                 </View>
-                <Text className="text-sm text-ink-muted">
-                  {row.doneCount}/{row.totalCount}
-                </Text>
+                {row.progress ? (
+                  <Text className="text-sm text-ink-muted">
+                    {row.progress.doneCount}/{row.progress.totalCount}
+                  </Text>
+                ) : null}
                 <View className="h-12 w-12 items-center justify-center rounded-control bg-surface-muted">
-                  <Feather name="play" size={size.icon.md} color={colors.ink.DEFAULT} />
+                  {waitingBox === row.part ? (
+                    <ActivityIndicator
+                      accessibilityLabel="불러오는 중"
+                      color={colors.ink.DEFAULT}
+                    />
+                  ) : (
+                    <Feather name="play" size={size.icon.md} color={colors.ink.DEFAULT} />
+                  )}
                 </View>
               </Pressable>
             ))}
@@ -181,8 +275,28 @@ export function LearningPartsScreen({ navigation, route }: LearningPartsScreenPr
   );
 }
 
+/** 받은 목록에서 파트 줄에 그릴 진행도. 줄을 누를 때 고를 문항도 이 목록에서 찾는다. */
+interface PartProgress {
+  units: LearningUnitSummary[];
+  doneCount: number;
+  totalCount: number;
+}
+
+function toPartProgress(units: LearningUnitSummary[]): PartProgress {
+  const doneUnits = units.filter((unit) => unit.lessons.every((lesson) => lesson.completed));
+  return { units, doneCount: doneUnits.length, totalCount: units.length };
+}
+
+/** 이어서 하기 카드 왼쪽에 그릴 내용. 응답을 받기 전과 못 받았을 때도 카드는 그린다. */
+type ResumeCardContent =
+  { status: 'ready'; resume: LearningResume } | { status: 'loading' } | { status: 'failed' };
+
 interface ResumeCardProps {
-  resume: LearningResume;
+  content: ResumeCardContent;
+  /** 받기 전에 눌러 버튼에서 기다리는 중. */
+  isWaiting: boolean;
+  /** 이 카드나 다른 박스가 기다리는 중이라 누르지 않는다. */
+  isDisabled: boolean;
   /** 등급 카드 색. 버튼 바탕에 쓴다. */
   color: string;
   onPress: () => void;
@@ -193,33 +307,83 @@ interface ResumeCardProps {
  *
  * 버튼은 등급 카드 CTA(`LearningLevelScreen`)처럼 직접 그린다. 공용 Button은 색을 variant로만 고르는데,
  * 등급 색을 variant로 올리면 공용 버튼이 학습 등급을 알게 된다(2026-10-27 리뷰 F1 뒤 결정).
+ *
+ * 위치를 받기 전에도 버튼은 누를 수 있다. 누르면 그 자리에서 받고 오면 이동한다. 못 받았을 때 누르면 다시 받는다.
  */
-function ResumeCard({ resume, color, onPress }: ResumeCardProps) {
-  const partName = LEARNING_PART_ROWS.find((row) => row.part === resume.part)?.name ?? '';
-  const position = `${resume.unitNumber}세트 · ${resume.lessonNumber}번째 문항부터`;
-
+function ResumeCard({ content, isWaiting, isDisabled, color, onPress }: ResumeCardProps) {
   return (
     <View
       className="mx-lg flex-row items-center gap-md rounded-card bg-surface p-card"
       style={{ marginTop: -SCENE_HEIGHT * RESUME_CARD_OVERLAP_RATIO }}
     >
-      <View className="flex-1 gap-xs">
-        <Text className="text-xs text-ink-muted">{RESUME_LABELS[resume.status]}</Text>
-        <Text className="text-lg" numberOfLines={1}>
-          Part {resume.part} {partName}
-        </Text>
-        <Text className="text-sm text-ink-muted">{position}</Text>
-      </View>
+      <ResumeCardText content={content} />
       <Pressable
-        accessibilityHint={`Part ${resume.part} ${partName} ${position} 시작합니다`}
+        accessibilityHint={resumeCardHint(content)}
         accessibilityRole="button"
+        accessibilityState={{ busy: isWaiting }}
         className="min-h-control-lg flex-row items-center gap-xs rounded-control px-lg"
+        disabled={isDisabled}
         style={{ backgroundColor: color }}
         onPress={onPress}
       >
-        <Feather name="play" size={size.icon.md} color={colors.ink.DEFAULT} />
+        {isWaiting ? (
+          <ActivityIndicator color={colors.ink.DEFAULT} />
+        ) : (
+          <Feather name="play" size={size.icon.md} color={colors.ink.DEFAULT} />
+        )}
         <Text className="text-base">이어서 하기</Text>
       </Pressable>
     </View>
   );
+}
+
+function ResumeCardText({ content }: { content: ResumeCardContent }) {
+  switch (content.status) {
+    case 'ready': {
+      const { resume } = content;
+      return (
+        <View className="flex-1 gap-xs">
+          <Text className="text-xs text-ink-muted">{RESUME_LABELS[resume.status]}</Text>
+          <Text className="text-lg" numberOfLines={1}>
+            Part {resume.part} {resumePartName(resume)}
+          </Text>
+          <Text className="text-sm text-ink-muted">{resumePosition(resume)}</Text>
+        </View>
+      );
+    }
+    case 'loading':
+      return (
+        <View className="flex-1 gap-xs">
+          <Text className="text-sm text-ink-muted">멈춘 곳을 찾고 있어요</Text>
+        </View>
+      );
+    case 'failed':
+      return (
+        <View className="flex-1 gap-xs">
+          <Text className="text-sm text-ink-muted">멈춘 곳을 불러오지 못했어요</Text>
+          <Text className="text-xs text-ink-muted">버튼을 누르면 다시 불러와요</Text>
+        </View>
+      );
+  }
+}
+
+function resumeCardHint(content: ResumeCardContent): string {
+  switch (content.status) {
+    case 'ready': {
+      const { resume } = content;
+      return `Part ${resume.part} ${resumePartName(resume)} ${resumePosition(resume)} 시작합니다`;
+    }
+    case 'loading':
+      return '멈춘 곳을 불러온 뒤 시작합니다';
+    case 'failed':
+      return '멈춘 곳을 다시 불러온 뒤 시작합니다';
+  }
+}
+
+function resumePartName(resume: LearningResume): string {
+  return LEARNING_PART_ROWS.find((row) => row.part === resume.part)?.name ?? '';
+}
+
+function resumePosition(resume: LearningResume): string {
+  return `${resume.unitNumber}세트 · ${resume.lessonNumber}번째 문항부터`;
 }
