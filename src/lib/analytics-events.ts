@@ -1,3 +1,4 @@
+import type { LearningLevel, LearningPart } from '@/features/learning/learning-level';
 import type { ExamSessionPhase } from '@/types/exam';
 
 /**
@@ -83,12 +84,35 @@ export type AnalyticsEvent =
       properties: ChallengeEventProperties & { entry: ChallengeResultEntry };
     }
 
+  // 답변 익히기(학습) — 문항 단위(2026-10-28 결정). 퍼즐 → 쉐도잉 → 채점이 문항마다 한 바퀴 돈다.
+  | { name: 'learning_puzzle_completed'; properties: LearningEventProperties }
+  | { name: 'learning_shadowing_completed'; properties: LearningEventProperties }
+  /**
+   * 문항의 마지막 단계가 끝났다. Part 2~5는 채점 결과를, 퍼즐·채점이 없는 Part 1은 완료 저장을 같은
+   * 이벤트로 보내고 `part`로 나눈다. 점수는 싣지 않는다.
+   */
+  | {
+      name: 'learning_lesson_finished';
+      properties: LearningEventProperties & { result: LearningLessonResult };
+    }
+  /** 유료 세트를 이용권 없이 열어 안내를 봤다. 그 뒤 결제로 이어지는지 퍼널로 본다. */
+  | { name: 'learning_pass_required'; properties: LearningEventProperties }
+
   // 그 밖의 마찰 신호
   /** 어느 화면에서 가로로 돌리려 하는지. 태블릿 가로 지원 판단의 근거다. */
   | { name: 'portrait_notice_shown'; properties: { routeName: string } }
   /** 이탈을 가장 강하게 예고하는 행동이라 결과가 아니라 요청 시점에 남긴다. */
   | { name: 'learning_record_delete_requested' }
   | { name: 'optional_consent_decided'; properties: { consented: boolean } };
+
+/** 세트·문항 ID는 싣지 않는다. 등급 공통인 Part 1도 사용자가 고른 등급을 그대로 싣는다. */
+interface LearningEventProperties {
+  part: LearningPart;
+  level: LearningLevel;
+}
+
+/** 채점 상태 중 끝난 셋. Part 1 완료 저장은 `completed`다. */
+export type LearningLessonResult = 'completed' | 'no_speech' | 'failed';
 
 interface ChallengeEventProperties {
   questionNumber: number;

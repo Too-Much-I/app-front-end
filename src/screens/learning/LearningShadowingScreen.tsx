@@ -1,12 +1,13 @@
 import { Feather } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Image, Linking, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Pressable } from '@/components/ui/Pressable';
 import { Text } from '@/components/ui/Text';
 import { useReadingCompletion } from '@/features/learning/use-reading-completion';
+import { trackEvent } from '@/lib/amplitude';
 import type { RootStackParamList } from '@/navigation/types';
 import { LearningLessonFallback } from '@/screens/learning/components/LearningLessonFallback';
 import { LearningPaperCard } from '@/screens/learning/components/LearningPaperCard';
@@ -32,19 +33,42 @@ type LearningShadowingScreenProps = NativeStackScreenProps<RootStackParamList, '
 export function LearningShadowingScreen({ navigation, route }: LearningShadowingScreenProps) {
   const lookup = useLearningLesson(route.params);
   const [sentenceIndex, setSentenceIndex] = useState(0);
-  const completion = useReadingCompletion();
+  const completion = useReadingCompletion(route.params.level);
+  /**
+   * 쉐도잉 완료는 화면당 한 번만 센다(2026-10-28 리뷰 F2 뒤 결정). 앞 단계로 돌아갔다 다시 넘어오거나 Part 1 저장
+   * 실패 뒤 다시 눌러도 늘지 않아, 퍼즐 완료와 같은 기준으로 단계 전환율을 본다.
+   */
+  const hasTrackedCompletionRef = useRef(false);
 
   function closeToParts() {
     navigation.popTo('LearningParts', { level: route.params.level });
   }
 
+  function openPass() {
+    navigation.navigate('PassPurchase');
+  }
+
   if (lookup.status !== 'found') {
-    return <LearningLessonFallback lookup={lookup} onClose={closeToParts} />;
+    return (
+      <LearningLessonFallback
+        lookup={lookup}
+        params={route.params}
+        onClose={closeToParts}
+        onOpenPass={openPass}
+      />
+    );
   }
   const { lesson } = lookup;
   const sentence = lesson.sentences[sentenceIndex];
   if (!sentence) {
-    return <LearningLessonFallback lookup={{ status: 'missing' }} onClose={closeToParts} />;
+    return (
+      <LearningLessonFallback
+        lookup={{ status: 'missing' }}
+        params={route.params}
+        onClose={closeToParts}
+        onOpenPass={openPass}
+      />
+    );
   }
 
   const isLastSentence = sentenceIndex === lesson.sentences.length - 1;
@@ -54,6 +78,11 @@ export function LearningShadowingScreen({ navigation, route }: LearningShadowing
     if (!isLastSentence) {
       setSentenceIndex((index) => index + 1);
       return;
+    }
+    if (!hasTrackedCompletionRef.current) {
+      hasTrackedCompletionRef.current = true;
+      const { part, level } = route.params;
+      trackEvent({ name: 'learning_shadowing_completed', properties: { part, level } });
     }
     if (isReadingPart) {
       // Part 1 완료는 제출 없이 저장한다(Swagger: `common`, submissionId 생략).

@@ -21,6 +21,8 @@ import {
   getValidAnswerAudioFile,
   uploadAnswerAudio,
 } from '@/features/exam/upload-answer-audio';
+import { trackEvent } from '@/lib/amplitude';
+import type { LearningLessonResult } from '@/lib/analytics-events';
 import { ApiError } from '@/lib/api/client';
 import { reportOperationalError } from '@/lib/operational-error-reporting';
 import type { LearningGradeResult, LearningLesson, LearningSubmission } from '@/types/learning';
@@ -170,15 +172,23 @@ export function useLearningGrading(lesson: LearningLesson, level: LearningLevel)
 
   const settle = useCallback(
     (submission: LearningSubmission) => {
+      // 채점이 끝난 결과를 문항 마지막 단계 이벤트로 보낸다(2026-10-28 결정). 점수는 싣지 않는다.
+      const trackLessonFinished = (result: LearningLessonResult) =>
+        trackEvent({
+          name: 'learning_lesson_finished',
+          properties: { part: lesson.part, level, result },
+        });
       switch (submission.status) {
         case 'completed':
           void queryClient.invalidateQueries({
             queryKey: learningUnitsQueryKey(lesson.part, level),
           });
           void queryClient.invalidateQueries({ queryKey: learningResumeQueryKey(level) });
+          trackLessonFinished('completed');
           setState({ status: 'completed', result: submission.result });
           return;
         case 'no_speech':
+          trackLessonFinished('no_speech');
           setState({ status: 'no-speech' });
           return;
         case 'failed':
@@ -188,6 +198,7 @@ export function useLearningGrading(lesson: LearningLesson, level: LearningLevel)
             jobErrorCode: submission.errorCode,
             cause: new Error('서버 채점 실패'),
           });
+          trackLessonFinished('failed');
           retryPlanRef.current = 'retry';
           setState({ status: 'failed', canRetry: submission.retryable, stillGrading: false });
           return;

@@ -11,6 +11,7 @@ import { CrashBoundary } from '@/components/ui/CrashBoundary';
 import { PortraitOnlyNotice } from '@/components/ui/PortraitOnlyNotice';
 import { AppUpdateNotice } from '@/features/app-version/components/AppUpdateNotice';
 import { appAuthRuntime } from '@/features/auth/app-auth-runtime';
+import { startLearningProgressCache } from '@/features/learning/learning-progress-cache';
 import { OrientationProvider } from '@/features/orientation/OrientationProvider';
 import { loadPaidTransitionNoticeStatus } from '@/features/paid-transition/paid-transition-notice-storage';
 import { useOrientation } from '@/features/orientation/orientation-context';
@@ -43,6 +44,9 @@ function AppContent() {
   useEffect(() => {
     void loadPaidTransitionNoticeStatus();
   }, []);
+
+  // 학습 진행도는 디스크에서 되살려 학습 파트 화면이 서버 응답을 기다리지 않게 한다(2026-10-28 결정).
+  useEffect(() => startLearningProgressCache(queryClient), []);
 
   // 인증 복원 중 로딩은 RootNavigator가 코디네이터 상태에 따라 직접 그린다.
   if (!fontsReady) {

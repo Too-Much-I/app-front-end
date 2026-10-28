@@ -1,4 +1,4 @@
-import { Image, View } from 'react-native';
+import { Image, View, type ImageSourcePropType } from 'react-native';
 
 import { Pressable } from '@/components/ui/Pressable';
 import { Text } from '@/components/ui/Text';
@@ -10,6 +10,8 @@ interface LearningLoadErrorProps {
   message?: string;
   /** 다시 받아도 소용없는 실패는 다른 행동(파트로 돌아가기)을 건다. */
   actionLabel?: string;
+  /** 오류가 아닌 안내(이용권 필요)는 다른 토끼를 쓴다. */
+  image?: ImageSourcePropType;
   onRetry: () => void;
 }
 
@@ -20,6 +22,7 @@ interface LearningLoadErrorProps {
 export function LearningLoadError({
   message = '학습 내용을 불러오지 못했어요',
   actionLabel = '다시 불러오기',
+  image = errorRabbit,
   onRetry,
 }: LearningLoadErrorProps) {
   return (
@@ -28,7 +31,7 @@ export function LearningLoadError({
         accessibilityElementsHidden
         className="h-40 w-40"
         resizeMode="contain"
-        source={errorRabbit}
+        source={image}
       />
       <Text className="text-center text-base text-ink-muted">{message}</Text>
       <Pressable
