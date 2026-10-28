@@ -73,9 +73,17 @@ export function LearningGradingScreen({ navigation, route }: LearningGradingScre
   const { level } = route.params;
 
   const closeToParts = () => navigation.popTo('LearningParts', { level });
+  const openPass = () => navigation.navigate('PassPurchase');
 
   if (lookup.status !== 'found') {
-    return <LearningLessonFallback lookup={lookup} onClose={closeToParts} />;
+    return (
+      <LearningLessonFallback
+        lookup={lookup}
+        params={route.params}
+        onClose={closeToParts}
+        onOpenPass={openPass}
+      />
+    );
   }
   const { lesson, nextLesson } = lookup;
 

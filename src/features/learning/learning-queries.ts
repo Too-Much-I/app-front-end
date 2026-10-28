@@ -14,6 +14,24 @@ import { countSentencesWithoutChunks } from '@/features/learning/learning-puzzle
 import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 const LEARNING_UNITS_QUERY_KEY = ['learning', 'units'] as const;
+const LEARNING_RESUME_QUERY_KEY = ['learning', 'resume'] as const;
+
+/**
+ * 진행도(세트 목록·이어서 하기) 캐시의 보관 규칙. 디스크에 남기고(`learning-progress-cache.ts`) 완료 무효화와
+ * 사용자 변경 때만 다시 받는다(2026-10-28 결정). 다른 기기에서 푼 기록과 서버 세트 추가는 그 파트·등급에서
+ * 이 기기로 문항을 끝낼 때까지 반영되지 않는다 — 이용권 기간이 짧아 감수했다.
+ *
+ * `gcTime`도 끝없이 둔다. 화면을 떠나 메모리에서 지워지면 그 삭제가 디스크에도 반영되기 때문이다.
+ */
+export const LEARNING_PROGRESS_CACHE_TIMES = { staleTime: Infinity, gcTime: Infinity } as const;
+
+/** 디스크에 남기는 진행도 캐시인지. 등급·파트와 관계없이 목록과 이어서 하기 키 전체다. */
+export function isLearningProgressQueryKey(queryKey: readonly unknown[]): boolean {
+  return (
+    queryKey[0] === LEARNING_UNITS_QUERY_KEY[0] &&
+    (queryKey[1] === LEARNING_UNITS_QUERY_KEY[1] || queryKey[1] === LEARNING_RESUME_QUERY_KEY[1])
+  );
+}
 
 /**
  * 세트 목록 캐시 키. 캐시를 만들 때와 무효화할 때 모두 이 함수로 만들어 키 모양이 어긋나지 않게 한다.
@@ -32,10 +50,9 @@ export function learningUnitsQueryOptions(part: LearningPart, level: LearningLev
     queryKey: learningUnitsQueryKey(part, level),
     queryFn: ({ signal }) => getLearningUnits(part, level, signal),
     meta: { failureReport: { code: 'LEARNING_LOAD_FAILED', resource: 'units' } },
+    ...LEARNING_PROGRESS_CACHE_TIMES,
   });
 }
-
-const LEARNING_RESUME_QUERY_KEY = ['learning', 'resume'] as const;
 
 /**
  * 이어서 하기 캐시 키. 등급을 빼면 모든 등급을 가리킨다(무효화용) — Part 1 완료는 서버가 모든 등급에 반영한다.
@@ -53,6 +70,7 @@ export function learningResumeQueryOptions(level: LearningLevel) {
     queryKey: learningResumeQueryKey(level),
     queryFn: ({ signal }) => getLearningResume(level, signal),
     meta: { failureReport: { code: 'LEARNING_LOAD_FAILED', resource: 'resume' } },
+    ...LEARNING_PROGRESS_CACHE_TIMES,
   });
 }
 

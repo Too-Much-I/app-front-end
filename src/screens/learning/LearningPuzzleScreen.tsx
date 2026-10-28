@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Image, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,6 +10,7 @@ import {
   pressPuzzlePiece,
   scatterPuzzlePieces,
 } from '@/features/learning/learning-puzzle';
+import { trackEvent } from '@/lib/amplitude';
 import type { RootStackParamList } from '@/navigation/types';
 import { LearningLessonFallback } from '@/screens/learning/components/LearningLessonFallback';
 import { LearningStepHeader } from '@/screens/learning/components/LearningStepHeader';
@@ -40,17 +41,37 @@ export function LearningPuzzleScreen({ navigation, route }: LearningPuzzleScreen
   const [placedCount, setPlacedCount] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
   const [lastWrongOrder, setLastWrongOrder] = useState<number | null>(null);
+  /**
+   * 퍼즐 완료는 화면당 한 번만 센다(2026-10-28 리뷰 F2 뒤 결정). 쉐도잉에서 돌아와 다시 끝내도 늘지 않아,
+   * 쉐도잉 완료와 같은 기준으로 단계 전환율을 본다.
+   */
+  const hasTrackedCompletionRef = useRef(false);
 
   const closeToParts = () => navigation.popTo('LearningParts', { level: route.params.level });
+  const openPass = () => navigation.navigate('PassPurchase');
 
   if (lookup.status !== 'found') {
-    return <LearningLessonFallback lookup={lookup} onClose={closeToParts} />;
+    return (
+      <LearningLessonFallback
+        lookup={lookup}
+        params={route.params}
+        onClose={closeToParts}
+        onOpenPass={openPass}
+      />
+    );
   }
 
   const { detail, lesson } = lookup;
   const sentence = lesson.sentences[sentenceIndex];
   if (!sentence) {
-    return <LearningLessonFallback lookup={{ status: 'missing' }} onClose={closeToParts} />;
+    return (
+      <LearningLessonFallback
+        lookup={{ status: 'missing' }}
+        params={route.params}
+        onClose={closeToParts}
+        onOpenPass={openPass}
+      />
+    );
   }
 
   const pieces = buildPuzzlePieces(sentence);
@@ -72,6 +93,11 @@ export function LearningPuzzleScreen({ navigation, route }: LearningPuzzleScreen
 
   function goNext() {
     if (isLastSentence) {
+      if (!hasTrackedCompletionRef.current) {
+        hasTrackedCompletionRef.current = true;
+        const { part, level } = route.params;
+        trackEvent({ name: 'learning_puzzle_completed', properties: { part, level } });
+      }
       navigation.navigate('LearningShadowing', route.params);
       return;
     }
