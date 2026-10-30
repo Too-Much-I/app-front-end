@@ -18,7 +18,6 @@ import type { AuthSession } from '@/features/auth/types';
 import type { RootStackParamList } from '@/navigation/types';
 import {
   PhoneVerificationScreen,
-  SIGNUP_PHONE_NOTICE,
   type PhoneVerificationViewState,
 } from '@/screens/auth/PhoneVerificationScreen';
 import { SignupConsentScreen } from '@/screens/auth/SignupConsentScreen';
@@ -333,7 +332,7 @@ function SignupPhoneStep({
       step={step}
       totalSteps={totalSteps}
       busy={busy}
-      numberNotice={SIGNUP_PHONE_NOTICE}
+      showSignupNotice
       // 인증번호 입력 중에는 번호 입력으로, 그 밖에는 이전 가입 단계로 돌아간다.
       onBack={stage.status === 'code' ? phone.editPhone : onBack}
       onChangePhone={draftStore.setPhone}

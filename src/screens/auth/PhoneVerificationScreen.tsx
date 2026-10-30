@@ -25,8 +25,8 @@ interface PhoneVerificationScreenProps {
   blockedSeconds?: number | null;
   /** 번호 입력 아래 덧붙이는 행동(가입 중 번호 충돌의 계정 찾기 등). */
   numberAction?: { label: string; disabled?: boolean; onPress: () => void };
-  /** 번호 입력 아래 작은 안내. 가입 흐름만 인증 이유를 넘긴다. */
-  numberNotice?: string;
+  /** 번호 입력 아래에 인증 이유를 알린다. 가입 흐름만 켠다(계정 찾기는 본인 확인이라 끈다). */
+  showSignupNotice?: boolean;
   onBack: () => void;
   onChangePhone: (value: string) => void;
   onRequestCode: () => void;
@@ -38,9 +38,6 @@ interface PhoneVerificationScreenProps {
   onContinue?: () => void;
   continueLabel?: string;
 }
-
-/** 가입 때 번호 인증을 왜 하는지 알린다. 계정 찾기는 본인 확인이라 넘기지 않는다. */
-export const SIGNUP_PHONE_NOTICE = '시험 정보 안내 및 이용 이력 관리를 위해 인증을 진행합니다.';
 
 // public/auth/phone-verification.png(485×720)의 비율. 높이만 정하고 너비는 그림에 맞춘다.
 const COMPLETE_IMAGE_ASPECT_RATIO = 485 / 720;
@@ -58,7 +55,7 @@ export function PhoneVerificationScreen({
   busy = false,
   blockedSeconds = null,
   numberAction,
-  numberNotice,
+  showSignupNotice = false,
   onBack,
   onChangePhone,
   onRequestCode,
@@ -149,13 +146,15 @@ export function PhoneVerificationScreen({
                 {state.error}
               </Text>
             ) : null}
-            {numberNotice ? (
+            {showSignupNotice ? (
               <View className="flex-row items-start gap-xs">
                 {/* 첫 줄 글자 높이(20)에 아이콘(16)을 맞춘다. */}
                 <View className="mt-0.5">
                   <Feather name="info" size={size.icon.sm} color={colors.ink.muted} />
                 </View>
-                <Text className="min-w-0 flex-1 text-sm !text-ink-muted">{numberNotice}</Text>
+                <Text className="min-w-0 flex-1 text-sm !text-ink-muted">
+                  시험 정보 안내 및 이용 이력 관리를 위해 인증을 진행합니다.
+                </Text>
               </View>
             ) : null}
             {numberAction ? (
