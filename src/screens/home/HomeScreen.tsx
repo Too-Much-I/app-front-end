@@ -185,6 +185,9 @@ export function HomeScreen() {
         visible={notice === 'paid-transition'}
         onConfirm={paidTransitionNotice.dismiss}
         onOpenPass={() => {
+          // 이용권 화면이 위에 쌓여도 홈은 뒤에 남는다. 친구 초대가 결제 화면 위에 뜨지 않게 이번 실행에서는
+          // 기록 없이 닫는다 — 다음 실행에 뜬다(2026-10-30 결정).
+          referralInvite.close();
           paidTransitionNotice.dismiss();
           navigation.navigate('PassPurchase');
         }}
