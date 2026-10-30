@@ -36,7 +36,7 @@ type MyPageNavigationProp = CompositeNavigationProp<
  * 닉네임 인사, 10초 챌린지 달력, 메뉴.
  *
  * 설정의 항목 중 자주 찾는 문의하기·로그아웃만 꺼내고 나머지는 설정으로 보낸다
- * (2026-10-11 결정). 이용권 결제는 마이페이지 메뉴를 진입로로 쓴다(2026-10-11 결정). 탈퇴를 눈에 띄게 권하지 않는다는 2026-10-07 결정 때문에 탈퇴는 설정 안에 둔다.
+ * (2026-10-11 결정). 이용권 결제는 마이페이지 메뉴를 진입로로 쓴다(2026-10-11 결정). 친구 초대는 이용권 결제 바로 아래다(2026-10-29 결정). 탈퇴를 눈에 띄게 권하지 않는다는 2026-10-07 결정 때문에 탈퇴는 설정 안에 둔다.
  */
 export function MyPageScreen() {
   const navigation = useNavigation<MyPageNavigationProp>();
@@ -110,6 +110,12 @@ export function MyPageScreen() {
               icon="credit-card"
               onPress={() => navigation.navigate('PassPurchase')}
               title="이용권 결제"
+            />
+            <MyPageMenuRow
+              description="친구와 모의고사권을 1장씩 받아요."
+              icon="user-plus"
+              onPress={() => navigation.navigate('ReferralInvite', { entry: 'mypage' })}
+              title="친구 초대"
             />
             <MyPageMenuRow
               description="성적을 올리고 기프티콘 5천 원을 받아요."

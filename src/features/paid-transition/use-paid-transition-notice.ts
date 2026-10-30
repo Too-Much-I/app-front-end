@@ -5,14 +5,20 @@ import {
   markPaidTransitionNoticeSeen,
 } from '@/features/paid-transition/paid-transition-notice-storage';
 
-/** 홈 화면에서 유료 전환 안내를 한 번 띄우고, 닫으면 다시 띄우지 않는다. */
+/**
+ * 홈 화면에서 유료 전환 안내를 한 번 띄우고, 닫으면 다시 띄우지 않는다. `settled`는 띄울지 정해졌다는 뜻이다 —
+ * 뒤에 띄울 홈 팝업(친구 초대)이 이 안내보다 먼저 뜨지 않게 기다리는 데 쓴다.
+ */
 export function usePaidTransitionNotice() {
   const [visible, setVisible] = useState(false);
+  const [settled, setSettled] = useState(false);
 
   useEffect(() => {
     let active = true;
     void loadPaidTransitionNoticeStatus().then((status) => {
-      if (active && status === 'pending') setVisible(true);
+      if (!active) return;
+      if (status === 'pending') setVisible(true);
+      setSettled(true);
     });
     return () => {
       active = false;
@@ -25,5 +31,5 @@ export function usePaidTransitionNotice() {
     void markPaidTransitionNoticeSeen().catch(() => undefined);
   }, []);
 
-  return { visible, dismiss };
+  return { visible, settled, dismiss };
 }

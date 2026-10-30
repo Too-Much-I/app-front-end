@@ -2,6 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useNavigation, type CompositeNavigationProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useEffect } from 'react';
 import { Image, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,7 +13,13 @@ import { Text } from '@/components/ui/Text';
 import { TickingClock } from '@/components/ui/TickingClock';
 import { PaidTransitionNoticeModal } from '@/features/paid-transition/components/PaidTransitionNoticeModal';
 import { usePaidTransitionNotice } from '@/features/paid-transition/use-paid-transition-notice';
+import { ReferralInviteModal } from '@/features/referral/components/ReferralInviteModal';
+import { ReferralResultModal } from '@/features/referral/components/ReferralResultModal';
+import { useReferralApplicationResult } from '@/features/referral/use-referral-application-result';
+import { useReferralInvitePopup } from '@/features/referral/use-referral-invite-popup';
+import { trackEvent } from '@/lib/amplitude';
 import type { MainTabParamList, RootStackParamList } from '@/navigation/types';
+import { pickHomeNotice } from '@/screens/home/home-notice';
 import { RecentFeedbackCard } from '@/screens/home/RecentFeedbackCard';
 import { useRecentFeedback } from '@/screens/home/use-recent-feedback';
 import { colors, shadows } from '@/theme';
@@ -66,6 +73,19 @@ export function HomeScreen() {
   const navigation = useNavigation<HomeNavigationProp>();
   const recentFeedback = useRecentFeedback();
   const paidTransitionNotice = usePaidTransitionNotice();
+  const referralResult = useReferralApplicationResult();
+  const referralInvite = useReferralInvitePopup();
+  const notice = pickHomeNotice({
+    referralResult: referralResult.state,
+    paidTransition: paidTransitionNotice,
+    referralInvite: referralInvite.state,
+  });
+  const { show: showReferralInvite } = referralInvite;
+
+  // 친구 초대 팝업은 뜬 순간 본 것으로 친다(2026-10-29 D11 결정).
+  useEffect(() => {
+    if (notice === 'referral-invite') showReferralInvite();
+  }, [notice, showReferralInvite]);
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-surface-subtle">
@@ -156,12 +176,29 @@ export function HomeScreen() {
           </Pressable>
         </View>
       </ScrollView>
+      <ReferralResultModal
+        visible={notice === 'referral-result'}
+        result={'result' in referralResult.state ? referralResult.state.result : null}
+        onClose={referralResult.dismiss}
+      />
       <PaidTransitionNoticeModal
-        visible={paidTransitionNotice.visible}
+        visible={notice === 'paid-transition'}
         onConfirm={paidTransitionNotice.dismiss}
         onOpenPass={() => {
           paidTransitionNotice.dismiss();
           navigation.navigate('PassPurchase');
+        }}
+      />
+      <ReferralInviteModal
+        visible={notice === 'referral-invite'}
+        onOpenInvite={() => {
+          trackEvent({ name: 'referral_invite_popup_clicked' });
+          referralInvite.close();
+          navigation.navigate('ReferralInvite', { entry: 'invite-popup' });
+        }}
+        onDismiss={() => {
+          trackEvent({ name: 'referral_invite_popup_dismissed' });
+          referralInvite.close();
         }}
       />
     </SafeAreaView>

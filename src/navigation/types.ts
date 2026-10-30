@@ -2,7 +2,7 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 
 import type { LearningLevel, LearningPart } from '@/features/learning/learning-level';
 import type { SupportInquiryEntry } from '@/features/support/support-inquiry';
-import type { ChallengeResultEntry } from '@/lib/analytics-events';
+import type { ChallengeResultEntry, ReferralInviteEntry } from '@/lib/analytics-events';
 import type { ChallengeInitialResult } from '@/types/challenge';
 import type { ExamSession } from '@/types/exam';
 
@@ -156,6 +156,11 @@ export type RootStackParamList = {
    * (2026-10-27 결정).
    */
   PromotionApplication: undefined;
+  /**
+   * 친구 초대(내 추천 코드 보기·공유). 마이페이지 이용권 결제 아래 메뉴와 홈의 친구 초대 팝업으로 진입한다
+   * (2026-10-29 결정). `entry`는 분석에서 두 길을 나누는 값이다.
+   */
+  ReferralInvite: { entry: ReferralInviteEntry };
   /** 알림 화면. 설정과 마찬가지로 홈 화면 헤더 아이콘(벨)으로 진입하는 루트 스택 push 화면이다. */
   Notifications: undefined;
   /**

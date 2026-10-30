@@ -230,6 +230,15 @@ type PostLoginErrorInput =
       stage: 'pick' | 'submit';
     } & SafeCause)
   | ({
+      /**
+       * `apply`는 가입 때 입력한 코드의 적용 중 같은 요청을 반복하면 안 되는 오류(앱이 잘못 보낸 것)다.
+       * 다음 실행에 다시 보내는 실패와 사용자 거절(본인·없는·이미 적용)은 보고하지 않는다. `issue`는 친구 초대
+       * 화면이 내 코드를 받지 못한 것이다. 코드 값은 싣지 않는다.
+       */
+      code: 'REFERRAL_FAILED';
+      stage: 'apply' | 'issue';
+    } & SafeCause)
+  | ({
       code: 'MYPAGE_LOAD_FAILED';
       resource: 'profile' | 'calendar';
     } & SafeCause)
@@ -305,7 +314,8 @@ type PostLoginErrorInput =
 export type QueryFailureReport =
   | { code: 'CHALLENGE_LOAD_FAILED'; resource: 'today' }
   | { code: 'MYPAGE_LOAD_FAILED'; resource: 'profile' | 'calendar' }
-  | { code: 'LEARNING_LOAD_FAILED'; resource: 'units' | 'detail' | 'resume' };
+  | { code: 'LEARNING_LOAD_FAILED'; resource: 'units' | 'detail' | 'resume' }
+  | { code: 'REFERRAL_FAILED'; stage: 'issue' };
 
 /**
  * 스키마 검증을 붙인 엔드포인트. 옮겨올 때마다 여기에 하나씩 추가한다.
@@ -325,6 +335,8 @@ export type ApiResponseResource =
   | 'PURCHASE_ACCOUNT'
   | 'PAYMENT_PRODUCTS'
   | 'PAYMENT_SYNC'
+  | 'REFERRAL_CODE'
+  | 'REFERRAL_APPLICATION'
   | 'ENTITLEMENTS'
   | 'LEARNING_UNITS'
   | 'LEARNING_UNIT_DETAIL'
@@ -374,6 +386,7 @@ const FEATURE_BY_CODE: Record<OperationalErrorCode, string> = {
   PASS_PURCHASE_FAILED: 'pass',
   PROMOTION_APPLICATION_FAILED: 'promotion',
   AUTH_SESSION_REJECTED: 'auth',
+  REFERRAL_FAILED: 'referral',
 };
 
 /** 오류 이름의 모든 입력이 공통으로 가진 필드. 원인 축은 여기서만 고를 수 있다. */

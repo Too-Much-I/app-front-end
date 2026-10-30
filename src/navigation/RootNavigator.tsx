@@ -36,6 +36,7 @@ import { NotificationsScreen } from '@/screens/notifications/NotificationsScreen
 import { PassPurchaseScreen } from '@/screens/pass/PassPurchaseScreen';
 import { PromotionApplicationScreen } from '@/screens/promotion/PromotionApplicationScreen';
 import { ReanswerScreen } from '@/screens/reanswer/ReanswerScreen';
+import { ReferralInviteScreen } from '@/screens/referral/ReferralInviteScreen';
 import { NotificationSettingsScreen } from '@/screens/settings/NotificationSettingsScreen';
 import { SettingsScreen } from '@/screens/settings/SettingsScreen';
 import { SettingsWebViewScreen } from '@/screens/settings/SettingsWebViewScreen';
@@ -72,6 +73,7 @@ function MemberRootNavigator() {
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="PassPurchase" component={PassPurchaseScreen} />
       <Stack.Screen name="PromotionApplication" component={PromotionApplicationScreen} />
+      <Stack.Screen name="ReferralInvite" component={ReferralInviteScreen} />
       <Stack.Screen name="LearningParts" component={LearningPartsScreen} />
       <Stack.Screen name="LearningPuzzle" component={LearningPuzzleScreen} />
       <Stack.Screen name="LearningShadowing" component={LearningShadowingScreen} />

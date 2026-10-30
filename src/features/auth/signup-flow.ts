@@ -14,6 +14,10 @@ import type {
 } from '@/features/auth/identity-login-types';
 import type { createSignupDraftStore } from '@/features/auth/signup-draft-store';
 import type { AuthSession } from '@/features/auth/types';
+import {
+  checkReferralCodeFormat,
+  isReferralCodeAcceptable,
+} from '@/features/referral/referral-code-format';
 import { trackConversion } from '@/lib/ad-conversion';
 import { ApiError } from '@/lib/api/transport';
 import { reportOperationalError } from '@/lib/operational-error-reporting';
@@ -71,6 +75,20 @@ export function decideSignupSteps(enrollment: IdentityEnrollment): SignupStep[] 
 export function isSignupNicknameValid(nickname: string): boolean {
   const length = Array.from(nickname.trim()).length;
   return length >= NICKNAME_MIN_LENGTH && length <= NICKNAME_MAX_LENGTH;
+}
+
+/**
+ * 닉네임 단계를 넘어갈 수 있는가. 같은 화면의 추천 코드는 선택이지만, 형식이 틀리면 가입 뒤에야 거절되고 다시
+ * 넣을 곳이 없어 여기서 막는다(2026-10-29 D6 결정). 직접 가입과 Guest 승격이 같은 기준을 쓴다.
+ */
+export function canCompleteSignupNickname(draft: {
+  nickname: string;
+  referralCode: string;
+}): boolean {
+  return (
+    isSignupNicknameValid(draft.nickname) &&
+    isReferralCodeAcceptable(checkReferralCodeFormat(draft.referralCode))
+  );
 }
 
 export type SignupFailureNotice = { message: string; nextAction: SignupFailureAction };
@@ -276,7 +294,7 @@ export function createSignupFlow(options: {
   }
 
   function completeNickname(): void {
-    if (!isEditing('nickname') || !isSignupNicknameValid(draftStore.getState().nickname)) return;
+    if (!isEditing('nickname') || !canCompleteSignupNickname(draftStore.getState())) return;
     advanceFrom('nickname');
   }
 
