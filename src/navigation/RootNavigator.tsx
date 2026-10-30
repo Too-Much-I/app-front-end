@@ -144,7 +144,13 @@ export function RootNavigator({
           screenOptions={{ headerShown: false, gestureEnabled: false }}
         >
           <Stack.Screen name="AuthLogin">
-            {() => <LoginRoute coordinator={coordinator} lastLoginProvider={lastLoginProvider} />}
+            {() => (
+              <LoginRoute
+                coordinator={coordinator}
+                lastLoginProvider={lastLoginProvider}
+                origin={state.status}
+              />
+            )}
           </Stack.Screen>
         </Stack.Navigator>
       );
@@ -266,9 +272,11 @@ function AccountWithdrawnRoute({
 function LoginRoute({
   coordinator,
   lastLoginProvider,
+  origin,
 }: {
   coordinator: ReturnType<typeof createAuthCoordinator>;
   lastLoginProvider: ReturnType<typeof createLastLoginProviderStore>;
+  origin: 'noSession' | 'guest';
 }) {
   const recentProvider = useStore(lastLoginProvider, (snapshot) =>
     snapshot.status === 'loaded' ? snapshot.provider : null,
@@ -280,9 +288,10 @@ function LoginRoute({
     void lastLoginProvider.load();
   }, [lastLoginProvider]);
 
+  // 가입 단계 이벤트와 같은 모집단이 되도록 Guest가 보는 로그인 화면은 세지 않는다.
   useEffect(() => {
-    trackConversion('login_screen_viewed');
-  }, []);
+    if (origin === 'noSession') trackConversion('login_screen_viewed');
+  }, [origin]);
 
   const selectProvider = (provider: FirebaseLoginProvider) => {
     if (recentProvider && recentProvider !== provider) setDifferentProvider(provider);
