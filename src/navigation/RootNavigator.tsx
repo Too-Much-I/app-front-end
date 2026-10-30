@@ -285,7 +285,8 @@ function LoginRoute({
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-subtle">
+    // 아래쪽 안전 영역은 로그인 화면의 흰 시트가 직접 비운다. 여기서 비우면 시트 아래가 주황으로 남는다.
+    <SafeAreaView className="flex-1 bg-brand" edges={['top']}>
       <LoginScreen
         recentProvider={recentProvider}
         onSelectProvider={selectProvider}

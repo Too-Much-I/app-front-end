@@ -1,13 +1,12 @@
-import { Feather } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
 import { Image, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
-import { Button } from '@/components/ui/Button';
 import { Pressable } from '@/components/ui/Pressable';
 import { Text } from '@/components/ui/Text';
-import { LoginProviderMark } from '@/screens/auth/components/LoginProviderMark';
-import { RecentProviderBubble } from '@/screens/auth/components/RecentProviderBubble';
-import { getLoginProviderLabel } from '@/screens/auth/login-provider-label';
-import { colors, size } from '@/theme';
+import { LoginProviderButton } from '@/screens/auth/components/LoginProviderButton';
+import { colors, spacing } from '@/theme';
 
 export type LoginProviderChoice = 'kakao' | 'google' | 'apple';
 
@@ -20,16 +19,22 @@ interface LoginScreenProps {
 
 const PROVIDERS: LoginProviderChoice[] = ['kakao', 'google', 'apple'];
 
-/** Provider 노출 정책과 인증은 호출자가 맡는다. 현재는 개발용 UI 미리보기에서만 사용한다. */
+/**
+ * 주황 무대 위에 흰 시트를 올린 로그인 화면(2026-10-30 시안 C3).
+ * 위쪽 안전 영역은 감싸는 쪽이 주황으로 칠하고, 아래쪽은 시트가 직접 비운다.
+ * Provider 노출 정책과 인증은 호출자가 맡는다.
+ */
 export function LoginScreen({
   onSelectProvider,
   recentProvider = null,
   onFindAccount,
 }: LoginScreenProps) {
+  const insets = useSafeAreaInsets();
   return (
-    <View className="flex-1 bg-surface-subtle">
+    <View className="flex-1 bg-brand">
+      <StatusBar style="light" />
       <View className="min-h-control-lg flex-row items-center px-screen">
-        <View className="flex-row items-center gap-content">
+        <View className="flex-row items-center gap-element">
           <Image
             // 할로윈 기간 로고. 할로윈이 끝나면 다음 빌드에서 logo.png로 되돌린다(docs/decisions/2026-10-22-할로윈-마스코트.md).
             source={require('../../../public/logo_halloween.png')}
@@ -37,67 +42,99 @@ export function LoginScreen({
             resizeMode="contain"
             accessible={false}
           />
-          <Text className="text-2xl !text-brand">토선생</Text>
+          <Text className="text-2xl !text-white">토선생</Text>
         </View>
       </View>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="grow px-screen pb-section pt-section"
+        contentContainerClassName="grow"
         showsVerticalScrollIndicator={false}
       >
-        <View className="items-center gap-content">
-          <Text accessibilityRole="header" className="text-center text-3xl">
-            토익스피킹,{'\n'}
-            <Text className="text-3xl !text-brand-text">첫 모의고사 1회 무료</Text>
-          </Text>
-          <Text className="text-center text-sm text-ink-muted">
-            가입을 마치고, 내 실력부터 확인해요.
-          </Text>
-        </View>
-        <View className="my-section flex-1 items-center justify-center">
-          <View className="relative h-56 w-64 items-center justify-end">
-            <View className="absolute bottom-0 h-40 w-60 rounded-pill bg-brand-100" />
-            <Text className="absolute left-0 top-12 text-3xl !text-brand" accessible={false}>
-              ✦
-            </Text>
+        <View className="flex-1 justify-end px-screen">
+          <View className="relative h-80 w-full" accessible={false}>
             <View
-              className="absolute right-0 top-4 h-11 w-10 items-center justify-center rounded-chip border border-sky-line bg-sky-surface"
-              style={{ transform: [{ rotate: '12deg' }] }}
+              className="absolute left-0 top-1.5 items-start gap-xs"
+              style={{ transform: [{ rotate: '-5deg' }] }}
             >
-              <Feather name="file-text" size={size.icon.lg} color={colors.sky.text} />
+              <View className="bg-login-navy px-md py-1.5">
+                <Text className="!font-rubik text-[2.125rem] leading-[2.125rem] !text-white">
+                  SPEAK
+                </Text>
+              </View>
+              <Text className="ml-7 !font-caveat text-[2rem] leading-[2rem] !text-white">or</Text>
+              <View className="ml-3.5 bg-surface px-md py-1.5">
+                <Text className="!font-rubik text-[2.125rem] leading-[2.125rem] !text-login-navy">
+                  READING?
+                </Text>
+              </View>
             </View>
+            <Svg
+              width={40}
+              height={52}
+              viewBox="0 0 40 52"
+              style={{ position: 'absolute', right: spacing['2xl'], top: spacing.xs }}
+            >
+              <Path
+                d="M20 2 V50 M4 26 H36 M10 14 L30 38 M30 14 L10 38"
+                stroke={colors.surface.DEFAULT}
+                strokeWidth={2.5}
+                strokeLinecap="round"
+              />
+            </Svg>
+            <Svg
+              width={18}
+              height={18}
+              viewBox="0 0 18 18"
+              style={{ position: 'absolute', right: spacing.sm, top: 60 }}
+            >
+              <Path
+                d="M9 1 V17 M1 9 H17 M3 3 L15 15 M15 3 L3 15"
+                stroke={colors.login.navy}
+                strokeWidth={2}
+                strokeLinecap="round"
+              />
+            </Svg>
             <Image
               // 할로윈 기간 그림. 할로윈이 끝나면 다음 빌드에서 greeting_rabbit_bust.png로 되돌린다.
               source={require('../../../public/mascots/dracula_rabbit.png')}
-              className="h-52 w-48"
+              className="absolute -bottom-1.5 right-2.5 h-52 w-44"
               resizeMode="contain"
               accessible={false}
             />
+            {/* 할로윈 기간 문구. 로고·그림과 함께 다음 빌드에서 뺀다. */}
+            <Text
+              className="absolute left-3.5 top-[9.375rem] !font-caveat text-[1.625rem] leading-[2rem] !text-white"
+              style={{ transform: [{ rotate: '-6deg' }] }}
+            >
+              Happy Halloween!
+            </Text>
           </View>
         </View>
-        <View className="gap-section pt-element">
-          <Text className="text-center text-lg">소셜 로그인으로 간단하게 시작하세요</Text>
-          {/* 말풍선이 버튼 위로 튀어도 안내 문구에 닿지 않게 위 여백을 비워 둔다. */}
-          <View className="flex-row justify-center gap-section-lg pt-2xl">
-            {PROVIDERS.map((provider) => {
-              const isRecent = provider === recentProvider;
-              return (
-                <View key={provider} className="relative">
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`${getLoginProviderLabel(provider)}로 계속하기${isRecent ? ', 최근 사용' : ''}`}
-                    className="rounded-pill"
-                    onPress={() => onSelectProvider(provider)}
-                  >
-                    <LoginProviderMark provider={provider} />
-                  </Pressable>
-                  {isRecent ? <RecentProviderBubble /> : null}
-                </View>
-              );
-            })}
-          </View>
+        <View
+          className="gap-element rounded-t-card bg-surface-subtle px-screen pt-3xl"
+          style={{ paddingBottom: insets.bottom + spacing['3xl'] }}
+        >
+          <Text accessibilityRole="header" className="text-3xl">
+            <Text className="text-3xl !text-brand-text">3초</Text>면 가입 끝!
+          </Text>
+          <Text className="mb-sm text-base text-ink-muted">아이디도 비밀번호도 필요 없어요.</Text>
+          {PROVIDERS.map((provider) => (
+            <LoginProviderButton
+              key={provider}
+              provider={provider}
+              isRecent={provider === recentProvider}
+              onPress={() => onSelectProvider(provider)}
+            />
+          ))}
           {onFindAccount ? (
-            <Button label="가입한 계정 찾기" variant="text" onPress={onFindAccount} />
+            // 시안 C3대로 회색 글자. 공용 Button의 text variant는 주황이라 직접 그린다.
+            <Pressable
+              accessibilityRole="button"
+              className="min-h-control-md items-center justify-center self-center px-card"
+              onPress={onFindAccount}
+            >
+              <Text className="text-base text-ink-muted">가입한 계정 찾기</Text>
+            </Pressable>
           ) : null}
         </View>
       </ScrollView>
