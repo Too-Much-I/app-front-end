@@ -40,7 +40,9 @@ export function MyPageGreeting({ nickname }: MyPageGreetingProps) {
             </>
           )}
         </Text>
-        <Text className="mt-1 text-base text-ink-muted">오늘도 힘내봐요</Text>
+        <Text className="mt-1 text-base text-ink-muted">
+          매일 10초 챌린지 3문장으로 당근을 채워보세요
+        </Text>
       </View>
     </View>
   );

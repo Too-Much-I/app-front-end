@@ -23,6 +23,7 @@ import {
 import { LoginScreen } from '@/screens/auth/LoginScreen';
 import {
   PhoneVerificationScreen,
+  SIGNUP_PHONE_NOTICE,
   type PhoneVerificationViewState,
 } from '@/screens/auth/PhoneVerificationScreen';
 import { SupportInquiryScreen } from '@/screens/support/SupportInquiryScreen';
@@ -156,6 +157,7 @@ function PhoneVerificationPreviewRoute({
         state={state}
         step={3}
         totalSteps={3}
+        numberNotice={SIGNUP_PHONE_NOTICE}
         onBack={state.step === 'number' ? navigation.goBack : editPhone}
         onChangePhone={changePhone}
         onRequestCode={() => setState(requestPreviewPhoneCode(state))}
