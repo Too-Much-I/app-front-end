@@ -304,6 +304,7 @@ export function createAuthRuntime(options: {
       draftStore: coordinator.signupDraft,
       // 흐름은 전화 인증 컨트롤러를 받아 만들어지므로 호출 시점에 참조한다.
       onReauthRequired: () => flow.requireSignInAgain(),
+      isDirectSignup: input.enrollment.origin !== 'guest',
     });
     const { enrollment } = input;
     const flow =

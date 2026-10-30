@@ -25,6 +25,7 @@ import {
   type AuthRecoveryReason,
   type AuthSessionRestoreResult,
 } from '@/features/auth/session-restoration-types';
+import { trackConversion } from '@/lib/ad-conversion';
 import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 /**
@@ -334,6 +335,13 @@ export function createAuthCoordinator(
     report: { stage: 'identity' | 'session-activate'; reason: string; cause?: unknown } | null,
   ): void {
     if (!isCurrent(attempt)) return;
+    if (attempt.origin === 'noSession') {
+      trackConversion({
+        name: 'sns_login_failed',
+        method: attempt.provider,
+        stage: report?.stage ?? 'firebase',
+      });
+    }
     if (report) {
       reportOperationalError({
         code: 'AUTH_SIGN_IN_FAILED',
@@ -401,6 +409,8 @@ export function createAuthCoordinator(
           }
         : { terms: null, privacy: null, qualityReview: null, marketingPush: null },
     );
+    // Guest 승격은 `sign_up`처럼 세지 않는다.
+    if (enrollment.origin !== 'guest') trackConversion('signup_started');
     store.setState({ state: { status: 'signingUp', flowId, uid, enrollment } });
   }
 
@@ -524,6 +534,9 @@ export function createAuthCoordinator(
         await submitIdentityProof(attempt, proof, canRefreshProof);
         return;
       case 'cancelled':
+        // SNS 창에서 돌아온 취소만 센다. 가입 화면에서 나가는 취소는 cancelLogin을 바로 부른다.
+        if (attempt.origin === 'noSession')
+          trackConversion({ name: 'sns_login_cancelled', method: attempt.provider });
         cancelLogin();
         return;
       case 'ignored':
@@ -566,6 +579,9 @@ export function createAuthCoordinator(
       state: { status: 'signingIn', origin: attempt.origin, provider },
     });
     if (!isCurrent(attempt)) return;
+    // 로그인 단계 이벤트는 `signup_started`와 같은 모집단이 되도록 Guest 출발을 세지 않는다(2026-10-30 결정).
+    if (attempt.origin === 'noSession')
+      trackConversion({ name: 'sns_login_started', method: provider });
     await handleFirebaseProof(attempt, await login.firebase.signIn(provider));
   }
 
