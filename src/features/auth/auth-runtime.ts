@@ -63,7 +63,6 @@ import {
   type ReferralDecision,
 } from '@/features/referral/referral-application';
 import { checkReferralCodeFormat } from '@/features/referral/referral-code-format';
-import { markReferralInvitePopupPending } from '@/features/referral/referral-invite-popup-storage';
 import { createAuthenticatedApiClient } from '@/lib/api/authenticated-client';
 import { resetAnalyticsUser, setAnalyticsUserId, trackEvent } from '@/lib/amplitude';
 import { reportOperationalError } from '@/lib/operational-error-reporting';
@@ -270,20 +269,17 @@ export function createAuthRuntime(options: {
   });
   /**
    * 가입을 마쳤다. 세션을 활성화하기 전에 기기에 남긴다 — 홈이 보이자마자 읽는다. 추천 코드는 이 Firebase
-   * 사용자와 함께 두고 홈이 보낸다(2026-10-29 D2·D4 결정). 친구 초대 팝업은 이 기기에서 가입한 사람의 첫 홈에만
-   * 띄운다(D11). 병합은 이 경로를 지나지 않아 코드를 보내지 않는다. 던지지 않는다 — 가입 완료를 막지 않는다.
+   * 사용자와 함께 두고 홈이 보낸다(2026-10-29 D2·D4 결정). 병합은 이 경로를 지나지 않아 코드를 보내지 않는다.
+   * 던지지 않는다 — 가입 완료를 막지 않는다.
    */
   async function rememberEnrollment(enrollment: IdentityEnrollment, uid: string): Promise<void> {
     const { referralCode } = coordinator.signupDraft.getState();
-    const tasks = [markReferralInvitePopupPending().catch(() => undefined)];
-    if (checkReferralCodeFormat(referralCode) === 'valid') {
-      trackEvent({
-        name: 'referral_code_entered',
-        properties: { signupPath: enrollment.origin === 'guest' ? 'guest-upgrade' : 'direct' },
-      });
-      tasks.push(referral.remember({ uid, code: referralCode }));
-    }
-    await Promise.all(tasks);
+    if (checkReferralCodeFormat(referralCode) !== 'valid') return;
+    trackEvent({
+      name: 'referral_code_entered',
+      properties: { signupPath: enrollment.origin === 'guest' ? 'guest-upgrade' : 'direct' },
+    });
+    await referral.remember({ uid, code: referralCode });
   }
   /**
    * 가입 화면이 흐름마다 한 번 만들고, 화면이 사라질 때 dispose한다. enrollment 출처로 흐름을 고른다:
@@ -304,6 +300,7 @@ export function createAuthRuntime(options: {
       draftStore: coordinator.signupDraft,
       // 흐름은 전화 인증 컨트롤러를 받아 만들어지므로 호출 시점에 참조한다.
       onReauthRequired: () => flow.requireSignInAgain(),
+      isDirectSignup: input.enrollment.origin !== 'guest',
     });
     const { enrollment } = input;
     const flow =

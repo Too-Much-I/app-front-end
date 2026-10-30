@@ -25,6 +25,8 @@ interface PhoneVerificationScreenProps {
   blockedSeconds?: number | null;
   /** 번호 입력 아래 덧붙이는 행동(가입 중 번호 충돌의 계정 찾기 등). */
   numberAction?: { label: string; disabled?: boolean; onPress: () => void };
+  /** 번호 입력 아래에 인증 이유를 알린다. 가입 흐름만 켠다(계정 찾기는 본인 확인이라 끈다). */
+  showSignupNotice?: boolean;
   onBack: () => void;
   onChangePhone: (value: string) => void;
   onRequestCode: () => void;
@@ -53,6 +55,7 @@ export function PhoneVerificationScreen({
   busy = false,
   blockedSeconds = null,
   numberAction,
+  showSignupNotice = false,
   onBack,
   onChangePhone,
   onRequestCode,
@@ -142,6 +145,17 @@ export function PhoneVerificationScreen({
               >
                 {state.error}
               </Text>
+            ) : null}
+            {showSignupNotice ? (
+              <View className="flex-row items-start gap-xs">
+                {/* 첫 줄 글자 높이(20)에 아이콘(16)을 맞춘다. */}
+                <View className="mt-0.5">
+                  <Feather name="info" size={size.icon.sm} color={colors.ink.muted} />
+                </View>
+                <Text className="min-w-0 flex-1 text-sm !text-ink-muted">
+                  시험 정보 안내 및 이용 이력 관리를 위해 인증을 진행합니다.
+                </Text>
+              </View>
             ) : null}
             {numberAction ? (
               <Button

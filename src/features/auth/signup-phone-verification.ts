@@ -14,6 +14,7 @@ import {
   type PhoneCollisionCredential,
 } from '@/features/auth/firebase-auth-errors';
 import type { createSignupDraftStore } from '@/features/auth/signup-draft-store';
+import { trackConversion } from '@/lib/ad-conversion';
 import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 const MAX_SEND_ATTEMPTS = 5;
@@ -147,8 +148,10 @@ export function createSignupPhoneVerification(options: {
   draftStore: ReturnType<typeof createSignupDraftStore>;
   /** 연결 대상 Firebase 사용자가 바뀌었거나 SNS 재인증이 필요할 때 호출한다. */
   onReauthRequired: () => void;
+  /** Guest 승격도 이 컨트롤러를 쓴다. 광고 측정 가입 단계는 직접 가입만 센다. */
+  isDirectSignup: boolean;
 }) {
-  const { uid, draftStore } = options;
+  const { uid, draftStore, isDirectSignup } = options;
   const store = createStore<SignupPhoneVerificationState>(() =>
     emptyPhoneVerification(draftStore.getState().phoneRevision),
   );
@@ -221,6 +224,8 @@ export function createSignupPhoneVerification(options: {
       return;
     }
 
+    // 실제로 발송을 시도할 때만 센다. 번호 형식·대기 시간에 막힌 탭은 세지 않는다.
+    if (isDirectSignup) trackConversion('phone_code_requested');
     invalidate();
     const attempt = generation;
     const delaySeconds =

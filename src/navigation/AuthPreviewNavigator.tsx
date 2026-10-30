@@ -156,6 +156,7 @@ function PhoneVerificationPreviewRoute({
         state={state}
         step={3}
         totalSteps={3}
+        showSignupNotice
         onBack={state.step === 'number' ? navigation.goBack : editPhone}
         onChangePhone={changePhone}
         onRequestCode={() => setState(requestPreviewPhoneCode(state))}
