@@ -14,6 +14,7 @@ import {
   type PhoneCollisionCredential,
 } from '@/features/auth/firebase-auth-errors';
 import type { createSignupDraftStore } from '@/features/auth/signup-draft-store';
+import { trackConversion } from '@/lib/ad-conversion';
 import { reportOperationalError } from '@/lib/operational-error-reporting';
 
 const MAX_SEND_ATTEMPTS = 5;
@@ -221,6 +222,8 @@ export function createSignupPhoneVerification(options: {
       return;
     }
 
+    // 실제로 발송을 시도할 때만 센다. 번호 형식·대기 시간에 막힌 탭은 세지 않는다.
+    trackConversion('phone_code_requested');
     invalidate();
     const attempt = generation;
     const delaySeconds =

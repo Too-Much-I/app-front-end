@@ -45,6 +45,7 @@ import { ChallengeResultScreen } from '@/screens/challenge/ChallengeResultScreen
 import { ChallengeStageScreen } from '@/screens/challenge/ChallengeStageScreen';
 import { TenSecondChallengeScreen } from '@/screens/challenge/TenSecondChallengeScreen';
 import { ScreenCrashLayout } from '@/components/ui/ScreenCrashLayout';
+import { trackConversion } from '@/lib/ad-conversion';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -278,6 +279,10 @@ function LoginRoute({
   useEffect(() => {
     void lastLoginProvider.load();
   }, [lastLoginProvider]);
+
+  useEffect(() => {
+    trackConversion('login_screen_viewed');
+  }, []);
 
   const selectProvider = (provider: FirebaseLoginProvider) => {
     if (recentProvider && recentProvider !== provider) setDifferentProvider(provider);

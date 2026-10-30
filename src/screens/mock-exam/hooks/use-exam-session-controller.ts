@@ -4,6 +4,7 @@ import { useStore } from 'zustand';
 import { AudioRecordingError } from '@/features/audio/use-timed-audio-recorder';
 import { useAnswerRecorder } from '@/features/exam/use-answer-recorder';
 import { useAnswerSubmissions } from '@/features/exam/use-answer-submissions';
+import { trackConversion } from '@/lib/ad-conversion';
 import { trackEvent } from '@/lib/amplitude';
 import { reportOperationalError } from '@/lib/operational-error-reporting';
 import { getPlayableQuestionAudioUrl } from '@/features/exam/question-audio';
@@ -332,6 +333,7 @@ export function useExamSessionController(session: ExamSession, isExamActive: boo
    */
   useEffect(() => {
     trackEvent({ name: 'exam_started' });
+    trackConversion('mock_exam_started');
 
     return () => {
       if (hasTrackedCompletionRef.current) return;

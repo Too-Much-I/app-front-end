@@ -283,6 +283,7 @@ export function createSignupFlow(options: {
   }
 
   function advanceFrom(step: SignupStep): void {
+    trackConversion({ name: 'signup_step_completed', step });
     const next = steps[steps.indexOf(step) + 1];
     if (next) goTo(next);
     else void submit(step);
