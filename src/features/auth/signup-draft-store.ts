@@ -11,6 +11,8 @@ export type SignupDraftConsent =
 
 type SignupDraftState = {
   nickname: string;
+  /** 가입 때 입력한 남의 추천 코드. 정규화한 값이다. 비어 있으면 적용하지 않는다. 병합으로 가면 초기화로 버린다. */
+  referralCode: string;
   phone: string;
   /** 번호가 다시 원래 값으로 돌아와도 이전 인증 시도를 재사용하지 않는다. */
   phoneRevision: number;
@@ -20,6 +22,7 @@ type SignupDraftState = {
 function emptySignupDraft(phoneRevision = 0): SignupDraftState {
   return {
     nickname: '',
+    referralCode: '',
     phone: '',
     phoneRevision,
     consents: {
@@ -97,6 +100,7 @@ export function createSignupDraftStore() {
   return {
     ...store,
     setNickname: (nickname: string) => store.setState({ nickname }),
+    setReferralCode: (referralCode: string) => store.setState({ referralCode }),
     setPhone,
     setConsent,
     setAllConsents,
