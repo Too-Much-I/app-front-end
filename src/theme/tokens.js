@@ -114,6 +114,16 @@ const colors = {
     margin: '#F0B6AE',
   },
   /**
+   * 로그인 화면 주황 무대의 글자 블록 색.
+   *
+   * 값은 `exam.navy`와 같지만 따로 둔다. 저건 시험 진행 상태색이고 이건 장식이라,
+   * 한쪽을 조정할 때 다른 쪽이 끌려가면 안 된다.
+   */
+  login: {
+    /** "SPEAK" 블록 바탕, 흰 "READING?" 블록 글자, 작은 별. */
+    navy: '#172554',
+  },
+  /**
    * 10초 챌린지 노트 전용 색.
    *
    * 목업(`output/imagegen/10s-challenge/concept-b.png`)의 노트 영역에서 직접 뽑았다.
@@ -300,13 +310,19 @@ const shadow = {
 };
 
 /**
- * Jua 하나만 쓴다. 커스텀 폰트는 iOS/Android에서 동일하게 렌더링되므로
+ * 본문은 Jua 하나만 쓴다. 커스텀 폰트는 iOS/Android에서 동일하게 렌더링되므로
  * San Francisco/Roboto의 메트릭 차이를 아예 만들지 않는다.
  * `sans`도 같은 값으로 덮어써서, 별도 지정 없이 떨어지는 텍스트도 Jua가 되게 한다.
+ *
+ * `rubik`·`caveat`는 로그인 화면의 영문 장식 글자(SPEAK / or / READING?) 전용이다.
+ * 굵기마다 파일이 따로라 쓰는 굵기 하나씩만 싣는다. 본문에는 쓰지 않는다.
+ * `jua` 뒤에 두어야 `Text`의 기본 `font-jua`를 덮어쓴다(같은 우선순위면 나중 규칙이 이긴다).
  */
 const fontFamily = {
   jua: ['Jua_400Regular'],
   sans: ['Jua_400Regular'],
+  rubik: ['Rubik_900Black'],
+  caveat: ['Caveat_700Bold'],
 };
 
 /**

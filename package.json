@@ -1,7 +1,7 @@
 {
   "name": "app-front-end",
   "private": true,
-  "version": "3.1.1",
+  "version": "3.2.0",
   "packageManager": "pnpm@11.23.0",
   "main": "index.ts",
   "scripts": {
@@ -21,7 +21,9 @@
   },
   "dependencies": {
     "@amplitude/analytics-react-native": "^1.6.9",
+    "@expo-google-fonts/caveat": "^0.4.2",
     "@expo-google-fonts/jua": "^0.4.1",
+    "@expo-google-fonts/rubik": "^0.4.2",
     "@expo/vector-icons": "^15.1.1",
     "@microsoft/react-native-clarity": "^4.6.3",
     "@react-native-async-storage/async-storage": "2.2.0",

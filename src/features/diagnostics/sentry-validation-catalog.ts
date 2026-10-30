@@ -325,6 +325,10 @@ const DEFINITIONS = {
     title: '이벤트 신청 실패',
     input: { code: 'PROMOTION_APPLICATION_FAILED', stage: 'submit', cause: SYNTHETIC_API_CAUSE },
   },
+  REFERRAL_FAILED: {
+    title: '추천 코드 적용 실패',
+    input: { code: 'REFERRAL_FAILED', stage: 'apply', cause: SYNTHETIC_API_CAUSE },
+  },
 } satisfies ValidationDefinitions;
 
 export interface SentryValidationCatalogItem {

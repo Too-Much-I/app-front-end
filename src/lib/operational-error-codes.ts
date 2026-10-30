@@ -35,6 +35,7 @@ export const OPERATIONAL_ERROR_CODES = [
   'PASS_PURCHASE_FAILED',
   'AUTH_SESSION_REJECTED',
   'PROMOTION_APPLICATION_FAILED',
+  'REFERRAL_FAILED',
 ] as const;
 
 export type OperationalErrorCode = (typeof OPERATIONAL_ERROR_CODES)[number];

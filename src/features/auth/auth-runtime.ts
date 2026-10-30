@@ -53,8 +53,20 @@ import { createPurchaseIdentity } from '@/features/pass/purchase-identity';
 import { logInStoreCustomer, logOutStoreCustomer } from '@/features/pass/revenuecat';
 import { observePushTokenRefresh } from '@/features/push/push-notification-events';
 import { createPushRegistration } from '@/features/push/push-registration';
+import { applyReferralCode } from '@/features/referral/api/apply-referral-code';
+import {
+  readPendingReferral,
+  writePendingReferral,
+} from '@/features/referral/pending-referral-storage';
+import {
+  createReferralApplication,
+  type ReferralDecision,
+} from '@/features/referral/referral-application';
+import { checkReferralCodeFormat } from '@/features/referral/referral-code-format';
+import { markReferralInvitePopupPending } from '@/features/referral/referral-invite-popup-storage';
 import { createAuthenticatedApiClient } from '@/lib/api/authenticated-client';
-import { resetAnalyticsUser, setAnalyticsUserId } from '@/lib/amplitude';
+import { resetAnalyticsUser, setAnalyticsUserId, trackEvent } from '@/lib/amplitude';
+import { reportOperationalError } from '@/lib/operational-error-reporting';
 import { queryClient } from '@/lib/query-client';
 import { setAccountStateTag, type AccountStateTag } from '@/lib/sentry';
 
@@ -83,6 +95,17 @@ const ACCOUNT_STATE_TAG_BY_STATUS = {
 
 function toAccountStateTag(status: AuthCoordinatorState['status']): AccountStateTag | null {
   return ACCOUNT_STATE_TAG_BY_STATUS[status];
+}
+
+/** 추천 코드 적용 결과를 분석에 남기고, 앱이 잘못 보내 반복하면 안 되는 오류만 보고한다. */
+function recordReferralDecision(decision: ReferralDecision, cause: unknown): void {
+  if (decision.kind === 'applied') {
+    trackEvent({ name: 'referral_applied' });
+    return;
+  }
+  trackEvent({ name: 'referral_apply_failed', properties: { reason: decision.reason } });
+  if (decision.kind === 'dropped' && decision.reason === 'unexpected')
+    reportOperationalError({ code: 'REFERRAL_FAILED', stage: 'apply', cause });
 }
 
 /**
@@ -158,6 +181,14 @@ export function createAuthRuntime(options: {
     readPending: readPendingPaymentSyncs,
     writePending: writePendingPaymentSyncs,
   });
+  const referral = createReferralApplication({
+    request: (request) => applyReferralCode(api.billingFetch, request),
+    readPending: readPendingReferral,
+    writePending: writePendingReferral,
+    getCurrentUid: options.firebaseSdk.getCurrentUid,
+    preparePurchaseAccount: () => purchaseIdentity.ensure(),
+    onDecided: recordReferralDecision,
+  });
   const isAuthenticated = () => coordinator.getState().state.status === 'authenticated';
   const mergeProgress = createMergeProgressTracker({
     getProgress: getMergeProgress,
@@ -208,7 +239,7 @@ export function createAuthRuntime(options: {
   });
   // 결제용 ID는 로그인·세션 복원 때 미리 받고, 확인을 끝내지 못한 결제를 다시 확인한다. 로그인 화면에 오면
   // 둘 다 비운다 — 다른 계정으로 보내지 않는다. 실패는 결제 화면이 다시 받는다. 결론 나지 않은 시험 생성
-  // 키도 같은 이유로 비운다.
+  // 키와 적용하지 못한 추천 코드도 같은 이유로 비운다(추천 코드는 2026-10-29 D9 결정).
   const stopPurchaseIdentity = coordinator.subscribe((snapshot, previous) => {
     const { status } = snapshot.state;
     if (status === previous.state.status) return;
@@ -221,6 +252,7 @@ export function createAuthRuntime(options: {
       forgetExamCreationKey();
       void paymentSync.clear();
       void purchaseIdentity.reset();
+      void referral.clear();
     }
   });
   // 전환 중 상태(로그인·가입 진행 등)에서는 직전 계정 상태를 유지한다.
@@ -237,6 +269,23 @@ export function createAuthRuntime(options: {
     retry: coordinator.retry,
   });
   /**
+   * 가입을 마쳤다. 세션을 활성화하기 전에 기기에 남긴다 — 홈이 보이자마자 읽는다. 추천 코드는 이 Firebase
+   * 사용자와 함께 두고 홈이 보낸다(2026-10-29 D2·D4 결정). 친구 초대 팝업은 이 기기에서 가입한 사람의 첫 홈에만
+   * 띄운다(D11). 병합은 이 경로를 지나지 않아 코드를 보내지 않는다. 던지지 않는다 — 가입 완료를 막지 않는다.
+   */
+  async function rememberEnrollment(enrollment: IdentityEnrollment, uid: string): Promise<void> {
+    const { referralCode } = coordinator.signupDraft.getState();
+    const tasks = [markReferralInvitePopupPending().catch(() => undefined)];
+    if (checkReferralCodeFormat(referralCode) === 'valid') {
+      trackEvent({
+        name: 'referral_code_entered',
+        properties: { signupPath: enrollment.origin === 'guest' ? 'guest-upgrade' : 'direct' },
+      });
+      tasks.push(referral.remember({ uid, code: referralCode }));
+    }
+    await Promise.all(tasks);
+  }
+  /**
    * 가입 화면이 흐름마다 한 번 만들고, 화면이 사라질 때 dispose한다. enrollment 출처로 흐름을 고른다:
    * exchange에서 받은 것은 direct signup, Guest prepare에서 받은 것은 승격. 화면은 같다.
    */
@@ -246,6 +295,10 @@ export function createAuthRuntime(options: {
     onComplete: (session: AuthSession) => Promise<void>;
     onMergeRequired: () => void;
   }) {
+    const onComplete = async (session: AuthSession) => {
+      await rememberEnrollment(input.enrollment, input.uid);
+      await input.onComplete(session);
+    };
     const phone = createSignupPhoneVerification({
       uid: input.uid,
       draftStore: coordinator.signupDraft,
@@ -268,7 +321,7 @@ export function createAuthRuntime(options: {
               submitUpgrade: submitGuestUpgrade,
               loadPolicyVersions: getPolicyVersions,
             },
-            onComplete: input.onComplete,
+            onComplete,
             onMergeRequired: input.onMergeRequired,
           })
         : createSignupFlow({
@@ -282,7 +335,7 @@ export function createAuthRuntime(options: {
               submitSignup: submitFirebaseSignup,
               loadPolicyVersions: getPolicyVersions,
             },
-            onComplete: input.onComplete,
+            onComplete,
           });
     return { flow, phone };
   }
@@ -374,6 +427,7 @@ export function createAuthRuntime(options: {
     push,
     purchaseIdentity,
     paymentSync,
+    referral,
     mergeProgress,
     lastLoginProvider,
     startEnrollment,

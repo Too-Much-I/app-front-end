@@ -15,6 +15,7 @@ import type {
 } from '@/features/auth/identity-login-types';
 import type { createSignupDraftStore } from '@/features/auth/signup-draft-store';
 import {
+  canCompleteSignupNickname,
   decideProofFailureNotice,
   decideRequestFailureNotice,
   decideSignupSteps,
@@ -279,7 +280,7 @@ export function createGuestUpgradeFlow(options: {
   }
 
   function completeNickname(): void {
-    if (!isEditing('nickname') || !isSignupNicknameValid(draftStore.getState().nickname)) return;
+    if (!isEditing('nickname') || !canCompleteSignupNickname(draftStore.getState())) return;
     advanceFrom('nickname');
   }
 

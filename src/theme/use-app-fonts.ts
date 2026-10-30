@@ -1,4 +1,6 @@
+import { Caveat_700Bold } from '@expo-google-fonts/caveat/700Bold';
 import { Jua_400Regular } from '@expo-google-fonts/jua';
+import { Rubik_900Black } from '@expo-google-fonts/rubik/900Black';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback } from 'react';
@@ -15,7 +17,7 @@ void SplashScreen.preventAutoHideAsync();
  * 실제로 첫 프레임이 그려진 다음 스플래시를 내려야 빈 화면이 보이지 않기 때문이다.
  */
 export function useAppFonts() {
-  const [fontsLoaded, fontError] = useFonts({ Jua_400Regular });
+  const [fontsLoaded, fontError] = useFonts({ Jua_400Regular, Rubik_900Black, Caveat_700Bold });
 
   const ready = fontsLoaded || fontError !== null;
 

@@ -14,9 +14,15 @@ importers:
       '@amplitude/analytics-react-native':
         specifier: ^1.6.9
         version: 1.6.9(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.17)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+      '@expo-google-fonts/caveat':
+        specifier: ^0.4.2
+        version: 0.4.2
       '@expo-google-fonts/jua':
         specifier: ^0.4.1
         version: 0.4.1
+      '@expo-google-fonts/rubik':
+        specifier: ^0.4.2
+        version: 0.4.2
       '@expo/vector-icons':
         specifier: ^15.1.1
         version: 15.1.1(expo-font@57.0.1(expo@57.0.11)(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.17)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.17)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
@@ -680,8 +686,14 @@ packages:
   '@bcoe/v8-coverage@0.2.3':
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
 
+  '@expo-google-fonts/caveat@0.4.2':
+    resolution: {integrity: sha512-kCG35tRUX8Wi+u0Jh5ck3K1u7vZkdLnwRTuKMrEnlVmikvxQFXN1KjF5cL2vqRG7Hwm7648Zl8xe1BWAoIsPCA==}
+
   '@expo-google-fonts/jua@0.4.1':
     resolution: {integrity: sha512-I6x3U8BSeMr8m+j7GMcI+3jkfnF6Umrn/moCdB0QrvUX/ecXN0yVse/sznE7uru/4VCDE5/3vsCIS9/zLRsGTQ==}
+
+  '@expo-google-fonts/rubik@0.4.2':
+    resolution: {integrity: sha512-WJtpQEw4lDKjCVnVIBF9qiZn+BTOB3juWvSchpZ+mnHFFV0gh4PyOvLLJCOMmKVgSj/pzFDtNe4apqexrD0+pA==}
 
   '@expo/cli@57.0.13':
     resolution: {integrity: sha512-8gjLMyx+s0dLeDHlcfjM9D9x5yrCU5C6516rmC7q/Wiyuj1fxgr/cbDSmjdpQKkjlvvfvNwtRyMk2zhvhPohiw==}
@@ -5261,7 +5273,11 @@ snapshots:
 
   '@bcoe/v8-coverage@0.2.3': {}
 
+  '@expo-google-fonts/caveat@0.4.2': {}
+
   '@expo-google-fonts/jua@0.4.1': {}
+
+  '@expo-google-fonts/rubik@0.4.2': {}
 
   '@expo/cli@57.0.13(5f37f2bdcd33dc6ee474b4f0f0acad97)':
     dependencies:

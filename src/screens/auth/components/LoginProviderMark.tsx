@@ -2,14 +2,8 @@ import { FontAwesome } from '@expo/vector-icons';
 import { Image, View } from 'react-native';
 
 import type { FirebaseLoginProvider } from '@/features/auth/firebase-auth-types';
-import { colors, size } from '@/theme';
-
-// Provider 고유 로고 색은 앱의 의미 색이 아니라 외부 브랜드 규격이다.
-const PROVIDER_APPEARANCE = {
-  kakao: { background: '#FEE500', color: '#191919', icon: 'comment' },
-  google: { background: colors.surface.DEFAULT, color: '#4285F4', icon: 'google' },
-  apple: { background: '#000000', color: '#FFFFFF', icon: 'apple' },
-} as const satisfies Record<FirebaseLoginProvider, object>;
+import { PROVIDER_APPEARANCE } from '@/screens/auth/login-provider-appearance';
+import { size } from '@/theme';
 
 /**
  * SNS 원형 로고. 로그인 화면 버튼과 계정 찾기 결과가 같은 모양을 써서, 결과에서 본 원을

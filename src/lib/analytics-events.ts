@@ -1,4 +1,5 @@
 import type { LearningLevel, LearningPart } from '@/features/learning/learning-level';
+import type { ReferralDecision } from '@/features/referral/referral-application';
 import type { ExamSessionPhase } from '@/types/exam';
 
 /**
@@ -99,6 +100,29 @@ export type AnalyticsEvent =
   /** 유료 세트를 이용권 없이 열어 안내를 봤다. 그 뒤 결제로 이어지는지 퍼널로 본다. */
   | { name: 'learning_pass_required'; properties: LearningEventProperties }
 
+  // 추천 코드(2026-10-29 결정). 코드 값은 싣지 않는다 — 식별자라 위 수집 원칙에 걸린다.
+  /**
+   * 가입 때 추천 코드를 넣고 가입을 마쳤다. 공유한 코드가 새 가입자에게 닿는지, 원래 쓰던 Guest에게 닿는지를
+   * 가입 경로로 나눈다. 형식이 맞는 코드만 센다.
+   */
+  | { name: 'referral_code_entered'; properties: { signupPath: ReferralSignupPath } }
+  /** 서버가 적용했다. 누군가 보낸 코드로 들어온 사람이 있다는 뜻이다. */
+  | { name: 'referral_applied' }
+  /** 적용 요청을 보냈거나 보내려다 실패했다. 다음 실행에 다시 보내는 실패(`kept`)도 센다. */
+  | { name: 'referral_apply_failed'; properties: { reason: ReferralApplyFailureReason } }
+  | { name: 'referral_share_clicked'; properties: { entry: ReferralInviteEntry } }
+  /**
+   * 공유 창이 닫혔다. Android는 공유하지 않고 닫아도 `shared`로 와서(React Native `Share`) 끝까지 공유했는지는
+   * iOS에서만 믿을 수 있다.
+   */
+  | {
+      name: 'referral_shared';
+      properties: { entry: ReferralInviteEntry; result: 'shared' | 'dismissed' };
+    }
+  /** 친구 초대 팝업에서 "내 추천 코드 보기"를 눌렀다. 이어서 `referral_share_clicked`로 퍼널을 본다. */
+  | { name: 'referral_invite_popup_clicked' }
+  | { name: 'referral_invite_popup_dismissed' }
+
   // 그 밖의 마찰 신호
   /** 어느 화면에서 가로로 돌리려 하는지. 태블릿 가로 지원 판단의 근거다. */
   | { name: 'portrait_notice_shown'; properties: { routeName: string } }
@@ -123,6 +147,15 @@ interface ChallengeEventProperties {
    */
   challengeDate: string;
 }
+
+/** 추천 코드를 넣은 가입. 직접 가입(`direct`)과 Guest 승격(`guest-upgrade`)이다. 병합은 코드를 받지 않는다. */
+export type ReferralSignupPath = 'direct' | 'guest-upgrade';
+
+/** 적용 실패의 이유. 지우고 알린 거절, 지우고 알리지 않은 것, 남겨 둔 것을 모두 담는다. */
+export type ReferralApplyFailureReason = Exclude<ReferralDecision, { kind: 'applied' }>['reason'];
+
+/** 친구 초대 화면에 들어온 길. 초대 팝업을 거쳐 공유까지 가는지를 마이페이지 메뉴와 나눈다. */
+export type ReferralInviteEntry = 'mypage' | 'invite-popup';
 
 /** 결과 화면에 들어온 길. 제출 직후(`submission`)와 다시 열어 본 것(`stage`)을 나눈다. */
 export type ChallengeResultEntry = 'submission' | 'stage';
