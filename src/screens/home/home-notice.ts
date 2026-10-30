@@ -1,3 +1,4 @@
+import type { PaidTransitionNoticeState } from '@/features/paid-transition/use-paid-transition-notice';
 import type { ReferralApplicationResultState } from '@/features/referral/use-referral-application-result';
 import type { ReferralInvitePopupState } from '@/features/referral/use-referral-invite-popup';
 
@@ -11,14 +12,14 @@ export type HomeNotice = 'referral-result' | 'paid-transition' | 'referral-invit
  */
 export function pickHomeNotice(input: {
   referralResult: ReferralApplicationResultState;
-  paidTransition: { settled: boolean; visible: boolean };
+  paidTransition: PaidTransitionNoticeState;
   referralInvite: ReferralInvitePopupState;
 }): HomeNotice {
   const { referralResult, paidTransition, referralInvite } = input;
   if (referralResult.status === 'checking') return null;
   if (referralResult.status === 'open') return 'referral-result';
-  if (!paidTransition.settled) return null;
-  if (paidTransition.visible) return 'paid-transition';
+  if (paidTransition === 'loading') return null;
+  if (paidTransition === 'visible') return 'paid-transition';
   if (referralInvite === 'pending' || referralInvite === 'showing') return 'referral-invite';
   return null;
 }

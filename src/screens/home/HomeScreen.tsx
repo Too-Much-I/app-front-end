@@ -77,7 +77,7 @@ export function HomeScreen() {
   const referralInvite = useReferralInvitePopup();
   const notice = pickHomeNotice({
     referralResult: referralResult.state,
-    paidTransition: paidTransitionNotice,
+    paidTransition: paidTransitionNotice.state,
     referralInvite: referralInvite.state,
   });
   const { show: showReferralInvite } = referralInvite;

@@ -1,14 +1,13 @@
 import { pickHomeNotice } from '@/screens/home/home-notice';
 
 const SETTLED_NONE = { status: 'none' } as const;
-const PAID_HIDDEN = { settled: true, visible: false };
 
 describe('pickHomeNotice', () => {
   it('추천 코드 결과를 모르면 아무것도 띄우지 않고 기다린다', () => {
     expect(
       pickHomeNotice({
         referralResult: { status: 'checking' },
-        paidTransition: { settled: true, visible: true },
+        paidTransition: 'visible',
         referralInvite: 'pending',
       }),
     ).toBeNull();
@@ -18,21 +17,21 @@ describe('pickHomeNotice', () => {
     expect(
       pickHomeNotice({
         referralResult: { status: 'open', result: { kind: 'applied' } },
-        paidTransition: { settled: true, visible: true },
+        paidTransition: 'visible',
         referralInvite: 'pending',
       }),
     ).toBe('referral-result');
     expect(
       pickHomeNotice({
         referralResult: SETTLED_NONE,
-        paidTransition: { settled: true, visible: true },
+        paidTransition: 'visible',
         referralInvite: 'pending',
       }),
     ).toBe('paid-transition');
     expect(
       pickHomeNotice({
         referralResult: SETTLED_NONE,
-        paidTransition: PAID_HIDDEN,
+        paidTransition: 'hidden',
         referralInvite: 'pending',
       }),
     ).toBe('referral-invite');
@@ -42,7 +41,7 @@ describe('pickHomeNotice', () => {
     expect(
       pickHomeNotice({
         referralResult: SETTLED_NONE,
-        paidTransition: { settled: false, visible: false },
+        paidTransition: 'loading',
         referralInvite: 'pending',
       }),
     ).toBeNull();
@@ -52,7 +51,7 @@ describe('pickHomeNotice', () => {
     expect(
       pickHomeNotice({
         referralResult: { status: 'closing', result: { kind: 'applied' } },
-        paidTransition: { settled: true, visible: true },
+        paidTransition: 'visible',
         referralInvite: 'pending',
       }),
     ).toBe('paid-transition');
@@ -62,7 +61,7 @@ describe('pickHomeNotice', () => {
     expect(
       pickHomeNotice({
         referralResult: SETTLED_NONE,
-        paidTransition: PAID_HIDDEN,
+        paidTransition: 'hidden',
         referralInvite: 'done',
       }),
     ).toBeNull();
