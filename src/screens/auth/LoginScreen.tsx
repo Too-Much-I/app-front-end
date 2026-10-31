@@ -36,8 +36,7 @@ export function LoginScreen({
       <View className="min-h-control-lg flex-row items-center px-screen">
         <View className="flex-row items-center gap-element">
           <Image
-            // 할로윈 기간 로고. 할로윈이 끝나면 다음 빌드에서 logo.png로 되돌린다(docs/decisions/2026-10-22-할로윈-마스코트.md).
-            source={require('../../../public/logo_halloween.png')}
+            source={require('../../../public/logo.png')}
             className="h-8 w-8"
             resizeMode="contain"
             accessible={false}
@@ -95,18 +94,18 @@ export function LoginScreen({
               />
             </Svg>
             <Image
-              // 할로윈 기간 그림. 할로윈이 끝나면 다음 빌드에서 greeting_rabbit_bust.png로 되돌린다.
-              source={require('../../../public/mascots/dracula_rabbit.png')}
+              // headset_rabbit.png(1159×1358)는 이 칸(176×208)과 비율이 거의 같아 잘리지 않는다.
+              source={require('../../../public/mascots/headset_rabbit.png')}
               className="absolute -bottom-1.5 right-2.5 h-52 w-44"
               resizeMode="contain"
               accessible={false}
             />
-            {/* 할로윈 기간 문구. 로고·그림과 함께 다음 빌드에서 뺀다. */}
+            {/* 대비 앱임을 드러낸다. "TOEIC Speaking"만 쓰면 ETS 공식 앱으로 보일 수 있다. */}
             <Text
-              className="absolute left-3.5 top-[9.375rem] !font-caveat text-[1.625rem] leading-[2rem] !text-white"
+              className="absolute left-3.5 top-[9.375rem] !font-caveat text-[1.5rem] leading-[1.75rem] !text-white"
               style={{ transform: [{ rotate: '-6deg' }] }}
             >
-              Happy Halloween!
+              for TOEIC Speaking
             </Text>
           </View>
         </View>
