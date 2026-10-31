@@ -100,6 +100,13 @@ export function LoginScreen({
               resizeMode="contain"
               accessible={false}
             />
+            {/* 대비 앱임을 드러낸다. "TOEIC Speaking"만 쓰면 ETS 공식 앱으로 보일 수 있다. */}
+            <Text
+              className="absolute left-3.5 top-[9.375rem] !font-caveat text-[1.625rem] leading-[2rem] !text-white"
+              style={{ transform: [{ rotate: '-6deg' }] }}
+            >
+              for TOEIC Speaking
+            </Text>
           </View>
         </View>
         <View
